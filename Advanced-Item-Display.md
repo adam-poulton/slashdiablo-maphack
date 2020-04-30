@@ -1,5 +1,3 @@
-# Advanced Item Display
-
 By enabling the "Advanced Item Display" configuration parameter, you can customize exactly how items are displayed. When this parameter is enabled, it will supersede these other parameters:
 
 - Show Ethereal
@@ -171,13 +169,13 @@ For example, to write all unique ethereal item names in purple, do this:
 
 There are conditions that refer to class specific items:
 
-- CL1: druid pelts
-- CL2: barbarian helms
-- CL3: paladin shields
-- CL4: necromancer heads
-- CL5: assassin katars
-- CL6: sorceress orbs
-- CL7: amazon weapons
+- CL1 or DRU: druid pelts
+- CL2 or BAR: barbarian helms
+- CL3 or DIN: paladin shields
+- CL4 or NEC: necromancer heads
+- CL5 or SIN: assassin katars
+- CL6 or SOR: sorceress orbs
+- CL7 or ZON: amazon weapons
 
 To display all ethereal paladin shields in purple, use this line:
 
@@ -185,30 +183,30 @@ To display all ethereal paladin shields in purple, use this line:
 
 ### Weapon Groups
 
-- WP1: axes
-- WP2: maces
-- WP3: swords
-- WP4: daggers
-- WP5: throwing weapons
-- WP6: javelins
-- WP7: spears
-- WP8: polearms
-- WP9: bows
-- WP10: crossbows
-- WP11: staves
-- WP12: wands
-- WP13: scepters
+- WP1 or AXE: axes
+- WP2 or MACE: maces
+- WP3 or SWORD: swords
+- WP4 or DAGGER: daggers
+- WP5 or THROWING: throwing weapons
+- WP6 or JAV: javelins
+- WP7 or SPEAR: spears
+- WP8 or POLEARM: polearms
+- WP9 or BOW: bows
+- WP10 or XBOX: crossbows
+- WP11 or STAFF: staves
+- WP12 or WAND: wands
+- WP13 or SCEPTER: scepters
 - WEAPON: any weapon
 
 ### Armor Groups
 
-- EQ1: helms
-- EQ2: body armor
-- EQ3: shields
-- EQ4: gloves
-- EQ5: boots
-- EQ6: belts
-- EQ7: circlets
+- EQ1 or HELM: helms
+- EQ2 or CHEST: body armor
+- EQ3 or SHIELD: shields
+- EQ4 or GLOVES: gloves
+- EQ5 or BOOTS: boots
+- EQ6 or BELT: belts
+- EQ7 or CIRC: circlets
 - ARMOR: any armor
 
 To display ethereal elite polearms capable of 4+ sockets in purple, use this line in BH.cfg:
@@ -278,12 +276,39 @@ Look up the number of the skill on this page: [skills list](Skills). For example
 Other miscellaneous conditions:
 
 - ILVL: matches against the item level
+- QLVL: matches against the item quality level
+- ALVL: matches against the item affix level
+- CLVL: matches against you character current level
+- DIFF: matches against the games current difficulty
 - ED: matches % effective defense/damage (depending on item type)
 - RES: matches resist all
+- FRES: matches fire resist
+- CRES: matches cold resist
+- LRES: matches lightning resist
+- PRES: matches poison resist
+- FCR: matches faster cast rate
+- FHR: matches faster hit recovery
+- FBR: matches faster block rate
+- FOOLS: matches against the Fools mod
+- LVLREQ: matches against the items level requirement
+- ARPER: matches against attack rating based on char level
+- MFIND: matches magic find
+- GFIND: matches gold find
+- STR: matches +STR items
+- DEX: matches +DEX items
+- FRW: matches faster run walk rate
+- MINDMG: matches +MIN damage items
+- MAXDMG: matches +MAX damage items
+- DTM: matches damage to mana
+- MAEK: matches mana after each kill
+- REPLIFE: matches replenish life
+- REPQUANT: matches repair quantity
+- REPAIR: matches repair durability
 - ID: matches items that have been identified
 - DEF: matches total defense
-- LIFE: matches +HP items (added 2/25/15, only available in builds after this date)
-- IAS: matches increased attack speed (added 2/25/15, only available in builds after this date)
+- LIFE: matches +HP items
+- MANA: matches +MANA items
+- IAS: matches increased attack speed
 
 ## Marking Items on the Map
 
