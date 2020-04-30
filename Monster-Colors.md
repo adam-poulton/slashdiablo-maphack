@@ -33,4 +33,4 @@ Here is a basic example that makes gloams and those little exploding undead doll
     Monster Color[690]:      0x9B
     Monster Color[691]:      0x9B
 
-[[To see all the colors you can use, look here.|http://www.bikejr.com/diablo/mh/colorpalette.bmp]]
+[[To see all the colors you can use, look here.|https://github.com/planqi/slashdiablo-maphack/blob/master/readme_gfx/color_palette.png]]
