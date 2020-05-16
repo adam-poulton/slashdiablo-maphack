@@ -152,6 +152,7 @@ Several conditions let you match items of certain quality:
 - NMAG: matches nonmagical (white/gray) items
 - ETH: matches ethereal items
 - RW: matches runewords
+- CRAFT: matches crafted items
 
 For example, to write all unique ethereal item names in purple, do this:
 
@@ -319,6 +320,37 @@ You can mark any matching item on the map with a square by putting %MAP% anywher
 This square will be white because a color was not specified; if a color is used before the %MAP% action, then that will be used as the square color. For example, this marks mage plates with blue squares:
 
     ItemDisplay[xtp]: %NAME%%BLUE%%MAP%
+
+## Item Descriptions (as of BH 1.9.9)
+
+Item descriptions allow users to add custom descriptions to items. For example, we can set a line describing how to make a Hoto runeword with an eligible flail (below).
+
+![](https://cdn.discordapp.com/attachments/524426475957387264/700332221252501604/unknown.png)
+
+Item descriptions are added using curly braces `{}`. The above description was created with the following line.
+```
+ItemDisplay[NMAG !RW (fla OR 9fl OR 7fl) SOCK=4]: {%WHITE%Heart of the Oak: %ORANGE%KoVexPulThul}
+```
+It is also valid to set the description in the same line as the item name or item `MAP` actions. For example:
+```
+ItemDisplay[NMAG !RW (fla OR 9fl OR 7fl) SOCK=4]: %NAME%%MAP%{%WHITE%Heart of the Oak: %ORANGE%KoVexPulThul}
+```
+Descriptions are processed separately from name and map actions, so a line with only a description will not set an ignore rule. For example, the following would still result in the item being visible in game.
+```
+ItemDisplay[NMAG !RW (fla OR 9fl OR 7fl) SOCK=4]: {%WHITE%Heart of the Oak: %ORANGE%KoVexPulThul}
+ItemDisplay[NMAG !RW (fla OR 9fl OR 7fl) SOCK=4]: %NAME%
+```
+Descriptions do not white list items. So an item with only a description can still be hidden. For example:
+```
+ItemDisplay[NMAG !RW (fla OR 9fl OR 7fl) SOCK=4]: {%WHITE%Heart of the Oak: %ORANGE%KoVexPulThul}
+ItemDisplay[NMAG !RW (fla OR 9fl OR 7fl) SOCK=4]:
+```
+Descriptions support any keywords that the normal item name does with the exception of `%CONTINUE%`. The `%CONTINUE%` keyword is not valid inside curly braces, but it can still be used outside curly braces to further modify descriptions. For example:
+```
+ItemDisplay[NMAG !RW (fla OR 9fl OR 7fl) SOCK=4]: {%WHITE%Heart of the Oak: %ORANGE%KoVexPulThul}%CONTINUE%
+ItemDisplay[NMAG !RW ETH fla SOCK=4]: {%NAME% (best base)}
+```
+Above, the description will be "Heart of the Oak: KoVexPulThul (best base)" for an eth 4 socket flail. The `%NAME%` keyword becomes a replacement token for the description up to that point.
 
 ## Example Configuration
 
