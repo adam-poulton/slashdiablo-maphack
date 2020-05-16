@@ -310,6 +310,7 @@ Other miscellaneous conditions:
 - LIFE: matches +HP items
 - MANA: matches +MANA items
 - IAS: matches increased attack speed
+- CRAFTALVL: matches the resulting affix level of the item if it were to be crafted by the character holding it
 
 ## Marking Items on the Map
 
@@ -351,6 +352,57 @@ ItemDisplay[NMAG !RW (fla OR 9fl OR 7fl) SOCK=4]: {%WHITE%Heart of the Oak: %ORA
 ItemDisplay[NMAG !RW ETH fla SOCK=4]: {%NAME% (best base)}
 ```
 Above, the description will be "Heart of the Oak: KoVexPulThul (best base)" for an eth 4 socket flail. The `%NAME%` keyword becomes a replacement token for the description up to that point.
+
+## Native ilvl display (as of BH 1.9.9)
+
+The item level is now displayed within the item properties. Similarly, affix level is shown for magic, rare, and crafted quality items. Affix level is only shown if it is different than item level. Additionally, the user must set "Advanced Item Display" and "Show iLvl" for these features to be active. Below shows some rare gloves with item level and affix level display.
+
+![image](https://user-images.githubusercontent.com/39288882/77383136-54b90400-6d3f-11ea-91d8-554a44c610a3.png)
+
+## In-game item filter modes (as of BH 1.9.9)
+
+The in-game menu supports four options for "Filter Level": None, Minimal, Moderate, and Aggressive. It is up to the BH.cfg to set the behavior for the filter modes. There is a new keyword `FILTLVL` to support these modes. The modes described previously correspond to `FILTLVL` 0, 1, 2, and 3, respectively.
+
+Here's an example of what can be done using the "Filter Level":
+
+![image](https://user-images.githubusercontent.com/39288882/79245509-0aeaa780-7e2d-11ea-889a-d3ee75073c5a.png)
+
+The skull cap is blocked when the filter level is set to moderate but not when it is set to None. This is because of the `FILTLVL>0` condition in the blocking line.
+
+
+## In-game configurable ping levels (as of BH 1.9.9)
+
+The "Ping Tiers" setting allows the user to control which lines in the config will ping and be drawn on the map. There is a new keyword, `TIER-x` that supports this. For example:
+
+![image](https://user-images.githubusercontent.com/39288882/79245919-a24ffa80-7e2d-11ea-968a-e620e0972b7c.png)
+
+![image](https://user-images.githubusercontent.com/39288882/79245934-a9770880-7e2d-11ea-84fc-7297a43ca512.png)
+
+Above we set the skull cap as a `TIER-2` item. This means that "Ping Tiers" must be set to 2 or more in game in order for this item to ping. The `TIER-x` command impacts only the map-box and notification. It does not impact the item name. All items with an explicit name or a map condition are whitelisted regardless of the "Ping Tiers" setting in game.
+
+For example, in the following situation, the skull cap would be displayed in game regardless of "Ping Tiers", but it will only notify and map when "Ping Tiers" is set to 2 or more.
+```
+ItemDisplay[!RW NMAG skp]: %NAME%%MAP%%TIER-2%
+ItemDisplay[!RW NMAG skp]:
+```
+
+If no TIER level is specified, it defaults to TIER-0. This is essentially an unconditional map + notification.
+
+## Craft affix level condition and display (as of BH 1.9.9)
+
+There is a new keyword `CRAFTALVL` that evaluates to the affix level of an item if it were to be crafted by the character holding it. For example, the below displays the new affix level as part of the item description.
+```
+ // Magic Amulets [VERBOSE]
+ ItemDisplay[MAG amu]: %NAME%{%WHITE%Caster: %ORANGE%Ral %PURPLE%O%WHITE%Perfect %BLUE%Jewel %WHITE%(%CRAFTALVL%)}
+```
+![image](https://media.discordapp.net/attachments/518165306141573151/700732831508332614/unknown.png)
+
+The keyword can also be used as part of the filter condition. For example:
+
+```
+ // Magic Amulets [VERBOSE]
+ ItemDisplay[MAG amu CRAFTALVL>89]: %NAME%%MAP%
+```
 
 ## Example Configuration
 
