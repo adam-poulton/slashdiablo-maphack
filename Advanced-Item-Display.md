@@ -28,6 +28,14 @@ This rule will match every item in the game, and will prevent the client from sh
 
 In version 0.1.4, items matching rules with no actions were still visible on the ground, but their names were changed to a single space. As of version 0.1.5, this is no longer true; these items are actually filtered out by the game client. As far as your game is concerned, the items do not exist. This is useful for reducing ground clutter from small gold stacks, junk items, etc. But be careful when using rules like this, as they can cause unexpected effects. For example, if you have a rule with no actions that matches health potions, they will effectively be invisible to you and you will not be able to see the potions on your own belt.
 
+As of 1.9.9, an ignore rule is only created when the item name and description are not blank, there is no map action, **and** there is no `%CONTINUE%` statement. Essentially only blank lines can create ignore rules.
+
+Additionally, blank item names are no longer generated. This could occasionally happen in previous releases when a name was set blank but the item was not completely filtered. To warn users that an item they see in game will be blocked by the packet filter, a `[blocked]` tag is added to the item. For example:
+
+![image](https://user-images.githubusercontent.com/39288882/77542745-e28e0f80-6e63-11ea-90c1-770a0a4f8871.png)
+
+The blocked tag is only generated when the item has an ignore rule and not an explicit whitelist rule (could be any valid name or a map condition). 
+
 ## Item Codes
 
 The simplest condition consists of an item code. An item code is the unique 3-letter code assigned to each type of item. You can find a full list of item codes here: http://bhfiles.com/files/Diablo%20II/ItemCodes.html.
