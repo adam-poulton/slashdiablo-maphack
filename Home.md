@@ -2,11 +2,13 @@ Welcome to the slashdiablo-maphack wiki!
 
 ## BH Configuration
 
-There are two configuration files associated with BH. They are:
+As of BH 1.9.9, there are two configuration files associated with BH. They are:
 
 1. `BH.cfg`. This contains all of the advanced item display lines (`ItemDisplay`, `SkillList`, and `TabSkillList` lines). This file will be updated by the Slash Diablo Launcher.
 
 2. `BH_settings.cfg`. This file contains all other settings. These settings can be overridden by the in-game menu. This file is up to the user to maintain, though they can start with a template.
+
+Previous to 1.9.9, all configuration was in the `BH.cfg` file.
 
 For examples of configs, see the User Configuration section below.
 
