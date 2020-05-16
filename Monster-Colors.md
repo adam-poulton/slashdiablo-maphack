@@ -1,4 +1,6 @@
-The "Monster Color" parameters in BH.cfg let you control the colors of monster symbols placed on the map. Here is the default configuration:
+Note: As of BH 1.9.9, Monster Color lines go in the `BH_settings.cfg` file, not `BH.cfg`.
+
+The "Monster Color" parameters in BH_settings.cfg let you control the colors of monster symbols placed on the map. Here is the default configuration:
 
     Monster Color[Normal]:   0x5B
     Monster Color[Minion]:   0x60
