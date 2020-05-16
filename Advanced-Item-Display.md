@@ -417,7 +417,6 @@ The keyword can also be used as part of the filter condition. For example:
 Here is a sample configuration file containing some basic rules that display certain items in purple. Ethereality, sockets, and item level are added to the item name. Inferior items are filtered out. Runes over lem are shown on the map.
 
     //Item Display Configuration
-    Advanced Item Display: True, None
     ItemDisplay[tsc]: %GREEN%**%WHITE%TP
     ItemDisplay[isc]: %GREEN%**%WHITE%ID
     ItemDisplay[vps]: Stam
@@ -494,3 +493,7 @@ Here is a sample configuration file containing some basic rules that display cer
 
     // Monarch shields
     ItemDisplay[uit (SOCK=0 OR SOCK=4) NMAG DEF>145]: %PURPLE%%NAME%
+
+## More Information
+
+See the [BH 1.9.9 Pre-Release Notes](https://github.com/youbetterdont/slashdiablo-maphack/wiki/BH-1.9.9-Pre-release-Notes) for detailed changes on this release.
