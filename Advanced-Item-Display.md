@@ -386,7 +386,7 @@ The "Ping Tiers" setting allows the user to control which lines in the config wi
 
 ![image](https://user-images.githubusercontent.com/39288882/79245934-a9770880-7e2d-11ea-84fc-7297a43ca512.png)
 
-Above we set the skull cap as a `TIER-2` item. This means that "Ping Tiers" must be set to 2 or more in game in order for this item to ping. The `TIER-x` command impacts only the map-box and notification. It does not impact the item name. All items with an explicit name or a map condition are whitelisted regardless of the "Ping Tiers" setting in game.
+Above we set the skull cap as a `TIER-2` item. This means that "Ping Tiers" must be set to 2 or more in game in order for this item to ping. The `TIER-x` command impacts only the map-box and notification. It does not impact the item name. All items with an explicit name or a map condition are whitelisted regardless of the "Ping Tiers" setting in game. In this context "whitelist" means that the item will never be blocked, even if the config had another line that tried to block the item.
 
 For example, in the following situation, the skull cap would be displayed in game regardless of "Ping Tiers", but it will only notify and map when "Ping Tiers" is set to 2 or more.
 ```
