@@ -1,3 +1,5 @@
+See the [Advanced Item Display](https://github.com/planqi/slashdiablo-maphack/wiki/Advanced-Item-Display#skill-tabs) section on Skill Tabs for use
+
 <table>
 <tr><th>Skill Tab</th><th>Skill Tab Number</th></tr>
 <tr><td>AMAZON_BOW</td><td>0</td></tr>
