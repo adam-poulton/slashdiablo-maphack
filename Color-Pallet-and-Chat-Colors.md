@@ -1,4 +1,4 @@
-Usage example: `%MAP-0C%` will give the color Yellow on Row 0 Column C on the table below
+Usage example: `%MAP-0C%` will give the map box the color Yellow on Row 0 Column C on the table below.
 
 ![Color Palette](https://raw.githubusercontent.com/planqi/slashdiablo-maphack/master/readme_gfx/color_palette.png)
 
