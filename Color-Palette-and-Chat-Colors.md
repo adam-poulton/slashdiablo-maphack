@@ -4,7 +4,7 @@ Usage example: `%MAP-0C%` will give the map box the color Yellow on Row 0 Column
 
 
 Chat colors chat in BH_Settings and for %notify-X% where X is 1 to 13 of the following. 
-Can also use the pallet table below for %notify-x%.
+Can also use the Palette table below for %notify-x%.
 
 Examples:
 
