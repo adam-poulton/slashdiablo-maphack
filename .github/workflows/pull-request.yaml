@@ -14,8 +14,10 @@ jobs:
       uses: microsoft/setup-msbuild@v1.0.2
     - uses: actions/checkout@master
     - name: MSBuild
-      run: msbuild /t:BH:Rebuild /p:Configuration=Release /p:CustomDefinitions=`"SHA=\`"($env:GITHUB_SHA.substring(0,7))\`"`" BH.sln
-    - uses: actions/upload-artifact@v2
+      run: |
+        $sha = $env:GITHUB_SHA.substring(0,7)
+        msbuild /t:BH:Rebuild /p:Configuration=Release /p:CustomDefinitions="SHA=$sha" BH.sln
+    - uses: actions/upload-artifact@v4
       with:
         name: BH.dll
         path: Release/BH.dll
