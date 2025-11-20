@@ -12,3 +12,4 @@
 #include "Modules\AutoTele\AutoTele.h"
 #include "Modules\Party\Party.h"
 #include "Modules\ChatColor\ChatColor.h"
+#include "Modules\GambleRefresh\GambleRefresh.h"

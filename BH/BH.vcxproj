@@ -168,6 +168,7 @@ if defined D2Path (
     <ClCompile Include="Modules\AutoTele\AutoTele.cpp" />
     <ClCompile Include="Modules\Bnet\Bnet.cpp" />
     <ClCompile Include="Modules\ChatColor\ChatColor.cpp" />
+    <ClCompile Include="Modules\GambleRefresh\GambleRefresh.cpp" />
     <ClCompile Include="Modules\Gamefilter\Gamefilter.cpp" />
     <ClCompile Include="Modules\Item\Item.cpp" />
     <ClCompile Include="Modules\Item\ItemDisplay.cpp" />
@@ -229,6 +230,7 @@ if defined D2Path (
     <ClInclude Include="Modules\AutoTele\AutoTele.h" />
     <ClInclude Include="Modules\Bnet\Bnet.h" />
     <ClInclude Include="Modules\ChatColor\ChatColor.h" />
+    <ClInclude Include="Modules\GambleRefresh\GambleRefresh.h" />
     <ClInclude Include="Modules\Gamefilter\Gamefilter.h" />
     <ClInclude Include="Modules\Item\Item.h" />
     <ClInclude Include="Modules\Item\ItemDisplay.h" />

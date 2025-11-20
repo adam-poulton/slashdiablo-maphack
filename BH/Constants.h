@@ -3,7 +3,9 @@
 #define VERSION "BH 1.9.11"
 
 #ifdef SHA
-#define BH_VERSION VERSION "." SHA
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+#define BH_VERSION VERSION "." TOSTRING(SHA)
 #else
 #define BH_VERSION VERSION
 #endif
