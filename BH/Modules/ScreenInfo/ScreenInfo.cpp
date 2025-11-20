@@ -45,16 +45,28 @@ void ScreenInfo::OnLoad() {
 	}
 	gameTimer = GetTickCount();
 	nTotalGames = 0;
-	szGamesToLevel = "N/A";
-	szTimeToLevel = "N/A";
-	szLastXpGainPer = "N/A";
-	szLastXpPerSec = "N/A";
-	szLastGameTime = "N/A";
+	szGamesToLevel = "";
+	szTimeToLevel = "";
+	szLastXpGainPer = "";
+	szLastXpPerSec = "";
+	szLastGameTime = "";
+	szLastTotalKillsPerSec = "";
+	szLastUniqueKillsPerSec = "";
+	szLastChampKillsPerSec = "";
+	szLastTotalKillsPerMin = "";
+	szLastUniqueKillsPerMin = "";
+	szLastChampKillsPerMin = "";
 	automap["GAMESTOLVL"] = szGamesToLevel;
 	automap["TIMETOLVL"] = szTimeToLevel;
 	automap["LASTXPPERCENTGAINED"] = szLastXpGainPer;
 	automap["LASTXPPERSEC"] = szLastXpPerSec;
 	automap["LASTGAMETIME"] = szLastGameTime;
+	automap["LASTTOTALKILLSPERSEC"] = szLastTotalKillsPerSec;
+	automap["LASTUNIQUEKILLSPERSEC"] = szLastUniqueKillsPerSec;
+	automap["LASTCHAMPKILLSPERSEC"] = szLastChampKillsPerSec;
+	automap["LASTTOTALKILLSPERMIN"] = szLastTotalKillsPerMin;
+	automap["LASTUNIQUEKILLSPERMIN"] = szLastUniqueKillsPerMin;
+	automap["LASTCHAMPKILLSPERMIN"] = szLastChampKillsPerMin;
 	automap["SESSIONGAMECOUNT"] = to_string(nTotalGames);
 	killscounter["total"] = 0;
 	killscounter["unique"] = 0;
@@ -135,11 +147,11 @@ void ScreenInfo::OnGameJoin() {
 	UnitAny* pUnit = D2CLIENT_GetPlayerUnit();
 	startExperience = (DWORD)D2COMMON_GetUnitStat(pUnit, STAT_EXP, 0);
 	if (currentPlayer.compare(0, 16, pUnit->pPlayerData->szName) != 0) {
-		szGamesToLevel = "N/A";
-		szTimeToLevel = "N/A";
-		szLastXpGainPer = "N/A";
-		szLastXpPerSec = "N/A";
-		szLastGameTime = "N/A";
+		szGamesToLevel = "";
+		szTimeToLevel = "";
+		szLastXpGainPer = "";
+		szLastXpPerSec = "";
+		szLastGameTime = "";
 	}
 	fill_n(aPlayerCountAverage, 8, 0);
 
@@ -428,7 +440,7 @@ void ScreenInfo::OnDraw() {
 	FormattedXPPerSec(xpPerSec, currentExpPerSecond);
 
 	if (Toggles["Experience Meter"].state) {
-		sprintf_s(sExp, "%00.2f%% (%s%00.2f%%) [%s]", pExp, currentExpGainPct >= 0 ? "+" : "", currentExpGainPct, xpPerSec);
+		sprintf_s(sExp, "%00.2f%% (%s%00.3f%%) [%s]", pExp, currentExpGainPct >= 0 ? "+" : "", currentExpGainPct, xpPerSec);
 		Texthook::Draw((*p_D2CLIENT_ScreenSizeX / 2) - 100, *p_D2CLIENT_ScreenSizeY - 60, Center, 6, White, "%s", sExp);
 	}
 
@@ -570,6 +582,36 @@ void ScreenInfo::OnDraw() {
 	automap["UNIQUEKILLED"] = to_string(killscounter["unique"]);
 	automap["CHAMPKILLED"] = to_string(killscounter["champ"]);
 
+	// Calculate kills per second
+	double totalKillsPerSec = endTimer > 0 ? killscounter["total"] / (double)endTimer : 0;
+	double uniqueKillsPerSec = endTimer > 0 ? killscounter["unique"] / (double)endTimer : 0;
+	double champKillsPerSec = endTimer > 0 ? killscounter["champ"] / (double)endTimer : 0;
+
+	char killsPerSecBuffer[32];
+	sprintf_s(killsPerSecBuffer, "%.2f", totalKillsPerSec);
+	automap["TOTALKILLSPERSEC"] = killsPerSecBuffer;
+
+	sprintf_s(killsPerSecBuffer, "%.2f", uniqueKillsPerSec);
+	automap["UNIQUEKILLSPERSEC"] = killsPerSecBuffer;
+
+	sprintf_s(killsPerSecBuffer, "%.2f", champKillsPerSec);
+	automap["CHAMPKILLSPERSEC"] = killsPerSecBuffer;
+
+	// Calculate kills per minute
+	double totalKillsPerMin = endTimer > 0 ? (killscounter["total"] * 60.0) / (double)endTimer : 0;
+	double uniqueKillsPerMin = endTimer > 0 ? (killscounter["unique"] * 60.0) / (double)endTimer : 0;
+	double champKillsPerMin = endTimer > 0 ? (killscounter["champ"] * 60.0) / (double)endTimer : 0;
+
+	char killsPerMinBuffer[32];
+	sprintf_s(killsPerMinBuffer, "%.2f", totalKillsPerMin);
+	automap["TOTALKILLSPERMIN"] = killsPerMinBuffer;
+
+	sprintf_s(killsPerMinBuffer, "%.2f", uniqueKillsPerMin);
+	automap["UNIQUEKILLSPERMIN"] = killsPerMinBuffer;
+
+	sprintf_s(killsPerMinBuffer, "%.2f", champKillsPerMin);
+	automap["CHAMPKILLSPERMIN"] = killsPerMinBuffer;
+
 	delete [] level;	
 	
 }
@@ -595,7 +637,7 @@ void ScreenInfo::FormattedXPPerSec(char* buffer, double xpPerSec) {
 		xpPerSec /= 1E3;
 		unit = "K";
 	}
-	sprintf_s(buffer, 128, "%s%.2f%s/s", xpPerSec >= 0 ? "+" : "", xpPerSec, unit);
+	sprintf_s(buffer, 128, "%s%.3f%s/s", xpPerSec >= 0 ? "+" : "", xpPerSec, unit);
 }
 
 std::string ScreenInfo::ReplaceAutomapTokens(std::string& v) {
@@ -738,7 +780,7 @@ void ScreenInfo::OnGameExit() {
 	sprintf_s(buffer, sizeof(buffer), "%d:%.2d:%.2d", timeToLevel / 3600, (timeToLevel / 60) % 60, timeToLevel % 60);
 	szTimeToLevel = string(buffer);
 
-	sprintf_s(buffer, sizeof(buffer), "%s%00.2f%%", lastExpGainPct >= 0 ? "+" : "", lastExpGainPct);
+	sprintf_s(buffer, sizeof(buffer), "%s%00.3f%%", lastExpGainPct >= 0 ? "+" : "", lastExpGainPct);
 	szLastXpGainPer = string(buffer);
 
 	FormattedXPPerSec(buffer, lastExpPerSecond);
@@ -746,6 +788,34 @@ void ScreenInfo::OnGameExit() {
 
 	sprintf_s(buffer, sizeof(buffer), "%.2d:%.2d:%.2d", lastGameLength / 3600, (lastGameLength / 60) % 60, lastGameLength % 60);
 	szLastGameTime = string(buffer);
+
+	// Calculate last kills per second
+	double lastTotalKillsPerSec = lastGameLength > 0 ? killscounter["total"] / (double)lastGameLength : 0;
+	double lastUniqueKillsPerSec = lastGameLength > 0 ? killscounter["unique"] / (double)lastGameLength : 0;
+	double lastChampKillsPerSec = lastGameLength > 0 ? killscounter["champ"] / (double)lastGameLength : 0;
+
+	sprintf_s(buffer, sizeof(buffer), "%.2f", lastTotalKillsPerSec);
+	szLastTotalKillsPerSec = string(buffer);
+
+	sprintf_s(buffer, sizeof(buffer), "%.2f", lastUniqueKillsPerSec);
+	szLastUniqueKillsPerSec = string(buffer);
+
+	sprintf_s(buffer, sizeof(buffer), "%.2f", lastChampKillsPerSec);
+	szLastChampKillsPerSec = string(buffer);
+
+	// Calculate last kills per minute
+	double lastTotalKillsPerMin = lastGameLength > 0 ? (killscounter["total"] * 60.0) / (double)lastGameLength : 0;
+	double lastUniqueKillsPerMin = lastGameLength > 0 ? (killscounter["unique"] * 60.0) / (double)lastGameLength : 0;
+	double lastChampKillsPerMin = lastGameLength > 0 ? (killscounter["champ"] * 60.0) / (double)lastGameLength : 0;
+
+	sprintf_s(buffer, sizeof(buffer), "%.2f", lastTotalKillsPerMin);
+	szLastTotalKillsPerMin = string(buffer);
+
+	sprintf_s(buffer, sizeof(buffer), "%.2f", lastUniqueKillsPerMin);
+	szLastUniqueKillsPerMin = string(buffer);
+
+	sprintf_s(buffer, sizeof(buffer), "%.2f", lastChampKillsPerMin);
+	szLastChampKillsPerMin = string(buffer);
 
 	const string delimiter = ", ";
 	string drops = accumulate(BH::drops.begin(), BH::drops.end(), string(),
@@ -765,6 +835,12 @@ void ScreenInfo::OnGameExit() {
 	automap["LASTXPPERSECLONG"] = to_string(lastExpPerSecond);
 	automap["LASTGAMETIME"] = szLastGameTime;
 	automap["LASTGAMETIMESEC"] = to_string(lastGameLength);
+	automap["LASTTOTALKILLSPERSEC"] = szLastTotalKillsPerSec;
+	automap["LASTUNIQUEKILLSPERSEC"] = szLastUniqueKillsPerSec;
+	automap["LASTCHAMPKILLSPERSEC"] = szLastChampKillsPerSec;
+	automap["LASTTOTALKILLSPERMIN"] = szLastTotalKillsPerMin;
+	automap["LASTUNIQUEKILLSPERMIN"] = szLastUniqueKillsPerMin;
+	automap["LASTCHAMPKILLSPERMIN"] = szLastChampKillsPerMin;
 	automap["DROPS"] = regex_replace(drops, regex("\xFF" "c."), "");
 
 	int idx = 0;

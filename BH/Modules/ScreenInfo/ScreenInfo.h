@@ -64,6 +64,12 @@ class ScreenInfo : public Module {
 		string szLastXpGainPer;
 		string szLastXpPerSec;
 		string szLastGameTime;
+		string szLastTotalKillsPerSec;
+		string szLastUniqueKillsPerSec;
+		string szLastChampKillsPerSec;
+		string szLastTotalKillsPerMin;
+		string szLastUniqueKillsPerMin;
+		string szLastChampKillsPerMin;
 		int aPlayerCountAverage[8];
 
 		string szSavePath;
