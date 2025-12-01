@@ -440,7 +440,7 @@ void ScreenInfo::OnDraw() {
 	FormattedXPPerSec(xpPerSec, currentExpPerSecond);
 
 	if (Toggles["Experience Meter"].state) {
-		sprintf_s(sExp, "%00.2f%% (%s%00.3f%%) [%s]", pExp, currentExpGainPct >= 0 ? "+" : "", currentExpGainPct, xpPerSec);
+		sprintf_s(sExp, "%00.3f%% (%s%00.3f%%) [%s]", pExp, currentExpGainPct >= 0 ? "+" : "", currentExpGainPct, xpPerSec);
 		Texthook::Draw((*p_D2CLIENT_ScreenSizeX / 2) - 100, *p_D2CLIENT_ScreenSizeY - 60, Center, 6, White, "%s", sExp);
 	}
 
@@ -637,7 +637,7 @@ void ScreenInfo::FormattedXPPerSec(char* buffer, double xpPerSec) {
 		xpPerSec /= 1E3;
 		unit = "K";
 	}
-	sprintf_s(buffer, 128, "%s%.3f%s/s", xpPerSec >= 0 ? "+" : "", xpPerSec, unit);
+	sprintf_s(buffer, 128, "%s%.2f%s/s", xpPerSec >= 0 ? "+" : "", xpPerSec, unit);
 }
 
 std::string ScreenInfo::ReplaceAutomapTokens(std::string& v) {
