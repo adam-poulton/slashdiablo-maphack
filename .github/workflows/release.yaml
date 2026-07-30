@@ -1,0 +1,34 @@
+name: Release
+
+on:
+  push:
+    tags: ['20*']
+
+jobs:
+  release:
+
+    runs-on: windows-latest
+
+    permissions:
+      contents: write
+
+    steps:
+    - name: Setup MSBuild.exe
+      uses: microsoft/setup-msbuild@v1.0.2
+    - uses: actions/checkout@master
+    - name: MSBuild
+      run: |
+        $sha = $env:GITHUB_SHA.substring(0,7)
+        msbuild /t:BH:Rebuild /p:Configuration=Release /p:CustomDefinitions="SHA=$sha" BH.sln
+    - name: Read version
+      id: version
+      run: |
+        $line = Select-String -Path BH/Constants.h -Pattern '^#define VERSION "(.+)"' | Select-Object -First 1
+        $version = $line.Matches[0].Groups[1].Value
+        "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      with:
+        name: ${{ steps.version.outputs.version }}
+        generate_release_notes: true
+        files: Release/BH.dll
