@@ -168,7 +168,7 @@ bool Config::ReadBoolean(std::string key, bool& value) {
 	//Check if configuration value exists
 	if (contents.find(key) == contents.end()) {
 		contents[key].key = key;
-		contents[key].value = value;
+		contents[key].value = value ? "1" : "0";
 	}
 
 	contents[key].type = CTBoolean;
