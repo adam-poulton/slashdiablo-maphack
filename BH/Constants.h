@@ -1,6 +1,6 @@
 #pragma once
 
-#define VERSION "BH 1.9.11a"
+#define VERSION "BH 1.9.11b"
 
 #ifdef SHA
 #define STRINGIFY(x) #x
@@ -1406,6 +1406,15 @@ enum QuestFlags {
 #define NPCID_QualKehk                          515                        //Act 5
 #define NPCID_Malah                             513                        //Act 5
 #define NPCID_Anya                              512                        //Act 5
+
+///////////////////////////////////////////////////
+// NPC Menu Entry ID's (NPCMenu::wEntryId1..4)
+///////////////////////////////////////////////////
+#define MENU_TALK                               0x0D35
+#define MENU_TRADE                              0x0D44
+#define MENU_GAMBLE                             0x0D46
+#define MENU_ADD_SOCKETS                        0x58DC
+#define MENU_PERSONALIZE                        0x58DD
 
 ///////////////////////////////////////////////////
 // Item Attributes (From D2jsp scripting document)

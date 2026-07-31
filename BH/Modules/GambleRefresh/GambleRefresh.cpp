@@ -51,7 +51,9 @@ void GambleRefresh::OnKey(bool bUp, BYTE key, LPARAM lParam, bool* block) {
 
 void GambleRefresh::RefreshGambleWindow() {
     UnitAny* pNpc = D2CLIENT_GetCurrentInteractingNPC();
-    if (!pNpc || (pNpc->dwTxtFileNo != NPCID_Gheed && pNpc->dwTxtFileNo != NPCID_Jamella)) return;
+    if (!pNpc || (pNpc->dwTxtFileNo != NPCID_Gheed &&
+                  pNpc->dwTxtFileNo != NPCID_Jamella &&
+                  pNpc->dwTxtFileNo != NPCID_Anya)) return;
     stateStartTime = GetTickCount();
     
     // Block spam presses from firing
@@ -163,6 +165,28 @@ void GambleRefresh::TryClickGamble() {
                     refreshState = STATE_IDLE;
                     stateEndTime = GetTickCount();
                     return;
+                }
+                break;
+            }
+            else if (pMenu->dwNPCClassId == NPCID_Anya) {
+                // Anya's gamble slot shifts depending on whether her quest-reward
+                // "Personalize" entry is present, so match on the menu entry id
+                // instead of a fixed position.
+                WORD entryIds[4] = { pMenu->wEntryId1, pMenu->wEntryId2, pMenu->wEntryId3, pMenu->wEntryId4 };
+                DWORD entryFuncs[4] = { pMenu->dwEntryFunc1, pMenu->dwEntryFunc2, pMenu->dwEntryFunc3, pMenu->dwEntryFunc4 };
+                DWORD entryAmount = min(pMenu->dwEntryAmount, 4UL);
+
+                for (UINT e = 0; e < entryAmount; e++) {
+                    if (entryIds[e] != MENU_GAMBLE) continue;
+
+                    fnClickEntry pClick = (fnClickEntry)entryFuncs[e];
+                    if (pClick) {
+                        Unlock();
+                        pClick();
+                        refreshState = STATE_IDLE;
+                        stateEndTime = GetTickCount();
+                        return;
+                    }
                 }
                 break;
             }
