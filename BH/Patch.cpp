@@ -34,7 +34,8 @@ int Patch::GetDllOffset(Dll dll, int offset) {
 bool Patch::WriteBytes(int address, int len, BYTE* bytes) {
 	DWORD dwOld;
 
-	if(!VirtualProtect((void*)address, len, PAGE_READWRITE, &dwOld))
+	// Must keep execute: other threads may be running this page while the write lands.
+	if(!VirtualProtect((void*)address, len, PAGE_EXECUTE_READWRITE, &dwOld))
 		return FALSE;
 
 	::memcpy((void*)address, bytes, len);
