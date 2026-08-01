@@ -24,6 +24,8 @@ class Maphack : public Module {
 	private:
 		int monsterResistanceThreshold;
 		int lkLinesColor;
+		int automapOffsetX, automapOffsetY;
+		bool automapOriginPatched;
 		unsigned int revealType;
 		unsigned int maxGhostSelection;
 		unsigned int reloadConfig;
@@ -64,6 +66,7 @@ class Maphack : public Module {
 
 	void ResetRevealed();
 	void ResetPatches();
+	void ApplyAutomapOriginPatch();
 
 	void OnKey(bool up, BYTE key, LPARAM lParam, bool* block);
 

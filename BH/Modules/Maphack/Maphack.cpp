@@ -32,6 +32,20 @@ Patch* skipNpcMessages3 = new Patch(Call, D2CLIENT, { 0x4819F, 0x7A9CF }, (int)N
 Patch* skipNpcMessages4 = new Patch(Call, D2CLIENT, { 0x7E9B7, 0x77737 }, (int)NPCMessageLoopPatch_ASM, 6);
 
 
+// D2Client computes the automap origin at D2CLIENT+0x60C40, called from the automap
+// draw at D2CLIENT+0x626A3 before any terrain is blitted:
+//
+//   lea ecx, [eax+ecx+0x28]   ; Offset.x = viewportX + playerX/divisor - width/2  + 0x28
+//   lea eax, [edx+esi+0x0F]   ; Offset.y = viewportY + playerY/divisor - height/2 + 0x0F
+//
+// The width/height terms track the live resolution globals, but the +0x28/+0x0F centering constants are hardcoded.
+// Patching the two disp8 bytes moves the origin, which shifts the native terrain and every icon
+// drawn through Hook::ScreenToAutomap (which subtracts the same Offset) together.
+static Offsets automapOriginXDisp = { 0x60D39, 0 };  // 1.13d offsets not mapped
+static Offsets automapOriginYDisp = { 0x60D3D, 0 };
+static const int automapOriginXBase = 0x28;
+static const int automapOriginYBase = 0x0F;
+
 static BOOL fSkipMessageReq = 0;
 static DWORD mSkipMessageTimer = 0;
 static DWORD mSkipQuestMessage = 1;
@@ -52,6 +66,10 @@ Maphack::Maphack() : Module("Maphack") {
 
 	monsterResistanceThreshold = 99;
 	lkLinesColor = 105;
+
+	automapOffsetX = 0;
+	automapOffsetY = 0;
+	automapOriginPatched = false;
 
 	ReadConfig();
 }
@@ -179,6 +197,58 @@ void Maphack::ReadConfig() {
 
 	BH::config->ReadToggle("Show Normal Monsters", "None", true, Toggles["Show Normal Monsters"]);
 	BH::config->ReadInt("Minimap Max Ghost", automapDraw.maxGhost);
+
+	BH::config->ReadInt("Automap Offset X", automapOffsetX);
+	BH::config->ReadInt("Automap Offset Y", automapOffsetY);
+	ApplyAutomapOriginPatch();
+}
+
+void Maphack::ApplyAutomapOriginPatch() {
+	// Unset offsets are the common case and leave the client untouched.
+	// Only a previously applied offset still needs the vanilla constants written back.
+	if (!automapOffsetX && !automapOffsetY && !automapOriginPatched)
+		return;
+
+	int xDisp = *(&automapOriginXDisp._113c + D2Version::GetGameVersionID());
+	int yDisp = *(&automapOriginYDisp._113c + D2Version::GetGameVersionID());
+
+	if (!xDisp || !yDisp)
+		return;
+
+	int xAddr = Patch::GetDllOffset(D2CLIENT, xDisp);
+	int yAddr = Patch::GetDllOffset(D2CLIENT, yDisp);
+	if (!xAddr || !yAddr)
+		return;
+
+	// Confirm both sites hold the vanilla displacements before writing.
+	// Checked once: after the first patch the bytes no longer match the base.
+	static bool checked = false, sitesMatch = false;
+	if (!checked) {
+		checked = true;
+		sitesMatch = *(BYTE*)xAddr == (BYTE)automapOriginXBase &&
+		             *(BYTE*)yAddr == (BYTE)automapOriginYBase;
+	}
+	if (!sitesMatch) {
+		if (D2CLIENT_GetPlayerUnit())
+			PrintText(Red, "Automap Offset disabled: unexpected D2Client code at the automap origin.");
+		return;
+	}
+
+	// Offset is subtracted in Hook::ScreenToAutomap, so a larger constant pushes the overlay left/up.
+	// Negated to keep the config in screen space: +X right, +Y down.
+	// Offsets of 0 leave the vanilla constants in place.
+	int x = automapOriginXBase - automapOffsetX;
+	int y = automapOriginYBase - automapOffsetY;
+	if (x < -128 || x > 127 || y < -128 || y > 127)
+		return;
+
+	// Written as base - delta
+	BYTE bytes[1];
+	bytes[0] = (BYTE)(signed char)x;
+	Patch::WriteBytes(xAddr, 1, bytes);
+	bytes[0] = (BYTE)(signed char)y;
+	Patch::WriteBytes(yAddr, 1, bytes);
+	automapOriginPatched = automapOffsetX || automapOffsetY;
 }
 
 void Maphack::ResetRevealed() {
