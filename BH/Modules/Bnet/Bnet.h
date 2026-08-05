@@ -7,14 +7,17 @@ struct Control;
 class Bnet : public Module {
 	private:
 		std::map<string, bool> bools;
-		bool* showLastGame;
-		bool* showLastPass;
-		bool* nextInstead;
-		bool* keepDesc;
+		static bool* showLastGame;
+		static bool* showLastPass;
+		static bool* nextInstead;
+		static bool* keepDesc;
 		static unsigned int failToJoin;
 		static std::string lastName;
 		static std::string lastPass;
 		static std::string lastDesc;
+		static std::string defaultName;
+		static std::string defaultPass;
+		static std::string defaultDesc;
 		static std::regex reg;
 
 	public:
@@ -38,6 +41,10 @@ class Bnet : public Module {
 		static VOID __fastcall NextPassPatch(Control* box, BOOL(__stdcall *FunCallBack)(Control*, DWORD, DWORD));
 		static VOID __fastcall GameDescPatch(Control* box, BOOL(__stdcall *FunCallBack)(Control*, DWORD, DWORD));
 		static void RemovePassPatch();
+
+		static std::string GetDefaultGameName() { return defaultName; }
+		static std::string GetDefaultPassword() { return defaultPass; }
+		static std::string GetDefaultDescription() { return defaultDesc; }
 };
 
 void FailToJoin_Interception();
