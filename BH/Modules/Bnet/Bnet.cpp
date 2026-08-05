@@ -3,9 +3,16 @@
 #include "../../BH.h"
 
 unsigned int Bnet::failToJoin;
+bool* Bnet::showLastGame;
+bool* Bnet::showLastPass;
+bool* Bnet::nextInstead;
+bool* Bnet::keepDesc;
 std::string Bnet::lastName;
 std::string Bnet::lastPass;
 std::string Bnet::lastDesc;
+std::string Bnet::defaultName;
+std::string Bnet::defaultPass;
+std::string Bnet::defaultDesc;
 std::regex Bnet::reg = std::regex("^(.*?)(\\d+)$");
 
 // Fixes Unrecoverable internal error 6FF61787
@@ -47,24 +54,34 @@ void Bnet::LoadConfig() {
 	BH::config->ReadBoolean("Autofill Description", *keepDesc);
 	BH::config->ReadInt("Fail To Join", failToJoin);
 
+	// Used to prefill the create/join boxes when there is no previous game to fall back on
+	BH::config->ReadString("Default Game Name", defaultName);
+	BH::config->ReadString("Default Password", defaultPass);
+	BH::config->ReadString("Default Description", defaultDesc);
+	defaultName = Trim(defaultName);
+	defaultPass = Trim(defaultPass);
+	defaultDesc = Trim(defaultDesc);
+
 	InstallPatches();
 }
 
 void Bnet::InstallPatches() {
 	fog10251Patch->Install();
 	bnetLobbyPatch->Install();
-	if (*showLastGame || *nextInstead) {
+	// The defaults are filled in by the same patches, so they need to be installed
+	// even when the corresponding autofill option is off.
+	if (*showLastGame || *nextInstead || defaultName.size() > 0) {
 		nextGame1->Install();
 		nextGame2->Install();
 	}
 
-	if (*showLastPass) {
+	if (*showLastPass || defaultPass.size() > 0) {
 		nextPass1->Install();
 		nextPass2->Install();
 		removePass->Install();
 	}
 
-	if (*keepDesc) {
+	if (*keepDesc || defaultDesc.size() > 0) {
 		gameDesc->Install();
 	}
 
@@ -152,10 +169,13 @@ DWORD __stdcall Bnet::BnetLobbyAdBlockPatch(DWORD a1) {
 }
 
 VOID __fastcall Bnet::NextGamePatch(Control* box, BOOL (__stdcall *FunCallBack)(Control*, DWORD, DWORD)) {
-	if (Bnet::lastName.size() == 0)
+	// Fall back to the configured default when there is no previous game name
+	const bool useLast = (*Bnet::showLastGame || *Bnet::nextInstead) && Bnet::lastName.size() > 0;
+	const std::string& name = useLast ? Bnet::lastName : Bnet::defaultName;
+	if (name.size() == 0)
 		return;
 
-	wchar_t *wszLastGameName = AnsiToUnicode(Bnet::lastName.c_str());
+	wchar_t *wszLastGameName = AnsiToUnicode(name.c_str());
 
 	D2WIN_SetControlText(box, wszLastGameName);
 	D2WIN_SelectEditBoxText(box);
@@ -166,10 +186,17 @@ VOID __fastcall Bnet::NextGamePatch(Control* box, BOOL (__stdcall *FunCallBack)(
 }
 
 VOID __fastcall Bnet::NextPassPatch(Control* box, BOOL(__stdcall *FunCallBack)(Control*, DWORD, DWORD)) {
-	if (Bnet::lastPass.size() == 0)
+	// Only fall back to the default password when there is no previous game at all;
+	// a remembered game name with no password means that game genuinely had none.
+	const bool useLast = *Bnet::showLastPass && Bnet::lastPass.size() > 0;
+	if (!useLast && Bnet::lastName.size() > 0)
 		return;
-	wchar_t *wszLastPass = AnsiToUnicode(Bnet::lastPass.c_str());
-	
+
+	const std::string& pass = useLast ? Bnet::lastPass : Bnet::defaultPass;
+	if (pass.size() == 0)
+		return;
+	wchar_t *wszLastPass = AnsiToUnicode(pass.c_str());
+
 	D2WIN_SetControlText(box, wszLastPass);
 	
 	// original code
@@ -178,10 +205,13 @@ VOID __fastcall Bnet::NextPassPatch(Control* box, BOOL(__stdcall *FunCallBack)(C
 }
 
 VOID __fastcall Bnet::GameDescPatch(Control* box, BOOL(__stdcall *FunCallBack)(Control*, DWORD, DWORD)) {
-	if (Bnet::lastDesc.size() == 0)
+	// Fall back to the configured default when there is no previous description
+	const bool useLast = *Bnet::keepDesc && Bnet::lastDesc.size() > 0;
+	const std::string& desc = useLast ? Bnet::lastDesc : Bnet::defaultDesc;
+	if (desc.size() == 0)
 		return;
-	wchar_t *wszLastDesc = AnsiToUnicode(Bnet::lastDesc.c_str());
-	
+	wchar_t *wszLastDesc = AnsiToUnicode(desc.c_str());
+
 	D2WIN_SetControlText(box, wszLastDesc);
 	
 	// original code
