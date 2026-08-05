@@ -7,6 +7,123 @@
 
 using namespace Drawing;
 
+namespace {
+
+// A single frame breakpoint: reaching "required" faster cast/hit recovery yields "frames"
+// frames. Tables are ordered from the highest requirement down to the base (0) entry.
+struct Breakpoint {
+	int frames;
+	int required;
+};
+
+struct BreakpointTable {
+	const Breakpoint *entries;
+	size_t count;
+};
+
+template <size_t N>
+BreakpointTable Table(const Breakpoint (&entries)[N]) {
+	BreakpointTable table = { entries, N };
+	return table;
+}
+
+// Faster Cast Rate
+const Breakpoint FCR_AMAZON[] = { {11,152}, {12,99}, {13,68}, {14,48}, {15,32}, {16,22}, {17,14}, {18,7}, {19,0} };
+const Breakpoint FCR_SORCERESS_LIGHTNING[] = { {11,194}, {12,117}, {13,78}, {14,52}, {15,35}, {16,23}, {17,15}, {18,7}, {19,0} };
+const Breakpoint FCR_SORCERESS[] = { {7,200}, {8,105}, {9,63}, {10,37}, {11,20}, {12,9}, {13,0} };
+const Breakpoint FCR_NECROMANCER_VAMPIRE[] = { {13,180}, {14,120}, {15,86}, {16,65}, {17,48}, {18,35}, {19,24}, {20,18}, {21,11}, {22,6}, {23,0} };
+const Breakpoint FCR_NECROMANCER[] = { {9,125}, {10,75}, {11,48}, {12,30}, {13,18}, {14,9}, {15,0} };
+const Breakpoint FCR_PALADIN[] = { {9,125}, {10,75}, {11,48}, {12,30}, {13,18}, {14,9}, {15,0} };
+const Breakpoint FCR_BARBARIAN[] = { {7,200}, {8,105}, {9,63}, {10,37}, {11,20}, {12,9}, {13,0} };
+const Breakpoint FCR_DRUID_WOLF[] = { {9,157}, {10,95}, {11,60}, {12,40}, {13,26}, {14,14}, {15,6}, {16,0} };
+const Breakpoint FCR_DRUID_BEAR[] = { {9,163}, {10,99}, {11,63}, {12,40}, {13,26}, {14,15}, {15,7}, {16,0} };
+const Breakpoint FCR_DRUID[] = { {10,163}, {11,99}, {12,68}, {13,46}, {14,30}, {15,19}, {16,10}, {17,4}, {18,0} };
+const Breakpoint FCR_ASSASSIN[] = { {9,174}, {10,102}, {11,65}, {12,42}, {13,27}, {14,16}, {15,8}, {16,0} };
+
+// Faster Hit Recovery
+const Breakpoint FHR_AMAZON[] = { {3,600}, {4,174}, {5,86}, {6,52}, {7,32}, {8,20}, {9,13}, {10,6}, {11,0} };
+const Breakpoint FHR_SORCERESS[] = { {4,1480}, {5,280}, {6,142}, {7,86}, {8,60}, {9,42}, {10,30}, {11,20}, {12,14}, {13,9}, {14,5}, {15,0} };
+const Breakpoint FHR_NECROMANCER[] = { {4,377}, {5,152}, {6,86}, {7,56}, {8,39}, {9,26}, {10,16}, {11,10}, {12,5}, {13,0} };
+const Breakpoint FHR_PALADIN[] = { {2,4680}, {3,200}, {4,86}, {5,48}, {6,27}, {7,15}, {8,7}, {9,0} };
+const Breakpoint FHR_BARBARIAN[] = { {2,4680}, {3,200}, {4,86}, {5,48}, {6,27}, {7,15}, {8,7}, {9,0} };
+const Breakpoint FHR_DRUID_WOLF[] = { {2,280}, {3,86}, {4,42}, {5,20}, {6,9}, {7,0} };
+const Breakpoint FHR_DRUID_BEAR[] = { {4,360}, {5,152}, {6,86}, {7,54}, {8,37}, {9,24}, {10,16}, {11,10}, {12,5}, {13,0} };
+const Breakpoint FHR_DRUID[] = { {4,456}, {5,174}, {6,99}, {7,63}, {8,42}, {9,29}, {10,19}, {11,13}, {12,7}, {13,3}, {14,0} };
+const Breakpoint FHR_ASSASSIN[] = { {2,4680}, {3,200}, {4,86}, {5,48}, {6,27}, {7,15}, {8,7}, {9,0} };
+
+// Lightning (0x31) and Chain Lightning (0x35) use a slower casting animation on the sorceress.
+bool HasLightningSkillSelected(UnitAny *unit) {
+	if (!unit || !unit->pInfo)
+		return false;
+	Skill *selected[] = { unit->pInfo->pLeftSkill, unit->pInfo->pRightSkill };
+	for (int i = 0; i < (int)_countof(selected); i++) {
+		if (!selected[i] || !selected[i]->pSkillInfo)
+			continue;
+		WORD skillId = selected[i]->pSkillInfo->wSkillId;
+		if (skillId == 0x31 || skillId == 0x35)
+			return true;
+	}
+	return false;
+}
+
+void GetBreakpointTables(UnitAny *unit, int charClass, BreakpointTable &fcr, BreakpointTable &fhr) {
+	switch (charClass) {
+		case CLASS_AMA:
+			fcr = Table(FCR_AMAZON);
+			fhr = Table(FHR_AMAZON);
+			break;
+		case CLASS_SOR:
+			fcr = HasLightningSkillSelected(unit) ?
+				Table(FCR_SORCERESS_LIGHTNING) : Table(FCR_SORCERESS);
+			fhr = Table(FHR_SORCERESS);
+			break;
+		case CLASS_NEC:
+			fcr = D2COMMON_GetUnitState(unit, STATE_MONSTERSET) ?
+				Table(FCR_NECROMANCER_VAMPIRE) : Table(FCR_NECROMANCER);
+			fhr = Table(FHR_NECROMANCER);
+			break;
+		case CLASS_PAL:
+			fcr = Table(FCR_PALADIN);
+			fhr = Table(FHR_PALADIN);
+			break;
+		case CLASS_BAR:
+			fcr = Table(FCR_BARBARIAN);
+			fhr = Table(FHR_BARBARIAN);
+			break;
+		case CLASS_DRU:
+			if (D2COMMON_GetUnitState(unit, STATE_WOLF)) {
+				fcr = Table(FCR_DRUID_WOLF);
+				fhr = Table(FHR_DRUID_WOLF);
+			} else if (D2COMMON_GetUnitState(unit, STATE_BEAR)) {
+				fcr = Table(FCR_DRUID_BEAR);
+				fhr = Table(FHR_DRUID_BEAR);
+			} else {
+				fcr = Table(FCR_DRUID);
+				fhr = Table(FHR_DRUID);
+			}
+			break;
+		case CLASS_ASN:
+		default:
+			fcr = Table(FCR_ASSASSIN);
+			fhr = Table(FHR_ASSASSIN);
+			break;
+	}
+}
+
+// How much more is needed for the next breakpoint, as a suffix to append to the stat.
+std::string NextBreakpointSuffix(const BreakpointTable &table, int value) {
+	for (size_t i = 0; i < table.count; i++) {
+		if (value >= table.entries[i].required) {
+			if (i == 0)
+				return " \377c5(max)";
+			return " \377c5(+" + std::to_string(table.entries[i - 1].required - value) + ")";
+		}
+	}
+	return "";
+}
+
+}  // namespace
+
 StatsDisplay *StatsDisplay::display;
 
 StatsDisplay::StatsDisplay(std::string name) {
@@ -236,17 +353,29 @@ void StatsDisplay::OnDraw() {
 
 		y += 8;
 
+		int castRate = (int)D2COMMON_GetUnitStat(unit, STAT_FASTERCAST, 0);
+		int hitRecovery = (int)D2COMMON_GetUnitStat(unit, STAT_FASTERHITRECOVERY, 0);
+
+		// Breakpoints are per character class, so they don't apply to the mercenary
+		std::string nextCastRate, nextHitRecovery;
+		if (!isMerc) {
+			BreakpointTable fcrTable, fhrTable;
+			GetBreakpointTables(unit, pData->nCharClass, fcrTable, fhrTable);
+			nextCastRate = NextBreakpointSuffix(fcrTable, castRate);
+			nextHitRecovery = NextBreakpointSuffix(fhrTable, hitRecovery);
+		}
+
 		Texthook::Draw(column1, (y += 16), None, 6, Gold,
-				L"Cast Rate:\377c0 %d",
-				(int)D2COMMON_GetUnitStat(unit, STAT_FASTERCAST, 0)
+				"Cast Rate:\377c0 %d%s",
+				castRate, nextCastRate.c_str()
 				);
 		Texthook::Draw(column2, y, None, 6, Gold,
 				L"Block Rate:\377c0 %d",
 				(int)D2COMMON_GetUnitStat(unit, STAT_FASTERBLOCK, 0)
 				);
 		Texthook::Draw(column1, (y += 16), None, 6, Gold,
-				L"Hit Recovery:\377c0 %d",
-				(int)D2COMMON_GetUnitStat(unit, STAT_FASTERHITRECOVERY, 0)
+				"Hit Recovery:\377c0 %d%s",
+				hitRecovery, nextHitRecovery.c_str()
 				);
 		Texthook::Draw(column2, y, None, 6, Gold,
 				L"Run/Walk:\377c0 %d",
