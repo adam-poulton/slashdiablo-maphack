@@ -1,6 +1,7 @@
 #include "D2Ptrs.h"
 #include "BH.h"
 #include "D2Stubs.h"
+#include "Constants.h"
 
 #include <iterator>
 
@@ -87,7 +88,8 @@ LONG WINAPI GameWindowEvent(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 		__raise BH::moduleManager->OnRightClick(true, mouseX, mouseY, &blockEvent);
 	}
 
-	if (!D2CLIENT_GetUIState(0x05)) {
+	// Only allow BH hotkeys when game and chat box is closed
+	if (D2CLIENT_GetPlayerUnit() && !D2CLIENT_GetUIState(UI_CHAT_CONSOLE)) {
 		if (uMsg == WM_KEYDOWN) {
 			if (Drawing::Hook::KeyClick(false, wParam, lParam))
 				return NULL;
