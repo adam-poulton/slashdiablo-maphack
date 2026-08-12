@@ -140,6 +140,7 @@ void Item::LoadConfig() {
 	BH::config->ReadToggle("Allow Unknown Items", "None", false, Toggles["Allow Unknown Items"]);
 	BH::config->ReadToggle("Suppress Invalid Stats", "None", false, Toggles["Suppress Invalid Stats"]);
 	BH::config->ReadToggle("Always Show Item Stat Ranges", "None", true, Toggles["Always Show Item Stat Ranges"]);
+	BH::config->ReadToggle("Smart Scrolls", "None", false, Toggles["Smart Scrolls"]);
 	BH::config->ReadInt("Filter Level", filterLevelSetting);
 	BH::config->ReadInt("Ping Level", pingLevelSetting);
 	BH::config->ReadInt("Run Details Ping Level", trackerPingLevelSetting);
@@ -254,7 +255,11 @@ void Item::DrawSettings() {
 	new Checkhook(settingsTab, 4, y, &Toggles["Suppress Invalid Stats"].state, "Suppress Invalid Stats");
 	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Suppress Invalid Stats"].toggle, "");
 	y += 15;
-	
+
+	new Checkhook(settingsTab, 4, y, &Toggles["Smart Scrolls"].state, "Smart Scrolls");
+	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Smart Scrolls"].toggle, "");
+	y += 15;
+
 	new Keyhook(settingsTab, 4, y+2, &showPlayer, "Show Player's Gear:   ");
 	y += 15;
 
