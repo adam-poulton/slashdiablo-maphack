@@ -5,6 +5,9 @@ All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
 in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
 
 # Unreleased
+* Add `Monster Curses` option (`BH_settings.cfg`, default `True, None`) to mark
+  elite packs carrying the Cursed modifier with a purple `C` on the automap,
+  alongside the existing enchantment letters.
 * Add `AMAZON`, `SORCERESS`, `NECROMANCER`, `PALADIN`, `BARBARIAN`, `DRUID` and
   `ASSASSIN` item filter conditions, matching the class of the character you are
   playing, so one config can behave differently per class.
