@@ -67,6 +67,7 @@ SkillReplace skills[] = {
 std::map<std::string, int> UnknownItemCodes;
 vector<pair<string, string>> rules;
 map<string, string> condition_group;
+bool OrderedFiltering = false;
 vector<Rule*> RuleList;
 vector<Rule*> NameRuleList;
 vector<Rule*> DescRuleList;
@@ -198,24 +199,24 @@ string ItemNameLookupCache::make_cached_T(UnitItemInfo *uInfo, const string &nam
 			}
 		}
 	}
-	// if the item is on the ignore list and not the map list, warn the user that this item is normally blocked
-	bool blocked = ignore_cache.Get(uInfo);
-	vector<Action> actions = map_action_cache.Get(uInfo);
-	if (blocked) {
-		bool has_map_action = false;
-		for (auto &action : actions) {
+	// if the item is on the ignore list and nothing outranks it, warn the user that this item is normally blocked
+	unsigned int ignore_index = ignore_cache.Get(uInfo);
+	if (ignore_index != NO_RULE_MATCH) {
+		unsigned int keep_index = do_not_block_cache.Get(uInfo);
+		// actions come back in config order, so the first one with a map action is the earliest
+		for (auto &action : map_action_cache.Get(uInfo)) {
 			if (action.colorOnMap != UNDEFINED_COLOR ||
 				action.borderColor != UNDEFINED_COLOR ||
 				action.dotColor != UNDEFINED_COLOR ||
 				action.pxColor != UNDEFINED_COLOR ||
 				action.lineColor != UNDEFINED_COLOR) {
-				has_map_action = true;
+				if (action.index < keep_index)
+					keep_index = action.index;
 				break;
 			}
-					
+
 		}
-		bool whitelisted = do_not_block_cache.Get(uInfo);
-		if (!has_map_action && !whitelisted) return new_name + " [blocked]";
+		if (IsItemBlocked(ignore_index, keep_index)) return new_name + " [blocked]";
 	}
 	return new_name;
 }
@@ -248,17 +249,29 @@ string MapActionLookupCache::to_str(const vector<Action> &actions) {
 	return name;
 }
 
-bool IgnoreLookupCache::make_cached_T(UnitItemInfo *uInfo) {
+unsigned int IgnoreLookupCache::make_cached_T(UnitItemInfo *uInfo) {
 	for (vector<Rule*>::const_iterator it = this->RuleList.begin(); it != this->RuleList.end(); it++) {
 		if ((*it)->Evaluate(uInfo, NULL)) {
-			return true;
+			return (*it)->action.index;
 		}
 	}
-	return false;
+	return NO_RULE_MATCH;
 }
 
-string IgnoreLookupCache::to_str(const bool &ignore) {
-	return ignore ? "blocked" : "not blocked";
+string IgnoreLookupCache::to_str(const unsigned int &index) {
+	return index == NO_RULE_MATCH ? "no match" : ("matched rule " + std::to_string(index));
+}
+
+// Decide whether an item is hidden, given the index of the first rule that wants
+// it hidden and the index of the first rule that wants it kept (either a map
+// action or a whitelisted name). With ordered filtering off, any keeper wins
+// regardless of where it sits in the file; with it on, the earlier rule wins.
+bool IsItemBlocked(unsigned int ignore_index, unsigned int keep_index) {
+	if (ignore_index == NO_RULE_MATCH)
+		return false;
+	if (OrderedFiltering)
+		return ignore_index < keep_index;
+	return keep_index == NO_RULE_MATCH;
 }
 
 // least recently used cache for storing a limited number of item names
@@ -527,6 +540,7 @@ namespace ItemDisplay {
 				Condition::BuildConditions(RawConditions, (*tok));
 			}
 			Rule *r = new Rule(RawConditions, &(rules[i].second));
+			r->action.index = i;
 
 			RuleList.push_back(r);
 			bool has_map_action = false;
