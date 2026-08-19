@@ -4,6 +4,13 @@ Changelog
 All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
 in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
 
+# Unreleased
+* Add `AMAZON`, `SORCERESS`, `NECROMANCER`, `PALADIN`, `BARBARIAN`, `DRUID` and
+  `ASSASSIN` item filter conditions, matching the class of the character you are
+  playing, so one config can behave differently per class.
+* Clarify in the docs that `XP`, `CLASSIC` and `CRAFTALVL` describe the character
+  you are playing rather than whoever is holding the item.
+
 # Release Notes for 1.9.11f (2026-08-19)
 * Add `USEDSOCK` item filter condition and the `%USEDSOCKETS%` variable, exposing
   the filled-socket count so filters can match socketed items separately from

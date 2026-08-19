@@ -350,16 +350,31 @@ Other miscellaneous conditions:
 - LIFE: matches +HP items
 - MANA: matches +MANA items
 - IAS: matches increased attack speed
-- CRAFTALVL: matches the resulting affix level of the item if it were to be crafted by the character holding it
+- CRAFTALVL: matches the resulting affix level of the item if it were to be crafted by the character you are playing
 - USEDSOCK: matches the number of sockets that have been filled (see [Filled sockets](#filled-sockets-as-of-bh-1911f))
-- XP: matches when the character holding the item is an expansion character
-- CLASSIC: matches when the character holding the item is a classic character
+- XP: matches when the character you are playing is an expansion character
+- CLASSIC: matches when the character you are playing is a classic character
+- AMAZON, SORCERESS, NECROMANCER, PALADIN, BARBARIAN, DRUID, ASSASSIN: match when the
+  character you are playing is of that class
 
 `XP` and `CLASSIC` take no operator or number; they are used on their own. They
-let a single config behave differently on classic and expansion characters:
+describe your own character, not whoever is holding the item, and let a single
+config behave differently on classic and expansion characters:
 
     ItemDisplay[CLASSIC gcv]: %NAME%%MAP%
     ItemDisplay[XP gcv]:
+
+The class names work the same way, and likewise refer to the class you are playing
+rather than any class restriction on the item itself, so one config can be shared
+between characters of different classes. This hides keys only while playing an
+assassin:
+
+    ItemDisplay[key ASSASSIN]:
+
+They combine with `!`, `AND` and `OR` like any other condition, e.g.
+`ItemDisplay[key !ASSASSIN]:` hides keys on every class except the assassin, and
+`ItemDisplay[cm1 (SORCERESS OR NECROMANCER)]: %NAME%%MAP%` marks small charms only
+on those two classes.
 
 ## Marking Items on the Map
 
@@ -439,7 +454,7 @@ If no TIER level is specified, it defaults to TIER-0. This is essentially an unc
 
 ## Craft affix level condition and display (as of BH 1.9.9)
 
-There is a new keyword `CRAFTALVL` that evaluates to the affix level of an item if it were to be crafted by the character holding it. For example, the below displays the new affix level as part of the item description.
+There is a new keyword `CRAFTALVL` that evaluates to the affix level of an item if it were to be crafted by the character you are playing. For example, the below displays the new affix level as part of the item description.
 ```
  // Magic Amulets [VERBOSE]
  ItemDisplay[MAG amu]: %NAME%{%WHITE%Caster: %ORANGE%Ral %PURPLE%O%WHITE%Perfect %BLUE%Jewel %WHITE%(%CRAFTALVL%)}
