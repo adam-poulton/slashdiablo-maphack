@@ -1,4 +1,4 @@
-See the [Advanced Item Display](https://github.com/planqi/slashdiablo-maphack/wiki/Advanced-Item-Display#runes-gems-and-gold) section on Runes, Gems and Gold for use
+See the [Advanced Item Display](Advanced-Item-Display.md#runes-gems-and-gold) section on Runes, Gems and Gold for use
 
 <table>
 <tr><th>Gem Number</th><th>Gem Type</th></tr>

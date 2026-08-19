@@ -1,4 +1,4 @@
-See the [Advanced Item Display](https://github.com/planqi/slashdiablo-maphack/wiki/Advanced-Item-Display#skill-tabs) section on Skill Tabs for use
+See the [Advanced Item Display](Advanced-Item-Display.md#skill-tabs) section on Skill Tabs for use
 
 <table>
 <tr><th>Skill Tab</th><th>Skill Tab Number</th></tr>

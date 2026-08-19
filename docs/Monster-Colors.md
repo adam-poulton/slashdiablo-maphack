@@ -35,4 +35,4 @@ Here is a basic example that makes gloams and those little exploding undead doll
     Monster Color[690]:      0x9B
     Monster Color[691]:      0x9B
 
-[[To see all the colors you can use, look here.|https://github.com/planqi/slashdiablo-maphack/blob/master/readme_gfx/color_palette.png]]
+[To see all the colors you can use, look here.](https://raw.githubusercontent.com/adam-poulton/slashdiablo-maphack/master/readme_gfx/color_palette.png)

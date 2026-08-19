@@ -129,6 +129,14 @@ To add the number of sockets to item names, this would work:
 
     ItemDisplay[]: %NAME% -%SOCKETS%-
 
+`%BASENAME%` gives the item's base type name rather than its full name, which
+is useful for uniques and set items where the displayed name tells you nothing
+about what the item actually is:
+
+    ItemDisplay[UNI]: %NAME% (%BASENAME%)
+
+That turns "Wizardspike" into "Wizardspike (Bone Knife)".
+
 ## Logical Operators
 
 Often you will want to match multiple conditions. This rule will match any item that satisfies both CONDITION1 and CONDITION2 (since no logical operators are given, the conditions are implicitly ANDed together):
@@ -232,6 +240,30 @@ You can match items with a certain number of sockets. To display all items with 
 
 For conditions like SOCK that compare with a number, you can use <, >, or =.
 
+### Filled sockets (as of BH 1.9.11f)
+
+`SOCK` counts the total number of sockets in an item, whether or not anything
+has been put in them. `USEDSOCK` counts only the sockets that have something
+inserted (a gem, rune, or jewel). The two together let you distinguish an empty
+base from a partially filled one from a completed runeword.
+
+To find four socket bases that are still empty and worth using for Spirit:
+
+    ItemDisplay[SOCK=4 USEDSOCK=0 !RW]: %NAME%%MAP%
+
+To find items someone has already started filling, so you don't vendor them by
+accident:
+
+    ItemDisplay[USEDSOCK>0 !RW]: %ORANGE%%NAME%
+
+The matching `%USEDSOCKETS%` variable prints the count, in the same way
+`%SOCKETS%` prints the total:
+
+    ItemDisplay[SOCK>0]: %NAME% [%USEDSOCKETS%/%SOCKETS%]
+
+Note that a completed runeword still reports its sockets as used, so pair
+`USEDSOCK` with `!RW` when you want socketed-but-unfinished items only.
+
 ## Runes, Gems, and Gold
 
 The "RUNE" condition can be used to match different types of runes based on the rune number. To display runes Lem and higher in purple "20 - Lem" format:
@@ -319,6 +351,15 @@ Other miscellaneous conditions:
 - MANA: matches +MANA items
 - IAS: matches increased attack speed
 - CRAFTALVL: matches the resulting affix level of the item if it were to be crafted by the character holding it
+- USEDSOCK: matches the number of sockets that have been filled (see [Filled sockets](#filled-sockets-as-of-bh-1911f))
+- XP: matches when the character holding the item is an expansion character
+- CLASSIC: matches when the character holding the item is a classic character
+
+`XP` and `CLASSIC` take no operator or number; they are used on their own. They
+let a single config behave differently on classic and expansion characters:
+
+    ItemDisplay[CLASSIC gcv]: %NAME%%MAP%
+    ItemDisplay[XP gcv]:
 
 ## Marking Items on the Map
 
@@ -411,6 +452,90 @@ The keyword can also be used as part of the filter condition. For example:
  // Magic Amulets [VERBOSE]
  ItemDisplay[MAG amu CRAFTALVL>89]: %NAME%%MAP%
 ```
+
+## Ordered item filtering (as of BH 1.9.11f)
+
+By default, a hide rule (a rule with a blank action) only takes effect when no
+other rule anywhere in `BH.cfg` gives the item a name or a map marker. Rules are
+kept in separate lists internally, and the whitelist is checked without regard
+to where the rules sit in the file, so the order you wrote them in is ignored.
+
+This makes broad "hide this whole category" rules impractical. Say you want rare
+belts gone at the most aggressive filter level, and you add this line to the top 
+of your config:
+
+```
+ItemDisplay[FILTLVL=3 RARE BELT]:
+```
+
+By default this usually does nothing, because your config will already have
+other lines that name or map rare belts. 
+Every one of those whitelists the item regardless of where it sits, 
+so to actually hide rare belts you have to hunt down each of those
+lines and add `FILTLVL<3` to it. Miss one and the belts keep showing, and you
+get to repeat the exercise for every category you want to filter.
+
+Setting `Ordered Item Filtering: True` in `BH_settings.cfg` makes each rule's
+position in the file significant. An item is hidden when the matching hide rule
+comes *before* the matching whitelist rule. The catch-all above then works as
+written, from a single line near the top:
+
+```
+// near the top of BH.cfg
+ItemDisplay[FILTLVL=3 RARE BELT]:
+
+// ... hundreds of lines later
+ItemDisplay[RARE]: %NAME%
+```
+
+Exceptions go *above* the hide rule rather than below it
+
+### ⚠️ Order now matters, and a broad rule high in the file is destructive
+
+With this setting on, a hide rule suppresses **every** whitelist rule below it
+that matches the same item. The failure mode is severe and silent - items simply
+stop existing as far as the game client is concerned, with no error and nothing
+in the log to tell you which line did it.
+
+The extreme case is a bare catch-all:
+
+```
+ItemDisplay[]:
+```
+
+At the top of the file with ordered filtering on, that hides every item in the
+game, ignoring all of the hundreds of rules beneath it. Your entire config
+appears to have stopped working. The same line at the *bottom* of the file is
+the harmless idiom it has always been.
+
+Before enabling this, be aware that:
+
+* A rule you wrote as a fallback will behave as a veto if it sits above the
+  rules it was meant to fall back to. Move fallbacks to the bottom.
+* The default config was written with this ordering in mind and places the hide
+  rules at the bottom, if usure you should re-read yours top to bottom before 
+  trusting it.
+* The broader a hide rule's conditions, the higher the cost of putting it early.
+  Prefer conditions that are as narrow as the intent (`FILTLVL=3 RARE BELT`
+  rather than `RARE` or nothing at all).
+* Hidden items are filtered out at the packet level, so as far as your client is
+  concerned they never dropped. There is nothing to reveal in game and no
+  in-game way to tell a hidden drop from one that did not happen. If items seem
+  to be missing after enabling this, turn the setting back off to confirm
+  ordering is the cause, then bisect your config.
+
+The setting defaults to `False`, preserving the older behaviour.
+
+## Excluding items from the run tracker
+
+The [run tracker](Run-Tracker.md) records the items that dropped during each
+run. Adding `%NOTRACK%` to a rule's action keeps matching items out of that
+record while leaving them displayed normally in game:
+
+    ItemDisplay[tsc]: %NAME%%NOTRACK%
+
+This is useful for items you map or ping for convenience but don't want
+cluttering your drop history. Items that drop in town are never tracked.
 
 ## Example Configuration
 

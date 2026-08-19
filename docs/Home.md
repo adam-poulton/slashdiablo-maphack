@@ -1,4 +1,16 @@
-Welcome to the slashdiablo-maphack wiki!
+Documentation for slashdiablo-maphack.
+
+These pages live in [`docs/`](https://github.com/adam-poulton/slashdiablo-maphack/tree/master/docs)
+in the main repository and are published to the wiki from there when a release
+is tagged, so they describe the latest release rather than unreleased work. For
+documentation of changes that have not shipped yet, read `docs/` on `master`.
+
+**Edit these pages via a pull request against `docs/`** — changes made directly
+in the wiki are overwritten the next time it is published.
+
+The pages originated in the
+[planqi wiki](https://github.com/planqi/slashdiablo-maphack/wiki) and were
+imported with their history. Pages covering features added after 1.9.9 are new.
 
 ## BH Configuration
 
@@ -15,8 +27,22 @@ For examples of configs, see the User Configuration section below.
 ### Guides
 
 Here are some guides to creating your own configuration files:
-* [[Advanced Item Display|Advanced-Item-Display]]
-* [[Customize Monster Colors on Map|Monster-Colors]]
+* [Advanced Item Display](Advanced-Item-Display.md)
+* [Customize Monster Colors on Map](Monster-Colors.md)
+* [Automap Info](Automap-Info.md) — the automap overlay, kill trackers, and the
+  variables you can display
+* [Run Tracker](Run-Tracker.md) — recording each run's statistics and drops to a
+  file
+
+### Reference tables
+
+* [Classes](Classes.md)
+* [Color Palette and Chat Colors](Color-Palette-and-Chat-Colors.md)
+* [Gem Types](Gem-Types.md)
+* [Monsters](Monsters.md)
+* [Skills](Skills.md)
+* [Skill Tabs](Skill-Tabs.md)
+* [Stats](Stats.md)
 
 ### User Configurations
 If you have done any customization of your BH.cfg file, feel free to add it here so that others can use your changes.

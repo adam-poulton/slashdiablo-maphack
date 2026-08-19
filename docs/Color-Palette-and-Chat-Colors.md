@@ -1,6 +1,6 @@
 Usage example: `%MAP-0C%` will give the map box the color Yellow on Row 0 Column C on the table below.
 
-![Color Palette](https://raw.githubusercontent.com/planqi/slashdiablo-maphack/master/readme_gfx/color_palette.png)
+![Color Palette](https://raw.githubusercontent.com/adam-poulton/slashdiablo-maphack/master/readme_gfx/color_palette.png)
 
 
 Chat colors chat in BH_Settings and for %notify-X% where X is 1 to 13 of the following. 
