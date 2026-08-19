@@ -34,3 +34,12 @@ jobs:
         files: |
           Release/BH.dll
           Packaging/*
+
+  # Publish docs/ to the wiki, but only once the release itself has succeeded,
+  # so a failed build never puts documentation live for a release that does not
+  # exist. No-ops when docs/ has not changed since the last publish.
+  publish-wiki:
+    needs: release
+    permissions:
+      contents: write
+    uses: ./.github/workflows/publish-wiki.yaml
