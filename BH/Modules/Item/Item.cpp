@@ -145,6 +145,7 @@ void Item::LoadConfig() {
 	BH::config->ReadInt("Ping Level", pingLevelSetting);
 	BH::config->ReadInt("Run Details Ping Level", trackerPingLevelSetting);
 	BH::config->ReadInt("Stat Range Color", statRangeColor);
+	BH::config->ReadBoolean("Ordered Item Filtering", OrderedFiltering);
 
 	LoadNoIlvlCodes();
 
@@ -258,6 +259,10 @@ void Item::DrawSettings() {
 
 	new Checkhook(settingsTab, 4, y, &Toggles["Smart Scrolls"].state, "Smart Scrolls");
 	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Smart Scrolls"].toggle, "");
+	y += 15;
+
+	// no Keyhook: this changes how BH.cfg is interpreted, so it isn't hotkey-toggleable
+	new Checkhook(settingsTab, 4, y, &OrderedFiltering, "Ordered Item Filtering");
 	y += 15;
 
 	new Keyhook(settingsTab, 4, y+2, &showPlayer, "Show Player's Gear:   ");

@@ -21,6 +21,10 @@
 #define DEAD_COLOR        0xdead
 #define UNDEFINED_COLOR   0xbeef
 
+// Sentinel returned by the rule lookups below when no rule in a list matched.
+// Ordered filtering compares matched rule indices, so "no match" must sort last.
+#define NO_RULE_MATCH     0xffffffff
+
 // Properties that can appear on an item from incoming packets
 struct ItemProperty {
 	unsigned int stat;
@@ -602,6 +606,9 @@ struct Action {
 	int notifyColor;
 	bool noTracking;
 	unsigned int pingLevel;
+	// Position of the owning rule in the config file. Rules are split across
+	// several lists, so this is how their relative order is recovered later.
+	unsigned int index;
 	Action() :
 		colorOnMap(UNDEFINED_COLOR),
 		borderColor(UNDEFINED_COLOR),
@@ -612,6 +619,7 @@ struct Action {
 		pingLevel(0),
 		stopProcessing(true),
 		noTracking(false),
+		index(NO_RULE_MATCH),
 		name(""),
 		description("") {}
 };
@@ -702,13 +710,14 @@ class MapActionLookupCache : public RuleLookupCache<vector<Action>> {
 			RuleLookupCache<vector<Action>>(RuleList) {}
 };
 
-class IgnoreLookupCache : public RuleLookupCache<bool> {
-	bool make_cached_T(UnitItemInfo *uInfo) override;
-	string to_str(const bool &ignore);
+// Returns the index of the first matching rule, or NO_RULE_MATCH if none matched.
+class IgnoreLookupCache : public RuleLookupCache<unsigned int> {
+	unsigned int make_cached_T(UnitItemInfo *uInfo) override;
+	string to_str(const unsigned int &index);
 
 		public:
 		IgnoreLookupCache(const std::vector<Rule*> &RuleList) :
-			RuleLookupCache<bool>(RuleList) {}
+			RuleLookupCache<unsigned int>(RuleList) {}
 };
 
 extern vector<Rule*> RuleList;
@@ -724,6 +733,7 @@ extern MapActionLookupCache map_action_cache;
 extern IgnoreLookupCache do_not_block_cache;
 extern IgnoreLookupCache ignore_cache;
 extern map<string, string> condition_group;
+extern bool OrderedFiltering;
 
 namespace ItemDisplay {
 	void InitializeItemRules();
@@ -739,6 +749,7 @@ void HandleUnknownItemCode(char *code, char *tag);
 BYTE GetOperation(string *op);
 inline bool IntegerCompare(unsigned int Lvalue, int operation, unsigned int Rvalue);
 void GetItemName(UnitItemInfo *uInfo, string &name);
+bool IsItemBlocked(unsigned int ignore_index, unsigned int keep_index);
 void SubstituteNameVariables(UnitItemInfo *uInfo, string &name, const string &action_name);
 int GetDefense(ItemInfo *item);
 BYTE GetAffixLevel(BYTE ilvl, BYTE qlvl, BYTE mlvl);
