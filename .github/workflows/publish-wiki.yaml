@@ -1,0 +1,66 @@
+name: Publish Wiki
+
+# Publishes docs/ to the repository wiki. docs/ is the source of truth; anything
+# edited directly in the wiki is overwritten the next time this runs.
+#
+# When called from Release, this checks out the tagged commit, so the wiki gets
+# the docs as they were at the release. If nothing under docs/ changed since the
+# last publish, the run is a no-op and no wiki commit is made.
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+# Wiki pushes are not atomic, so never let two runs race.
+concurrency:
+  group: publish-wiki
+  cancel-in-progress: false
+
+jobs:
+  publish:
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Clone wiki
+      # Authentication uses GITHUB_TOKEN, which Actions creates per run and
+      # revokes when the run ends. Nothing needs to be configured for it.
+      #
+      # Troubleshooting:
+      #  - "repository not found": the wiki has never been initialised. Create
+      #    one page through the GitHub UI, then re-run.
+      run: |
+        git clone \
+          "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git" \
+          wiki
+
+    - name: Copy pages
+      run: |
+        # Drop pages that no longer exist in docs/, keeping the wiki's .git.
+        find wiki -maxdepth 1 -name '*.md' -delete
+        cp docs/*.md wiki/
+
+    - name: Rewrite links for the wiki
+      # In-repo pages link as [text](Page-Name.md) so they resolve on GitHub and
+      # in editors. Wiki pages are addressed without the extension, so strip it.
+      # Only bare filenames are touched; URLs keep their paths and are left alone.
+      run: |
+        sed -E -i 's/\]\(([A-Za-z0-9_-]+)\.md(#[^)]*)?\)/](\1\2)/g' wiki/*.md
+
+    - name: Commit and push
+      working-directory: wiki
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add -A
+        if git diff --cached --quiet; then
+          echo "Wiki already up to date."
+          exit 0
+        fi
+        git commit -m "Publish docs from ${GITHUB_SHA:0:7}"
+        git push
