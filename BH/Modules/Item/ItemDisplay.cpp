@@ -1215,6 +1215,20 @@ void Condition::BuildConditions(vector<Condition*> &conditions, string token) {
 		Condition::AddOperand(conditions, new PlayerTypeCondition(PLAYER_XP));
 	} else if (key == "CLASSIC") {
 	Condition::AddOperand(conditions, new PlayerTypeCondition(PLAYER_CLASSIC));
+	} else if (key == "AMAZON") {
+		Condition::AddOperand(conditions, new CharClassCondition(CLASS_AMA));
+	} else if (key == "SORCERESS") {
+		Condition::AddOperand(conditions, new CharClassCondition(CLASS_SOR));
+	} else if (key == "NECROMANCER") {
+		Condition::AddOperand(conditions, new CharClassCondition(CLASS_NEC));
+	} else if (key == "PALADIN") {
+		Condition::AddOperand(conditions, new CharClassCondition(CLASS_PAL));
+	} else if (key == "BARBARIAN") {
+		Condition::AddOperand(conditions, new CharClassCondition(CLASS_BAR));
+	} else if (key == "DRUID") {
+		Condition::AddOperand(conditions, new CharClassCondition(CLASS_DRU));
+	} else if (key == "ASSASSIN") {
+		Condition::AddOperand(conditions, new CharClassCondition(CLASS_ASN));
 	} else if (key.compare(0, 5, "COUNT") == 0) {
 		// backup the last condition type
 		//PrintText(1, "COUNT match with valueStr=%s", valueStr.c_str());
@@ -1374,6 +1388,23 @@ bool PlayerTypeCondition::EvaluateInternal(UnitItemInfo* uInfo, Condition* arg1,
 }
 bool PlayerTypeCondition::EvaluateInternalFromPacket(ItemInfo* info, Condition* arg1, Condition* arg2) {
 	return (((*p_D2LAUNCH_BnData)->nCharFlags >> 5) & 0x1) == mode;
+}
+
+// The class of the character the filter is running on. Prefer the live player unit,
+// whose dwTxtFileNo is the class id, and fall back to the character select data.
+static unsigned int GetCurrentCharClass() {
+	UnitAny* player = D2CLIENT_GetPlayerUnit();
+	if (player) {
+		return player->dwTxtFileNo;
+	}
+	return (*p_D2LAUNCH_BnData)->nCharClass;
+}
+
+bool CharClassCondition::EvaluateInternal(UnitItemInfo* uInfo, Condition* arg1, Condition* arg2) {
+	return GetCurrentCharClass() == charClass;
+}
+bool CharClassCondition::EvaluateInternalFromPacket(ItemInfo* info, Condition* arg1, Condition* arg2) {
+	return GetCurrentCharClass() == charClass;
 }
 
 bool QualityCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {

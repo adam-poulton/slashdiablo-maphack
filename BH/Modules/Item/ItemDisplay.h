@@ -256,6 +256,16 @@ private:
 	bool EvaluateInternalFromPacket(ItemInfo* info, Condition* arg1, Condition* arg2);
 };
 
+class CharClassCondition : public Condition
+{
+public:
+	CharClassCondition(unsigned int c) : charClass(c) { conditionType = CT_Operand; };
+private:
+	unsigned int charClass;
+	bool EvaluateInternal(UnitItemInfo* uInfo, Condition* arg1, Condition* arg2);
+	bool EvaluateInternalFromPacket(ItemInfo* info, Condition* arg1, Condition* arg2);
+};
+
 class QualityCondition : public Condition
 {
 public:
