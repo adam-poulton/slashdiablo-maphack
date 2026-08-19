@@ -4,7 +4,7 @@ Changelog
 All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
 in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
 
-# Unreleased
+# Release Notes for 1.9.11g (2026-08-19)
 * Add `Monster Curses` option (`BH_settings.cfg`, default `True, None`) to mark
   elite packs carrying the Cursed modifier with a purple `C` on the automap,
   alongside the existing enchantment letters.
