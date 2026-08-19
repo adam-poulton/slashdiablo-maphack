@@ -190,6 +190,7 @@ void Maphack::ReadConfig() {
 	BH::config->ReadToggle("Display Level Names", "None", true, Toggles["Display Level Names"]);
 	BH::config->ReadToggle("Monster Resistances", "None", true, Toggles["Monster Resistances"]);
 	BH::config->ReadToggle("Monster Enchantments", "None", true, Toggles["Monster Enchantments"]);
+	BH::config->ReadToggle("Monster Curses", "None", true, Toggles["Monster Curses"]);
 	BH::config->ReadToggle("Apply CPU Patch", "None", true, Toggles["Apply CPU Patch"]);
 	BH::config->ReadToggle("Apply FPS Patch", "None", true, Toggles["Apply FPS Patch"]);
 	BH::config->ReadToggle("Show Automap On Join", "None", false, Toggles["Show Automap On Join"]);
@@ -332,6 +333,9 @@ void Maphack::OnLoad() {
 
 	new Checkhook(settingsTab, 4, (Y += 15), &Toggles["Monster Enchantments"].state, "  Enchantments");
 	new Keyhook(settingsTab, keyhook_x, (Y + 2), &Toggles["Monster Enchantments"].toggle, "");
+
+	new Checkhook(settingsTab, 4, (Y += 15), &Toggles["Monster Curses"].state, "  Cursed");
+	new Keyhook(settingsTab, keyhook_x, (Y + 2), &Toggles["Monster Curses"].toggle, "");
 
 	new Checkhook(settingsTab, 4, (Y += 15), &Toggles["Monster Resistances"].state, "  Resistances");
 	new Keyhook(settingsTab, keyhook_x, (Y + 2), &Toggles["Monster Resistances"].toggle, "");
@@ -618,6 +622,7 @@ void Maphack::OnAutomapDraw() {
 					//Determine Enchantments
 					string enchantText;
 					string szEnchantments[] = {"\377c3m", "\377c1e", "\377c9e", "\377c3e"};
+					string szCursed = "\377c;C";
 						
 					for (int n = 0; n < 9; n++) {
 						if (Toggles["Monster Enchantments"].state && unit->pMonsterData->fBoss) {
@@ -629,6 +634,10 @@ void Maphack::OnAutomapDraw() {
 								enchantText += szEnchantments[2];
 							if (unit->pMonsterData->anEnchants[n] == ENCH_COLD_ENCHANTED)
 								enchantText += szEnchantments[3];
+						}
+						if (Toggles["Monster Curses"].state && unit->pMonsterData->fBoss) {
+							if (unit->pMonsterData->anEnchants[n] == ENCH_CURSED)
+								enchantText += szCursed;
 						}
 						enhancements[unit->pMonsterData->anEnchants[n]] = true;
 					}
