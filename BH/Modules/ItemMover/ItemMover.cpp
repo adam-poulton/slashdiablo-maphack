@@ -37,6 +37,48 @@ std::string POTIONS[] = { "hp", "mp", "rv" };
 DWORD idBookId;
 DWORD unidItemId;
 
+// A tome holds at most 20 scrolls
+#define FULL_TOME_QUANTITY 20
+
+// True if the player carries at least one tome with the given code and every one of
+// them is full of scrolls. False when no such tome is carried.
+static bool AllTomesFull(UnitAny *unit, const char *tomeCode) {
+	if (!unit || !unit->pInventory)
+		return false;
+	bool foundTome = false;
+	for (UnitAny *pItem = unit->pInventory->pFirstItem; pItem; pItem = pItem->pItemData->pNextInvItem) {
+		if (pItem->pItemData->ItemLocation != STORAGE_INVENTORY)
+			continue;
+		char* code = D2COMMON_GetItemText(pItem->dwTxtFileNo)->szCode;
+		if (code[0] != tomeCode[0] || code[1] != tomeCode[1] || code[2] != tomeCode[2])
+			continue;
+		foundTome = true;
+		if (D2COMMON_GetUnitStat(pItem, STAT_AMMOQUANTITY, 0) < FULL_TOME_QUANTITY)
+			return false;
+	}
+	return foundTome;
+}
+
+// "Smart Scrolls": hide town portal/identify scrolls dropping on the ground when
+// every matching tome is already full.
+static bool IsRedundantScroll(BYTE *packet) {
+	bool success = true;
+	ItemInfo item = {};
+	ParseItem((unsigned char*)packet, &item, &success);
+	if (!success || (item.action != ITEM_ACTION_NEW_GROUND && item.action != ITEM_ACTION_OLD_GROUND))
+		return false;
+
+	const char* tomeCode = NULL;
+	if (strcmp(item.code, "tsc") == 0) {
+		tomeCode = "tbk";
+	} else if (strcmp(item.code, "isc") == 0) {
+		tomeCode = "ibk";
+	} else {
+		return false;
+	}
+	return AllTomesFull(D2CLIENT_GetPlayerUnit(), tomeCode);
+}
+
 bool ItemMover::Init() {
 	BnetData* pData = (*p_D2LAUNCH_BnData);
 	if (!pData) { return false; }
@@ -521,6 +563,11 @@ void ItemMover::OnGamePacketRecv(BYTE* packet, bool* block) {
 					ActivePacket.destination = 0;
 				}
 				Unlock();
+			}
+
+			if ((*BH::MiscToggles2)["Smart Scrolls"].state && IsRedundantScroll(packet)) {
+				*block = true;
+				break;
 			}
 
 			if ((*BH::MiscToggles2)["Advanced Item Display"].state) {
