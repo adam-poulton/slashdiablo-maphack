@@ -385,6 +385,17 @@ private:
 	bool EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2);
 };
 
+class UsedSocketsCondition : public Condition
+{
+public:
+	UsedSocketsCondition(BYTE op, unsigned int target) : operation(op), targetUsedSockets(target) { conditionType = CT_Operand; };
+private:
+	BYTE operation;
+	unsigned int targetUsedSockets;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
+	bool EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2);
+};
+
 class ItemGroupCondition : public Condition
 {
 public:

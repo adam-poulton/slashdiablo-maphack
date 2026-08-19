@@ -286,8 +286,21 @@ void GetItemName(UnitItemInfo *uInfo, string &name) {
 	name.assign(new_name);
 }
 
+// Number of sockets that are filled (gems, runes or jewels inserted into the item).
+// Socketed items are held in the parent item's own inventory.
+static unsigned int GetUsedSockets(UnitAny *item) {
+	unsigned int used = 0;
+	if (item == NULL || item->pInventory == NULL) {
+		return 0;
+	}
+	for (UnitAny *sItem = item->pInventory->pFirstItem; sItem; sItem = sItem->pItemData->pNextInvItem) {
+		used++;
+	}
+	return used;
+}
+
 void SubstituteNameVariables(UnitItemInfo *uInfo, string &name, const string &action_name) {
-	char origName[128], sockets[4], code[4], ilvl[4], alvl[4], craft_alvl[4], runename[16] = "", runenum[4] = "0";
+	char origName[128], sockets[4], usedsockets[4], code[4], ilvl[4], alvl[4], craft_alvl[4], runename[16] = "", runenum[4] = "0";
 	char gemtype[16] = "", gemlevel[16] = "", sellValue[16] = "", statVal[16] = "";
 	char lvlreq[4], wpnspd[4], rangeadder[4];
 
@@ -302,6 +315,7 @@ void SubstituteNameVariables(UnitItemInfo *uInfo, string &name, const string &ac
 	auto alvl_int = GetAffixLevel((BYTE)item->pItemData->dwItemLevel, (BYTE)uInfo->attrs->qualityLevel, uInfo->attrs->magicLevel);
 	auto clvl_int = D2COMMON_GetUnitStat(D2CLIENT_GetPlayerUnit(), STAT_LEVEL, 0); 
 	sprintf_s(sockets, "%d", D2COMMON_GetUnitStat(item, STAT_SOCKETS, 0));
+	sprintf_s(usedsockets, "%d", GetUsedSockets(item));
 	sprintf_s(ilvl, "%d", ilvl_int);
 	sprintf_s(alvl, "%d", alvl_int);
 	sprintf_s(craft_alvl, "%d", GetAffixLevel((BYTE)(ilvl_int/2+clvl_int/2), (BYTE)uInfo->attrs->qualityLevel, uInfo->attrs->magicLevel));
@@ -330,6 +344,7 @@ void SubstituteNameVariables(UnitItemInfo *uInfo, string &name, const string &ac
 		{"NAME", origName},
 		{"BASENAME", baseName},
 		{"SOCKETS", sockets},
+		{"USEDSOCKETS", usedsockets},
 		{"RUNENUM", runenum},
 		{"RUNENAME", runename},
 		{"GEMLEVEL", gemlevel},
@@ -873,6 +888,8 @@ void Condition::BuildConditions(vector<Condition*> &conditions, string token) {
 		Condition::AddOperand(conditions, new FlagsCondition(ITEM_ETHEREAL));
 	} else if (key == "SOCK") {
 		Condition::AddOperand(conditions, new ItemStatCondition(STAT_SOCKETS, 0, operation, value));
+	} else if (key == "USEDSOCK") {
+		Condition::AddOperand(conditions, new UsedSocketsCondition(operation, value));
 	} else if (key.compare(0, 3, "SET") == 0) {
 		std::smatch match;
 		if (regex_search(key, match, regex("^SET([0-9]{1,4})$")) && match.size() == 2) {
@@ -1423,6 +1440,13 @@ bool GoldCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, 
 		return IntegerCompare(info->amount, operation, goldAmount);
 	}
 	return false;
+}
+
+bool UsedSocketsCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
+	return IntegerCompare(GetUsedSockets(uInfo->item), operation, targetUsedSockets);
+}
+bool UsedSocketsCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+	return IntegerCompare(info->usedSockets, operation, targetUsedSockets);
 }
 
 bool ItemLevelCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
