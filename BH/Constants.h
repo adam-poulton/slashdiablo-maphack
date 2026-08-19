@@ -1,6 +1,6 @@
 #pragma once
 
-#define VERSION "BH 1.9.11f"
+#define VERSION "BH 1.9.11g"
 
 #ifdef SHA
 #define STRINGIFY(x) #x
