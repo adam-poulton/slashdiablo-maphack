@@ -16,7 +16,6 @@ namespace Drawing {
 	class UI : public HookGroup {
 		private:
 			static std::list<UI*> UIs;
-			static std::list<UI*> Minimized;
 			unsigned int x, y, xSize, ySize, zOrder;//Position and Size and Order
 			unsigned int minimizedX, minimizedY;//Position when minimized
 			bool active, minimized, dragged, visible;//If UI is active or minimized or dragged

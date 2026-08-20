@@ -8,7 +8,6 @@
 using namespace Drawing;
 
 std::list<UI*> UI::UIs;
-std::list<UI*> UI::Minimized;
 
 UI::UI(std::string name, unsigned int xSize, unsigned int ySize) {
 	InitializeCriticalSection(&crit);
@@ -28,15 +27,17 @@ UI::UI(std::string name, unsigned int xSize, unsigned int ySize) {
 	SetY(y);
 	int minX = GetPrivateProfileInt(name.c_str(), "minimizedX", MINIMIZED_X_POS, path.c_str());
 	SetMinimizedX(minX);
-	int minY = GetPrivateProfileInt(name.c_str(), "minimizedY", MINIMIZED_Y_POS, path.c_str());
+	// Stack the default positions by creation order so windows that have never
+	// been moved don't sit on top of each other. Once saved to UI.ini the
+	// position is used as-is, so a collapsed window never moves on its own.
+	int minY = GetPrivateProfileInt(name.c_str(), "minimizedY",
+		MINIMIZED_Y_POS - (int)(UIs.size() * (TITLE_BAR_HEIGHT + 4)), path.c_str());
 	SetMinimizedY(minY);
 	char activeStr[20];
 	GetPrivateProfileString(name.c_str(), "Minimized", "true", activeStr, 20, path.c_str());
 	// Set the initial state directly rather than through SetMinimized(), which
 	// would write the config back out before the modules have finished loading.
 	minimized = StringToBool(activeStr);
-	if (minimized)
-		Minimized.push_back(this);
 	SetActive(false);
 	zOrder = UIs.size();
 	UIs.push_back(this);
@@ -54,8 +55,6 @@ UI::~UI() {
 	}
 		
 	UIs.remove(this);
-	if (IsMinimized())
-		Minimized.remove(this);
 
 	Unlock();
 	DeleteCriticalSection(&crit);
@@ -117,11 +116,6 @@ void UI::OnDraw() {
 	if (!IsVisible()) return;
 	EnsureInBounds();
 	if (IsMinimized()) {
-		int n = 0;
-		for (list<UI*>::iterator it = Minimized.begin(); it != Minimized.end(); it++, n++)
-			if ((*it) == this)
-				break;
-
 		int xSize = Texthook::GetTextSize(GetName(), 0).x + 8;
 
 		if (IsDragged()) {
@@ -145,7 +139,7 @@ void UI::OnDraw() {
 			SetMinimizedX(newX);
 			SetMinimizedY(newY);
 		}
-		int yPos = GetMinimizedY() - (n * (TITLE_BAR_HEIGHT + 4));
+		int yPos = GetMinimizedY();
 		int inPos = InPos((*p_D2CLIENT_MouseX), (*p_D2CLIENT_MouseY), GetMinimizedX(), yPos, xSize, TITLE_BAR_HEIGHT);
 		Framehook::Draw(GetMinimizedX(), yPos, xSize, TITLE_BAR_HEIGHT, 0, BTOneHalf);
 		Texthook::Draw(GetMinimizedX() + 4, yPos + 3, false, 0, (inPos?Silver:White), GetName());
@@ -181,14 +175,12 @@ void UI::OnDraw() {
 
 void UI::EnsureInBounds() {
 	if (IsMinimized()) {
-		if (GetMinimizedX() < 0) {
-			SetMinimizedX(0);
-		}
-		if (GetMinimizedX() + GetXSize() > Hook::GetScreenWidth()) {
-			SetMinimizedX(Hook::GetScreenWidth() - GetXSize());
-		}
-		if (GetMinimizedY() < 0) {
-			SetMinimizedY(0);
+		// A collapsed window is only as wide as its title bar, so clamping it
+		// against the full window width would drag wide windows back off their
+		// saved position every frame.
+		unsigned int titleWidth = Texthook::GetTextSize(GetName(), 0).x + 8;
+		if (GetMinimizedX() + titleWidth > Hook::GetScreenWidth()) {
+			SetMinimizedX(Hook::GetScreenWidth() - titleWidth);
 		}
 		if (GetMinimizedY() + TITLE_BAR_HEIGHT > Hook::GetScreenHeight()) {
 			SetMinimizedY(Hook::GetScreenHeight() - TITLE_BAR_HEIGHT);
@@ -230,16 +222,13 @@ void UI::SetVisible(bool newState) {
 	visible = newState;
 }
 
-void UI::SetMinimized(bool newState) { 
-	if (newState == minimized) 
-		return; 
-	Lock();  
-	if (newState) {
-		Minimized.push_back(this);
+void UI::SetMinimized(bool newState) {
+	if (newState == minimized)
+		return;
+	Lock();
+	if (newState)
 		BH::config->Write();
-	} else
-		Minimized.remove(this); 
-	minimized = newState; 
+	minimized = newState;
 	WritePrivateProfileString(name.c_str(), "Minimized", to_string<bool>(newState).c_str(), string(BH::path + "UI.ini").c_str());
 	Unlock(); 
 };
@@ -249,11 +238,7 @@ bool UI::OnLeftClick(bool up, unsigned int mouseX, unsigned int mouseY) {
 	if (!IsVisible())
 		return false;
 	if (IsMinimized()) {
-		int n = 0;
-		for (list<UI*>::iterator it = Minimized.begin(); it != Minimized.end(); it++, n++)
-			if ((*it) == this)
-				break;
-		int yPos = GetMinimizedY() - (n * (TITLE_BAR_HEIGHT + 4));
+		int yPos = GetMinimizedY();
 		int xSize = Texthook::GetTextSize(GetName(), 0).x + 8;
 		int inPos = InPos((*p_D2CLIENT_MouseX), (*p_D2CLIENT_MouseY), GetMinimizedX(), yPos, xSize, TITLE_BAR_HEIGHT);
 		if (inPos /*&& GetAsyncKeyState(VK_CONTROL)*/) 

@@ -17,6 +17,13 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
   reports its resolution, which could leave a window with no background and an
   unclickable, undraggable title bar. Also stop `UI.ini` state from triggering a
   config write during startup.
+* Fix collapsed BH windows swapping places. Their position was derived from the
+  order in which windows happened to be collapsed, so opening one moved the
+  others. Each window now stays where it was put, and only the default position
+  for a window that has never been moved is offset to avoid overlapping.
+* Fix a collapsed window being clamped to the screen by its full window width
+  instead of its title bar width, which pulled wide windows back from their
+  saved position.
 * Fix BH windows consuming mouse clicks while they are not on screen. Windows
   are only drawn in game, but the window procedure routed clicks to them
   everywhere, so a window left open in `UI.ini` could swallow menu and lobby
