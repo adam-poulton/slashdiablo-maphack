@@ -18,6 +18,7 @@ struct RunewordRecipe {
 	std::string name;		// "Enigma"
 	std::string runes;		// "Jah + Ith + Ber"
 	std::string itemTypes;	// "Any Armor"
+	unsigned int sockets;	// number of runes, so the sockets the base needs
 	int requiredLevel;		// highest level requirement of its runes, 0 if unknown
 	std::string searchKey;	// lowercased name/runes/types, used for filtering
 

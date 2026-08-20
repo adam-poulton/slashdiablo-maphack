@@ -56,8 +56,8 @@ the bottom right. The footer shows which entries you are looking at.
 
 Click any row, or press enter to take the first match, and the list is replaced
 by that recipe in full: the runes untruncated, the character level it requires
-(the highest level requirement among its runes), the bases it can go in, and its
-stats. The number of runes is the number of sockets the base needs.
+(the highest level requirement among its runes), how many sockets the base needs
+and which bases it can go in, and its stats.
 
 The stats are read from the same tables and string files the game itself uses to
 describe an item, so the wording matches what you would see on the finished

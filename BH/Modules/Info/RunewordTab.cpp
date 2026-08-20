@@ -304,6 +304,7 @@ void RunewordTab::BuildRecipes() {
 			recipe.name = RunewordName(entry);
 			if (recipe.name.length() == 0)
 				continue;
+			recipe.sockets = runeNames.size();
 			recipe.runes = Join(runeNames, " + ");
 
 			std::vector<std::string> types;
@@ -373,6 +374,7 @@ void RunewordTab::BuildRecipes() {
 			if (runeLevels.count(extra.runes[n]) && runeLevels[extra.runes[n]] > recipe.requiredLevel)
 				recipe.requiredLevel = runeLevels[extra.runes[n]];
 		}
+		recipe.sockets = runeNames.size();
 		recipe.runes = Join(runeNames, " + ");
 		recipe.itemTypes = ItemTypeName(extra.itemType);
 		recipe.baseSlots.push_back(BaseSlot(extra.itemType));
@@ -524,7 +526,7 @@ void RunewordTab::ShowDetail(int match) {
 	} else {
 		detailLevel->SetText("");
 	}
-	detailTypes->SetText("%s", recipe->itemTypes.c_str());
+	detailTypes->SetText("%u Socket %s", recipe->sockets, recipe->itemTypes.c_str());
 
 	int line = 0;
 	for (; line < (int)recipe->stats.size() && line < RW_DETAIL_LINES; line++)
