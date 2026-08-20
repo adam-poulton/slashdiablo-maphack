@@ -6,6 +6,9 @@
 using namespace std;
 using namespace Drawing;
 
+// Palette entry used for the text cursor and the focus outline.
+#define INPUT_FOCUS_COLOR	255
+
 // D2's inline color codes only cover the ten single digit colors, so anything
 // outside that range falls back to white.
 static std::string InlineColorCode(TextColor color) {
@@ -155,7 +158,9 @@ void Inputhook::DecreaseCursorPosition(unsigned int len) {
 }; 
 
 unsigned int Inputhook::GetCharacterLimit() {
-	return (GetXSize() / Texthook::GetTextSize("A", GetFont()).x);
+	// The text sits inside the padding, so it has less room than the whole box.
+	unsigned int usable = GetXSize() - (2 * INPUT_PADDING_X);
+	return (usable / Texthook::GetTextSize("A", GetFont()).x);
 }
 
  void Inputhook::OnDraw() {
@@ -165,11 +170,11 @@ unsigned int Inputhook::GetCharacterLimit() {
 	 //Font height
 	 unsigned int height[] = {10,11,18,24,10,13,7,13,10,12,8,8,7,12};
 
-	 //A focused box gets a solid field, a second frame around it and a blinking
-	 //cursor; an unfocused one is translucent with dimmed text, so it is obvious
-	 //at a glance whether typing will go into the box.
+	 //A focused box gets a solid field, a bright outline and a blinking cursor;
+	 //an unfocused one is translucent with dimmed text, so it is obvious at a
+	 //glance whether typing will go into the box.
 	 bool focused = IsFocused();
-	 unsigned int boxHeight = height[GetFont()] + 4;
+	 unsigned int boxHeight = GetYSize();
 	 TextColor textColor = focused ? GetFocusedColor() : GetColor();
 
 	 //Current text width
@@ -180,15 +185,23 @@ unsigned int Inputhook::GetCharacterLimit() {
 	 D2GFX_DrawRectangle(GetX(), GetY(), GetX() + GetXSize(), GetY() + boxHeight, 0, focused ? BTFull : BTOneHalf);
 	 Framehook::DrawRectStub(&pRect);
 	 if (focused) {
-		 RECT pHalo = {static_cast<long>(GetX()) - 1, static_cast<long>(GetY()) - 1, static_cast<long>(GetX() + GetXSize()) + 1, static_cast<long>(GetY() + boxHeight) + 1};
-		 Framehook::DrawRectStub(&pHalo);
+		 //A second bevelled frame was too easy to miss against the panel, so the
+		 //outline is drawn in the same colour as the text cursor instead.
+		 int left = GetX() - 1, top = GetY() - 1;
+		 int right = GetX() + GetXSize() + 1, bottom = GetY() + boxHeight + 1;
+		 D2GFX_DrawLine(left, top, right, top, INPUT_FOCUS_COLOR, -1);
+		 D2GFX_DrawLine(left, bottom, right, bottom, INPUT_FOCUS_COLOR, -1);
+		 D2GFX_DrawLine(left, top, left, bottom, INPUT_FOCUS_COLOR, -1);
+		 D2GFX_DrawLine(right, top, right, bottom, INPUT_FOCUS_COLOR, -1);
 	 }
 	 //An empty box shows its hint instead, always dimmed so it doesn't read as
 	 //text that is really in the box.
 	 if (text.length() == 0 && placeholder.length() > 0) {
 		 DWORD placeholderFont = D2WIN_SetTextSize(GetFont());
-		 wchar_t* wHint = AnsiToUnicode(FitToWidth(placeholder, GetFont(), GetXSize() - 6).c_str());
-		 D2WIN_DrawText(wHint, GetX() + 3, GetY() + 3 + height[GetFont()], Grey, 0);
+		 wchar_t* wHint = AnsiToUnicode(FitToWidth(placeholder, GetFont(),
+			 GetXSize() - (2 * INPUT_PADDING_X)).c_str());
+		 D2WIN_DrawText(wHint, GetX() + INPUT_PADDING_X,
+			 GetY() + INPUT_PADDING_TOP + height[GetFont()], Grey, 0);
 		 delete[] wHint;
 		 D2WIN_SetTextSize(placeholderFont);
 	 }
@@ -212,14 +225,19 @@ unsigned int Inputhook::GetCharacterLimit() {
 
 	 DWORD oldFont = D2WIN_SetTextSize(GetFont());
 	 wchar_t* wText = AnsiToUnicode(drawnText.c_str());
-	 D2WIN_DrawText(wText, GetX() + 3, GetY() + 3 + height[GetFont()], textColor, 0);
+	 D2WIN_DrawText(wText, GetX() + INPUT_PADDING_X,
+		 GetY() + INPUT_PADDING_TOP + height[GetFont()], textColor, 0);
 	 delete[] wText;
 	 D2WIN_SetTextSize(oldFont);
 
 	 //Draw the cursor!
 	 CursorTick();
-	 if (ShowCursor() && focused)
-		 D2GFX_DrawLine(GetX() + textSize.x + 2, GetY() + 3, GetX() + textSize.x + 2, GetY() + textSize.y, 255, 0);
+	 if (ShowCursor() && focused) {
+		 int cursorX = GetX() + INPUT_PADDING_X + textSize.x;
+		 D2GFX_DrawLine(cursorX, GetY() + INPUT_PADDING_TOP,
+			 cursorX, GetY() + INPUT_PADDING_TOP + height[GetFont()] - 1,
+			 INPUT_FOCUS_COLOR, -1);
+	 }
 
 	 Unlock();
  }

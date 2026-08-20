@@ -5,6 +5,12 @@
 #include "../../Basic/Texthook/Texthook.h"
 
 namespace Drawing {
+	// Space between the border and the text inside it. A little more above than
+	// below, since the glyphs sit on their baseline and reach nearer the top.
+	#define INPUT_PADDING_X			5
+	#define INPUT_PADDING_TOP		5
+	#define INPUT_PADDING_BOTTOM	3
+
 	class Inputhook : public Hook {
 		private:
 			std::string text; //Text that is actually in the input box
@@ -51,7 +57,7 @@ namespace Drawing {
 
 			//Y Size. This is the height of the box as drawn, not just of the
 			//text, so that the clickable area matches what the user sees.
-			unsigned int GetYSize() { unsigned int height[] = {10,11,18,24,10,13,7,13,10,12,8,8,7,12}; return height[GetFont()] + 4; };
+			unsigned int GetYSize() { unsigned int height[] = {10,11,18,24,10,13,7,13,10,12,8,8,7,12}; return height[GetFont()] + INPUT_PADDING_TOP + INPUT_PADDING_BOTTOM; };
 
 			//Hint shown in place of the text while the box is empty
 			std::string GetPlaceholder() { return placeholder; };

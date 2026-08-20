@@ -13,9 +13,9 @@ using namespace Drawing;
 #define RW_SEARCH_X			6
 #define RW_SEARCH_Y			3
 #define RW_SEARCH_WIDTH		388
-#define RW_LIST_Y			25
+#define RW_LIST_Y			28
 #define RW_LIST_WIDTH		388
-#define RW_LIST_HEIGHT		346		// 28 rows
+#define RW_LIST_HEIGHT		343		// 28 rows
 #define RW_FOOTER_Y			(RW_LIST_Y + RW_LIST_HEIGHT + 6)
 #define RW_PREV_X			250
 #define RW_NEXT_X			310
