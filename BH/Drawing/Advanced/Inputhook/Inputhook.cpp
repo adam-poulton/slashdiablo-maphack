@@ -179,14 +179,19 @@ unsigned int Inputhook::GetCharacterLimit() {
 	 //Current text width
 	 POINT textSize = Texthook::GetTextSize(GetText().substr(textPos, GetCursorPosition() - textPos), GetFont());
 
-	 //A lit band behind a focused box, which the field is then painted over so
-	 //that it shows as a ring around the edge. The same fill the tab strip uses
-	 //to pick itself out, rather than a bevelled frame that blends into the one
-	 //already there.
-	 if (focused)
-		 Boxhook::Draw(GetX() - INPUT_FOCUS_RING, GetY() - INPUT_FOCUS_RING,
-			 GetXSize() + (2 * INPUT_FOCUS_RING), boxHeight + (2 * INPUT_FOCUS_RING),
-			 0, BTHighlight);
+	 //An outline around a focused box, in white rather than in the black
+	 //everything else here is drawn in, since a black band on a dark panel was
+	 //invisible however it was blended. Drawn as four bars rather than as a
+	 //filled box behind the field, so it cannot tint the field itself.
+	 if (focused) {
+		 int ring = INPUT_FOCUS_RING;
+		 int left = GetX() - ring, top = GetY() - ring;
+		 int ringWidth = GetXSize() + (2 * ring), ringHeight = boxHeight + (2 * ring);
+		 Boxhook::Draw(left, top, ringWidth, ring, INPUT_FOCUS_COLOR, BTNormal);
+		 Boxhook::Draw(left, top + ringHeight - ring, ringWidth, ring, INPUT_FOCUS_COLOR, BTNormal);
+		 Boxhook::Draw(left, top, ring, ringHeight, INPUT_FOCUS_COLOR, BTNormal);
+		 Boxhook::Draw(left + ringWidth - ring, top, ring, ringHeight, INPUT_FOCUS_COLOR, BTNormal);
+	 }
 
 	 //Draw the outline box!
 	 RECT pRect  = {static_cast<long>(GetX()), static_cast<long>(GetY()), static_cast<long>(GetX() + GetXSize()), static_cast<long>(GetY() + boxHeight)};
