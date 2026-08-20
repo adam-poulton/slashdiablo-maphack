@@ -1,0 +1,7 @@
+# Everything here is either a build artifact or extracted game data, which must
+# not be committed. Only the tools themselves are tracked.
+*
+!.gitignore
+!README.md
+!dumpmpq.cpp
+!tbl.py

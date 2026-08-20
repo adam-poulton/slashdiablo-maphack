@@ -92,6 +92,11 @@ Opening `BH.sln` in Visual Studio and building the `BH` project in Release does
 the same thing. To stamp the build with a commit SHA the way CI does, pass
 `/p:CustomDefinitions="SHA=<sha>"`.
 
+BH reads the game's data tables out of the Diablo II MPQ archives at run time.
+[tools/mpq](tools/mpq) has a small extractor for pulling those same files out on
+the desktop, which is the quickest way to check what the data actually says while
+working on a feature.
+
 A CMake build (CMake >= 3.7) also exists. Create a build directory within the
 project root, make it the current working directory, then run
 `cmake -DBUILD_SHARED_LIBS=TRUE -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE ..`
