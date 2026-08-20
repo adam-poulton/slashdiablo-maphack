@@ -86,7 +86,8 @@ namespace Drawing {
 			unsigned int GetHeaderHeight();
 			unsigned int GetVisibleRows();
 
-			// Paging. Pages are zero based; ChangePage() wraps at both ends.
+			// Paging. Pages are zero based; ChangePage() stops at the first and
+			// last page rather than wrapping round.
 			unsigned int GetPage() { return page; };
 			unsigned int GetPageCount();
 			unsigned int GetFirstVisibleRow() { return page * GetVisibleRows(); };

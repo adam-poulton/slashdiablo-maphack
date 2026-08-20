@@ -168,12 +168,14 @@ void Listhook::SetPage(unsigned int newPage) {
 void Listhook::ChangePage(int delta) {
 	unsigned int pages = GetPageCount();
 	Lock();
-	if (delta < 0 && page == 0)
-		page = pages - 1;
-	else if (delta > 0 && page + 1 >= pages)
-		page = 0;
-	else
-		page += delta;
+	if (delta < 0) {
+		unsigned int back = (unsigned int)(-delta);
+		page = (back > page) ? 0 : (page - back);
+	} else {
+		page += (unsigned int)delta;
+		if (page >= pages)
+			page = pages - 1;
+	}
 	Unlock();
 }
 

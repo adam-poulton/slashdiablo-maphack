@@ -64,6 +64,7 @@ class RunewordTab : public InfoTab {
 		void LoadStats(RunewordRecipe* recipe);
 		void ApplyFilter();
 		void PushRows();
+		void UpdateFooter();
 		void ShowDetail(int match);
 		void ShowList();
 		void ApplyViewVisibility();

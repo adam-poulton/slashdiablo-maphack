@@ -50,9 +50,10 @@ Press **enter** to open the first match in the detail pane. Enter is not typed
 into the box, so the search text is left alone.
 
 Long lists are paged: `PgUp` and `PgDn`, or the `< Prev` and `Next >` links at
-the bottom right, which only appear when there is more than one page. The footer
-shows which entries you are looking at, or just how many matched when they all
-fit on one page.
+the bottom right, which only appear when there is more than one page. Paging
+stops at the first and last page rather than wrapping round, and a link that
+would do nothing is greyed out. The footer shows which entries you are looking
+at, or just how many matched when they all fit on one page.
 
 ### Detail view
 

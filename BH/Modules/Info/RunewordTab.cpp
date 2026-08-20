@@ -218,6 +218,13 @@ static const char* BaseSlot(const std::string& code) {
 	return kSlotWeapon;
 }
 
+// A link the user can act on is gold and lights up under the mouse; one that
+// would do nothing is grey and ignores the mouse entirely.
+static void SetLinkEnabled(Texthook* link, bool enabled) {
+	link->SetColor(enabled ? Gold : Grey);
+	link->SetHoverColor(enabled ? White : Disabled);
+}
+
 RunewordTab::RunewordTab(UI* ui) : InfoTab("Runewords", ui),
 	shownDetail(-1),
 	recipesLoaded(false),
@@ -236,14 +243,14 @@ RunewordTab::RunewordTab(UI* ui) : InfoTab("Runewords", ui),
 	statusText->SetColor(Grey);
 
 	prevLink = new Texthook(tab, RW_PREV_X, RW_FOOTER_Y, "< Prev");
-	prevLink->SetColor(Gold);
-	prevLink->SetHoverColor(White);
 	prevLink->SetLeftCallback(RunewordTab::OnPrevClick, this);
 
 	nextLink = new Texthook(tab, RW_NEXT_X, RW_FOOTER_Y, "Next >");
-	nextLink->SetColor(Gold);
-	nextLink->SetHoverColor(White);
 	nextLink->SetLeftCallback(RunewordTab::OnNextClick, this);
+
+	// Set properly by UpdateFooter() once there are rows to page through.
+	SetLinkEnabled(prevLink, false);
+	SetLinkEnabled(nextLink, false);
 
 	// Created before the text so the border draws behind it. Both are positioned
 	// and sized when a runeword is opened.
@@ -541,24 +548,34 @@ void RunewordTab::PushRows() {
 		rows.push_back(row);
 	}
 	list->SetRows(rows);	// also clears the selection
+	UpdateFooter();
+
+	// Whether the list pages at all depends on the filter.
+	ApplyViewVisibility();
+}
+
+// The status line and the state of the paging links, which change when the page
+// changes as well as when the rows do.
+void RunewordTab::UpdateFooter() {
+	unsigned int pages = list->GetPageCount(), page = list->GetPage();
 
 	if (!recipesLoaded) {
 		statusText->SetText("Waiting for game data to finish loading...");
 	} else if (matches.empty()) {
 		statusText->SetText("No runewords match \"%s\"", query.c_str());
-	} else if (list->GetPageCount() > 1) {
+	} else if (pages > 1) {
 		statusText->SetText("%u - %u of %u   (page %u of %u)",
 			list->GetFirstVisibleRow() + 1,
 			list->GetLastVisibleRow(),
 			(unsigned int)matches.size(),
-			list->GetPage() + 1,
-			list->GetPageCount());
+			page + 1,
+			pages);
 	} else {
 		statusText->SetText("%u runewords", (unsigned int)matches.size());
 	}
 
-	// Whether the list pages at all depends on the filter.
-	ApplyViewVisibility();
+	SetLinkEnabled(prevLink, page > 0);
+	SetLinkEnabled(nextLink, page + 1 < pages);
 }
 
 void RunewordTab::ShowDetail(int match) {
@@ -707,7 +724,7 @@ bool RunewordTab::OnKey(bool up, BYTE key) {
 				return false;
 			if (!up) {
 				list->ChangePage(-1);
-				needsRefresh = true;
+				UpdateFooter();
 			}
 			return true;
 		case VK_NEXT:
@@ -715,7 +732,7 @@ bool RunewordTab::OnKey(bool up, BYTE key) {
 				return false;
 			if (!up) {
 				list->ChangePage(1);
-				needsRefresh = true;
+				UpdateFooter();
 			}
 			return true;
 	}
@@ -726,7 +743,7 @@ bool __cdecl RunewordTab::OnPrevClick(bool up, Hook* hook, void* data) {
 	if (up) {
 		RunewordTab* self = (RunewordTab*)data;
 		self->list->ChangePage(-1);
-		self->needsRefresh = true;
+		self->UpdateFooter();
 	}
 	return true;
 }
@@ -735,7 +752,7 @@ bool __cdecl RunewordTab::OnNextClick(bool up, Hook* hook, void* data) {
 	if (up) {
 		RunewordTab* self = (RunewordTab*)data;
 		self->list->ChangePage(1);
-		self->needsRefresh = true;
+		self->UpdateFooter();
 	}
 	return true;
 }
