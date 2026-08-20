@@ -108,11 +108,12 @@ Inputhook::Inputhook(HookGroup* group, unsigned int x, unsigned int y, unsigned 
  }
 
  void Inputhook::CursorTick() {
-	  if (cursorTick % 30 == 0) { 
-		  ResetCursorTick(); 
-		  ToggleCursor(); 
-	  }
-	  cursorTick++;
+	 //Blink against the clock, not the frame counter it used to count, which
+	 //ran the caret faster the better the frame rate was.
+	 if ((GetTickCount() - cursorTick) < INPUT_BLINK_MS)
+		 return;
+	 ResetCursorTick();
+	 ToggleCursor();
  }
 
  void Inputhook::SetCursorPosition(unsigned int newPosition) {
@@ -234,7 +235,8 @@ unsigned int Inputhook::GetCharacterLimit() {
 	 if (ShowCursor() && focused) {
 		 DWORD cursorFont = D2WIN_SetTextSize(GetFont());
 		 wchar_t caret[] = { L'|', 0 };
-		 D2WIN_DrawText(caret, GetX() + INPUT_PADDING_X + textSize.x,
+		 D2WIN_DrawText(caret,
+			 GetX() + INPUT_PADDING_X + textSize.x - INPUT_CARET_NUDGE,
 			 GetY() + INPUT_PADDING_TOP + height[GetFont()], textColor, 0);
 		 D2WIN_SetTextSize(cursorFont);
 	 }

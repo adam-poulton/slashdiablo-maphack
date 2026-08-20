@@ -14,6 +14,13 @@ namespace Drawing {
 	// How far the lit band behind a focused box stands out past its edge.
 	#define INPUT_FOCUS_RING		2
 
+	// How long the caret stays on or off, in milliseconds.
+	#define INPUT_BLINK_MS			500
+
+	// The caret glyph is drawn a little in from the left of its cell, so it is
+	// pulled back to sit where a character would actually start.
+	#define INPUT_CARET_NUDGE		2
+
 	class Inputhook : public Hook {
 		private:
 			std::string text; //Text that is actually in the input box
@@ -22,7 +29,8 @@ namespace Drawing {
 			bool clearOnFocus; //Empty the box when it is clicked into
 			bool focused, showCursor; //Booleans set if the box has focus / currently showing cursor.
 			unsigned int xSize; //Length of the input box
-			unsigned int cursorPos, cursorTick; //Cursor Position / Timer to control cursor blink
+			unsigned int cursorPos; //Position the next character is typed at
+			unsigned int cursorTick; //When the caret last changed, in ticks
 			unsigned int textPos;//Used to determine which part of the current text I should show
 			unsigned int selectPos, selectLength; // Selection position and length
 			unsigned int font; //What type of font to use in the input hook.
@@ -84,7 +92,7 @@ namespace Drawing {
 			void ToggleCursor() { SetCursorState(!ShowCursor()); };
 
 			void CursorTick();
-			void ResetCursorTick() { cursorTick = 0; };
+			void ResetCursorTick() { cursorTick = GetTickCount(); };
 
 			unsigned int GetCursorPosition() { return cursorPos; };
 			void SetCursorPosition(unsigned int newPosition);
