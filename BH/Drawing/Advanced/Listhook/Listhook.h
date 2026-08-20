@@ -8,15 +8,22 @@
 namespace Drawing {
 	// One column of a Listhook. x and width are in pixels, relative to the
 	// list's left edge; text that does not fit width is cut with an ellipsis.
+	// An empty header leaves the column unlabelled, and a header on no column at
+	// all leaves the header row out entirely.
+	//
+	// hoverColor left as Disabled means the column doesn't react to the mouse;
+	// set it to make the column read as something you can click.
 	struct ListColumn {
 		std::string header;
 		unsigned int x;
 		unsigned int width;
 		TextColor color;
+		TextColor hoverColor;
 
-		ListColumn() : x(0), width(0), color(White) {};
-		ListColumn(std::string header, unsigned int x, unsigned int width, TextColor color) :
-			header(header), x(x), width(width), color(color) {};
+		ListColumn() : x(0), width(0), color(White), hoverColor(Disabled) {};
+		ListColumn(std::string header, unsigned int x, unsigned int width, TextColor color,
+				TextColor hoverColor = Disabled) :
+			header(header), x(x), width(width), color(color), hoverColor(hoverColor) {};
 	};
 
 	// A paged, column oriented list of text rows. The caller supplies the column
@@ -86,6 +93,9 @@ namespace Drawing {
 			unsigned int GetLastVisibleRow();
 			void SetPage(unsigned int newPage);
 			void ChangePage(int delta);
+
+			// The row under the mouse, or -1 if the mouse is elsewhere.
+			int GetHoveredRow();
 
 			bool OnLeftClick(bool up, unsigned int x, unsigned int y);
 			void OnDraw();

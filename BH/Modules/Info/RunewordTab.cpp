@@ -225,8 +225,8 @@ RunewordTab::RunewordTab(UI* ui) : InfoTab("Runewords", ui),
 
 	list = new Listhook(tab, RW_SEARCH_X, RW_LIST_Y, RW_LIST_WIDTH, RW_LIST_HEIGHT);
 	std::vector<ListColumn> columns;
-	columns.push_back(ListColumn("Runeword", RW_COL_NAME_X, RW_COL_NAME_W, White));
-	columns.push_back(ListColumn("Runes", RW_COL_RUNES_X, RW_COL_RUNES_W, Orange));
+	columns.push_back(ListColumn("", RW_COL_NAME_X, RW_COL_NAME_W, Gold, White));
+	columns.push_back(ListColumn("", RW_COL_RUNES_X, RW_COL_RUNES_W, Orange));
 	list->SetColumns(columns);
 
 	statusText = new Texthook(tab, RW_SEARCH_X, RW_FOOTER_Y, "");
@@ -264,10 +264,11 @@ RunewordTab::RunewordTab(UI* ui) : InfoTab("Runewords", ui),
 void RunewordTab::ApplyViewVisibility() {
 	bool detail = (shownDetail >= 0);
 
+	bool paged = (list->GetPageCount() > 1);
 	list->SetActive(!detail);
 	statusText->SetActive(!detail);
-	prevLink->SetActive(!detail);
-	nextLink->SetActive(!detail);
+	prevLink->SetActive(!detail && paged);
+	nextLink->SetActive(!detail && paged);
 
 	detailFrame->SetActive(detail);
 	// The lines themselves are switched on individually by ShowDetail(), so that
@@ -542,14 +543,19 @@ void RunewordTab::PushRows() {
 		statusText->SetText("Waiting for game data to finish loading...");
 	} else if (matches.empty()) {
 		statusText->SetText("No runewords match \"%s\"", query.c_str());
-	} else {
+	} else if (list->GetPageCount() > 1) {
 		statusText->SetText("%u - %u of %u   (page %u of %u)",
 			list->GetFirstVisibleRow() + 1,
 			list->GetLastVisibleRow(),
 			(unsigned int)matches.size(),
 			list->GetPage() + 1,
 			list->GetPageCount());
+	} else {
+		statusText->SetText("%u runewords", (unsigned int)matches.size());
 	}
+
+	// Whether the list pages at all depends on the filter.
+	ApplyViewVisibility();
 }
 
 void RunewordTab::ShowDetail(int match) {

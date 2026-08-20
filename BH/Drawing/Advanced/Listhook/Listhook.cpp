@@ -1,5 +1,6 @@
 #include "Listhook.h"
 #include "../../Basic/Boxhook/Boxhook.h"
+#include "../../../D2Ptrs.h"
 
 using namespace std;
 using namespace Drawing;
@@ -110,6 +111,18 @@ void Listhook::SetSelectedRow(int row) {
 	Unlock();
 }
 
+int Listhook::GetHoveredRow() {
+	unsigned int top = GetY() + GetHeaderHeight();
+	unsigned int mouseX = (*p_D2CLIENT_MouseX), mouseY = (*p_D2CLIENT_MouseY);
+	if (mouseX < GetX() || mouseX > GetX() + xSize || mouseY < top)
+		return -1;
+	unsigned int offset = (mouseY - top) / GetRowHeight();
+	if (offset >= GetVisibleRows())
+		return -1;
+	unsigned int index = GetFirstVisibleRow() + offset;
+	return (index < rows.size()) ? (int)index : -1;
+}
+
 // Selects the row that was clicked. Clicks below the last row fall through so
 // the window can handle them.
 bool Listhook::OnLeftClick(bool up, unsigned int x, unsigned int y) {
@@ -182,6 +195,7 @@ void Listhook::OnDraw() {
 	if (hasHeader)
 		y += FontHeight(font) + LIST_HEADER_GAP;
 
+	int hovered = GetHoveredRow();
 	unsigned int first = GetFirstVisibleRow(), last = GetLastVisibleRow();
 	for (unsigned int r = first; r < last && r < fitted.size(); r++, y += rowHeight) {
 		bool selected = ((int)r == selectedRow);
@@ -190,8 +204,13 @@ void Listhook::OnDraw() {
 		for (unsigned int c = 0; c < fitted[r].size(); c++) {
 			if (fitted[r][c].length() == 0)
 				continue;
-			Texthook::Draw(GetX() + columns[c].x, y, None, font,
-				selected ? selectedColor : columns[c].color, "%s", fitted[r][c].c_str());
+			TextColor color = columns[c].color;
+			if (selected)
+				color = selectedColor;
+			else if ((int)r == hovered && columns[c].hoverColor != Disabled)
+				color = columns[c].hoverColor;
+			Texthook::Draw(GetX() + columns[c].x, y, None, font, color, "%s",
+				fitted[r][c].c_str());
 		}
 	}
 	Unlock();

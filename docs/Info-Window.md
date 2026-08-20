@@ -50,7 +50,9 @@ Press **enter** to open the first match in the detail pane. Enter is not typed
 into the box, so the search text is left alone.
 
 Long lists are paged: `PgUp` and `PgDn`, or the `< Prev` and `Next >` links at
-the bottom right. The footer shows which entries you are looking at.
+the bottom right, which only appear when there is more than one page. The footer
+shows which entries you are looking at, or just how many matched when they all
+fit on one page.
 
 ### Detail view
 
@@ -102,7 +104,7 @@ applied. Matches are shown in the window only, not repeated into the chat log.
 
 | Column   | Contents                                                          |
 | -------- | ----------------------------------------------------------------- |
-| Runeword | The runeword's name.                                              |
+| Runeword | The runeword's name, in gold, turning white as you point at it to show it opens. |
 | Runes    | The runes in socket order. The number of runes is the number of sockets the base needs. |
 
 Which bases a runeword can go in is in its detail view rather than the list, but
