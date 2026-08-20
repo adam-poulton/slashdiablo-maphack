@@ -11,6 +11,9 @@ namespace Drawing {
 	#define INPUT_PADDING_TOP		5
 	#define INPUT_PADDING_BOTTOM	3
 
+	// How far the lit band behind a focused box stands out past its edge.
+	#define INPUT_FOCUS_RING		2
+
 	class Inputhook : public Hook {
 		private:
 			std::string text; //Text that is actually in the input box

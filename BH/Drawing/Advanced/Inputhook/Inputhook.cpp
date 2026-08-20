@@ -1,13 +1,11 @@
 #include "Inputhook.h"
 #include "../../../D2Ptrs.h"
+#include "../../Basic/Boxhook/Boxhook.h"
 #include "../../Basic/Framehook/Framehook.h"
 #include "../../../Common.h"
 
 using namespace std;
 using namespace Drawing;
-
-// Palette entry used for the text cursor and the focus outline.
-#define INPUT_FOCUS_COLOR	255
 
 // D2's inline color codes only cover the ten single digit colors, so anything
 // outside that range falls back to white.
@@ -180,20 +178,19 @@ unsigned int Inputhook::GetCharacterLimit() {
 	 //Current text width
 	 POINT textSize = Texthook::GetTextSize(GetText().substr(textPos, GetCursorPosition() - textPos), GetFont());
 
+	 //A lit band behind a focused box, which the field is then painted over so
+	 //that it shows as a ring around the edge. The same fill the tab strip uses
+	 //to pick itself out, rather than a bevelled frame that blends into the one
+	 //already there.
+	 if (focused)
+		 Boxhook::Draw(GetX() - INPUT_FOCUS_RING, GetY() - INPUT_FOCUS_RING,
+			 GetXSize() + (2 * INPUT_FOCUS_RING), boxHeight + (2 * INPUT_FOCUS_RING),
+			 0, BTHighlight);
+
 	 //Draw the outline box!
 	 RECT pRect  = {static_cast<long>(GetX()), static_cast<long>(GetY()), static_cast<long>(GetX() + GetXSize()), static_cast<long>(GetY() + boxHeight)};
 	 D2GFX_DrawRectangle(GetX(), GetY(), GetX() + GetXSize(), GetY() + boxHeight, 0, focused ? BTFull : BTOneHalf);
 	 Framehook::DrawRectStub(&pRect);
-	 if (focused) {
-		 //A second bevelled frame was too easy to miss against the panel, so the
-		 //outline is drawn in the same colour as the text cursor instead.
-		 int left = GetX() - 1, top = GetY() - 1;
-		 int right = GetX() + GetXSize() + 1, bottom = GetY() + boxHeight + 1;
-		 D2GFX_DrawLine(left, top, right, top, INPUT_FOCUS_COLOR, -1);
-		 D2GFX_DrawLine(left, bottom, right, bottom, INPUT_FOCUS_COLOR, -1);
-		 D2GFX_DrawLine(left, top, left, bottom, INPUT_FOCUS_COLOR, -1);
-		 D2GFX_DrawLine(right, top, right, bottom, INPUT_FOCUS_COLOR, -1);
-	 }
 	 //An empty box shows its hint instead, always dimmed so it doesn't read as
 	 //text that is really in the box.
 	 if (text.length() == 0 && placeholder.length() > 0) {
@@ -230,13 +227,16 @@ unsigned int Inputhook::GetCharacterLimit() {
 	 delete[] wText;
 	 D2WIN_SetTextSize(oldFont);
 
-	 //Draw the cursor!
+	 //Draw the cursor! Drawn as a character rather than a line, because a line
+	 //in a palette colour never showed up here, while the text beside it plainly
+	 //does.
 	 CursorTick();
 	 if (ShowCursor() && focused) {
-		 int cursorX = GetX() + INPUT_PADDING_X + textSize.x;
-		 D2GFX_DrawLine(cursorX, GetY() + INPUT_PADDING_TOP,
-			 cursorX, GetY() + INPUT_PADDING_TOP + height[GetFont()] - 1,
-			 INPUT_FOCUS_COLOR, -1);
+		 DWORD cursorFont = D2WIN_SetTextSize(GetFont());
+		 wchar_t caret[] = { L'|', 0 };
+		 D2WIN_DrawText(caret, GetX() + INPUT_PADDING_X + textSize.x,
+			 GetY() + INPUT_PADDING_TOP + height[GetFont()], textColor, 0);
+		 D2WIN_SetTextSize(cursorFont);
 	 }
 
 	 Unlock();
