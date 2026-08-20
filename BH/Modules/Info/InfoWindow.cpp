@@ -70,13 +70,32 @@ void InfoWindow::OnLoop() {
 	if (!Toggles[INFO_TOGGLE_NAME].state)
 		infoUI->SetMinimized(true);
 	infoUI->SetVisible(Toggles[INFO_TOGGLE_NAME].state);
+	CheckClosed();
+}
+
+// The window can be closed by the hotkey, by escape, by right clicking its title
+// bar, or by turning the feature off, and the last of those never goes through
+// ShowWindow(). So rather than trying to catch each one, watch for the window
+// having gone away and tell the tabs once.
+void InfoWindow::CheckClosed() {
+	bool open = Toggles[INFO_TOGGLE_NAME].state && infoUI->IsVisible() &&
+		!infoUI->IsMinimized();
+	if (wasOpen && !open) {
+		Lock();
+		for (unsigned int i = 0; i < tabs.size(); i++)
+			tabs[i]->OnClose();
+		Unlock();
+	}
+	wasOpen = open;
 }
 
 void InfoWindow::OnGameExit() {
 	// Nothing is drawn outside a game, so make sure the window agrees and stops
 	// taking input while we are back on the menus.
-	if (infoUI)
-		infoUI->SetVisible(false);
+	if (!infoUI)
+		return;
+	infoUI->SetVisible(false);
+	CheckClosed();
 }
 
 void InfoWindow::OnDraw() {

@@ -20,6 +20,9 @@ the hotkey. Defaults are on and numpad 9.
   the screen. Ctrl-click it to reopen, shift-drag it to move it.
 * `.info` in chat opens it.
 
+Closing the window clears where you had got to, so it opens on a clean list
+rather than on the last thing you searched for.
+
 ## Runewords tab
 
 Every runeword recipe the game allows, searchable.

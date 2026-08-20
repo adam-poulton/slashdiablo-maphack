@@ -677,6 +677,13 @@ void RunewordTab::Search(const std::string& text) {
 	ShowList();
 }
 
+// Reopening the window shouldn't land on someone else's search, or halfway into
+// a runeword they were reading last time.
+void RunewordTab::OnClose() {
+	searchBox->SetFocused(false);
+	Search("");
+}
+
 void RunewordTab::OnDraw() {
 	// MpqLoaded can fire before this tab exists, so build on first draw too.
 	if (!recipesLoaded && Tables::isInitialized()) {

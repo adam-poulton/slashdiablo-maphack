@@ -29,4 +29,9 @@ class InfoTab {
 		// Called for keys the Info window did not consume itself, and only while
 		// this tab is active. Return true to swallow the key.
 		virtual bool OnKey(bool up, BYTE key) { return false; };
+
+		// Called for every tab when the window closes, however it was closed.
+		// Somewhere to drop whatever shouldn't still be there next time it opens,
+		// such as a search someone typed.
+		virtual void OnClose() {};
 };

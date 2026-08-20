@@ -19,13 +19,16 @@ class InfoWindow : public Module {
 		RunewordTab* runewordTab;
 
 		std::map<std::string, Toggle> Toggles;
+		bool wasOpen;			// so closing the window can be noticed
 
 		InfoTab* GetActiveTab();
+		void CheckClosed();
 
 	public:
 		InfoWindow() : Module("Info"),
 			infoUI(NULL),
-			runewordTab(NULL) {
+			runewordTab(NULL),
+			wasOpen(false) {
 			InitializeCriticalSection(&crit);
 		};
 

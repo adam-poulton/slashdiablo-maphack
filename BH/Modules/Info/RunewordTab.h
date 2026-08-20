@@ -75,6 +75,7 @@ class RunewordTab : public InfoTab {
 		void MpqLoaded();
 		void OnDraw();
 		bool OnKey(bool up, BYTE key);
+		void OnClose();
 
 		// Filter the list from outside the window, for the chat command.
 		void Search(const std::string& text);
