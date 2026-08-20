@@ -37,10 +37,14 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
   which left the bottom of the box dead to clicks. They also take focus on the
   press rather than the release, report enter to their owner instead of typing
   it, and no longer accept any control character as text.
-* Fix window sizes being discarded when a BH window is created before the game
-  reports its resolution, which could leave a window with no background and an
-  unclickable, undraggable title bar. Also stop `UI.ini` state from triggering a
-  config write during startup.
+* Fix window positions and sizes being discarded when a BH window is created
+  before the game reports its resolution. Windows are built while BH injects, so
+  the position read back from `UI.ini` was thrown away and every window opened at
+  the top left corner, then saved that position over the real one. A window is
+  now kept on screen only once there is a resolution to judge it against. The
+  same fault could leave a window with no background and an unclickable,
+  undraggable title bar. Also stop `UI.ini` state from triggering a config write
+  during startup.
 * Fix collapsed BH windows swapping places. Their position was derived from the
   order in which windows happened to be collapsed, so opening one moved the
   others. Each window now stays where it was put, and only the default position

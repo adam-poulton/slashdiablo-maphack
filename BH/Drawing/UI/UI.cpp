@@ -60,24 +60,23 @@ UI::~UI() {
 	DeleteCriticalSection(&crit);
 }
 
+// Positions and sizes are stored as given. Windows are constructed while BH is
+// injecting, before the game has reported its resolution, so validating against
+// the screen here threw away the position read back from UI.ini and left every
+// window at the origin. EnsureInBounds() keeps them on screen instead, once
+// there is a screen size to go by.
 void UI::SetX(unsigned int newX) {
-	if (newX >= 0 && newX <= Hook::GetScreenWidth()) {
-		Lock();
-		x = newX;
-		Unlock();
-	}
+	Lock();
+	x = newX;
+	Unlock();
 }
 
 void UI::SetY(unsigned int newY) {
-	if (newY >= 0 && newY <= Hook::GetScreenHeight()) {
-		Lock();
-		y = newY;
-		Unlock();
-	}
+	Lock();
+	y = newY;
+	Unlock();
 }
 
-// Sizes are stored as given: windows are constructed before the screen size is
-// known, and EnsureInBounds() keeps the window on screen every frame anyway.
 void UI::SetXSize(unsigned int newXSize) {
 	Lock();
 	xSize = newXSize;
@@ -174,31 +173,31 @@ void UI::OnDraw() {
 }
 
 void UI::EnsureInBounds() {
+	unsigned int screenWidth = Hook::GetScreenWidth();
+	unsigned int screenHeight = Hook::GetScreenHeight();
+
+	// With no resolution to go by there is nothing meaningful to clamp against,
+	// and guessing would move the window off its saved position.
+	if (screenWidth == 0 || screenHeight == 0)
+		return;
+
 	if (IsMinimized()) {
 		// A collapsed window is only as wide as its title bar, so clamping it
 		// against the full window width would drag wide windows back off their
 		// saved position every frame.
 		unsigned int titleWidth = Texthook::GetTextSize(GetName(), 0).x + 8;
-		if (GetMinimizedX() + titleWidth > Hook::GetScreenWidth()) {
-			SetMinimizedX(Hook::GetScreenWidth() - titleWidth);
-		}
-		if (GetMinimizedY() + TITLE_BAR_HEIGHT > Hook::GetScreenHeight()) {
-			SetMinimizedY(Hook::GetScreenHeight() - TITLE_BAR_HEIGHT);
-		}
+		if (titleWidth < screenWidth && GetMinimizedX() + titleWidth > screenWidth)
+			SetMinimizedX(screenWidth - titleWidth);
+		if (TITLE_BAR_HEIGHT < screenHeight && GetMinimizedY() + TITLE_BAR_HEIGHT > screenHeight)
+			SetMinimizedY(screenHeight - TITLE_BAR_HEIGHT);
 	}
 	else {
-		if (GetX() < 0) {
-			SetX(0);
-		}
-		if(GetX() + GetXSize() > Hook::GetScreenWidth()) {
-			SetX(Hook::GetScreenWidth() - GetXSize());
-		}
-		if (GetY() < 0) {
-			SetY(0);
-		}
-		if (GetY() + GetYSize() > Hook::GetScreenHeight()) {
-			SetY(Hook::GetScreenHeight() - GetYSize());
-		}
+		// Only pull a window back if it would hang off the screen, and only if
+		// it fits at all, so that the arithmetic can't wrap round.
+		if (GetXSize() < screenWidth && GetX() + GetXSize() > screenWidth)
+			SetX(screenWidth - GetXSize());
+		if (GetYSize() < screenHeight && GetY() + GetYSize() > screenHeight)
+			SetY(screenHeight - GetYSize());
 	}
 }
 
