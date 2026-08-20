@@ -36,6 +36,7 @@ Inputhook::Inputhook(HookVisibility visibility, unsigned int x, unsigned int y, 
 	SetFocusedColor(White);
 	SetFocused(false);
 	submitted = false;
+	clearOnFocus = false;
 	SetCursorState(true);
 	ResetCursorTick();
 	ResetSelection();
@@ -57,6 +58,7 @@ Inputhook::Inputhook(HookGroup* group, unsigned int x, unsigned int y, unsigned 
 	SetFocusedColor(White);
 	SetFocused(false);
 	submitted = false;
+	clearOnFocus = false;
 	SetCursorState(true);
 	ResetCursorTick();
 	ResetSelection();
@@ -68,6 +70,15 @@ Inputhook::Inputhook(HookGroup* group, unsigned int x, unsigned int y, unsigned 
 	va_end(arg);
 	text = buffer;
 	SetCursorPosition(text.length());
+ }
+
+ void Inputhook::Clear() {
+	Lock();
+	text = "";
+	SetTextPos(0);
+	ResetSelection();
+	SetCursorPosition(0);
+	Unlock();
  }
 
  void Inputhook::SetText(string newText, ...) {
@@ -354,8 +365,13 @@ unsigned int Inputhook::GetCharacterLimit() {
  bool Inputhook::OnLeftClick(bool up, unsigned int x, unsigned int y) {
 	 if (InRange(x, y)) {
 		 //Take focus on the press, so the box responds the moment it is clicked.
-		 if (!up)
+		 if (!up) {
+			 //Only on the click that takes focus, so clicking a box you are
+			 //already typing in doesn't throw the text away.
+			 if (clearOnFocus && !IsFocused())
+				 Clear();
 			 SetFocused(true);
+		 }
 		 if (GetLeftClickHandler())
 			 GetLeftClickHandler()(up, this, GetLeftClickVoid());
 		 return true;

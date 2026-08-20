@@ -233,6 +233,9 @@ RunewordTab::RunewordTab(UI* ui) : InfoTab("Runewords", ui),
 
 	searchBox = new Inputhook(tab, RW_SEARCH_X, RW_SEARCH_Y, RW_SEARCH_WIDTH, "");
 	searchBox->SetPlaceholder("Search by runeword name, rune or item type");
+	// The box holds a whole search rather than something you edit a word of, so
+	// clicking into it starts a new one.
+	searchBox->SetClearOnFocus(true);
 
 	list = new Listhook(tab, RW_SEARCH_X, RW_LIST_Y, RW_LIST_WIDTH, RW_LIST_HEIGHT);
 	std::vector<ListColumn> columns;

@@ -10,6 +10,7 @@ namespace Drawing {
 			std::string text; //Text that is actually in the input box
 			std::string placeholder; //Hint drawn while the box is empty
 			bool submitted; //Set when enter is pressed, until the owner reads it
+			bool clearOnFocus; //Empty the box when it is clicked into
 			bool focused, showCursor; //Booleans set if the box has focus / currently showing cursor.
 			unsigned int xSize; //Length of the input box
 			unsigned int cursorPos, cursorTick; //Cursor Position / Timer to control cursor blink
@@ -59,6 +60,14 @@ namespace Drawing {
 			//True once if enter has been pressed since the last call. Enter is
 			//consumed rather than typed into the box so the owner can act on it.
 			bool TakeSubmitted() { Lock(); bool was = submitted; submitted = false; Unlock(); return was; };
+
+			//Whether clicking into the box empties it, for a box that is normally
+			//retyped from scratch rather than edited.
+			bool GetClearOnFocus() { return clearOnFocus; };
+			void SetClearOnFocus(bool clear) { Lock(); clearOnFocus = clear; Unlock(); };
+
+			//Empties the box and puts the cursor back at the start.
+			void Clear();
 
 			//If we are current showing the cursor, for blinking purposes!
 			bool ShowCursor() { return showCursor; };

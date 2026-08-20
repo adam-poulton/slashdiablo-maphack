@@ -45,9 +45,13 @@ runeword name, rune name and item type, so all of these work:
 | `shield`   | every runeword that can go in a shield             |
 | `polearm`  | every runeword that can go in a polearm            |
 
+Clicking into the box empties whatever was in it, so a new search is just click
+and type rather than backspacing over the old one. That also puts the whole list
+back, and leaves a runeword you were reading.
+
 While the box has focus it fills in solid, gains a second border and shows a
 blinking cursor; unfocused it is translucent and shows a dimmed hint, so it is
-always clear where your typing is going. Clear it to list everything again.
+always clear where your typing is going.
 
 Press **enter** to open the first match in the detail pane. Enter is not typed
 into the box, so the search text is left alone.
