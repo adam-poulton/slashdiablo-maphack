@@ -18,7 +18,6 @@ struct RunewordRecipe {
 	std::string name;		// "Enigma"
 	std::string runes;		// "Jah + Ith + Ber"
 	std::string itemTypes;	// "Any Armor"
-	unsigned int sockets;	// number of runes, so the sockets the base needs
 	int requiredLevel;		// highest level requirement of its runes, 0 if unknown
 	std::string searchKey;	// lowercased name/runes/types, used for filtering
 
@@ -31,8 +30,8 @@ struct RunewordRecipe {
 	bool statsLoaded;
 };
 
-// Detail view capacity, split over two columns.
-#define RW_DETAIL_LINES		48
+// Detail view capacity. The longest recipe needs 24 lines once wrapped.
+#define RW_DETAIL_LINES		32
 
 class RunewordTab : public InfoTab {
 	private:
@@ -40,15 +39,12 @@ class RunewordTab : public InfoTab {
 		Drawing::Inputhook* searchBox;
 		Drawing::Listhook* list;
 		Drawing::Texthook* statusText;
-		Drawing::Texthook* listHint;
 		Drawing::Texthook* prevLink;
 		Drawing::Texthook* nextLink;
 
-		// Detail view, shown in place of the list.
-		Drawing::Texthook* detailTitle;
-		Drawing::Texthook* detailRunes;
-		Drawing::Texthook* detailLevel;
-		Drawing::Texthook* detailTypes;
+		// Detail view, shown in place of the list: centred text inside a border
+		// that is sized to hold it.
+		Drawing::Framehook* detailFrame;
 		Drawing::Texthook* detailLines[RW_DETAIL_LINES];
 		Drawing::Texthook* backLink;
 

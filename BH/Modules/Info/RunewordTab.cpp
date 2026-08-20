@@ -12,35 +12,27 @@ using namespace Drawing;
 // Layout, relative to the tab's content area.
 #define RW_SEARCH_X			6
 #define RW_SEARCH_Y			3
-#define RW_SEARCH_WIDTH		626
+#define RW_SEARCH_WIDTH		388
 #define RW_LIST_Y			25
-#define RW_LIST_WIDTH		626
+#define RW_LIST_WIDTH		388
 #define RW_LIST_HEIGHT		399
 #define RW_FOOTER_Y			(RW_LIST_Y + RW_LIST_HEIGHT + 6)
-#define RW_HINT_X			240
-#define RW_PREV_X			500
-#define RW_NEXT_X			560
+#define RW_PREV_X			250
+#define RW_NEXT_X			310
 
 // Column layout, relative to the list's left edge. The runes column is sized to
 // hold the longest recipe ("Jah + Mal + Jah + Sur + Jah + Ber") without cutting
 // it, since the runes are the point of the list.
 #define RW_COL_NAME_X		0
-#define RW_COL_NAME_W		150
-#define RW_COL_RUNES_X		158
-#define RW_COL_RUNES_W		290
-#define RW_COL_TYPE_X		456
-#define RW_COL_TYPE_W		170
+#define RW_COL_NAME_W		140
+#define RW_COL_RUNES_X		148
+#define RW_COL_RUNES_W		240
 
-// The detail view replaces the list, so it gets the same area. Stats run long
-// once the runes are included, so they are listed in two columns.
-#define RW_DETAIL_TITLE_Y	RW_LIST_Y
-#define RW_DETAIL_RUNES_Y	(RW_LIST_Y + 15)
-#define RW_DETAIL_LEVEL_Y	(RW_LIST_Y + 29)
-#define RW_DETAIL_TYPES_Y	(RW_LIST_Y + 43)
-#define RW_DETAIL_BODY_Y	(RW_LIST_Y + 63)
+// The detail view replaces the list. Its text is centred inside a border sized
+// to hold it, so it reads like the description on the item itself.
+#define RW_DETAIL_PAD		7
 #define RW_DETAIL_LINE_H	12
-#define RW_DETAIL_COL_W		316
-#define RW_DETAIL_ROWS		(RW_DETAIL_LINES / 2)
+#define RW_DETAIL_MAX_W		(RW_LIST_WIDTH - (2 * RW_DETAIL_PAD))
 
 // Six recipes shipped under working titles in runes.txt and were renamed before
 // release; the files were never updated, so the readable name in "Rune Name" is
@@ -147,6 +139,38 @@ static std::string ItemTypeName(const std::string& code) {
 	return code;
 }
 
+// Splits text over as many lines as it takes to fit the given width. Measuring
+// uses the game's font routines, so this belongs on the drawing thread.
+static void WrapText(const std::string& text, unsigned int font,
+		unsigned int maxWidth, std::vector<std::string>& lines) {
+	if (text.length() == 0 || (unsigned int)Texthook::GetTextSize(text, font).x <= maxWidth) {
+		lines.push_back(text);
+		return;
+	}
+
+	std::string line;
+	size_t pos = 0;
+	while (pos < text.length()) {
+		size_t space = text.find(' ', pos);
+		std::string word = (space == std::string::npos) ?
+			text.substr(pos) : text.substr(pos, space - pos);
+		pos = (space == std::string::npos) ? text.length() : space + 1;
+		if (word.length() == 0)
+			continue;	// runs of spaces
+
+		std::string candidate = line.length() ? (line + " " + word) : word;
+		if (line.length() > 0 &&
+			(unsigned int)Texthook::GetTextSize(candidate, font).x > maxWidth) {
+			lines.push_back(line);
+			line = word;
+		} else {
+			line = candidate;
+		}
+	}
+	if (line.length() > 0)
+		lines.push_back(line);
+}
+
 // Walks the Equiv chain in ItemTypes.txt up to the root categories to work out
 // which of the three rune bonus sets a base takes.
 static const char* BaseSlot(const std::string& code) {
@@ -175,21 +199,16 @@ RunewordTab::RunewordTab(UI* ui) : InfoTab("Runewords", ui),
 	needsRefresh(true) {
 
 	searchBox = new Inputhook(tab, RW_SEARCH_X, RW_SEARCH_Y, RW_SEARCH_WIDTH, "");
-	searchBox->SetPlaceholder("Click here and type to search by runeword name, rune or item type");
+	searchBox->SetPlaceholder("Search by runeword name, rune or item type");
 
 	list = new Listhook(tab, RW_SEARCH_X, RW_LIST_Y, RW_LIST_WIDTH, RW_LIST_HEIGHT);
 	std::vector<ListColumn> columns;
 	columns.push_back(ListColumn("Runeword", RW_COL_NAME_X, RW_COL_NAME_W, White));
 	columns.push_back(ListColumn("Runes", RW_COL_RUNES_X, RW_COL_RUNES_W, Orange));
-	columns.push_back(ListColumn("Item Types", RW_COL_TYPE_X, RW_COL_TYPE_W, Tan));
 	list->SetColumns(columns);
 
 	statusText = new Texthook(tab, RW_SEARCH_X, RW_FOOTER_Y, "");
 	statusText->SetColor(Grey);
-
-	listHint = new Texthook(tab, RW_HINT_X, RW_FOOTER_Y,
-		"Click a runeword or press enter for its stats");
-	listHint->SetColor(Grey);
 
 	prevLink = new Texthook(tab, RW_PREV_X, RW_FOOTER_Y, "< Prev");
 	prevLink->SetColor(Gold);
@@ -201,20 +220,12 @@ RunewordTab::RunewordTab(UI* ui) : InfoTab("Runewords", ui),
 	nextLink->SetHoverColor(White);
 	nextLink->SetLeftCallback(RunewordTab::OnNextClick, this);
 
-	detailTitle = new Texthook(tab, RW_SEARCH_X, RW_DETAIL_TITLE_Y, "");
-	detailTitle->SetColor(Gold);
-	detailRunes = new Texthook(tab, RW_SEARCH_X, RW_DETAIL_RUNES_Y, "");
-	detailRunes->SetColor(Orange);
-	detailLevel = new Texthook(tab, RW_SEARCH_X, RW_DETAIL_LEVEL_Y, "");
-	detailLevel->SetColor(White);
-	detailTypes = new Texthook(tab, RW_SEARCH_X, RW_DETAIL_TYPES_Y, "");
-	detailTypes->SetColor(White);
+	// Created before the text so the border draws behind it. Both are positioned
+	// and sized when a runeword is opened.
+	detailFrame = new Framehook(tab, RW_SEARCH_X, RW_LIST_Y, RW_LIST_WIDTH, 0);
+	detailFrame->SetTransparency(BTOneHalf);
 	for (int i = 0; i < RW_DETAIL_LINES; i++) {
-		unsigned int column = (i < RW_DETAIL_ROWS) ? 0 : 1;
-		unsigned int row = i % RW_DETAIL_ROWS;
-		detailLines[i] = new Texthook(tab,
-			RW_SEARCH_X + (column * RW_DETAIL_COL_W),
-			RW_DETAIL_BODY_Y + (row * RW_DETAIL_LINE_H), "");
+		detailLines[i] = new Texthook(tab, RW_SEARCH_X, RW_LIST_Y, "");
 		detailLines[i]->SetColor(White);
 	}
 
@@ -233,16 +244,16 @@ void RunewordTab::ApplyViewVisibility() {
 
 	list->SetActive(!detail);
 	statusText->SetActive(!detail);
-	listHint->SetActive(!detail);
 	prevLink->SetActive(!detail);
 	nextLink->SetActive(!detail);
 
-	detailTitle->SetActive(detail);
-	detailRunes->SetActive(detail);
-	detailLevel->SetActive(detail);
-	detailTypes->SetActive(detail);
-	for (int i = 0; i < RW_DETAIL_LINES; i++)
-		detailLines[i]->SetActive(detail);
+	detailFrame->SetActive(detail);
+	// The lines themselves are switched on individually by ShowDetail(), so that
+	// only the ones holding text are drawn.
+	if (!detail) {
+		for (int i = 0; i < RW_DETAIL_LINES; i++)
+			detailLines[i]->SetActive(false);
+	}
 	backLink->SetActive(detail);
 }
 
@@ -304,7 +315,6 @@ void RunewordTab::BuildRecipes() {
 			recipe.name = RunewordName(entry);
 			if (recipe.name.length() == 0)
 				continue;
-			recipe.sockets = runeNames.size();
 			recipe.runes = Join(runeNames, " + ");
 
 			std::vector<std::string> types;
@@ -374,7 +384,6 @@ void RunewordTab::BuildRecipes() {
 			if (runeLevels.count(extra.runes[n]) && runeLevels[extra.runes[n]] > recipe.requiredLevel)
 				recipe.requiredLevel = runeLevels[extra.runes[n]];
 		}
-		recipe.sockets = runeNames.size();
 		recipe.runes = Join(runeNames, " + ");
 		recipe.itemTypes = ItemTypeName(extra.itemType);
 		recipe.baseSlots.push_back(BaseSlot(extra.itemType));
@@ -519,20 +528,63 @@ void RunewordTab::ShowDetail(int match) {
 	LoadStats(recipe);
 	shownDetail = match;
 
-	detailTitle->SetText("%s", recipe->name.c_str());
-	detailRunes->SetText("%s", recipe->runes.c_str());
+	// Built the way the game describes an item: what it is, then what it needs,
+	// then what it does.
+	unsigned int font = detailLines[0]->GetFont();
+	std::vector<std::string> lines;
+	std::vector<TextColor> colors;
+
+	lines.push_back(recipe->name);
+	colors.push_back(Gold);
+	lines.push_back(recipe->runes);
+	colors.push_back(Orange);
 	if (recipe->requiredLevel > 0) {
-		detailLevel->SetText("Required level: %d", recipe->requiredLevel);
-	} else {
-		detailLevel->SetText("");
+		char required[64];
+		sprintf_s(required, "Required level: %d", recipe->requiredLevel);
+		lines.push_back(required);
+		colors.push_back(White);
 	}
-	detailTypes->SetText("%u Socket %s", recipe->sockets, recipe->itemTypes.c_str());
+	lines.push_back(recipe->itemTypes);
+	colors.push_back(White);
+	lines.push_back("");
+	colors.push_back(White);
+
+	for (unsigned int i = 0; i < recipe->stats.size(); i++) {
+		std::vector<std::string> wrapped;
+		WrapText(recipe->stats[i], font, RW_DETAIL_MAX_W, wrapped);
+		for (unsigned int w = 0; w < wrapped.size() && lines.size() < RW_DETAIL_LINES; w++) {
+			lines.push_back(wrapped[w]);
+			colors.push_back(White);
+		}
+	}
+
+	// The border is sized to the text it holds and everything is centred inside
+	// it, so the block stays in the middle of the panel however long it runs.
+	unsigned int widest = 0;
+	for (unsigned int i = 0; i < lines.size(); i++) {
+		unsigned int width = (unsigned int)Texthook::GetTextSize(lines[i], font).x;
+		if (width > widest)
+			widest = width;
+	}
+	unsigned int boxWidth = widest + (2 * RW_DETAIL_PAD);
+	unsigned int boxX = RW_SEARCH_X + ((RW_LIST_WIDTH - boxWidth) / 2);
+	detailFrame->SetBaseX(boxX);
+	detailFrame->SetXSize(boxWidth);
+	detailFrame->SetYSize((unsigned int)(lines.size() * RW_DETAIL_LINE_H) + (2 * RW_DETAIL_PAD));
 
 	int line = 0;
-	for (; line < (int)recipe->stats.size() && line < RW_DETAIL_LINES; line++)
-		detailLines[line]->SetText("%s", recipe->stats[line].c_str());
-	for (; line < RW_DETAIL_LINES; line++)
+	for (; line < (int)lines.size(); line++) {
+		unsigned int width = (unsigned int)Texthook::GetTextSize(lines[line], font).x;
+		detailLines[line]->SetBaseX(boxX + ((boxWidth - width) / 2));
+		detailLines[line]->SetBaseY(RW_LIST_Y + RW_DETAIL_PAD + (line * RW_DETAIL_LINE_H));
+		detailLines[line]->SetColor(colors[line]);
+		detailLines[line]->SetText("%s", lines[line].c_str());
+		detailLines[line]->SetActive(true);
+	}
+	for (; line < RW_DETAIL_LINES; line++) {
 		detailLines[line]->SetText("");
+		detailLines[line]->SetActive(false);
+	}
 
 	ApplyViewVisibility();
 }

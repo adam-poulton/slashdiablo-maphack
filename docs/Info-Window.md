@@ -56,8 +56,9 @@ the bottom right. The footer shows which entries you are looking at.
 
 Click any row, or press enter to take the first match, and the list is replaced
 by that recipe in full: the runes untruncated, the character level it requires
-(the highest level requirement among its runes), how many sockets the base needs
-and which bases it can go in, and its stats.
+(the highest level requirement among its runes), which bases it can go in, and
+its stats. It is laid out like the description on an item — centred text inside a
+border drawn to fit it — and long lines are wrapped rather than cut.
 
 The stats are read from the same tables and string files the game itself uses to
 describe an item, so the wording matches what you would see on the finished
@@ -99,13 +100,14 @@ applied. Matches are shown in the window only, not repeated into the chat log.
 
 ### Columns
 
-| Column     | Contents                                                        |
-| ---------- | --------------------------------------------------------------- |
-| Runeword   | The runeword's name.                                            |
-| Runes      | The runes in socket order. The number of runes is the number of sockets the base needs. |
-| Item Types | The bases it can be made in, and any excluded types in brackets. |
+| Column   | Contents                                                          |
+| -------- | ----------------------------------------------------------------- |
+| Runeword | The runeword's name.                                              |
+| Runes    | The runes in socket order. The number of runes is the number of sockets the base needs. |
 
-Entries too long for their column are cut off with `..`.
+Which bases a runeword can go in is in its detail view rather than the list, but
+searching still matches on it, so `shield` still finds every runeword that can be
+made in one. A name too long for its column is cut off with `..`.
 
 ### Names that differ from the game files
 
