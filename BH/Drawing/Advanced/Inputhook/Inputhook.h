@@ -5,15 +5,38 @@
 #include "../../Basic/Texthook/Texthook.h"
 
 namespace Drawing {
+	// Space between the border and the text inside it. A little more above than
+	// below, since the glyphs sit on their baseline and reach nearer the top.
+	#define INPUT_PADDING_X			5
+	#define INPUT_PADDING_TOP		5
+	#define INPUT_PADDING_BOTTOM	3
+
+	// Thickness of the outline around a focused box, and its palette colour.
+	// White is 0x20, per the colour table in Packaging/BH.cfg.
+	#define INPUT_FOCUS_RING		2
+	#define INPUT_FOCUS_COLOR		0x20
+
+	// How long the caret stays on or off, in milliseconds.
+	#define INPUT_BLINK_MS			500
+
+	// The caret glyph is drawn a little in from the left of its cell, so it is
+	// pulled back to sit where a character would actually start.
+	#define INPUT_CARET_NUDGE		2
+
 	class Inputhook : public Hook {
 		private:
 			std::string text; //Text that is actually in the input box
-			bool active, showCursor; //Booleans set if the hook is active / currently showing cursor.
+			std::string placeholder; //Hint drawn while the box is empty
+			bool submitted; //Set when enter is pressed, until the owner reads it
+			bool clearOnFocus; //Empty the box when it is clicked into
+			bool focused, showCursor; //Booleans set if the box has focus / currently showing cursor.
 			unsigned int xSize; //Length of the input box
-			unsigned int cursorPos, cursorTick; //Cursor Position / Timer to control cursor blink
+			unsigned int cursorPos; //Position the next character is typed at
+			unsigned int cursorTick; //When the caret last changed, in ticks
 			unsigned int textPos;//Used to determine which part of the current text I should show
 			unsigned int selectPos, selectLength; // Selection position and length
 			unsigned int font; //What type of font to use in the input hook.
+			TextColor color, focusedColor; //Text color when idle / when focused.
 		public:
 			Inputhook(HookVisibility visibility, unsigned int x, unsigned int y, unsigned int xSize, std::string formatString, ...);
 			Inputhook(HookGroup* group, unsigned int x, unsigned int y, unsigned int xSize, std::string formatString, ...);
@@ -24,20 +47,46 @@ namespace Drawing {
 			std::string GetText() { return text; };
 			void SetText(std::string newText, ...);
 
-			//If the inputhook box is active(Can be typed in)
-			bool IsActive() { return active; };
-			void SetActive(bool isActive) { Lock(); active = isActive; Unlock(); };
+			//If the box has focus (can be typed in). Separate from Hook::IsActive(),
+			//which controls whether the box is shown at all.
+			bool IsFocused() { return focused; };
+			void SetFocused(bool isFocused) { Lock(); focused = isFocused; Unlock(); };
 
 			//Font Size
 			unsigned int GetFont() { return font; };
 			void SetFont(unsigned int newFont);
 
+			//Text color while the box does not have focus
+			TextColor GetColor() { return color; };
+			void SetColor(TextColor newColor) { Lock(); color = newColor; Unlock(); };
+
+			//Text color while the box has focus
+			TextColor GetFocusedColor() { return focusedColor; };
+			void SetFocusedColor(TextColor newColor) { Lock(); focusedColor = newColor; Unlock(); };
+
 			//X Size
 			unsigned int GetXSize() { return xSize; };
 			void SetXSize(unsigned int newXSize);
 
-			//Y Size
-			unsigned int GetYSize() { unsigned int height[] = {10,11,18,24,10,13,7,13,10,12,8,8,7,12}; return height[GetFont()]; };
+			//Y Size. This is the height of the box as drawn, not just of the
+			//text, so that the clickable area matches what the user sees.
+			unsigned int GetYSize() { unsigned int height[] = {10,11,18,24,10,13,7,13,10,12,8,8,7,12}; return height[GetFont()] + INPUT_PADDING_TOP + INPUT_PADDING_BOTTOM; };
+
+			//Hint shown in place of the text while the box is empty
+			std::string GetPlaceholder() { return placeholder; };
+			void SetPlaceholder(std::string newPlaceholder) { Lock(); placeholder = newPlaceholder; Unlock(); };
+
+			//True once if enter has been pressed since the last call. Enter is
+			//consumed rather than typed into the box so the owner can act on it.
+			bool TakeSubmitted() { Lock(); bool was = submitted; submitted = false; Unlock(); return was; };
+
+			//Whether clicking into the box empties it, for a box that is normally
+			//retyped from scratch rather than edited.
+			bool GetClearOnFocus() { return clearOnFocus; };
+			void SetClearOnFocus(bool clear) { Lock(); clearOnFocus = clear; Unlock(); };
+
+			//Empties the box and puts the cursor back at the start.
+			void Clear();
 
 			//If we are current showing the cursor, for blinking purposes!
 			bool ShowCursor() { return showCursor; };
@@ -45,7 +94,7 @@ namespace Drawing {
 			void ToggleCursor() { SetCursorState(!ShowCursor()); };
 
 			void CursorTick();
-			void ResetCursorTick() { cursorTick = 0; };
+			void ResetCursorTick() { cursorTick = GetTickCount(); };
 
 			unsigned int GetCursorPosition() { return cursorPos; };
 			void SetCursorPosition(unsigned int newPosition);

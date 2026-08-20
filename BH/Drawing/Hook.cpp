@@ -161,7 +161,10 @@ void Hook::SetVisibility(HookVisibility newVisibility) {
  *	Returns if we are drawing the hook currently.
  */
 bool Hook::IsActive() {
-	return (group ? group->IsActive() : active);
+	// A grouped hook needs its group to be showing and to be shown itself, so
+	// that a group can hide individual hooks. Hooks start active, so groups that
+	// never touch this behave as they always have.
+	return (group ? (group->IsActive() && active) : active);
 }
 
 /* SetActive(bool newActive)

@@ -1,16 +1,43 @@
 #include "Inputhook.h"
 #include "../../../D2Ptrs.h"
+#include "../../Basic/Boxhook/Boxhook.h"
 #include "../../Basic/Framehook/Framehook.h"
 #include "../../../Common.h"
 
 using namespace std;
 using namespace Drawing;
 
+// D2's inline color codes only cover the ten single digit colors, so anything
+// outside that range falls back to white.
+static std::string InlineColorCode(TextColor color) {
+	int index = (int)color;
+	if (index < 0 || index > 9)
+		index = White;
+	return "\377c" + std::to_string(index);
+}
+
+// Trim text to fit the given pixel width, so a long hint can't spill out of
+// the box.
+static std::string FitToWidth(const std::string& text, unsigned int font, unsigned int width) {
+	if ((unsigned int)Texthook::GetTextSize(text, font).x <= width)
+		return text;
+	for (size_t length = text.length(); length > 0; length--) {
+		std::string candidate = text.substr(0, length - 1);
+		if ((unsigned int)Texthook::GetTextSize(candidate, font).x <= width)
+			return candidate;
+	}
+	return "";
+}
+
 Inputhook::Inputhook(HookVisibility visibility, unsigned int x, unsigned int y, unsigned int xSize, std::string formatString, ...) :
  Hook(visibility, x, y) {
 	SetXSize(xSize);
 	SetFont(0);
-	SetActive(false);
+	SetColor(Grey);
+	SetFocusedColor(White);
+	SetFocused(false);
+	submitted = false;
+	clearOnFocus = false;
 	SetCursorState(true);
 	ResetCursorTick();
 	ResetSelection();
@@ -28,7 +55,11 @@ Inputhook::Inputhook(HookGroup* group, unsigned int x, unsigned int y, unsigned 
  Hook(group, x, y) {
 	SetXSize(xSize);
 	SetFont(0);
-	SetActive(false);
+	SetColor(Grey);
+	SetFocusedColor(White);
+	SetFocused(false);
+	submitted = false;
+	clearOnFocus = false;
 	SetCursorState(true);
 	ResetCursorTick();
 	ResetSelection();
@@ -40,6 +71,15 @@ Inputhook::Inputhook(HookGroup* group, unsigned int x, unsigned int y, unsigned 
 	va_end(arg);
 	text = buffer;
 	SetCursorPosition(text.length());
+ }
+
+ void Inputhook::Clear() {
+	Lock();
+	text = "";
+	SetTextPos(0);
+	ResetSelection();
+	SetCursorPosition(0);
+	Unlock();
  }
 
  void Inputhook::SetText(string newText, ...) {
@@ -68,11 +108,12 @@ Inputhook::Inputhook(HookGroup* group, unsigned int x, unsigned int y, unsigned 
  }
 
  void Inputhook::CursorTick() {
-	  if (cursorTick % 30 == 0) { 
-		  ResetCursorTick(); 
-		  ToggleCursor(); 
-	  }
-	  cursorTick++;
+	 //Blink against the clock, not the frame counter it used to count, which
+	 //ran the caret faster the better the frame rate was.
+	 if ((GetTickCount() - cursorTick) < INPUT_BLINK_MS)
+		 return;
+	 ResetCursorTick();
+	 ToggleCursor();
  }
 
  void Inputhook::SetCursorPosition(unsigned int newPosition) {
@@ -116,21 +157,58 @@ void Inputhook::DecreaseCursorPosition(unsigned int len) {
 }; 
 
 unsigned int Inputhook::GetCharacterLimit() {
-	return (GetXSize() / Texthook::GetTextSize("A", GetFont()).x);
+	// The text sits inside the padding, so it has less room than the whole box.
+	unsigned int usable = GetXSize() - (2 * INPUT_PADDING_X);
+	return (usable / Texthook::GetTextSize("A", GetFont()).x);
 }
 
  void Inputhook::OnDraw() {
+	 if (!Hook::IsActive())
+		 return;
 	 Lock();
 	 //Font height
 	 unsigned int height[] = {10,11,18,24,10,13,7,13,10,12,8,8,7,12};
-	 
+
+	 //A focused box gets a solid field, a bright outline and a blinking cursor;
+	 //an unfocused one is translucent with dimmed text, so it is obvious at a
+	 //glance whether typing will go into the box.
+	 bool focused = IsFocused();
+	 unsigned int boxHeight = GetYSize();
+	 TextColor textColor = focused ? GetFocusedColor() : GetColor();
+
 	 //Current text width
 	 POINT textSize = Texthook::GetTextSize(GetText().substr(textPos, GetCursorPosition() - textPos), GetFont());
 
+	 //An outline around a focused box, in white rather than in the black
+	 //everything else here is drawn in, since a black band on a dark panel was
+	 //invisible however it was blended. Drawn as four bars rather than as a
+	 //filled box behind the field, so it cannot tint the field itself.
+	 if (focused) {
+		 int ring = INPUT_FOCUS_RING;
+		 int left = GetX() - ring, top = GetY() - ring;
+		 int ringWidth = GetXSize() + (2 * ring), ringHeight = boxHeight + (2 * ring);
+		 Boxhook::Draw(left, top, ringWidth, ring, INPUT_FOCUS_COLOR, BTNormal);
+		 Boxhook::Draw(left, top + ringHeight - ring, ringWidth, ring, INPUT_FOCUS_COLOR, BTNormal);
+		 Boxhook::Draw(left, top, ring, ringHeight, INPUT_FOCUS_COLOR, BTNormal);
+		 Boxhook::Draw(left + ringWidth - ring, top, ring, ringHeight, INPUT_FOCUS_COLOR, BTNormal);
+	 }
+
 	 //Draw the outline box!
-	 RECT pRect  = {static_cast<long>(GetX()), static_cast<long>(GetY()), static_cast<long>(GetX() + GetXSize()), static_cast<long>(GetY() + height[GetFont()] + 4)};
-	 D2GFX_DrawRectangle(GetX(), GetY(), GetX() + GetXSize(), GetY() + height[GetFont()] + 4, 0, BTFull);
+	 RECT pRect  = {static_cast<long>(GetX()), static_cast<long>(GetY()), static_cast<long>(GetX() + GetXSize()), static_cast<long>(GetY() + boxHeight)};
+	 D2GFX_DrawRectangle(GetX(), GetY(), GetX() + GetXSize(), GetY() + boxHeight, 0, focused ? BTFull : BTOneHalf);
 	 Framehook::DrawRectStub(&pRect);
+	 //An empty box shows its hint instead, always dimmed so it doesn't read as
+	 //text that is really in the box.
+	 if (text.length() == 0 && placeholder.length() > 0) {
+		 DWORD placeholderFont = D2WIN_SetTextSize(GetFont());
+		 wchar_t* wHint = AnsiToUnicode(FitToWidth(placeholder, GetFont(),
+			 GetXSize() - (2 * INPUT_PADDING_X)).c_str());
+		 D2WIN_DrawText(wHint, GetX() + INPUT_PADDING_X,
+			 GetY() + INPUT_PADDING_TOP + height[GetFont()], Grey, 0);
+		 delete[] wHint;
+		 D2WIN_SetTextSize(placeholderFont);
+	 }
+
 	 string drawnText = text;
 
 	 //Draw the text in!
@@ -139,30 +217,41 @@ unsigned int Inputhook::GetCharacterLimit() {
 		len = GetCharacterLimit();
 	drawnText = drawnText.substr(textPos, len);
 
-	 
+
 	 if (IsSelected()) {
-		 drawnText.insert(GetSelectionPosition() + GetSelectionLength(), "\377c0");
+		 //Reset to the base color rather than always to white, so an unfocused
+		 //box stays dimmed after the selected run.
+		 drawnText.insert(GetSelectionPosition() + GetSelectionLength(), InlineColorCode(textColor));
 		 drawnText.insert(GetSelectionPosition(), "\377c9");
 	 }
 
-	
+
 	 DWORD oldFont = D2WIN_SetTextSize(GetFont());
 	 wchar_t* wText = AnsiToUnicode(drawnText.c_str());
-	 D2WIN_DrawText(wText, GetX() + 3, GetY() + 3 + height[GetFont()], 0, 0);
+	 D2WIN_DrawText(wText, GetX() + INPUT_PADDING_X,
+		 GetY() + INPUT_PADDING_TOP + height[GetFont()], textColor, 0);
 	 delete[] wText;
 	 D2WIN_SetTextSize(oldFont);
 
-	 //Draw the cursor!
+	 //Draw the cursor! Drawn as a character rather than a line, because a line
+	 //in a palette colour never showed up here, while the text beside it plainly
+	 //does.
 	 CursorTick();
-	 if (ShowCursor() && IsActive())
-		 D2GFX_DrawLine(GetX() + textSize.x + 2, GetY() + 3, GetX() + textSize.x + 2, GetY() + textSize.y, 255, 0);
+	 if (ShowCursor() && focused) {
+		 DWORD cursorFont = D2WIN_SetTextSize(GetFont());
+		 wchar_t caret[] = { L'|', 0 };
+		 D2WIN_DrawText(caret,
+			 GetX() + INPUT_PADDING_X + textSize.x - INPUT_CARET_NUDGE,
+			 GetY() + INPUT_PADDING_TOP + height[GetFont()], textColor, 0);
+		 D2WIN_SetTextSize(cursorFont);
+	 }
 
 	 Unlock();
  }
 
 
  bool Inputhook::OnKey(bool up, BYTE key, LPARAM lParam) {
-	 if (!IsActive())
+	 if (!IsFocused())
 		 return false;
 	 Lock();
 	 bool ctrlState = ((GetKeyState(VK_LCONTROL) & 0x80) || (GetKeyState(VK_RCONTROL) & 0x80));
@@ -179,7 +268,12 @@ unsigned int Inputhook::GetCharacterLimit() {
 		break;
 		case VK_ESCAPE:
 			if (up)
-				SetActive(false);
+				SetFocused(false);
+		break;
+		case VK_RETURN:
+			//Enter isn't text; hand it to the owner to act on.
+			if (!up)
+				submitted = true;
 		break;
 		case VK_LEFT:
 			if (!up && GetCursorPosition() != 0) {
@@ -218,8 +312,10 @@ unsigned int Inputhook::GetCharacterLimit() {
 			}
 		break;
 		default:
-			if (up)
+			if (up) {
+				Unlock();
 				return true;
+			}
 
 			if (ctrlState) {
 				//Select All
@@ -231,15 +327,21 @@ unsigned int Inputhook::GetCharacterLimit() {
 				//Paste
 				if (key == 0x56) {
 					HANDLE pHandle = GetClipboardData(CF_TEXT);
-					if (!pHandle)
+					if (!pHandle) {
+						CloseClipboard();
+						Unlock();
 						return true;
+					}
 					InputText((char*)GlobalLock(pHandle));
 				}
 				//Copy & Cut
 				if (key == 0x43 || key == 0x58) {
-					if (!IsSelected() || text.length() == 0)
+					if (!IsSelected() || text.length() == 0) {
+						CloseClipboard();
+						Unlock();
 						return true;
-					
+					}
+
 					Lock();
 					string mText = text.substr(GetSelectionPosition(), GetSelectionLength());
 			
@@ -258,6 +360,7 @@ unsigned int Inputhook::GetCharacterLimit() {
 					Unlock();
 				}
 				CloseClipboard();
+				Unlock();
 				return true;
 			}
 
@@ -265,25 +368,40 @@ unsigned int Inputhook::GetCharacterLimit() {
 			WORD out[2];
 			CHAR szChar[10];
 			GetKeyboardState(layout);
-			if (ToAscii(key, (lParam & 0xFF0000), layout, out, 0) == 0)
+			if (ToAscii(key, (lParam & 0xFF0000), layout, out, 0) == 0) {
+				Unlock();
 				return false;
+			}
+			//Only printable characters belong in the box; control codes like
+			//return and tab would otherwise be inserted verbatim.
+			if (out[0] < ' ' || out[0] == 0x7F) {
+				Unlock();
+				return true;
+			}
 			sprintf_s(szChar, sizeof(szChar), "%c", out[0]);
 
 			InputText(szChar);
 		break;
 	 }
+	 Unlock();
 	 return true;
  }
 
  bool Inputhook::OnLeftClick(bool up, unsigned int x, unsigned int y) {
 	 if (InRange(x, y)) {
-		 if (up)
-			 SetActive(true);
+		 //Take focus on the press, so the box responds the moment it is clicked.
+		 if (!up) {
+			 //Only on the click that takes focus, so clicking a box you are
+			 //already typing in doesn't throw the text away.
+			 if (clearOnFocus && !IsFocused())
+				 Clear();
+			 SetFocused(true);
+		 }
 		 if (GetLeftClickHandler())
 			 GetLeftClickHandler()(up, this, GetLeftClickVoid());
 		 return true;
 	 } else {
-		 SetActive(false);
+		 SetFocused(false);
 	 }
 	 return false;
  }

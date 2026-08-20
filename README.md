@@ -55,6 +55,9 @@ Major features include:
   * Record each run's length, XP gained, kill counts and drops to a file in
     your Diablo `data` directory (off by default)
 * Kill counters and kill rates (unique/champion/total) on the automap
+* Tabbed in-game info window (default hotkey: numpad 9), currently a runeword
+  recipe lookup searchable by runeword name, rune or item type, also reachable
+  with `.rw` in chat — see [Info Window](docs/Info-Window.md)
 * Gamble refresh hotkey for Gheed, Jamella and Anya (default: F5)
 * Reload configs in-game with ctrl+r or numpad 0 (both configurable)
 
@@ -88,6 +91,11 @@ msbuild /t:BH:Rebuild /p:Configuration=Release BH.sln
 Opening `BH.sln` in Visual Studio and building the `BH` project in Release does
 the same thing. To stamp the build with a commit SHA the way CI does, pass
 `/p:CustomDefinitions="SHA=<sha>"`.
+
+BH reads the game's data tables out of the Diablo II MPQ archives at run time.
+[tools/mpq](tools/mpq) has a small extractor for pulling those same files out on
+the desktop, which is the quickest way to check what the data actually says while
+working on a feature.
 
 A CMake build (CMake >= 3.7) also exists. Create a build directory within the
 project root, make it the current working directory, then run

@@ -8,10 +8,15 @@
 using namespace Drawing;
 
 std::list<UI*> UI::UIs;
-std::list<UI*> UI::Minimized;
 
 UI::UI(std::string name, unsigned int xSize, unsigned int ySize) {
 	InitializeCriticalSection(&crit);
+	// Start from a known state; the setters below read these back and windows
+	// are constructed before the game has told us the screen size.
+	x = y = 0;
+	this->xSize = this->ySize = 0;
+	active = minimized = dragged = visible = false;
+	dragX = dragY = startX = startY = 0;
 	SetXSize(xSize);
 	SetYSize(ySize);
 	SetName(name);
@@ -22,16 +27,17 @@ UI::UI(std::string name, unsigned int xSize, unsigned int ySize) {
 	SetY(y);
 	int minX = GetPrivateProfileInt(name.c_str(), "minimizedX", MINIMIZED_X_POS, path.c_str());
 	SetMinimizedX(minX);
-	int minY = GetPrivateProfileInt(name.c_str(), "minimizedY", MINIMIZED_Y_POS, path.c_str());
+	// Stack the default positions by creation order so windows that have never
+	// been moved don't sit on top of each other. Once saved to UI.ini the
+	// position is used as-is, so a collapsed window never moves on its own.
+	int minY = GetPrivateProfileInt(name.c_str(), "minimizedY",
+		MINIMIZED_Y_POS - (int)(UIs.size() * (TITLE_BAR_HEIGHT + 4)), path.c_str());
 	SetMinimizedY(minY);
 	char activeStr[20];
 	GetPrivateProfileString(name.c_str(), "Minimized", "true", activeStr, 20, path.c_str());
-	if (StringToBool(activeStr)) {
-		SetMinimized(true);
-		Minimized.push_back(this);
-	} else {
-		SetMinimized(false);
-	}
+	// Set the initial state directly rather than through SetMinimized(), which
+	// would write the config back out before the modules have finished loading.
+	minimized = StringToBool(activeStr);
 	SetActive(false);
 	zOrder = UIs.size();
 	UIs.push_back(this);
@@ -49,43 +55,38 @@ UI::~UI() {
 	}
 		
 	UIs.remove(this);
-	if (IsMinimized())
-		Minimized.remove(this);
 
 	Unlock();
 	DeleteCriticalSection(&crit);
 }
 
+// Positions and sizes are stored as given. Windows are constructed while BH is
+// injecting, before the game has reported its resolution, so validating against
+// the screen here threw away the position read back from UI.ini and left every
+// window at the origin. EnsureInBounds() keeps them on screen instead, once
+// there is a screen size to go by.
 void UI::SetX(unsigned int newX) {
-	if (newX >= 0 && newX <= Hook::GetScreenWidth()) {
-		Lock();
-		x = newX;
-		Unlock();
-	}
+	Lock();
+	x = newX;
+	Unlock();
 }
 
 void UI::SetY(unsigned int newY) {
-	if (newY >= 0 && newY <= Hook::GetScreenHeight()) {
-		Lock();
-		y = newY;
-		Unlock();
-	}
+	Lock();
+	y = newY;
+	Unlock();
 }
 
 void UI::SetXSize(unsigned int newXSize) {
-	if (newXSize >= 0 && newXSize <= (Hook::GetScreenHeight() - GetX())) {
-		Lock();
-		xSize = newXSize;
-		Unlock();
-	}
+	Lock();
+	xSize = newXSize;
+	Unlock();
 }
 
 void UI::SetYSize(unsigned int newYSize) {
-	if (newYSize >= 0 && newYSize <= (Hook::GetScreenHeight() - GetX())) {
-		Lock();
-		ySize = newYSize;
-		Unlock();
-	}
+	Lock();
+	ySize = newYSize;
+	Unlock();
 }
 
 void UI::SetMinimizedX(unsigned int newX) {
@@ -114,11 +115,6 @@ void UI::OnDraw() {
 	if (!IsVisible()) return;
 	EnsureInBounds();
 	if (IsMinimized()) {
-		int n = 0;
-		for (list<UI*>::iterator it = Minimized.begin(); it != Minimized.end(); it++, n++)
-			if ((*it) == this)
-				break;
-
 		int xSize = Texthook::GetTextSize(GetName(), 0).x + 8;
 
 		if (IsDragged()) {
@@ -142,7 +138,7 @@ void UI::OnDraw() {
 			SetMinimizedX(newX);
 			SetMinimizedY(newY);
 		}
-		int yPos = GetMinimizedY() - (n * (TITLE_BAR_HEIGHT + 4));
+		int yPos = GetMinimizedY();
 		int inPos = InPos((*p_D2CLIENT_MouseX), (*p_D2CLIENT_MouseY), GetMinimizedX(), yPos, xSize, TITLE_BAR_HEIGHT);
 		Framehook::Draw(GetMinimizedX(), yPos, xSize, TITLE_BAR_HEIGHT, 0, BTOneHalf);
 		Texthook::Draw(GetMinimizedX() + 4, yPos + 3, false, 0, (inPos?Silver:White), GetName());
@@ -177,33 +173,31 @@ void UI::OnDraw() {
 }
 
 void UI::EnsureInBounds() {
+	unsigned int screenWidth = Hook::GetScreenWidth();
+	unsigned int screenHeight = Hook::GetScreenHeight();
+
+	// With no resolution to go by there is nothing meaningful to clamp against,
+	// and guessing would move the window off its saved position.
+	if (screenWidth == 0 || screenHeight == 0)
+		return;
+
 	if (IsMinimized()) {
-		if (GetMinimizedX() < 0) {
-			SetMinimizedX(0);
-		}
-		if (GetMinimizedX() + GetXSize() > Hook::GetScreenWidth()) {
-			SetMinimizedX(Hook::GetScreenWidth() - GetXSize());
-		}
-		if (GetMinimizedY() < 0) {
-			SetMinimizedY(0);
-		}
-		if (GetMinimizedY() + TITLE_BAR_HEIGHT > Hook::GetScreenHeight()) {
-			SetMinimizedY(Hook::GetScreenHeight() - TITLE_BAR_HEIGHT);
-		}
+		// A collapsed window is only as wide as its title bar, so clamping it
+		// against the full window width would drag wide windows back off their
+		// saved position every frame.
+		unsigned int titleWidth = Texthook::GetTextSize(GetName(), 0).x + 8;
+		if (titleWidth < screenWidth && GetMinimizedX() + titleWidth > screenWidth)
+			SetMinimizedX(screenWidth - titleWidth);
+		if (TITLE_BAR_HEIGHT < screenHeight && GetMinimizedY() + TITLE_BAR_HEIGHT > screenHeight)
+			SetMinimizedY(screenHeight - TITLE_BAR_HEIGHT);
 	}
 	else {
-		if (GetX() < 0) {
-			SetX(0);
-		}
-		if(GetX() + GetXSize() > Hook::GetScreenWidth()) {
-			SetX(Hook::GetScreenWidth() - GetXSize());
-		}
-		if (GetY() < 0) {
-			SetY(0);
-		}
-		if (GetY() + GetYSize() > Hook::GetScreenHeight()) {
-			SetY(Hook::GetScreenHeight() - GetYSize());
-		}
+		// Only pull a window back if it would hang off the screen, and only if
+		// it fits at all, so that the arithmetic can't wrap round.
+		if (GetXSize() < screenWidth && GetX() + GetXSize() > screenWidth)
+			SetX(screenWidth - GetXSize());
+		if (GetYSize() < screenHeight && GetY() + GetYSize() > screenHeight)
+			SetY(screenHeight - GetYSize());
 	}
 }
 
@@ -227,27 +221,23 @@ void UI::SetVisible(bool newState) {
 	visible = newState;
 }
 
-void UI::SetMinimized(bool newState) { 
-	if (newState == minimized) 
-		return; 
-	Lock();  
-	if (newState) {
-		Minimized.push_back(this);
+void UI::SetMinimized(bool newState) {
+	if (newState == minimized)
+		return;
+	Lock();
+	if (newState)
 		BH::config->Write();
-	} else
-		Minimized.remove(this); 
-	minimized = newState; 
+	minimized = newState;
 	WritePrivateProfileString(name.c_str(), "Minimized", to_string<bool>(newState).c_str(), string(BH::path + "UI.ini").c_str());
 	Unlock(); 
 };
 
 bool UI::OnLeftClick(bool up, unsigned int mouseX, unsigned int mouseY) {
+	// A window that isn't being drawn must not swallow the click.
+	if (!IsVisible())
+		return false;
 	if (IsMinimized()) {
-		int n = 0;
-		for (list<UI*>::iterator it = Minimized.begin(); it != Minimized.end(); it++, n++)
-			if ((*it) == this)
-				break;
-		int yPos = GetMinimizedY() - (n * (TITLE_BAR_HEIGHT + 4));
+		int yPos = GetMinimizedY();
 		int xSize = Texthook::GetTextSize(GetName(), 0).x + 8;
 		int inPos = InPos((*p_D2CLIENT_MouseX), (*p_D2CLIENT_MouseY), GetMinimizedX(), yPos, xSize, TITLE_BAR_HEIGHT);
 		if (inPos /*&& GetAsyncKeyState(VK_CONTROL)*/) 
@@ -317,6 +307,9 @@ bool UI::OnLeftClick(bool up, unsigned int mouseX, unsigned int mouseY) {
 }
 
 bool UI::OnRightClick(bool up, unsigned int mouseX, unsigned int mouseY) {
+	// A window that isn't being drawn must not swallow the click.
+	if (!IsVisible())
+		return false;
 	if (InTitle(mouseX, mouseY) && !IsMinimized()) {
 		if (up) 
 			SetMinimized(true);

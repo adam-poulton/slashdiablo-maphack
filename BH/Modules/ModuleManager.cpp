@@ -90,6 +90,10 @@ bool ModuleManager::UserInput(wchar_t* module, wchar_t* msg, bool fromGame) {
 		Print("\377c4BH:\377c0 Successfully saved configuration.");
 	}
 
+	// Short aliases for modules with awkward chat commands.
+	if (name.compare("rw") == 0 || name.compare("runewords") == 0)
+		name = "info";
+
 	for (map<string, Module*>::iterator it = moduleList.begin(); it != moduleList.end(); ++it) {
 		if (name.compare((*it).first) == 0) {
 			__raise it->second->UserInput(msg, fromGame, &block);
