@@ -11,14 +11,26 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
   server-side `Plague`, with a search box that filters by runeword name, rune
   name or item type and paging with `PgUp`/`PgDn`. `.rw <search>` opens the tab
   with that search applied. Selecting a row, or pressing enter to take the
-  first match, shows a detail pane with the full recipe, its socket count and
-  its required character level. Recipes whose working title is still in `Runes.txt`
+  first match, opens a detail view with the full recipe, its socket count, its
+  required character level and its stats. The stats include what each rune
+  contributes, which differs by base, so a runeword allowed in more than one
+  kind of base lists a block per base (Spirit in a sword gains the runes'
+  elemental damage, in a shield their resistances). Descriptions are built from
+  the game's own property tables and string files, so they read as they do on
+  the item and follow the client's language. Recipes whose working title is
+  still in `Runes.txt`
   (`Bound by Duty`, `Doomsayer`, `Widowmaker`, `Winter`, `Exile's Path`,
   `The Beast`) are shown under their released names. See
   [Info Window](docs/Info-Window.md).
 * Add a `Listhook` drawing component: a paged list with a configurable column
   layout that measures and trims cells to fit their column, plus row selection,
   so future reference tabs don't each hand-roll a table.
+* Add a `StatDescriptions` service that turns the property entries in the game's
+  data tables into the description lines the game shows on an item, reading the
+  string tables out of the MPQ archives. `Gems.txt` and `SkillDesc.txt` are now
+  loaded alongside the other tables.
+* Hooks belonging to a UI tab can be shown and hidden individually, so a tab can
+  swap between views. Hooks start shown, so existing tabs are unaffected.
 * Text input boxes take a hint string shown while they are empty, and their
   clickable area now matches the box as drawn rather than just the text height,
   which left the bottom of the box dead to clicks. They also take focus on the

@@ -282,6 +282,8 @@ Table Tables::MagicSuffix;
 Table Tables::RarePrefix;
 Table Tables::RareSuffix;
 Table Tables::CharStats;
+Table Tables::Gems;
+Table Tables::SkillDesc;
 
 Table Strings;
 Table Expansion;
@@ -314,6 +316,8 @@ bool Tables::initTables(){
 		success &= TableReader::loadMPQData("RarePrefix", RarePrefix);
 		success &= TableReader::loadMPQData("RareSuffix", RareSuffix);
 		success &= TableReader::loadMPQData("CharStats", CharStats);
+		success &= TableReader::loadMPQData("Gems", Gems);
+		success &= TableReader::loadMPQData("SkillDesc", SkillDesc);
 
 		UniqueItems.removeWhere([](JSONElement* obj){
 			return ((JSONObject*)obj)->getString("index").compare("Expansion") == 0;

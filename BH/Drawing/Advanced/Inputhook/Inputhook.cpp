@@ -34,7 +34,7 @@ Inputhook::Inputhook(HookVisibility visibility, unsigned int x, unsigned int y, 
 	SetFont(0);
 	SetColor(Grey);
 	SetFocusedColor(White);
-	SetActive(false);
+	SetFocused(false);
 	submitted = false;
 	SetCursorState(true);
 	ResetCursorTick();
@@ -55,7 +55,7 @@ Inputhook::Inputhook(HookGroup* group, unsigned int x, unsigned int y, unsigned 
 	SetFont(0);
 	SetColor(Grey);
 	SetFocusedColor(White);
-	SetActive(false);
+	SetFocused(false);
 	submitted = false;
 	SetCursorState(true);
 	ResetCursorTick();
@@ -148,6 +148,8 @@ unsigned int Inputhook::GetCharacterLimit() {
 }
 
  void Inputhook::OnDraw() {
+	 if (!Hook::IsActive())
+		 return;
 	 Lock();
 	 //Font height
 	 unsigned int height[] = {10,11,18,24,10,13,7,13,10,12,8,8,7,12};
@@ -155,7 +157,7 @@ unsigned int Inputhook::GetCharacterLimit() {
 	 //A focused box gets a solid field, a second frame around it and a blinking
 	 //cursor; an unfocused one is translucent with dimmed text, so it is obvious
 	 //at a glance whether typing will go into the box.
-	 bool focused = IsActive();
+	 bool focused = IsFocused();
 	 unsigned int boxHeight = height[GetFont()] + 4;
 	 TextColor textColor = focused ? GetFocusedColor() : GetColor();
 
@@ -213,7 +215,7 @@ unsigned int Inputhook::GetCharacterLimit() {
 
 
  bool Inputhook::OnKey(bool up, BYTE key, LPARAM lParam) {
-	 if (!IsActive())
+	 if (!IsFocused())
 		 return false;
 	 Lock();
 	 bool ctrlState = ((GetKeyState(VK_LCONTROL) & 0x80) || (GetKeyState(VK_RCONTROL) & 0x80));
@@ -230,7 +232,7 @@ unsigned int Inputhook::GetCharacterLimit() {
 		break;
 		case VK_ESCAPE:
 			if (up)
-				SetActive(false);
+				SetFocused(false);
 		break;
 		case VK_RETURN:
 			//Enter isn't text; hand it to the owner to act on.
@@ -353,12 +355,12 @@ unsigned int Inputhook::GetCharacterLimit() {
 	 if (InRange(x, y)) {
 		 //Take focus on the press, so the box responds the moment it is clicked.
 		 if (!up)
-			 SetActive(true);
+			 SetFocused(true);
 		 if (GetLeftClickHandler())
 			 GetLeftClickHandler()(up, this, GetLeftClickVoid());
 		 return true;
 	 } else {
-		 SetActive(false);
+		 SetFocused(false);
 	 }
 	 return false;
  }

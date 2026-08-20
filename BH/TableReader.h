@@ -56,6 +56,8 @@ public:
 	static Table RarePrefix;
 	static Table RareSuffix;
 	static Table CharStats;
+	static Table Gems;
+	static Table SkillDesc;
 	/*static Table Armor;
 	static Table Weapons;
 	static Table Misc;*/

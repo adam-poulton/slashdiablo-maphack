@@ -10,7 +10,7 @@ namespace Drawing {
 			std::string text; //Text that is actually in the input box
 			std::string placeholder; //Hint drawn while the box is empty
 			bool submitted; //Set when enter is pressed, until the owner reads it
-			bool active, showCursor; //Booleans set if the hook is active / currently showing cursor.
+			bool focused, showCursor; //Booleans set if the box has focus / currently showing cursor.
 			unsigned int xSize; //Length of the input box
 			unsigned int cursorPos, cursorTick; //Cursor Position / Timer to control cursor blink
 			unsigned int textPos;//Used to determine which part of the current text I should show
@@ -27,9 +27,10 @@ namespace Drawing {
 			std::string GetText() { return text; };
 			void SetText(std::string newText, ...);
 
-			//If the inputhook box is active(Can be typed in)
-			bool IsActive() { return active; };
-			void SetActive(bool isActive) { Lock(); active = isActive; Unlock(); };
+			//If the box has focus (can be typed in). Separate from Hook::IsActive(),
+			//which controls whether the box is shown at all.
+			bool IsFocused() { return focused; };
+			void SetFocused(bool isFocused) { Lock(); focused = isFocused; Unlock(); };
 
 			//Font Size
 			unsigned int GetFont() { return font; };

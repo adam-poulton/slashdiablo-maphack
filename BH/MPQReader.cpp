@@ -56,7 +56,7 @@ BufferData loadFile(const std::string& file_path)
 }
 
 bool ReadMPQFiles() {
-	const int NUM_MPQS = 15;
+	const int NUM_MPQS = 17;
 	std::string mpqFiles[NUM_MPQS] = {
 		"UniqueItems",
 		"Armor",
@@ -72,7 +72,9 @@ bool ReadMPQFiles() {
 		"MagicSuffix",
 		"RarePrefix",
 		"RareSuffix",
-		"CharStats"
+		"CharStats",
+		"Gems",
+		"SkillDesc"
 	};
 	for (int i = 0; i < NUM_MPQS; i++) {
 		std::string path = "data\\global\\excel\\" + mpqFiles[i] + ".txt";

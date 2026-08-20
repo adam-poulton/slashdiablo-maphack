@@ -52,15 +52,36 @@ into the box, so the search text is left alone.
 Long lists are paged: `PgUp` and `PgDn`, or the `< Prev` and `Next >` links at
 the bottom right. The footer shows which entries you are looking at.
 
-### Detail pane
+### Detail view
 
-Click any row, or press enter to take the first match, and the pane below the
-list shows that recipe in full: its name, the runes untruncated, the bases it
-can go in, the number of sockets needed and the character level it requires
-(the highest level requirement among its runes).
+Click any row, or press enter to take the first match, and the list is replaced
+by that recipe in full: the runes untruncated, the sockets needed, the character
+level it requires (the highest level requirement among its runes), the bases it
+can go in, and its stats.
 
-Escape backs out one step at a time: out of the search box, then out of the
-detail pane, then it closes the window.
+The stats are read from the same tables and string files the game itself uses to
+describe an item, so the wording matches what you would see on the finished
+item, in whatever language your client is installed in.
+
+**Stats depend on the base.** A runeword grants its own bonuses, and on top of
+those every rune contributes its own, which differ depending on whether it is
+socketed into a weapon, a helm or body armour, or a shield. So the detail view
+lists the runeword's own bonuses first, then one block per kind of base the
+runeword allows. Spirit is the clearest example:
+
+| In a sword                        | In a shield                |
+| --------------------------------- | -------------------------- |
+| +75 poison damage over 5 seconds  | Poison Resist +35%         |
+| +3-14 Cold Damage                 | Cold Resist +35%           |
+| +1-50 Lightning Damage            | Lightning Resist +35%      |
+| 7% Life stolen per hit            | Attacker Takes Damage of 14 |
+
+Both get the same +2 to All Skills, Faster Cast Rate and so on from the runeword
+itself; everything above comes from Tal, Thul, Ort and Amn behaving differently
+in the two bases.
+
+Escape backs out one step at a time: out of the search box, then back to the
+list, then it closes the window.
 
 ### Chat command
 
