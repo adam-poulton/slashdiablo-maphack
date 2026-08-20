@@ -5,14 +5,22 @@ All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
 in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
 
 # Unreleased
-* Add `Runeword Lookup` option (`BH_settings.cfg`, default `True, VK_NUMPAD9`):
-  an in-game window listing the 78 released runeword recipes plus the
+* Add `Info Window` option (`BH_settings.cfg`, default `True, VK_NUMPAD9`): a
+  tabbed in-game reference window, opened with the hotkey or `.info`, closed
+  with escape. Its first tab lists the 78 released runeword recipes plus the
   server-side `Plague`, with a search box that filters by runeword name, rune
-  name or item type, and paging with `PgUp`/`PgDn`. Escape or the hotkey closes
-  it. `.rw <search>` also prints matches to chat. Recipes whose working title
-  is still in `Runes.txt` (`Bound by Duty`, `Doomsayer`, `Widowmaker`, `Winter`,
-  `Exile's Path`, `The Beast`) are shown under their released names. See
-  [Runeword Lookup](docs/Runeword-Lookup.md).
+  name or item type and paging with `PgUp`/`PgDn`. `.rw <search>` opens the tab
+  with that search applied. Recipes whose working title is still in `Runes.txt`
+  (`Bound by Duty`, `Doomsayer`, `Widowmaker`, `Winter`, `Exile's Path`,
+  `The Beast`) are shown under their released names. See
+  [Info Window](docs/Info-Window.md).
+* Add a `Listhook` drawing component: a paged list with a configurable column
+  layout that measures and trims cells to fit their column, so future reference
+  tabs don't each hand-roll a table.
+* Text input boxes take a hint string shown while they are empty, and their
+  clickable area now matches the box as drawn rather than just the text height,
+  which left the bottom of the box dead to clicks. They also take focus on the
+  press rather than the release.
 * Fix window sizes being discarded when a BH window is created before the game
   reports its resolution, which could leave a window with no background and an
   unclickable, undraggable title bar. Also stop `UI.ini` state from triggering a

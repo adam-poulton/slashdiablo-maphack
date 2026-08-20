@@ -15,6 +15,19 @@ static std::string InlineColorCode(TextColor color) {
 	return "\377c" + std::to_string(index);
 }
 
+// Trim text to fit the given pixel width, so a long hint can't spill out of
+// the box.
+static std::string FitToWidth(const std::string& text, unsigned int font, unsigned int width) {
+	if ((unsigned int)Texthook::GetTextSize(text, font).x <= width)
+		return text;
+	for (size_t length = text.length(); length > 0; length--) {
+		std::string candidate = text.substr(0, length - 1);
+		if ((unsigned int)Texthook::GetTextSize(candidate, font).x <= width)
+			return candidate;
+	}
+	return "";
+}
+
 Inputhook::Inputhook(HookVisibility visibility, unsigned int x, unsigned int y, unsigned int xSize, std::string formatString, ...) :
  Hook(visibility, x, y) {
 	SetXSize(xSize);
@@ -155,6 +168,16 @@ unsigned int Inputhook::GetCharacterLimit() {
 		 RECT pHalo = {static_cast<long>(GetX()) - 1, static_cast<long>(GetY()) - 1, static_cast<long>(GetX() + GetXSize()) + 1, static_cast<long>(GetY() + boxHeight) + 1};
 		 Framehook::DrawRectStub(&pHalo);
 	 }
+	 //An empty box shows its hint instead, always dimmed so it doesn't read as
+	 //text that is really in the box.
+	 if (text.length() == 0 && placeholder.length() > 0) {
+		 DWORD placeholderFont = D2WIN_SetTextSize(GetFont());
+		 wchar_t* wHint = AnsiToUnicode(FitToWidth(placeholder, GetFont(), GetXSize() - 6).c_str());
+		 D2WIN_DrawText(wHint, GetX() + 3, GetY() + 3 + height[GetFont()], Grey, 0);
+		 delete[] wHint;
+		 D2WIN_SetTextSize(placeholderFont);
+	 }
+
 	 string drawnText = text;
 
 	 //Draw the text in!
@@ -315,7 +338,8 @@ unsigned int Inputhook::GetCharacterLimit() {
 
  bool Inputhook::OnLeftClick(bool up, unsigned int x, unsigned int y) {
 	 if (InRange(x, y)) {
-		 if (up)
+		 //Take focus on the press, so the box responds the moment it is clicked.
+		 if (!up)
 			 SetActive(true);
 		 if (GetLeftClickHandler())
 			 GetLeftClickHandler()(up, this, GetLeftClickVoid());

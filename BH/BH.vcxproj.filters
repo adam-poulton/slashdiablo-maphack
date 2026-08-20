@@ -17,6 +17,7 @@
     <ClCompile Include="Drawing\Advanced\Combohook\Combohook.cpp" />
     <ClCompile Include="Drawing\Advanced\Inputhook\Inputhook.cpp" />
     <ClCompile Include="Drawing\Advanced\Keyhook\Keyhook.cpp" />
+    <ClCompile Include="Drawing\Advanced\Listhook\Listhook.cpp" />
     <ClCompile Include="Drawing\Basic\Boxhook\Boxhook.cpp" />
     <ClCompile Include="Drawing\Basic\Crosshook\Crosshook.cpp" />
     <ClCompile Include="Drawing\Basic\Framehook\Framehook.cpp" />
@@ -38,7 +39,8 @@
     <ClCompile Include="Modules\Module.cpp" />
     <ClCompile Include="Modules\ModuleManager.cpp" />
     <ClCompile Include="Modules\Party\Party.cpp" />
-    <ClCompile Include="Modules\Runewords\Runewords.cpp" />
+    <ClCompile Include="Modules\Info\InfoWindow.cpp" />
+    <ClCompile Include="Modules\Info\RunewordTab.cpp" />
     <ClCompile Include="Modules\ScreenInfo\ScreenInfo.cpp" />
     <ClCompile Include="MPQInit.cpp" />
     <ClCompile Include="MPQReader.cpp" />
@@ -72,6 +74,7 @@
     <ClInclude Include="Drawing\Advanced\Combohook\Combohook.h" />
     <ClInclude Include="Drawing\Advanced\Inputhook\Inputhook.h" />
     <ClInclude Include="Drawing\Advanced\Keyhook\Keyhook.h" />
+    <ClInclude Include="Drawing\Advanced\Listhook\Listhook.h" />
     <ClInclude Include="Drawing\Basic\Boxhook\Boxhook.h" />
     <ClInclude Include="Drawing\Basic\Crosshook\Crosshook.h" />
     <ClInclude Include="Drawing\Basic\Framehook\Framehook.h" />
@@ -101,7 +104,9 @@
     <ClInclude Include="Modules\Module.h" />
     <ClInclude Include="Modules\ModuleManager.h" />
     <ClInclude Include="Modules\Party\Party.h" />
-    <ClInclude Include="Modules\Runewords\Runewords.h" />
+    <ClInclude Include="Modules\Info\InfoWindow.h" />
+    <ClInclude Include="Modules\Info\InfoTab.h" />
+    <ClInclude Include="Modules\Info\RunewordTab.h" />
     <ClInclude Include="Modules\ScreenInfo\ScreenInfo.h" />
     <ClInclude Include="MPQInit.h" />
     <ClInclude Include="MPQReader.h" />

@@ -8,6 +8,7 @@ namespace Drawing {
 	class Inputhook : public Hook {
 		private:
 			std::string text; //Text that is actually in the input box
+			std::string placeholder; //Hint drawn while the box is empty
 			bool active, showCursor; //Booleans set if the hook is active / currently showing cursor.
 			unsigned int xSize; //Length of the input box
 			unsigned int cursorPos, cursorTick; //Cursor Position / Timer to control cursor blink
@@ -45,8 +46,13 @@ namespace Drawing {
 			unsigned int GetXSize() { return xSize; };
 			void SetXSize(unsigned int newXSize);
 
-			//Y Size
-			unsigned int GetYSize() { unsigned int height[] = {10,11,18,24,10,13,7,13,10,12,8,8,7,12}; return height[GetFont()]; };
+			//Y Size. This is the height of the box as drawn, not just of the
+			//text, so that the clickable area matches what the user sees.
+			unsigned int GetYSize() { unsigned int height[] = {10,11,18,24,10,13,7,13,10,12,8,8,7,12}; return height[GetFont()] + 4; };
+
+			//Hint shown in place of the text while the box is empty
+			std::string GetPlaceholder() { return placeholder; };
+			void SetPlaceholder(std::string newPlaceholder) { Lock(); placeholder = newPlaceholder; Unlock(); };
 
 			//If we are current showing the cursor, for blinking purposes!
 			bool ShowCursor() { return showCursor; };

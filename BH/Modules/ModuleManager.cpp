@@ -91,8 +91,8 @@ bool ModuleManager::UserInput(wchar_t* module, wchar_t* msg, bool fromGame) {
 	}
 
 	// Short aliases for modules with awkward chat commands.
-	if (name.compare("rw") == 0)
-		name = "runewords";
+	if (name.compare("rw") == 0 || name.compare("runewords") == 0)
+		name = "info";
 
 	for (map<string, Module*>::iterator it = moduleList.begin(); it != moduleList.end(); ++it) {
 		if (name.compare((*it).first) == 0) {
