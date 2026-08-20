@@ -15,7 +15,7 @@ using namespace Drawing;
 #define RW_SEARCH_WIDTH		388
 #define RW_LIST_Y			25
 #define RW_LIST_WIDTH		388
-#define RW_LIST_HEIGHT		399
+#define RW_LIST_HEIGHT		346		// 28 rows
 #define RW_FOOTER_Y			(RW_LIST_Y + RW_LIST_HEIGHT + 6)
 #define RW_PREV_X			250
 #define RW_NEXT_X			310
@@ -29,7 +29,10 @@ using namespace Drawing;
 #define RW_COL_RUNES_W		240
 
 // The detail view replaces the list. Its text is centred inside a border sized
-// to hold it, so it reads like the description on the item itself.
+// to hold it, so it reads like the description on the item itself. The back link
+// sits above it, just under the search box.
+#define RW_BACK_Y			21
+#define RW_DETAIL_TOP		(RW_LIST_Y + 14)
 #define RW_DETAIL_PAD		7
 #define RW_DETAIL_LINE_H	12
 #define RW_DETAIL_MAX_W		(RW_LIST_WIDTH - (2 * RW_DETAIL_PAD))
@@ -244,14 +247,14 @@ RunewordTab::RunewordTab(UI* ui) : InfoTab("Runewords", ui),
 
 	// Created before the text so the border draws behind it. Both are positioned
 	// and sized when a runeword is opened.
-	detailFrame = new Framehook(tab, RW_SEARCH_X, RW_LIST_Y, RW_LIST_WIDTH, 0);
+	detailFrame = new Framehook(tab, RW_SEARCH_X, RW_DETAIL_TOP, RW_LIST_WIDTH, 0);
 	detailFrame->SetTransparency(BTOneHalf);
 	for (int i = 0; i < RW_DETAIL_LINES; i++) {
-		detailLines[i] = new Texthook(tab, RW_SEARCH_X, RW_LIST_Y, "");
+		detailLines[i] = new Texthook(tab, RW_SEARCH_X, RW_DETAIL_TOP, "");
 		detailLines[i]->SetColor(White);
 	}
 
-	backLink = new Texthook(tab, RW_SEARCH_X, RW_FOOTER_Y, "< Back to the list");
+	backLink = new Texthook(tab, RW_SEARCH_X, RW_BACK_Y, "< Back to the list");
 	backLink->SetColor(Gold);
 	backLink->SetHoverColor(White);
 	backLink->SetLeftCallback(RunewordTab::OnBackClick, this);
@@ -588,13 +591,23 @@ void RunewordTab::ShowDetail(int match) {
 	lines.push_back("");
 	colors.push_back(White);
 
+	bool truncated = false;
 	for (unsigned int i = 0; i < recipe->stats.size(); i++) {
 		std::vector<std::string> wrapped;
 		WrapText(recipe->stats[i], font, RW_DETAIL_MAX_W, wrapped);
-		for (unsigned int w = 0; w < wrapped.size() && lines.size() < RW_DETAIL_LINES; w++) {
+		for (unsigned int w = 0; w < wrapped.size(); w++) {
+			if (lines.size() >= RW_DETAIL_LINES) {
+				truncated = true;
+				break;
+			}
 			lines.push_back(wrapped[w]);
 			colors.push_back(White);
 		}
+	}
+	if (truncated) {
+		// Better to admit there is more than to end mid list.
+		lines[lines.size() - 1] = "...";
+		colors[colors.size() - 1] = Grey;
 	}
 
 	// The border is sized to the text it holds and everything is centred inside
@@ -615,7 +628,7 @@ void RunewordTab::ShowDetail(int match) {
 	for (; line < (int)lines.size(); line++) {
 		unsigned int width = (unsigned int)Texthook::GetTextSize(lines[line], font).x;
 		detailLines[line]->SetBaseX(boxX + ((boxWidth - width) / 2));
-		detailLines[line]->SetBaseY(RW_LIST_Y + RW_DETAIL_PAD + (line * RW_DETAIL_LINE_H));
+		detailLines[line]->SetBaseY(RW_DETAIL_TOP + RW_DETAIL_PAD + (line * RW_DETAIL_LINE_H));
 		detailLines[line]->SetColor(colors[line]);
 		detailLines[line]->SetText("%s", lines[line].c_str());
 		detailLines[line]->SetActive(true);

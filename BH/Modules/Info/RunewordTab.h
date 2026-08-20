@@ -31,8 +31,9 @@ struct RunewordRecipe {
 	bool statsLoaded;
 };
 
-// Detail view capacity. The longest recipe needs 24 lines once wrapped.
-#define RW_DETAIL_LINES		32
+// Detail view capacity, which is what fits below the back link. The longest
+// recipe needs about 24 lines once wrapped.
+#define RW_DETAIL_LINES		28
 
 class RunewordTab : public InfoTab {
 	private:

@@ -7,7 +7,7 @@
 using namespace Drawing;
 
 #define INFO_WINDOW_WIDTH	400
-#define INFO_WINDOW_HEIGHT	470
+#define INFO_WINDOW_HEIGHT	420
 #define INFO_TOGGLE_NAME	"Info Window"
 
 void InfoWindow::OnLoad() {
