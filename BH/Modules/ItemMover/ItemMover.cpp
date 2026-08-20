@@ -37,12 +37,8 @@ std::string POTIONS[] = { "hp", "mp", "rv" };
 DWORD idBookId;
 DWORD unidItemId;
 
-// A tome holds at most 20 scrolls
-#define FULL_TOME_QUANTITY 20
-
-// True if the player carries at least one tome with the given code and every one of
-// them is full of scrolls. False when no such tome is carried.
-static bool AllTomesFull(UnitAny *unit, const char *tomeCode) {
+// Returns false when no matching tome is carried.
+static bool AllTomesAboveThreshold(UnitAny *unit, const char *tomeCode, unsigned int threshold) {
 	if (!unit || !unit->pInventory)
 		return false;
 	bool foundTome = false;
@@ -53,14 +49,14 @@ static bool AllTomesFull(UnitAny *unit, const char *tomeCode) {
 		if (code[0] != tomeCode[0] || code[1] != tomeCode[1] || code[2] != tomeCode[2])
 			continue;
 		foundTome = true;
-		if (D2COMMON_GetUnitStat(pItem, STAT_AMMOQUANTITY, 0) < FULL_TOME_QUANTITY)
+		if ((unsigned int)D2COMMON_GetUnitStat(pItem, STAT_AMMOQUANTITY, 0) <= threshold)
 			return false;
 	}
 	return foundTome;
 }
 
-// "Smart Scrolls": hide town portal/identify scrolls dropping on the ground when
-// every matching tome is already full.
+// "Hide Redundant Scrolls": true for a town portal/identify scroll that lands while
+// every matching tome is still above the visibility threshold.
 static bool IsRedundantScroll(BYTE *packet) {
 	bool success = true;
 	ItemInfo item = {};
@@ -76,7 +72,7 @@ static bool IsRedundantScroll(BYTE *packet) {
 	} else {
 		return false;
 	}
-	return AllTomesFull(D2CLIENT_GetPlayerUnit(), tomeCode);
+	return AllTomesAboveThreshold(D2CLIENT_GetPlayerUnit(), tomeCode, Item::GetScrollVisibilityThreshold());
 }
 
 bool ItemMover::Init() {
@@ -565,7 +561,7 @@ void ItemMover::OnGamePacketRecv(BYTE* packet, bool* block) {
 				Unlock();
 			}
 
-			if ((*BH::MiscToggles2)["Smart Scrolls"].state && IsRedundantScroll(packet)) {
+			if ((*BH::MiscToggles2)["Hide Redundant Scrolls"].state && IsRedundantScroll(packet)) {
 				*block = true;
 				break;
 			}

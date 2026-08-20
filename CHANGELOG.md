@@ -4,7 +4,7 @@ Changelog
 All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
 in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
 
-# Unreleased
+# Release Notes for 1.9.11h (Unreleased)
 * Add an in-game reference window with a responsive interface.
   Open it with numpad 9 or `.info`.
   Searchable tab for runewords, unique items, set items and Horadric Cube
@@ -15,6 +15,12 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
   [Chat Commands](docs/Chat-Commands.md).
 * Fix BH windows not staying where you put them when multiple were on screen.
 * Fix BH windows swallowing mouse clicks in menus and lobby under certain circumstances.
+* Add `Scroll Visibility Threshold` option (`BH_settings.cfg`, default `19`) so ground
+  scrolls can stay hidden until a tome drops to a chosen quantity, instead of only while
+  every tome is completely full. Editable from the Item tab of the settings UI.
+* Rename the `Smart Scrolls` option to `Hide Redundant Scrolls`. Configs that set
+  `Smart Scrolls` need updating; the old key is ignored and the option reverts to its
+  default of off.
 
 # Release Notes for 1.9.11g (2026-08-19)
 * Add `Monster Curses` option (`BH_settings.cfg`, default `True, None`) to mark
