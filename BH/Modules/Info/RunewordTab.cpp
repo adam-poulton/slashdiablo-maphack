@@ -30,8 +30,9 @@ using namespace Drawing;
 
 // The detail view replaces the list. Its text is centred inside a border sized
 // to hold it, so it reads like the description on the item itself. The back link
-// sits above it, just under the search box.
-#define RW_BACK_Y			21
+// sits above it, on the same line the list's first row occupies, which is the top
+// of the list because its columns carry no headers.
+#define RW_BACK_Y			RW_LIST_Y
 #define RW_DETAIL_TOP		(RW_LIST_Y + 14)
 #define RW_DETAIL_PAD		7
 #define RW_DETAIL_LINE_H	12
