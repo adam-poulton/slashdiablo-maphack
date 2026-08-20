@@ -44,11 +44,23 @@ runeword name, rune name and item type, so all of these work:
 
 While the box has focus it fills in solid, gains a second border and shows a
 blinking cursor; unfocused it is translucent and shows a dimmed hint, so it is
-always clear where your typing is going. Press escape to leave the box, or clear
-it to list everything again.
+always clear where your typing is going. Clear it to list everything again.
+
+Press **enter** to open the first match in the detail pane. Enter is not typed
+into the box, so the search text is left alone.
 
 Long lists are paged: `PgUp` and `PgDn`, or the `< Prev` and `Next >` links at
 the bottom right. The footer shows which entries you are looking at.
+
+### Detail pane
+
+Click any row, or press enter to take the first match, and the pane below the
+list shows that recipe in full: its name, the runes untruncated, the bases it
+can go in, the number of sockets needed and the character level it requires
+(the highest level requirement among its runes).
+
+Escape backs out one step at a time: out of the search box, then out of the
+detail pane, then it closes the window.
 
 ### Chat command
 

@@ -9,6 +9,7 @@ namespace Drawing {
 		private:
 			std::string text; //Text that is actually in the input box
 			std::string placeholder; //Hint drawn while the box is empty
+			bool submitted; //Set when enter is pressed, until the owner reads it
 			bool active, showCursor; //Booleans set if the hook is active / currently showing cursor.
 			unsigned int xSize; //Length of the input box
 			unsigned int cursorPos, cursorTick; //Cursor Position / Timer to control cursor blink
@@ -53,6 +54,10 @@ namespace Drawing {
 			//Hint shown in place of the text while the box is empty
 			std::string GetPlaceholder() { return placeholder; };
 			void SetPlaceholder(std::string newPlaceholder) { Lock(); placeholder = newPlaceholder; Unlock(); };
+
+			//True once if enter has been pressed since the last call. Enter is
+			//consumed rather than typed into the box so the owner can act on it.
+			bool TakeSubmitted() { Lock(); bool was = submitted; submitted = false; Unlock(); return was; };
 
 			//If we are current showing the cursor, for blinking purposes!
 			bool ShowCursor() { return showCursor; };

@@ -1,4 +1,5 @@
 #pragma once
+#include <map>
 #include <string>
 #include <vector>
 #include "InfoTab.h"
@@ -9,6 +10,7 @@ struct RunewordRecipe {
 	std::string runes;		// "Jah + Ith + Ber"
 	std::string itemTypes;	// "Any Armor"
 	unsigned int sockets;	// number of runes in the word
+	int requiredLevel;		// highest level requirement of its runes, 0 if unknown
 	std::string searchKey;	// lowercased name/runes/types, used for filtering
 };
 
@@ -17,17 +19,22 @@ class RunewordTab : public InfoTab {
 		Drawing::Inputhook* searchBox;
 		Drawing::Listhook* list;
 		Drawing::Texthook* statusText;
+		Drawing::Texthook* detailLines[4];
 
 		std::vector<RunewordRecipe> recipes;
 		std::vector<const RunewordRecipe*> matches;
 		std::string query;			// active filter, always lowercase
 		std::string lastBoxText;	// last text seen in the search box
+		std::map<std::string, int> runeLevels;	// rune code -> level requirement
+		int shownDetail;			// selected row the detail pane is describing
 		bool recipesLoaded;
 		bool needsRefresh;
 
+		void LoadRuneLevels();
 		void BuildRecipes();
 		void ApplyFilter();
 		void PushRows();
+		void PushDetail();
 
 	public:
 		RunewordTab(Drawing::UI* ui);

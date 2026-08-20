@@ -3,6 +3,7 @@
 #include "../../BH.h"
 #include "../../Common.h"
 #include "../../MPQInit.h"
+#include "../../MPQReader.h"
 #include "../../TableReader.h"
 
 using namespace Drawing;
@@ -10,22 +11,28 @@ using namespace Drawing;
 // Layout, relative to the tab's content area.
 #define RW_SEARCH_X			6
 #define RW_SEARCH_Y			3
-#define RW_SEARCH_WIDTH		546
+#define RW_SEARCH_WIDTH		626
 #define RW_LIST_Y			25
-#define RW_LIST_WIDTH		546
-#define RW_LIST_HEIGHT		340
-#define RW_FOOTER_Y			(RW_LIST_Y + RW_LIST_HEIGHT + 4)
-#define RW_HINT_X			200
-#define RW_PREV_X			420
-#define RW_NEXT_X			480
+#define RW_LIST_WIDTH		626
+#define RW_LIST_HEIGHT		316
+#define RW_DETAIL_Y			(RW_LIST_Y + RW_LIST_HEIGHT + 5)
+#define RW_DETAIL_HEIGHT	68
+#define RW_DETAIL_TEXT_X	(RW_SEARCH_X + 6)
+#define RW_DETAIL_LINE_H	14
+#define RW_FOOTER_Y			(RW_DETAIL_Y + RW_DETAIL_HEIGHT + 6)
+#define RW_HINT_X			240
+#define RW_PREV_X			500
+#define RW_NEXT_X			560
 
-// Column layout, relative to the list's left edge.
+// Column layout, relative to the list's left edge. The runes column is sized to
+// hold the longest recipe ("Jah + Mal + Jah + Sur + Jah + Ber") without cutting
+// it, since the runes are the point of the list.
 #define RW_COL_NAME_X		0
-#define RW_COL_NAME_W		128
-#define RW_COL_RUNES_X		136
-#define RW_COL_RUNES_W		208
-#define RW_COL_TYPE_X		352
-#define RW_COL_TYPE_W		194
+#define RW_COL_NAME_W		150
+#define RW_COL_RUNES_X		158
+#define RW_COL_RUNES_W		290
+#define RW_COL_TYPE_X		456
+#define RW_COL_TYPE_W		170
 
 // Six recipes shipped under working titles in runes.txt and were renamed before
 // release; the files were never updated, so the readable name in "Rune Name" is
@@ -121,6 +128,7 @@ static std::string ItemTypeName(const std::string& code) {
 }
 
 RunewordTab::RunewordTab(UI* ui) : InfoTab("Runewords", ui),
+	shownDetail(-2),
 	recipesLoaded(false),
 	needsRefresh(true) {
 
@@ -133,6 +141,18 @@ RunewordTab::RunewordTab(UI* ui) : InfoTab("Runewords", ui),
 	columns.push_back(ListColumn("Runes", RW_COL_RUNES_X, RW_COL_RUNES_W, Orange));
 	columns.push_back(ListColumn("Item Types", RW_COL_TYPE_X, RW_COL_TYPE_W, Tan));
 	list->SetColumns(columns);
+
+	// The detail pane is always present; with nothing selected it explains how
+	// to select something. Hooks belonging to a tab can't be hidden individually.
+	Framehook* detailFrame = new Framehook(tab, RW_SEARCH_X, RW_DETAIL_Y, RW_LIST_WIDTH, RW_DETAIL_HEIGHT);
+	detailFrame->SetTransparency(BTOneHalf);
+
+	TextColor detailColors[4] = { Gold, Orange, Tan, White };
+	for (int i = 0; i < 4; i++) {
+		detailLines[i] = new Texthook(tab, RW_DETAIL_TEXT_X,
+			RW_DETAIL_Y + 5 + (i * RW_DETAIL_LINE_H), "");
+		detailLines[i]->SetColor(detailColors[i]);
+	}
 
 	statusText = new Texthook(tab, RW_SEARCH_X, RW_FOOTER_Y, "");
 	statusText->SetColor(Grey);
@@ -155,7 +175,24 @@ void RunewordTab::MpqLoaded() {
 	BuildRecipes();
 }
 
+// Rune level requirements come from misc.txt, which is already parsed and kept
+// in memory; ItemAttributes only keeps the item's quality level, which is not
+// the same number.
+void RunewordTab::LoadRuneLevels() {
+	if (!runeLevels.empty())
+		return;
+	std::map<std::string, MPQData*>::iterator data = MpqDataMap.find("misc");
+	if (data == MpqDataMap.end() || !data->second)
+		return;
+	for (auto row = data->second->data.begin(); row != data->second->data.end(); row++) {
+		std::string code = (*row)["code"];
+		if (code.length() > 0 && (*row)["levelreq"].length() > 0)
+			runeLevels[code] = atoi((*row)["levelreq"].c_str());
+	}
+}
+
 void RunewordTab::BuildRecipes() {
+	LoadRuneLevels();
 	recipes.clear();
 	matches.clear();
 
@@ -172,10 +209,14 @@ void RunewordTab::BuildRecipes() {
 				continue;
 
 			std::vector<std::string> runes;
+			int requiredLevel = 0;
 			for (int n = 1; n <= 6; n++) {
 				std::string code = Trim(entry->getString("Rune" + std::to_string(n)));
-				if (code.length() > 0)
-					runes.push_back(RuneName(code));
+				if (code.length() == 0)
+					continue;
+				runes.push_back(RuneName(code));
+				if (runeLevels.count(code) && runeLevels[code] > requiredLevel)
+					requiredLevel = runeLevels[code];
 			}
 			if (runes.empty())
 				continue;
@@ -184,6 +225,7 @@ void RunewordTab::BuildRecipes() {
 			recipe.name = RunewordName(entry);
 			if (recipe.name.length() == 0)
 				continue;
+			recipe.requiredLevel = requiredLevel;
 			recipe.sockets = runes.size();
 			recipe.runes = Join(runes, " + ");
 
@@ -220,11 +262,16 @@ void RunewordTab::BuildRecipes() {
 			continue;
 
 		std::vector<std::string> runes;
-		for (int n = 0; n < 6 && extra.runes[n]; n++)
+		int requiredLevel = 0;
+		for (int n = 0; n < 6 && extra.runes[n]; n++) {
 			runes.push_back(RuneName(extra.runes[n]));
+			if (runeLevels.count(extra.runes[n]) && runeLevels[extra.runes[n]] > requiredLevel)
+				requiredLevel = runeLevels[extra.runes[n]];
+		}
 
 		RunewordRecipe recipe;
 		recipe.name = extra.name;
+		recipe.requiredLevel = requiredLevel;
 		recipe.sockets = runes.size();
 		recipe.runes = Join(runes, " + ");
 		recipe.itemTypes = ItemTypeName(extra.itemType);
@@ -258,7 +305,7 @@ void RunewordTab::PushRows() {
 		row.push_back(matches[i]->itemTypes);
 		rows.push_back(row);
 	}
-	list->SetRows(rows);
+	list->SetRows(rows);	// also clears the selection
 
 	if (!recipesLoaded) {
 		statusText->SetText("Waiting for game data to finish loading...");
@@ -271,6 +318,31 @@ void RunewordTab::PushRows() {
 			(unsigned int)matches.size(),
 			list->GetPage() + 1,
 			list->GetPageCount());
+	}
+}
+
+void RunewordTab::PushDetail() {
+	int selected = list->GetSelectedRow();
+	shownDetail = selected;
+
+	if (selected < 0 || selected >= (int)matches.size()) {
+		detailLines[0]->SetText("Click a runeword for details, or press enter to open the first match");
+		detailLines[0]->SetColor(Grey);
+		for (int i = 1; i < 4; i++)
+			detailLines[i]->SetText("");
+		return;
+	}
+
+	const RunewordRecipe* recipe = matches[selected];
+	detailLines[0]->SetColor(Gold);
+	detailLines[0]->SetText("%s", recipe->name.c_str());
+	detailLines[1]->SetText("%s", recipe->runes.c_str());
+	detailLines[2]->SetText("Bases: %s", recipe->itemTypes.c_str());
+	if (recipe->requiredLevel > 0) {
+		detailLines[3]->SetText("%u sockets, required level %d",
+			recipe->sockets, recipe->requiredLevel);
+	} else {
+		detailLines[3]->SetText("%u sockets", recipe->sockets);
 	}
 }
 
@@ -299,15 +371,36 @@ void RunewordTab::OnDraw() {
 		needsRefresh = true;
 	}
 
+	// Enter opens the first match rather than typing a newline into the box.
+	if (searchBox->TakeSubmitted()) {
+		if (needsRefresh) {
+			ApplyFilter();
+			PushRows();
+			needsRefresh = false;
+		}
+		list->SetSelectedRow(matches.empty() ? -1 : 0);
+	}
+
 	if (needsRefresh) {
 		ApplyFilter();
 		PushRows();
 		needsRefresh = false;
 	}
+
+	if (list->GetSelectedRow() != shownDetail)
+		PushDetail();
 }
 
 bool RunewordTab::OnKey(bool up, BYTE key) {
 	switch (key) {
+		case VK_ESCAPE:
+			// Back out of the detail pane first, so escape doesn't jump straight
+			// to closing the window while a runeword is open.
+			if (list->GetSelectedRow() < 0)
+				return false;
+			if (up)
+				list->ClearSelection();
+			return true;
 		case VK_PRIOR:
 			if (!up) {
 				list->ChangePage(-1);

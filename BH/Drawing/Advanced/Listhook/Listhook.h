@@ -34,6 +34,8 @@ namespace Drawing {
 			unsigned int font;
 			unsigned int page;
 			TextColor headerColor;
+			TextColor selectedColor;
+			int selectedRow;	// -1 when nothing is selected
 
 			void FitRows();
 			std::string FitCell(const std::string& text, unsigned int width);
@@ -54,14 +56,27 @@ namespace Drawing {
 			TextColor GetHeaderColor() { return headerColor; };
 			void SetHeaderColor(TextColor newColor) { Lock(); headerColor = newColor; Unlock(); };
 
+			// Colour used for the selected row, which also gets a band drawn
+			// behind it.
+			TextColor GetSelectedColor() { return selectedColor; };
+			void SetSelectedColor(TextColor newColor) { Lock(); selectedColor = newColor; Unlock(); };
+
+			// Selection. Rows are indexed as supplied to SetRows(), which clears
+			// the selection because the rows no longer mean the same thing.
+			int GetSelectedRow() { return selectedRow; };
+			void SetSelectedRow(int row);
+			void ClearSelection() { SetSelectedRow(-1); };
+
 			const std::vector<ListColumn>& GetColumns() { return columns; };
 			void SetColumns(const std::vector<ListColumn>& newColumns);
 
 			unsigned int GetRowCount() { return rows.size(); };
 			void SetRows(const std::vector<std::vector<std::string>>& newRows);
 
-			// Height of one row, and how many of them fit below the header.
+			// Height of one row, how much room the header takes, and how many
+			// rows fit below it.
 			unsigned int GetRowHeight();
+			unsigned int GetHeaderHeight();
 			unsigned int GetVisibleRows();
 
 			// Paging. Pages are zero based; ChangePage() wraps at both ends.
@@ -72,6 +87,7 @@ namespace Drawing {
 			void SetPage(unsigned int newPage);
 			void ChangePage(int delta);
 
+			bool OnLeftClick(bool up, unsigned int x, unsigned int y);
 			void OnDraw();
 	};
 };

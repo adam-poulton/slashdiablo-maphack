@@ -35,6 +35,7 @@ Inputhook::Inputhook(HookVisibility visibility, unsigned int x, unsigned int y, 
 	SetColor(Grey);
 	SetFocusedColor(White);
 	SetActive(false);
+	submitted = false;
 	SetCursorState(true);
 	ResetCursorTick();
 	ResetSelection();
@@ -55,6 +56,7 @@ Inputhook::Inputhook(HookGroup* group, unsigned int x, unsigned int y, unsigned 
 	SetColor(Grey);
 	SetFocusedColor(White);
 	SetActive(false);
+	submitted = false;
 	SetCursorState(true);
 	ResetCursorTick();
 	ResetSelection();
@@ -230,6 +232,11 @@ unsigned int Inputhook::GetCharacterLimit() {
 			if (up)
 				SetActive(false);
 		break;
+		case VK_RETURN:
+			//Enter isn't text; hand it to the owner to act on.
+			if (!up)
+				submitted = true;
+		break;
 		case VK_LEFT:
 			if (!up && GetCursorPosition() != 0) {
 				if (shiftState) {
@@ -326,6 +333,12 @@ unsigned int Inputhook::GetCharacterLimit() {
 			if (ToAscii(key, (lParam & 0xFF0000), layout, out, 0) == 0) {
 				Unlock();
 				return false;
+			}
+			//Only printable characters belong in the box; control codes like
+			//return and tab would otherwise be inserted verbatim.
+			if (out[0] < ' ' || out[0] == 0x7F) {
+				Unlock();
+				return true;
 			}
 			sprintf_s(szChar, sizeof(szChar), "%c", out[0]);
 

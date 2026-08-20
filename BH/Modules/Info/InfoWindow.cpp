@@ -6,8 +6,8 @@
 
 using namespace Drawing;
 
-#define INFO_WINDOW_WIDTH	560
-#define INFO_WINDOW_HEIGHT	420
+#define INFO_WINDOW_WIDTH	640
+#define INFO_WINDOW_HEIGHT	470
 #define INFO_TOGGLE_NAME	"Info Window"
 
 void InfoWindow::OnLoad() {
@@ -103,6 +103,14 @@ void InfoWindow::OnKey(bool up, BYTE key, LPARAM lParam, bool* block) {
 	if (!toggle.state || !infoUI || infoUI->IsMinimized())
 		return;
 
+	// The active tab gets first refusal, so it can use escape to back out of its
+	// own state before the window closes.
+	InfoTab* active = GetActiveTab();
+	if (active && active->OnKey(up, key)) {
+		*block = true;
+		return;
+	}
+
 	// Escape closes the window rather than opening the game menu. When a text
 	// box has focus it consumes escape first to drop that focus, so the second
 	// press closes the window.
@@ -110,12 +118,7 @@ void InfoWindow::OnKey(bool up, BYTE key, LPARAM lParam, bool* block) {
 		*block = true;
 		if (up)
 			ShowWindow(false);
-		return;
 	}
-
-	InfoTab* active = GetActiveTab();
-	if (active && active->OnKey(up, key))
-		*block = true;
 }
 
 void InfoWindow::OnUserInput(const wchar_t* msg, bool fromGame, bool* block) {

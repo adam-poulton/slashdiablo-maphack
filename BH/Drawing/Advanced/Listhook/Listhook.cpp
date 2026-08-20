@@ -1,4 +1,5 @@
 #include "Listhook.h"
+#include "../../Basic/Boxhook/Boxhook.h"
 
 using namespace std;
 using namespace Drawing;
@@ -13,11 +14,13 @@ static unsigned int FontHeight(unsigned int font) {
 }
 
 Listhook::Listhook(HookVisibility visibility, unsigned int x, unsigned int y, unsigned int xSize, unsigned int ySize) :
-Hook(visibility, x, y), xSize(xSize), ySize(ySize), font(0), page(0), headerColor(Gold) {
+Hook(visibility, x, y), xSize(xSize), ySize(ySize), font(0), page(0), headerColor(Gold),
+selectedColor(Silver), selectedRow(-1) {
 }
 
 Listhook::Listhook(HookGroup* group, unsigned int x, unsigned int y, unsigned int xSize, unsigned int ySize) :
-Hook(group, x, y), xSize(xSize), ySize(ySize), font(0), page(0), headerColor(Gold) {
+Hook(group, x, y), xSize(xSize), ySize(ySize), font(0), page(0), headerColor(Gold),
+selectedColor(Silver), selectedRow(-1) {
 }
 
 void Listhook::SetFont(unsigned int newFont) {
@@ -40,6 +43,7 @@ void Listhook::SetRows(const std::vector<std::vector<std::string>>& newRows) {
 	Lock();
 	rows = newRows;
 	FitRows();
+	selectedRow = -1;
 	if (page >= GetPageCount())
 		page = GetPageCount() - 1;
 	Unlock();
@@ -82,17 +86,50 @@ unsigned int Listhook::GetRowHeight() {
 	return FontHeight(font) + LIST_ROW_PADDING;
 }
 
-unsigned int Listhook::GetVisibleRows() {
-	unsigned int headerHeight = 0;
+unsigned int Listhook::GetHeaderHeight() {
 	for (unsigned int c = 0; c < columns.size(); c++) {
-		if (columns[c].header.length() > 0) {
-			headerHeight = FontHeight(font) + LIST_HEADER_GAP;
-			break;
-		}
+		if (columns[c].header.length() > 0)
+			return FontHeight(font) + LIST_HEADER_GAP;
 	}
+	return 0;
+}
+
+unsigned int Listhook::GetVisibleRows() {
+	unsigned int headerHeight = GetHeaderHeight();
 	if (ySize <= headerHeight)
 		return 0;
 	return (ySize - headerHeight) / GetRowHeight();
+}
+
+void Listhook::SetSelectedRow(int row) {
+	Lock();
+	selectedRow = (row < 0 || row >= (int)rows.size()) ? -1 : row;
+	// Bring the selection into view so it is always the row being described.
+	if (selectedRow >= 0 && GetVisibleRows() > 0)
+		page = (unsigned int)selectedRow / GetVisibleRows();
+	Unlock();
+}
+
+// Selects the row that was clicked. Clicks below the last row fall through so
+// the window can handle them.
+bool Listhook::OnLeftClick(bool up, unsigned int x, unsigned int y) {
+	if (!up || !IsActive())
+		return false;
+
+	unsigned int top = GetY() + GetHeaderHeight();
+	unsigned int rowHeight = GetRowHeight();
+	if (x < GetX() || x > GetX() + xSize || y < top)
+		return false;
+	unsigned int offset = (y - top) / rowHeight;
+	if (offset >= GetVisibleRows())
+		return false;
+
+	unsigned int index = GetFirstVisibleRow() + offset;
+	if (index >= rows.size())
+		return false;
+
+	SetSelectedRow((int)index);
+	return true;
 }
 
 unsigned int Listhook::GetPageCount() {
@@ -147,10 +184,14 @@ void Listhook::OnDraw() {
 
 	unsigned int first = GetFirstVisibleRow(), last = GetLastVisibleRow();
 	for (unsigned int r = first; r < last && r < fitted.size(); r++, y += rowHeight) {
+		bool selected = ((int)r == selectedRow);
+		if (selected)
+			Boxhook::Draw(GetX() - 2, y, xSize, rowHeight, 0, BTHighlight);
 		for (unsigned int c = 0; c < fitted[r].size(); c++) {
 			if (fitted[r][c].length() == 0)
 				continue;
-			Texthook::Draw(GetX() + columns[c].x, y, None, font, columns[c].color, "%s", fitted[r][c].c_str());
+			Texthook::Draw(GetX() + columns[c].x, y, None, font,
+				selected ? selectedColor : columns[c].color, "%s", fitted[r][c].c_str());
 		}
 	}
 	Unlock();
