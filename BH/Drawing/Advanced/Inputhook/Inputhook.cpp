@@ -6,10 +6,21 @@
 using namespace std;
 using namespace Drawing;
 
+// D2's inline color codes only cover the ten single digit colors, so anything
+// outside that range falls back to white.
+static std::string InlineColorCode(TextColor color) {
+	int index = (int)color;
+	if (index < 0 || index > 9)
+		index = White;
+	return "\377c" + std::to_string(index);
+}
+
 Inputhook::Inputhook(HookVisibility visibility, unsigned int x, unsigned int y, unsigned int xSize, std::string formatString, ...) :
  Hook(visibility, x, y) {
 	SetXSize(xSize);
 	SetFont(0);
+	SetColor(Grey);
+	SetFocusedColor(White);
 	SetActive(false);
 	SetCursorState(true);
 	ResetCursorTick();
@@ -28,6 +39,8 @@ Inputhook::Inputhook(HookGroup* group, unsigned int x, unsigned int y, unsigned 
  Hook(group, x, y) {
 	SetXSize(xSize);
 	SetFont(0);
+	SetColor(Grey);
+	SetFocusedColor(White);
 	SetActive(false);
 	SetCursorState(true);
 	ResetCursorTick();
@@ -123,14 +136,25 @@ unsigned int Inputhook::GetCharacterLimit() {
 	 Lock();
 	 //Font height
 	 unsigned int height[] = {10,11,18,24,10,13,7,13,10,12,8,8,7,12};
-	 
+
+	 //A focused box gets a solid field, a second frame around it and a blinking
+	 //cursor; an unfocused one is translucent with dimmed text, so it is obvious
+	 //at a glance whether typing will go into the box.
+	 bool focused = IsActive();
+	 unsigned int boxHeight = height[GetFont()] + 4;
+	 TextColor textColor = focused ? GetFocusedColor() : GetColor();
+
 	 //Current text width
 	 POINT textSize = Texthook::GetTextSize(GetText().substr(textPos, GetCursorPosition() - textPos), GetFont());
 
 	 //Draw the outline box!
-	 RECT pRect  = {static_cast<long>(GetX()), static_cast<long>(GetY()), static_cast<long>(GetX() + GetXSize()), static_cast<long>(GetY() + height[GetFont()] + 4)};
-	 D2GFX_DrawRectangle(GetX(), GetY(), GetX() + GetXSize(), GetY() + height[GetFont()] + 4, 0, BTFull);
+	 RECT pRect  = {static_cast<long>(GetX()), static_cast<long>(GetY()), static_cast<long>(GetX() + GetXSize()), static_cast<long>(GetY() + boxHeight)};
+	 D2GFX_DrawRectangle(GetX(), GetY(), GetX() + GetXSize(), GetY() + boxHeight, 0, focused ? BTFull : BTOneHalf);
 	 Framehook::DrawRectStub(&pRect);
+	 if (focused) {
+		 RECT pHalo = {static_cast<long>(GetX()) - 1, static_cast<long>(GetY()) - 1, static_cast<long>(GetX() + GetXSize()) + 1, static_cast<long>(GetY() + boxHeight) + 1};
+		 Framehook::DrawRectStub(&pHalo);
+	 }
 	 string drawnText = text;
 
 	 //Draw the text in!
@@ -139,22 +163,24 @@ unsigned int Inputhook::GetCharacterLimit() {
 		len = GetCharacterLimit();
 	drawnText = drawnText.substr(textPos, len);
 
-	 
+
 	 if (IsSelected()) {
-		 drawnText.insert(GetSelectionPosition() + GetSelectionLength(), "\377c0");
+		 //Reset to the base color rather than always to white, so an unfocused
+		 //box stays dimmed after the selected run.
+		 drawnText.insert(GetSelectionPosition() + GetSelectionLength(), InlineColorCode(textColor));
 		 drawnText.insert(GetSelectionPosition(), "\377c9");
 	 }
 
-	
+
 	 DWORD oldFont = D2WIN_SetTextSize(GetFont());
 	 wchar_t* wText = AnsiToUnicode(drawnText.c_str());
-	 D2WIN_DrawText(wText, GetX() + 3, GetY() + 3 + height[GetFont()], 0, 0);
+	 D2WIN_DrawText(wText, GetX() + 3, GetY() + 3 + height[GetFont()], textColor, 0);
 	 delete[] wText;
 	 D2WIN_SetTextSize(oldFont);
 
 	 //Draw the cursor!
 	 CursorTick();
-	 if (ShowCursor() && IsActive())
+	 if (ShowCursor() && focused)
 		 D2GFX_DrawLine(GetX() + textSize.x + 2, GetY() + 3, GetX() + textSize.x + 2, GetY() + textSize.y, 255, 0);
 
 	 Unlock();
@@ -218,8 +244,10 @@ unsigned int Inputhook::GetCharacterLimit() {
 			}
 		break;
 		default:
-			if (up)
+			if (up) {
+				Unlock();
 				return true;
+			}
 
 			if (ctrlState) {
 				//Select All
@@ -231,15 +259,21 @@ unsigned int Inputhook::GetCharacterLimit() {
 				//Paste
 				if (key == 0x56) {
 					HANDLE pHandle = GetClipboardData(CF_TEXT);
-					if (!pHandle)
+					if (!pHandle) {
+						CloseClipboard();
+						Unlock();
 						return true;
+					}
 					InputText((char*)GlobalLock(pHandle));
 				}
 				//Copy & Cut
 				if (key == 0x43 || key == 0x58) {
-					if (!IsSelected() || text.length() == 0)
+					if (!IsSelected() || text.length() == 0) {
+						CloseClipboard();
+						Unlock();
 						return true;
-					
+					}
+
 					Lock();
 					string mText = text.substr(GetSelectionPosition(), GetSelectionLength());
 			
@@ -258,6 +292,7 @@ unsigned int Inputhook::GetCharacterLimit() {
 					Unlock();
 				}
 				CloseClipboard();
+				Unlock();
 				return true;
 			}
 
@@ -265,13 +300,16 @@ unsigned int Inputhook::GetCharacterLimit() {
 			WORD out[2];
 			CHAR szChar[10];
 			GetKeyboardState(layout);
-			if (ToAscii(key, (lParam & 0xFF0000), layout, out, 0) == 0)
+			if (ToAscii(key, (lParam & 0xFF0000), layout, out, 0) == 0) {
+				Unlock();
 				return false;
+			}
 			sprintf_s(szChar, sizeof(szChar), "%c", out[0]);
 
 			InputText(szChar);
 		break;
 	 }
+	 Unlock();
 	 return true;
  }
 

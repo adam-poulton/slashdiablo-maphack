@@ -30,6 +30,7 @@ set(MODULE_SOURCES "Modules/Module.cpp"
                    "Modules/ItemMover/ItemMover.cpp"
                    "Modules/Maphack/Maphack.cpp"
                    "Modules/Party/Party.cpp"
+                   "Modules/Runewords/Runewords.cpp"
                    "Modules/ScreenInfo/ScreenInfo.cpp"
                    "Modules/StashExport/StashExport.cpp")
 

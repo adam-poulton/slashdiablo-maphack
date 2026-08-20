@@ -13,3 +13,4 @@
 #include "Modules\Party\Party.h"
 #include "Modules\ChatColor\ChatColor.h"
 #include "Modules\GambleRefresh\GambleRefresh.h"
+#include "Modules\Runewords\Runewords.h"

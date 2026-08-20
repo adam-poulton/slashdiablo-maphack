@@ -122,6 +122,7 @@ void BH::Initialize()
 	new Maphack();
 	new ChatColor();
 	new GambleRefresh();
+	new Runewords();
 
 	BnetBools = ((Bnet*)moduleManager->Get("bnet"))->GetBools();
 	GamefilterBools = ((Gamefilter*)moduleManager->Get("gamefilter"))->GetBools();

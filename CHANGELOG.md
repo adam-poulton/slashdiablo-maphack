@@ -4,6 +4,28 @@ Changelog
 All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
 in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
 
+# Unreleased
+* Add `Runeword Lookup` option (`BH_settings.cfg`, default `True, VK_NUMPAD9`):
+  an in-game window listing the 78 released runeword recipes plus the
+  server-side `Plague`, with a search box that filters by runeword name, rune
+  name or item type, and paging with `PgUp`/`PgDn`. Escape or the hotkey closes
+  it. `.rw <search>` also prints matches to chat. Recipes whose working title
+  is still in `Runes.txt` (`Bound by Duty`, `Doomsayer`, `Widowmaker`, `Winter`,
+  `Exile's Path`, `The Beast`) are shown under their released names. See
+  [Runeword Lookup](docs/Runeword-Lookup.md).
+* Fix window sizes being discarded when a BH window is created before the game
+  reports its resolution, which could leave a window with no background and an
+  unclickable, undraggable title bar. Also stop `UI.ini` state from triggering a
+  config write during startup.
+* Fix BH windows consuming mouse clicks while they are not on screen. Windows
+  are only drawn in game, but the window procedure routed clicks to them
+  everywhere, so a window left open in `UI.ini` could swallow menu and lobby
+  clicks with nothing visible. Clicks now reach a window only when it is
+  actually being drawn, and the same applies to the controls on its tabs.
+* Give text input boxes a focused state: a solid field, a second border and a
+  blinking cursor while focused, translucent with dimmed text while not. The
+  idle and focused text colors are settable per box.
+
 # Release Notes for 1.9.11g (2026-08-19)
 * Add `Monster Curses` option (`BH_settings.cfg`, default `True, None`) to mark
   elite packs carrying the Cursed modifier with a purple `C` on the automap,

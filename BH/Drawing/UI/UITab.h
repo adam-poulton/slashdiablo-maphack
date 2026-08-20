@@ -24,7 +24,9 @@ namespace Drawing {
 			unsigned int GetTabY() { return ui->GetY() + TITLE_BAR_HEIGHT; };
 
 
-			bool IsActive() { return ui->GetActiveTab() == this && !ui->IsMinimized(); };
+			// Also gates whether this tab's hooks handle clicks and keys, so a
+			// window that isn't on screen must not report an active tab.
+			bool IsActive() { return ui->IsVisible() && ui->GetActiveTab() == this && !ui->IsMinimized(); };
 
 			bool IsHovering(unsigned int x, unsigned int y) { return x >= GetTabX() && y >= GetTabY() && x <= (GetTabX() + GetTabSize()) && y <= (GetTabY() + TAB_HEIGHT); };
 

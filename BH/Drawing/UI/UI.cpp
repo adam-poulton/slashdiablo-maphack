@@ -12,6 +12,12 @@ std::list<UI*> UI::Minimized;
 
 UI::UI(std::string name, unsigned int xSize, unsigned int ySize) {
 	InitializeCriticalSection(&crit);
+	// Start from a known state; the setters below read these back and windows
+	// are constructed before the game has told us the screen size.
+	x = y = 0;
+	this->xSize = this->ySize = 0;
+	active = minimized = dragged = visible = false;
+	dragX = dragY = startX = startY = 0;
 	SetXSize(xSize);
 	SetYSize(ySize);
 	SetName(name);
@@ -26,12 +32,11 @@ UI::UI(std::string name, unsigned int xSize, unsigned int ySize) {
 	SetMinimizedY(minY);
 	char activeStr[20];
 	GetPrivateProfileString(name.c_str(), "Minimized", "true", activeStr, 20, path.c_str());
-	if (StringToBool(activeStr)) {
-		SetMinimized(true);
+	// Set the initial state directly rather than through SetMinimized(), which
+	// would write the config back out before the modules have finished loading.
+	minimized = StringToBool(activeStr);
+	if (minimized)
 		Minimized.push_back(this);
-	} else {
-		SetMinimized(false);
-	}
 	SetActive(false);
 	zOrder = UIs.size();
 	UIs.push_back(this);
@@ -72,20 +77,18 @@ void UI::SetY(unsigned int newY) {
 	}
 }
 
+// Sizes are stored as given: windows are constructed before the screen size is
+// known, and EnsureInBounds() keeps the window on screen every frame anyway.
 void UI::SetXSize(unsigned int newXSize) {
-	if (newXSize >= 0 && newXSize <= (Hook::GetScreenHeight() - GetX())) {
-		Lock();
-		xSize = newXSize;
-		Unlock();
-	}
+	Lock();
+	xSize = newXSize;
+	Unlock();
 }
 
 void UI::SetYSize(unsigned int newYSize) {
-	if (newYSize >= 0 && newYSize <= (Hook::GetScreenHeight() - GetX())) {
-		Lock();
-		ySize = newYSize;
-		Unlock();
-	}
+	Lock();
+	ySize = newYSize;
+	Unlock();
 }
 
 void UI::SetMinimizedX(unsigned int newX) {
@@ -242,6 +245,9 @@ void UI::SetMinimized(bool newState) {
 };
 
 bool UI::OnLeftClick(bool up, unsigned int mouseX, unsigned int mouseY) {
+	// A window that isn't being drawn must not swallow the click.
+	if (!IsVisible())
+		return false;
 	if (IsMinimized()) {
 		int n = 0;
 		for (list<UI*>::iterator it = Minimized.begin(); it != Minimized.end(); it++, n++)
@@ -317,6 +323,9 @@ bool UI::OnLeftClick(bool up, unsigned int mouseX, unsigned int mouseY) {
 }
 
 bool UI::OnRightClick(bool up, unsigned int mouseX, unsigned int mouseY) {
+	// A window that isn't being drawn must not swallow the click.
+	if (!IsVisible())
+		return false;
 	if (InTitle(mouseX, mouseY) && !IsMinimized()) {
 		if (up) 
 			SetMinimized(true);

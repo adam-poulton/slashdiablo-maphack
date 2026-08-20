@@ -14,6 +14,7 @@ namespace Drawing {
 			unsigned int textPos;//Used to determine which part of the current text I should show
 			unsigned int selectPos, selectLength; // Selection position and length
 			unsigned int font; //What type of font to use in the input hook.
+			TextColor color, focusedColor; //Text color when idle / when focused.
 		public:
 			Inputhook(HookVisibility visibility, unsigned int x, unsigned int y, unsigned int xSize, std::string formatString, ...);
 			Inputhook(HookGroup* group, unsigned int x, unsigned int y, unsigned int xSize, std::string formatString, ...);
@@ -31,6 +32,14 @@ namespace Drawing {
 			//Font Size
 			unsigned int GetFont() { return font; };
 			void SetFont(unsigned int newFont);
+
+			//Text color while the box does not have focus
+			TextColor GetColor() { return color; };
+			void SetColor(TextColor newColor) { Lock(); color = newColor; Unlock(); };
+
+			//Text color while the box has focus
+			TextColor GetFocusedColor() { return focusedColor; };
+			void SetFocusedColor(TextColor newColor) { Lock(); focusedColor = newColor; Unlock(); };
 
 			//X Size
 			unsigned int GetXSize() { return xSize; };

@@ -47,13 +47,18 @@ LONG WINAPI GameWindowEvent(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 	bool blockEvent = false;
 	int mouseX = (*p_D2CLIENT_MouseX);
 	int mouseY = (*p_D2CLIENT_MouseY);
-	
+
+	// UI windows and the stats display are only drawn from GameDraw(), so they
+	// must not take clicks outside a game or they would eat menu input while
+	// nothing is on screen. Basic hooks handle their own out-of-game visibility.
+	bool inGame = D2CLIENT_GetPlayerUnit() != NULL;
+
 	if (uMsg == WM_LBUTTONDOWN) {
 		if (Drawing::Hook::LeftClick(false, mouseX, mouseY))
 			blockEvent = true;
-		if (Drawing::UI::LeftClick(false, mouseX, mouseY))
+		if (inGame && Drawing::UI::LeftClick(false, mouseX, mouseY))
 			blockEvent = true;
-		if (Drawing::StatsDisplay::Click(false, mouseX, mouseY))
+		if (inGame && Drawing::StatsDisplay::Click(false, mouseX, mouseY))
 			blockEvent = true;
 		__raise BH::moduleManager->OnLeftClick(false, mouseX, mouseY, &blockEvent);
 	}
@@ -61,9 +66,9 @@ LONG WINAPI GameWindowEvent(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 	if (uMsg == WM_LBUTTONUP) {
 		if (Drawing::Hook::LeftClick(true, mouseX, mouseY))
 			blockEvent = true;
-		if (Drawing::UI::LeftClick(true, mouseX, mouseY))
+		if (inGame && Drawing::UI::LeftClick(true, mouseX, mouseY))
 			blockEvent = true;
-		if (Drawing::StatsDisplay::Click(true, mouseX, mouseY))
+		if (inGame && Drawing::StatsDisplay::Click(true, mouseX, mouseY))
 			blockEvent = true;
 		__raise BH::moduleManager->OnLeftClick(true, mouseX, mouseY, &blockEvent);
 	}
@@ -71,9 +76,9 @@ LONG WINAPI GameWindowEvent(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 	if (uMsg == WM_RBUTTONDOWN) {
 		if (Drawing::Hook::RightClick(false, mouseX, mouseY))
 			blockEvent = true;
-		if (Drawing::UI::RightClick(false, mouseX, mouseY))
+		if (inGame && Drawing::UI::RightClick(false, mouseX, mouseY))
 			blockEvent = true;
-		if (Drawing::StatsDisplay::Click(false, mouseX, mouseY))
+		if (inGame && Drawing::StatsDisplay::Click(false, mouseX, mouseY))
 			blockEvent = true;
 		__raise BH::moduleManager->OnRightClick(false, mouseX, mouseY, &blockEvent);
 	}
@@ -81,9 +86,9 @@ LONG WINAPI GameWindowEvent(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 	if (uMsg == WM_RBUTTONUP) {
 		if (Drawing::Hook::RightClick(true, mouseX, mouseY))
 			blockEvent = true;
-		if (Drawing::UI::RightClick(true, mouseX, mouseY))
+		if (inGame && Drawing::UI::RightClick(true, mouseX, mouseY))
 			blockEvent = true;
-		if (Drawing::StatsDisplay::Click(true, mouseX, mouseY))
+		if (inGame && Drawing::StatsDisplay::Click(true, mouseX, mouseY))
 			blockEvent = true;
 		__raise BH::moduleManager->OnRightClick(true, mouseX, mouseY, &blockEvent);
 	}
