@@ -126,5 +126,8 @@ working title. The window shows the released name:
 ### Server-side recipes
 
 `Plague` (Cham + Fal + Um, any weapon) is enabled by the realm rather than by
-the game files, so it is added to the list explicitly. If a future patch ships
-it in `Runes.txt`, the file's version is used instead.
+the game files, so both the recipe and its bonuses are listed in the source, in
+[RunewordTab.cpp](../BH/Modules/Info/RunewordTab.cpp). What its runes contribute
+still comes from the game's own data, so only the runeword's own bonuses are
+written out. If a future patch ships it in `Runes.txt`, the file's version is
+used instead.

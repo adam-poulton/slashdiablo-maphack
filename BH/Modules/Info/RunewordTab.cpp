@@ -55,14 +55,36 @@ static const RunewordRename kRenames[] = {
 };
 
 // Recipes the realm enables server-side without shipping them in runes.txt.
+// Their bonuses have to be given here too, as property entries in the same shape
+// as a runes.txt row so they render and add up like everything else. What a rune
+// contributes still comes from Gems.txt, so only the runeword's own bonuses are
+// listed. Anything the property tables cannot express goes in lines[] as text.
 struct ExtraRuneword {
 	const char* name;
 	const char* runes[6];
 	const char* itemType;
+	RunewordProperty properties[8];
+	const char* lines[4];
 };
 
 static const ExtraRuneword kExtraRunewords[] = {
-	{ "Plague", { "r32", "r19", "r22" }, "weap" },	// Cham + Fal + Um
+	{
+		"Plague", { "r32", "r19", "r22" }, "weap",	// Cham + Fal + Um
+		{
+			{ "hit-skill",    "Poison Nova",   25,  15 },
+			{ "gethit-skill", "Lower Resist",  20,  12 },
+			{ "aura",         "Cleansing",     13,  17 },
+			{ "allskills",    "",               1,   2 },
+			{ "dmg-demon",    "",             260, 380 },
+			{ "pierce-pois",  "",              23,  23 },
+			{ "dmg-fire",     "",               5,  30 },
+		},
+		{
+			// Per level amounts are held in eighths, which cannot express the
+			// 0.3% per level this grants, so it is spelled out.
+			"0.3% Deadly Strike (Based on Character Level)",
+		}
+	},
 };
 
 // Which set of rune bonuses a base takes. gems.txt gives every rune three sets,
@@ -388,6 +410,11 @@ void RunewordTab::BuildRecipes() {
 		recipe.itemTypes = ItemTypeName(extra.itemType);
 		recipe.baseSlots.push_back(BaseSlot(extra.itemType));
 		recipe.baseLabels.push_back(recipe.itemTypes);
+
+		for (int n = 0; n < 8 && extra.properties[n].code.length() > 0; n++)
+			recipe.properties.push_back(extra.properties[n]);
+		for (int n = 0; n < 4 && extra.lines[n]; n++)
+			recipe.extraLines.push_back(extra.lines[n]);
 		recipe.searchKey = ToLower(recipe.name + " " + recipe.runes + " " + recipe.itemTypes);
 		recipes.push_back(recipe);
 	}
@@ -450,6 +477,10 @@ void RunewordTab::LoadStats(RunewordRecipe* recipe) {
 			if (line.length() > 0)
 				lines.push_back(line);
 		}
+		// These don't depend on the base, so adding them to every list leaves
+		// them in the set the bases have in common.
+		for (unsigned int i = 0; i < recipe->extraLines.size(); i++)
+			lines.push_back(recipe->extraLines[i]);
 		perBase.push_back(lines);
 	}
 
@@ -460,6 +491,8 @@ void RunewordTab::LoadStats(RunewordRecipe* recipe) {
 			if (line.length() > 0)
 				recipe->stats.push_back(line);
 		}
+		for (unsigned int i = 0; i < recipe->extraLines.size(); i++)
+			recipe->stats.push_back(recipe->extraLines[i]);
 		return;
 	}
 

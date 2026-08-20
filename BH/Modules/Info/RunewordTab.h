@@ -22,6 +22,7 @@ struct RunewordRecipe {
 	std::string searchKey;	// lowercased name/runes/types, used for filtering
 
 	std::vector<RunewordProperty> properties;	// the runeword's own bonuses
+	std::vector<std::string> extraLines;		// bonuses given as ready made text
 	std::vector<std::string> runeCodes;			// "r31", in socket order
 	std::vector<std::string> baseSlots;			// "weapon" / "helm" / "shield"
 	std::vector<std::string> baseLabels;		// readable name per base slot
