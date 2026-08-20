@@ -13,13 +13,6 @@ struct RunewordProperty {
 	int max;
 };
 
-// One block of stat lines in the detail view: the runeword's own properties, or
-// what its runes add in a particular kind of base.
-struct RunewordStatBlock {
-	std::string heading;			// empty for the runeword's own properties
-	std::vector<std::string> lines;
-};
-
 // A single runeword recipe, pre-formatted for display.
 struct RunewordRecipe {
 	std::string name;		// "Enigma"
@@ -34,7 +27,7 @@ struct RunewordRecipe {
 	std::vector<std::string> baseSlots;			// "weapon" / "helm" / "shield"
 	std::vector<std::string> baseLabels;		// readable name per base slot
 
-	std::vector<RunewordStatBlock> stats;		// built on first view
+	std::vector<std::string> stats;				// built on first view
 	bool statsLoaded;
 };
 

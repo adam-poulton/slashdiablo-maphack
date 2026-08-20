@@ -13,9 +13,10 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
   with that search applied. Selecting a row, or pressing enter to take the
   first match, opens a detail view with the full recipe, its socket count, its
   required character level and its stats. The stats include what each rune
-  contributes, which differs by base, so a runeword allowed in more than one
-  kind of base lists a block per base (Spirit in a sword gains the runes'
-  elemental damage, in a shield their resistances). Descriptions are built from
+  contributes, added together where several sources grant the same stat, and
+  only the lines that actually differ between the bases a runeword allows say
+  which base they apply to (Spirit in a sword gains the runes' elemental damage,
+  in a shield their resistances). Descriptions are built from
   the game's own property tables and string files, so they read as they do on
   the item and follow the client's language. Recipes whose working title is
   still in `Runes.txt`

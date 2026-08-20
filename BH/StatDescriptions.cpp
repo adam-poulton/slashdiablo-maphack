@@ -179,6 +179,28 @@ static const int kSkillTabStrings[] = {
 	19, 20, 21		// Assassin: traps, shadow disciplines, martial arts
 };
 
+// A handful of properties are built into the game rather than described by a
+// stat in Properties.txt, so they have to be spelled out. "dmg%" alone is used
+// by half the runewords.
+//
+// Not every property without a stat belongs here. Famine lists "ethereal", but
+// ethereality belongs to the base item rather than the runeword and shows
+// nothing on the finished item, so it is left to describe nothing.
+struct BuiltInProperty {
+	const char* code;
+	const char* stat;		// stand in stat to describe it, if there is one
+	const char* stringKey;	// otherwise the string table key for the label
+	bool percent;
+	bool valueless;
+};
+
+static const BuiltInProperty kBuiltIns[] = {
+	{ "dmg%",       "",                     "strModEnhancedDamage", true,  false },
+	{ "dmg-min",    "mindamage",            "",                     false, false },
+	{ "dmg-max",    "maxdamage",            "",                     false, false },
+	{ "indestruct", "item_indesctructible", "",                     false, true  },
+};
+
 // Elemental damage is stored as separate minimum and maximum stats which the
 // game shows as a single line.
 struct DamagePair {
@@ -193,6 +215,12 @@ static const DamagePair kDamagePairs[] = {
 	{ "magicmindam", "magicmaxdam" },
 	{ "coldmindam", "coldmaxdam" },
 };
+
+// The game's own word for "Level", used when building a charges line.
+std::string GetLevelWord() {
+	std::string word = StatDescriptions::GetString("ModStre10b");
+	return (word.length() > 0) ? word : "Level";
+}
 
 struct StatDescription {
 	int func;
@@ -230,8 +258,12 @@ std::string Describe(const StatDescription& desc, const std::string& value,
 	case 15:	// chance to cast: the chance is the min and the level the max
 		return Collapse(Substitute(text, { low, high, skill }));
 	case 16:	// aura when equipped: level, skill
-	case 24:	// charges: level, skill
 		return Collapse(Substitute(text, { value, skill }));
+	case 24:
+		// Charges read "Level 21 Cyclone Armor (30/30 Charges)": the level is
+		// the max and the number of charges the min.
+		return Collapse(GetLevelWord() + " " + high + " " + skill + " " +
+			Substitute(text, { low, low }));
 	case 27:	// a skill, optionally limited to one class
 	case 28:
 		return Collapse("+" + value + " to " + (skill.length() ? skill : text));
@@ -249,6 +281,56 @@ std::string Describe(const StatDescription& desc, const std::string& value,
 		return Collapse(text + " " + shown);
 	return Collapse(shown + " " + text +
 		(desc.second.length() ? (" " + desc.second) : ""));
+}
+
+
+// The stats a damage property grants, as the single line the game shows.
+static bool CollectDamage(JSONObject* property, const std::string& param,
+		int min, int max, std::vector<StatDescriptions::Stat>& stats) {
+	std::string first = property->getString("stat1");
+	std::string second = property->getString("stat2");
+
+	// Poison damage is held per frame in 256ths and shown as a total spread
+	// over the duration the parameter gives in frames.
+	if (first.compare("poisonmindam") == 0) {
+		StatDescriptions::Stat stat;
+		stat.kind = StatDescriptions::StatKindPoison;
+		stat.param = param;
+		stat.low = min;
+		stat.high = max;
+		stat.id = "poison|" + param;
+		stats.push_back(stat);
+		return true;
+	}
+
+	for (unsigned int i = 0; i < (sizeof(kDamagePairs) / sizeof(kDamagePairs[0])); i++) {
+		if (first.compare(kDamagePairs[i].min) != 0 || second.compare(kDamagePairs[i].max) != 0)
+			continue;
+		StatDescription desc;
+		if (!LookupStat(second, desc))
+			return false;
+
+		StatDescriptions::Stat stat;
+		stat.kind = StatDescriptions::StatKindDamage;
+		stat.low = min;
+		stat.high = max;
+		if (HasPlaceholder(desc.positive)) {
+			stat.text = desc.positive;
+		} else {
+			// "to Maximum Cold Damage" reads as "+3-14 Cold Damage" combined.
+			std::string label = desc.positive;
+			size_t maximum = label.find("Maximum ");
+			if (maximum != std::string::npos)
+				label.erase(maximum, 8);
+			if (label.compare(0, 3, "to ") == 0)
+				label.erase(0, 3);
+			stat.text = label;
+		}
+		stat.id = "damage|" + stat.text;
+		stats.push_back(stat);
+		return true;
+	}
+	return false;
 }
 
 }	// namespace
@@ -308,124 +390,157 @@ std::string GetSkillName(const std::string& idOrName) {
 	return skill->getString("skill");
 }
 
-// Emits the single line the game uses for a damage property, if this is one.
-static bool DescribeDamage(JSONObject* property, const std::string& param,
-		int min, int max, std::vector<std::string>& lines) {
-	std::string first = property->getString("stat1");
-	std::string second = property->getString("stat2");
-
-	// Poison damage is held per frame in 256ths, and shown as a total spread
-	// over the duration the parameter gives in frames.
-	if (first.compare("poisonmindam") == 0) {
-		int frames = ToInt(param, 1);
-		if (frames <= 0)
-			frames = 1;
-		int total = (int)(((double)min * frames / 256.0) + 0.5);
-		int seconds = (int)(((double)frames / 25.0) + 0.5);
-		if (seconds < 1)
-			seconds = 1;
-		char line[128];
-		sprintf_s(line, "+%d poison damage over %d seconds", total, seconds);
-		lines.push_back(line);
-		return true;
-	}
-
-	for (unsigned int i = 0; i < (sizeof(kDamagePairs) / sizeof(kDamagePairs[0])); i++) {
-		if (first.compare(kDamagePairs[i].min) != 0 || second.compare(kDamagePairs[i].max) != 0)
+void CollectProperty(const std::string& code, const std::string& param,
+		int min, int max, std::vector<Stat>& stats) {
+	for (unsigned int i = 0; i < (sizeof(kBuiltIns) / sizeof(kBuiltIns[0])); i++) {
+		if (code.compare(kBuiltIns[i].code) != 0)
 			continue;
-		StatDescription desc;
-		if (!LookupStat(second, desc))
-			return false;
-		std::string range = Range(min, max);
-		if (HasPlaceholder(desc.positive)) {
-			lines.push_back(Collapse(Substitute(desc.positive, { range })));
-			return true;
+		Stat stat;
+		stat.low = min;
+		stat.high = max;
+		stat.percent = kBuiltIns[i].percent;
+		if (kBuiltIns[i].stat[0] != 0) {
+			// Described by a stat that exists, just not on this property.
+			stat.stat = kBuiltIns[i].stat;
+			stat.id = stat.stat + "|" + param;
+			stat.param = param;
+		} else {
+			stat.kind = kBuiltIns[i].valueless ? StatKindText : StatKindDamage;
+			stat.text = GetString(kBuiltIns[i].stringKey);
+			if (stat.text.length() == 0)
+				stat.text = code;	// no string of its own in the tables
+			stat.id = "builtin|" + code;
 		}
-		// "to Maximum Cold Damage" reads as "+3-14 Cold Damage" once combined.
-		std::string label = desc.positive;
-		size_t maximum = label.find("Maximum ");
-		if (maximum != std::string::npos)
-			label.erase(maximum, 8);
-		if (label.compare(0, 3, "to ") == 0)
-			label.erase(0, 3);
-		lines.push_back(Collapse("+" + range + " " + label));
-		return true;
+		stats.push_back(stat);
+		return;
 	}
-	return false;
-}
 
-void DescribeProperty(const std::string& code, const std::string& param,
-		int min, int max, std::vector<std::string>& lines) {
 	JSONObject* property = Tables::Properties.findEntry("code", code);
 	if (!property)
 		return;
 
-	if (DescribeDamage(property, param, min, max, lines))
+	if (CollectDamage(property, param, min, max, stats))
 		return;
-
-	std::string skill = GetSkillName(param);
 
 	for (int n = 1; n <= 7; n++) {
 		std::string index = ToText(n);
-		std::string stat = property->getString("stat" + index);
-		if (stat.length() == 0)
+		std::string name = property->getString("stat" + index);
+		if (name.length() == 0)
 			continue;
 
 		int func = ToInt(property->getString("func" + index));
 		StatDescription desc;
-		if (!LookupStat(stat, desc)) {
+		if (!LookupStat(name, desc)) {
 			// Stats such as the poison and cold durations have no description of
 			// their own; the game folds them into the damage line.
 			continue;
 		}
 
-		std::string value;
-		bool percent = false, plus = false;
-		switch (desc.func) {
-		case 2: case 5: case 7: case 10: case 20: case 22:
-			percent = true;
-			break;
-		case 4: case 8:
-			percent = true;
-			plus = true;
-			break;
-		case 1: case 6: case 12:
-			plus = true;
-			break;
-		default:
-			break;
-		}
+		Stat stat;
+		stat.stat = name;
+		stat.param = param;
+		stat.low = min;
+		stat.high = max;
 
 		if (func == 17 || func == 18) {
-			// Granted per character level, stored in eighths of a point.
-			value = Eighths(ToInt(param));
-		} else if (desc.func == 20 || desc.func == 21) {
-			// Negated once, rather than at each end of the range.
-			value = "-" + Range(min, max);
-		} else {
-			value = Range(min, max);
+			// Granted per character level, with the amount in the parameter.
+			stat.perLevel = true;
+			stat.low = stat.high = ToInt(param);
 		}
 
 		if (func == 10) {
+			// A skill tab's parameter picks which tab string to use.
 			int tab = ToInt(param, -1);
-			if (tab >= 0 && tab < (int)(sizeof(kSkillTabStrings) / sizeof(kSkillTabStrings[0]))) {
-				std::string key = "StrSklTabItem" + ToText(kSkillTabStrings[tab]);
-				std::string text = StatDescriptions::GetString(key);
-				if (text.length() > 0)
-					desc.positive = text;
-			}
+			if (tab >= 0 && tab < (int)(sizeof(kSkillTabStrings) / sizeof(kSkillTabStrings[0])))
+				stat.text = GetString("StrSklTabItem" + ToText(kSkillTabStrings[tab]));
 		}
 
-		std::string line = Describe(desc, value, skill, percent, plus,
-			ToText(min), ToText(max));
-		if (line.length() > 0)
-			lines.push_back(line);
+		stat.id = name + "|" + param;
+		stats.push_back(stat);
 
 		// These describe the whole property in one line; the remaining stats are
 		// parameters to it rather than separate bonuses.
 		if (func == 10 || func == 19 || func == 21 || func == 22)
 			break;
 	}
+}
+
+void MergeStats(std::vector<Stat>& stats) {
+	std::vector<Stat> merged;
+	for (unsigned int i = 0; i < stats.size(); i++) {
+		bool found = false;
+		for (unsigned int j = 0; j < merged.size() && !found; j++) {
+			if (merged[j].id.compare(stats[i].id) != 0)
+				continue;
+			merged[j].low += stats[i].low;
+			merged[j].high += stats[i].high;
+			found = true;
+		}
+		if (!found)
+			merged.push_back(stats[i]);
+	}
+	stats.swap(merged);
+}
+
+std::string Render(const Stat& stat) {
+	if (stat.kind == StatKindPoison) {
+		int frames = ToInt(stat.param, 1);
+		if (frames <= 0)
+			frames = 1;
+		int total = (int)(((double)stat.low * frames / 256.0) + 0.5);
+		int seconds = (int)(((double)frames / 25.0) + 0.5);
+		if (seconds < 1)
+			seconds = 1;
+		char line[128];
+		sprintf_s(line, "+%d poison damage over %d seconds", total, seconds);
+		return line;
+	}
+
+	if (stat.kind == StatKindText)
+		return stat.text;
+
+	std::string range = Range(stat.low, stat.high);
+
+	if (stat.kind == StatKindDamage) {
+		if (HasPlaceholder(stat.text))
+			return Collapse(Substitute(stat.text, { range }));
+		return Collapse("+" + range + (stat.percent ? "% " : " ") + stat.text);
+	}
+
+	StatDescription desc;
+	if (!LookupStat(stat.stat, desc))
+		return "";
+	if (stat.text.length() > 0)
+		desc.positive = stat.text;
+
+	bool percent = false, plus = false;
+	switch (desc.func) {
+	case 2: case 5: case 7: case 10: case 20: case 22:
+		percent = true;
+		break;
+	case 4: case 8:
+		percent = true;
+		plus = true;
+		break;
+	case 1: case 6: case 12:
+		plus = true;
+		break;
+	default:
+		break;
+	}
+
+	std::string value;
+	if (stat.perLevel) {
+		value = Eighths(stat.low);
+	} else if (desc.func == 20 || desc.func == 21) {
+		// Negated once, rather than at each end of the range.
+		value = "-" + range;
+	} else {
+		value = range;
+	}
+
+	return Describe(desc, value, GetSkillName(stat.param), percent, plus,
+		ToText(stat.low), ToText(stat.high));
 }
 
 }	// namespace StatDescriptions

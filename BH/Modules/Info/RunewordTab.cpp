@@ -383,26 +383,32 @@ void RunewordTab::BuildRecipes() {
 	needsRefresh = true;
 }
 
-// Renders a recipe's stats the first time it is looked at: the runeword's own
-// bonuses, then what its runes add for each kind of base it allows.
+// Renders a recipe's stats the first time it is looked at.
+//
+// The finished item's stats are the runeword's own bonuses plus what each rune
+// adds, and the game adds equal stats together rather than listing them twice,
+// so the same is done here before rendering. Runes give different bonuses in a
+// weapon, a helm or body armour, and a shield, so this is worked out once per
+// kind of base the runeword allows: lines that come out the same whatever it is
+// made in are listed plainly, and only the ones that differ say which base they
+// belong to.
 void RunewordTab::LoadStats(RunewordRecipe* recipe) {
 	if (recipe->statsLoaded)
 		return;
 	recipe->statsLoaded = true;
 	StatDescriptions::Initialize();
 
-	RunewordStatBlock own;
+	std::vector<StatDescriptions::Stat> own;
 	for (unsigned int i = 0; i < recipe->properties.size(); i++) {
 		const RunewordProperty& property = recipe->properties[i];
-		StatDescriptions::DescribeProperty(property.code, property.param,
-			property.min, property.max, own.lines);
+		StatDescriptions::CollectProperty(property.code, property.param,
+			property.min, property.max, own);
 	}
-	if (!own.lines.empty())
-		recipe->stats.push_back(own);
 
+	// One rendered list per kind of base, each already added up.
+	std::vector<std::vector<std::string>> perBase;
 	for (unsigned int s = 0; s < recipe->baseSlots.size(); s++) {
-		RunewordStatBlock block;
-		block.heading = "From the runes, in " + recipe->baseLabels[s] + ":";
+		std::vector<StatDescriptions::Stat> stats = own;
 		for (unsigned int r = 0; r < recipe->runeCodes.size(); r++) {
 			JSONObject* gem = Tables::Gems.findEntry("code", recipe->runeCodes[r]);
 			if (!gem)
@@ -412,15 +418,53 @@ void RunewordTab::LoadStats(RunewordRecipe* recipe) {
 				std::string code = Trim(gem->getString(prefix + "Code"));
 				if (code.length() == 0)
 					continue;
-				StatDescriptions::DescribeProperty(code,
+				StatDescriptions::CollectProperty(code,
 					Trim(gem->getString(prefix + "Param")),
 					atoi(gem->getString(prefix + "Min").c_str()),
 					atoi(gem->getString(prefix + "Max").c_str()),
-					block.lines);
+					stats);
 			}
 		}
-		if (!block.lines.empty())
-			recipe->stats.push_back(block);
+		StatDescriptions::MergeStats(stats);
+
+		std::vector<std::string> lines;
+		for (unsigned int i = 0; i < stats.size(); i++) {
+			std::string line = StatDescriptions::Render(stats[i]);
+			if (line.length() > 0)
+				lines.push_back(line);
+		}
+		perBase.push_back(lines);
+	}
+
+	if (perBase.empty()) {
+		StatDescriptions::MergeStats(own);
+		for (unsigned int i = 0; i < own.size(); i++) {
+			std::string line = StatDescriptions::Render(own[i]);
+			if (line.length() > 0)
+				recipe->stats.push_back(line);
+		}
+		return;
+	}
+
+	// Lines every base has in common need no explanation; the rest are tagged
+	// with the base they apply to.
+	for (unsigned int i = 0; i < perBase[0].size(); i++) {
+		bool everywhere = true;
+		for (unsigned int b = 1; b < perBase.size() && everywhere; b++) {
+			everywhere = std::find(perBase[b].begin(), perBase[b].end(),
+				perBase[0][i]) != perBase[b].end();
+		}
+		if (everywhere)
+			recipe->stats.push_back(perBase[0][i]);
+	}
+	for (unsigned int b = 0; b < perBase.size(); b++) {
+		for (unsigned int i = 0; i < perBase[b].size(); i++) {
+			bool common = std::find(recipe->stats.begin(), recipe->stats.end(),
+				perBase[b][i]) != recipe->stats.end();
+			if (common)
+				continue;
+			recipe->stats.push_back(perBase[b][i] + "  (" + recipe->baseLabels[b] + ")");
+		}
 	}
 }
 
@@ -481,23 +525,8 @@ void RunewordTab::ShowDetail(int match) {
 	detailSummary->SetText("%s", summary);
 
 	int line = 0;
-	for (unsigned int b = 0; b < recipe->stats.size() && line < RW_DETAIL_LINES; b++) {
-		const RunewordStatBlock& block = recipe->stats[b];
-		if (block.heading.length() > 0) {
-			// Don't leave a heading stranded at the foot of a column.
-			if (line > 0 && (line % RW_DETAIL_ROWS) == RW_DETAIL_ROWS - 1)
-				line++;
-			if (line >= RW_DETAIL_LINES)
-				break;
-			detailLines[line]->SetColor(Gold);
-			detailLines[line]->SetText("%s", block.heading.c_str());
-			line++;
-		}
-		for (unsigned int i = 0; i < block.lines.size() && line < RW_DETAIL_LINES; i++, line++) {
-			detailLines[line]->SetColor(block.heading.length() > 0 ? Tan : White);
-			detailLines[line]->SetText("%s", block.lines[i].c_str());
-		}
-	}
+	for (; line < (int)recipe->stats.size() && line < RW_DETAIL_LINES; line++)
+		detailLines[line]->SetText("%s", recipe->stats[line].c_str());
 	for (; line < RW_DETAIL_LINES; line++)
 		detailLines[line]->SetText("");
 

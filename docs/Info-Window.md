@@ -63,22 +63,30 @@ The stats are read from the same tables and string files the game itself uses to
 describe an item, so the wording matches what you would see on the finished
 item, in whatever language your client is installed in.
 
+Stats from more than one source are added together, the way the game adds them
+up on the finished item. Infinity gets its crushing blow from two Ber runes and
+shows the total, `40% Chance of Crushing Blow`; Last Wish has it on the runeword
+*and* on a Ber and shows `60-70%`.
+
 **Stats depend on the base.** A runeword grants its own bonuses, and on top of
 those every rune contributes its own, which differ depending on whether it is
-socketed into a weapon, a helm or body armour, or a shield. So the detail view
-lists the runeword's own bonuses first, then one block per kind of base the
-runeword allows. Spirit is the clearest example:
+socketed into a weapon, a helm or body armour, or a shield. Lines that come out
+the same whatever the runeword is made in are listed plainly; only the ones that
+differ are tagged with the base they belong to. So a runeword allowed in one
+kind of base, like Enigma, has no tags at all, while Spirit reads:
 
-| In a sword                        | In a shield                |
-| --------------------------------- | -------------------------- |
-| +75 poison damage over 5 seconds  | Poison Resist +35%         |
-| +3-14 Cold Damage                 | Cold Resist +35%           |
-| +1-50 Lightning Damage            | Lightning Resist +35%      |
-| 7% Life stolen per hit            | Attacker Takes Damage of 14 |
+```
++2 to All Skills
++25-35% Faster Cast Rate
+...
++75 poison damage over 5 seconds  (Sword)
++3-14 Cold Damage                 (Sword)
+Poison Resist +35%                (Any Shield)
+Cold Resist +35%                  (Any Shield)
+```
 
-Both get the same +2 to All Skills, Faster Cast Rate and so on from the runeword
-itself; everything above comes from Tal, Thul, Ort and Amn behaving differently
-in the two bases.
+The tagged lines come from Tal, Thul, Ort and Amn behaving differently in the
+two bases; everything above them is the same either way.
 
 Escape backs out one step at a time: out of the search box, then back to the
 list, then it closes the window.
