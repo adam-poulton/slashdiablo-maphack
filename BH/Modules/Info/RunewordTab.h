@@ -18,7 +18,6 @@ struct RunewordRecipe {
 	std::string name;		// "Enigma"
 	std::string runes;		// "Jah + Ith + Ber"
 	std::string itemTypes;	// "Any Armor"
-	unsigned int sockets;	// number of runes in the word
 	int requiredLevel;		// highest level requirement of its runes, 0 if unknown
 	std::string searchKey;	// lowercased name/runes/types, used for filtering
 
@@ -46,7 +45,9 @@ class RunewordTab : public InfoTab {
 
 		// Detail view, shown in place of the list.
 		Drawing::Texthook* detailTitle;
-		Drawing::Texthook* detailSummary;
+		Drawing::Texthook* detailRunes;
+		Drawing::Texthook* detailLevel;
+		Drawing::Texthook* detailTypes;
 		Drawing::Texthook* detailLines[RW_DETAIL_LINES];
 		Drawing::Texthook* backLink;
 

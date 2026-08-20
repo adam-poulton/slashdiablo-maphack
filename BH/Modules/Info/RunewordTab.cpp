@@ -34,8 +34,10 @@ using namespace Drawing;
 // The detail view replaces the list, so it gets the same area. Stats run long
 // once the runes are included, so they are listed in two columns.
 #define RW_DETAIL_TITLE_Y	RW_LIST_Y
-#define RW_DETAIL_SUM_Y		(RW_LIST_Y + 15)
-#define RW_DETAIL_BODY_Y	(RW_LIST_Y + 36)
+#define RW_DETAIL_RUNES_Y	(RW_LIST_Y + 15)
+#define RW_DETAIL_LEVEL_Y	(RW_LIST_Y + 29)
+#define RW_DETAIL_TYPES_Y	(RW_LIST_Y + 43)
+#define RW_DETAIL_BODY_Y	(RW_LIST_Y + 63)
 #define RW_DETAIL_LINE_H	12
 #define RW_DETAIL_COL_W		316
 #define RW_DETAIL_ROWS		(RW_DETAIL_LINES / 2)
@@ -201,8 +203,12 @@ RunewordTab::RunewordTab(UI* ui) : InfoTab("Runewords", ui),
 
 	detailTitle = new Texthook(tab, RW_SEARCH_X, RW_DETAIL_TITLE_Y, "");
 	detailTitle->SetColor(Gold);
-	detailSummary = new Texthook(tab, RW_SEARCH_X, RW_DETAIL_SUM_Y, "");
-	detailSummary->SetColor(Orange);
+	detailRunes = new Texthook(tab, RW_SEARCH_X, RW_DETAIL_RUNES_Y, "");
+	detailRunes->SetColor(Orange);
+	detailLevel = new Texthook(tab, RW_SEARCH_X, RW_DETAIL_LEVEL_Y, "");
+	detailLevel->SetColor(White);
+	detailTypes = new Texthook(tab, RW_SEARCH_X, RW_DETAIL_TYPES_Y, "");
+	detailTypes->SetColor(White);
 	for (int i = 0; i < RW_DETAIL_LINES; i++) {
 		unsigned int column = (i < RW_DETAIL_ROWS) ? 0 : 1;
 		unsigned int row = i % RW_DETAIL_ROWS;
@@ -232,7 +238,9 @@ void RunewordTab::ApplyViewVisibility() {
 	nextLink->SetActive(!detail);
 
 	detailTitle->SetActive(detail);
-	detailSummary->SetActive(detail);
+	detailRunes->SetActive(detail);
+	detailLevel->SetActive(detail);
+	detailTypes->SetActive(detail);
 	for (int i = 0; i < RW_DETAIL_LINES; i++)
 		detailLines[i]->SetActive(detail);
 	backLink->SetActive(detail);
@@ -296,7 +304,6 @@ void RunewordTab::BuildRecipes() {
 			recipe.name = RunewordName(entry);
 			if (recipe.name.length() == 0)
 				continue;
-			recipe.sockets = runeNames.size();
 			recipe.runes = Join(runeNames, " + ");
 
 			std::vector<std::string> types;
@@ -366,7 +373,6 @@ void RunewordTab::BuildRecipes() {
 			if (runeLevels.count(extra.runes[n]) && runeLevels[extra.runes[n]] > recipe.requiredLevel)
 				recipe.requiredLevel = runeLevels[extra.runes[n]];
 		}
-		recipe.sockets = runeNames.size();
 		recipe.runes = Join(runeNames, " + ");
 		recipe.itemTypes = ItemTypeName(extra.itemType);
 		recipe.baseSlots.push_back(BaseSlot(extra.itemType));
@@ -512,17 +518,13 @@ void RunewordTab::ShowDetail(int match) {
 	shownDetail = match;
 
 	detailTitle->SetText("%s", recipe->name.c_str());
-
-	char summary[256];
+	detailRunes->SetText("%s", recipe->runes.c_str());
 	if (recipe->requiredLevel > 0) {
-		sprintf_s(summary, "%s     %u sockets, level %d     in %s",
-			recipe->runes.c_str(), recipe->sockets, recipe->requiredLevel,
-			recipe->itemTypes.c_str());
+		detailLevel->SetText("Required level: %d", recipe->requiredLevel);
 	} else {
-		sprintf_s(summary, "%s     %u sockets     in %s",
-			recipe->runes.c_str(), recipe->sockets, recipe->itemTypes.c_str());
+		detailLevel->SetText("");
 	}
-	detailSummary->SetText("%s", summary);
+	detailTypes->SetText("%s", recipe->itemTypes.c_str());
 
 	int line = 0;
 	for (; line < (int)recipe->stats.size() && line < RW_DETAIL_LINES; line++)
