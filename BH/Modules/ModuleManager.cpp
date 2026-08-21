@@ -90,14 +90,25 @@ bool ModuleManager::UserInput(wchar_t* module, wchar_t* msg, bool fromGame) {
 		Print("\377c4BH:\377c0 Successfully saved configuration.");
 	}
 
-	// Short aliases for modules with awkward chat commands.
-	if (name.compare("rw") == 0 || name.compare("runewords") == 0)
-		name = "info";
-
-	for (map<string, Module*>::iterator it = moduleList.begin(); it != moduleList.end(); ++it) {
-		if (name.compare((*it).first) == 0) {
-			__raise it->second->UserInput(msg, fromGame, &block);
+	// A module is reached by its own name, or by any of the shorter commands it
+	// claims for itself.
+	Module* target = NULL;
+	map<string, Module*>::iterator named = moduleList.find(name);
+	if (named != moduleList.end()) {
+		target = named->second;
+	} else {
+		for (map<string, Module*>::iterator it = moduleList.begin();
+				it != moduleList.end() && !target; ++it) {
+			if (it->second->OwnsCommand(name))
+				target = it->second;
 		}
+	}
+
+	if (target) {
+		// Which command was typed is part of what the module is being asked, so
+		// leave it where the handler can read it.
+		target->invokedCommand = name;
+		__raise target->UserInput(msg, fromGame, &block);
 	}
 	return block;
 }

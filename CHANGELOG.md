@@ -5,6 +5,16 @@ All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
 in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
 
 # Unreleased
+* Add a `Uniques` tab to the Info window: every unique item `UniqueItems.txt`
+  flags as enabled, listed by name and base item, with a search box that filters
+  by unique name, base item or item type. Pointing at a row describes the item
+  beside the window - its base, its required level and the ranges it rolls -
+  built from the game's own property tables and string files, so it reads as it
+  does on the item. `.uni <search>` and `.uniques <search>` open the tab with
+  that search applied. See [Info Window](docs/Info-Window.md).
+* Info window tabs now own their own chat commands, so `.rw` reaches the
+  Runewords tab and `.uni` the Uniques tab rather than the module aliasing them
+  by hand, and `.info` leaves whichever tab was last in front where it is.
 * Add `Info Window` option (`BH_settings.cfg`, default `True, VK_NUMPAD9`): a
   tabbed in-game reference window, opened with the hotkey or `.info`, closed
   with escape. Its first tab lists the 78 released runeword recipes plus the

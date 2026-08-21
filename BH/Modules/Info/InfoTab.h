@@ -22,6 +22,15 @@ class InfoTab {
 		// Called once the MPQ data tables are available.
 		virtual void MpqLoaded() {};
 
+		// The chat commands that open this tab, lowercased and without their
+		// leading dot. Answering one is what makes the Info window switch to
+		// this tab and hand it whatever was typed after the command.
+		virtual bool HandlesCommand(const std::string& command) { return false; };
+
+		// Filter the tab's contents from outside the window, for the chat
+		// command. An empty search clears the filter.
+		virtual void Search(const std::string& text) {};
+
 		// Called every frame before the window is drawn, whether or not this tab
 		// is the active one, so a tab can load data lazily.
 		virtual void OnDraw() {};
