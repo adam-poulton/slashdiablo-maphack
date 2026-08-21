@@ -2,6 +2,7 @@
 #include <algorithm>
 #include "../../BH.h"
 #include "../../Common.h"
+#include "../../ItemRarity.h"
 #include "../../MPQInit.h"
 #include "../../StatDescriptions.h"
 #include "../../TableReader.h"
@@ -53,9 +54,12 @@ UniqueTab::UniqueTab(UI* ui) : InfoTab("Uniques", ui),
 
 	// Sized by ApplyLayout() below, along with everything else here.
 	list = new Listhook(tab, UQ_MARGIN, 0, 0, 0);
+	// Both columns name the same item, which the game draws in one colour, so
+	// they take the unique colour together and brighten together on hover.
+	TextColor unique = RarityColor(RarityUnique);
 	std::vector<ListColumn> columns;
-	columns.push_back(ListColumn("", 0, UQ_COL_NAME_WEIGHT, 0, Gold, White));
-	columns.push_back(ListColumn("", 0, UQ_COL_BASE_WEIGHT, UQ_COL_GAP, Orange));
+	columns.push_back(ListColumn("", 0, UQ_COL_NAME_WEIGHT, 0, unique, White));
+	columns.push_back(ListColumn("", 0, UQ_COL_BASE_WEIGHT, UQ_COL_GAP, unique, White));
 	list->SetColumns(columns);
 
 	statusText = new Texthook(tab, UQ_MARGIN, 0, "");
@@ -171,9 +175,9 @@ void UniqueTab::BuildUniques() {
 	needsRefresh = true;
 }
 
-// Renders an item's stats the first time it is looked at. The game adds equal
-// stats together rather than listing them twice, so the same is done here before
-// rendering.
+// Renders an item's stats the first time it is looked at. Collecting the
+// properties first and rendering them together is what lets the lines be added
+// up, grouped and ordered the way the item's own description is.
 void UniqueTab::LoadStats(UniqueRecord* unique) {
 	if (unique->statsLoaded)
 		return;
@@ -186,13 +190,7 @@ void UniqueTab::LoadStats(UniqueRecord* unique) {
 		StatDescriptions::CollectProperty(property.code, property.param,
 			property.min, property.max, stats);
 	}
-	StatDescriptions::MergeStats(stats);
-
-	for (unsigned int i = 0; i < stats.size(); i++) {
-		std::string line = StatDescriptions::Render(stats[i]);
-		if (line.length() > 0)
-			unique->stats.push_back(line);
-	}
+	unique->stats = StatDescriptions::BuildLines(stats);
 }
 
 void UniqueTab::ApplyFilter() {
@@ -241,8 +239,9 @@ void UniqueTab::UpdateStatus() {
 // to its own width and sizes itself to what it ends up holding.
 void UniqueTab::BuildSummaryLines(UniqueRecord* unique,
 		std::vector<TooltipLine>& lines) {
-	lines.push_back(TooltipLine(unique->name, Gold));
-	lines.push_back(TooltipLine(unique->baseName, Orange));
+	TextColor color = RarityColor(RarityUnique);
+	lines.push_back(TooltipLine(unique->name, color));
+	lines.push_back(TooltipLine(unique->baseName, color));
 	if (unique->requiredLevel > 0) {
 		char required[64];
 		sprintf_s(required, "Required level: %d", unique->requiredLevel);

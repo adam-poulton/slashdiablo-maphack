@@ -3,21 +3,10 @@
 #include "D2Stubs.h"
 #include "Common.h"
 #include "Constants.h"
-
-int quality_to_color[] = {
-	White, // none
-	White, // inferior
-	White, // normal
-	White, // superior
-	Blue, // magic
-	Green, // set
-	Yellow, // rare
-	Gold, // unique
-	Orange // craft
-};
+#include "ItemRarity.h"
 
 int ItemColorFromQuality(unsigned int quality) {
-	return quality_to_color[quality];
+	return RarityColor(RarityFromQuality(quality));
 }
 
 

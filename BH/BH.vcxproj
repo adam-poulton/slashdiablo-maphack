@@ -166,6 +166,7 @@ if defined D2Path (
     <ClCompile Include="Drawing\Stats\StatsDisplay.cpp" />
     <ClCompile Include="Drawing\UI\UI.cpp" />
     <ClCompile Include="Drawing\UI\UITab.cpp" />
+    <ClCompile Include="ItemRarity.cpp" />
     <ClCompile Include="JSONObject.cpp" />
     <ClCompile Include="Modules\AutoTele\AutoTele.cpp" />
     <ClCompile Include="Modules\Bnet\Bnet.cpp" />
@@ -227,6 +228,7 @@ if defined D2Path (
     <ClInclude Include="Drawing\Stats\StatsDisplay.h" />
     <ClInclude Include="Drawing\UI\UI.h" />
     <ClInclude Include="Drawing\UI\UITab.h" />
+    <ClInclude Include="ItemRarity.h" />
     <ClInclude Include="JSONObject.h" />
     <ClInclude Include="Modules.h" />
     <ClInclude Include="Modules\AutoTele\ATIncludes\ArrayEx.h" />

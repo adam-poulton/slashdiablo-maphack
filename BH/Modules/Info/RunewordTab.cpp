@@ -2,6 +2,7 @@
 #include <algorithm>
 #include "../../BH.h"
 #include "../../Common.h"
+#include "../../ItemRarity.h"
 #include "../../MPQInit.h"
 #include "../../MPQReader.h"
 #include "../../StatDescriptions.h"
@@ -159,9 +160,12 @@ RunewordTab::RunewordTab(UI* ui) : InfoTab("Runewords", ui),
 
 	// Sized by ApplyLayout() below, along with everything else here.
 	list = new Listhook(tab, RW_MARGIN, 0, 0, 0);
+	// The recipe's name is drawn as the item it makes, and the runes in the
+	// colour the game gives a rune.
 	std::vector<ListColumn> columns;
-	columns.push_back(ListColumn("", RW_COL_NAME_W, 0, 0, Gold, White));
-	columns.push_back(ListColumn("", 0, 1, RW_COL_GAP, Orange));
+	columns.push_back(ListColumn("", RW_COL_NAME_W, 0, 0,
+		RarityColor(RarityRuneword), White));
+	columns.push_back(ListColumn("", 0, 1, RW_COL_GAP, RarityColor(RarityRune)));
 	list->SetColumns(columns);
 
 	statusText = new Texthook(tab, RW_MARGIN, 0, "");
@@ -395,14 +399,7 @@ void RunewordTab::LoadStats(RunewordRecipe* recipe) {
 					stats);
 			}
 		}
-		StatDescriptions::MergeStats(stats);
-
-		std::vector<std::string> lines;
-		for (unsigned int i = 0; i < stats.size(); i++) {
-			std::string line = StatDescriptions::Render(stats[i]);
-			if (line.length() > 0)
-				lines.push_back(line);
-		}
+		std::vector<std::string> lines = StatDescriptions::BuildLines(stats);
 		// These don't depend on the base, so adding them to every list leaves
 		// them in the set the bases have in common.
 		for (unsigned int i = 0; i < recipe->extraLines.size(); i++)
@@ -411,12 +408,7 @@ void RunewordTab::LoadStats(RunewordRecipe* recipe) {
 	}
 
 	if (perBase.empty()) {
-		StatDescriptions::MergeStats(own);
-		for (unsigned int i = 0; i < own.size(); i++) {
-			std::string line = StatDescriptions::Render(own[i]);
-			if (line.length() > 0)
-				recipe->stats.push_back(line);
-		}
+		recipe->stats = StatDescriptions::BuildLines(own);
 		for (unsigned int i = 0; i < recipe->extraLines.size(); i++)
 			recipe->stats.push_back(recipe->extraLines[i]);
 		return;
@@ -491,8 +483,8 @@ void RunewordTab::UpdateStatus() {
 // to its own width and sizes itself to what it ends up holding.
 void RunewordTab::BuildSummaryLines(RunewordRecipe* recipe,
 		std::vector<TooltipLine>& lines) {
-	lines.push_back(TooltipLine(recipe->name, Gold));
-	lines.push_back(TooltipLine(recipe->runes, Orange));
+	lines.push_back(TooltipLine(recipe->name, RarityColor(RarityRuneword)));
+	lines.push_back(TooltipLine(recipe->runes, RarityColor(RarityRune)));
 	if (recipe->requiredLevel > 0) {
 		char required[64];
 		sprintf_s(required, "Required level: %d", recipe->requiredLevel);

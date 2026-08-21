@@ -24,6 +24,16 @@ the hotkey. Defaults are on and numpad 9.
 Closing the window clears where you had got to, so it opens on a clean list
 rather than on the last thing you searched for.
 
+## Colours
+
+Item names are drawn in the colour their rarity gives them in the game, so a
+unique reads gold and a rune orange, the same as they would in your inventory.
+Two things the window shows are not item qualities but are still drawn as a
+rarity: a runeword takes the gold of the item it makes, and a rune the orange the
+game gives it. Both are classified as rarities in
+[ItemRarity.h](../BH/ItemRarity.h) rather than coloured by hand wherever they
+appear, so anything added later reads the same way.
+
 ## Runewords tab
 
 Every runeword recipe the game allows, searchable.
@@ -79,6 +89,21 @@ up on the finished item. Infinity gets its crushing blow from two Ber runes and
 shows the total, `40% Chance of Crushing Blow`; Last Wish has it on the runeword
 *and* on a Ber and shows `60-70%`.
 
+**The lines are in the game's own order.** Item tooltips are not ordered by when
+a stat was rolled; every stat carries a `descpriority` in `ItemStatCost.txt` and
+the game shows them highest first. The same number is used here, so Spirit reads
+all skills, then faster cast rate, then faster hit recovery, down to magic
+absorb, exactly as it does on the shield.
+
+**Stats the game shows as one line are shown as one line.** The four resistances
+collapse into `All Resistances +30`, and the four attributes into
+`+15 to all Attributes`, but only when every one of them is granted at the same
+value - which is the condition the game itself applies, so an item with three
+resistances at +20 and the fourth at +30 still lists all four. Which stats group
+this way, and how the combined line reads, come from the `dgrp` columns of
+`ItemStatCost.txt` rather than from a rule written into BH, so a realm that adds
+a group gets it for free.
+
 **Stats depend on the base.** A runeword grants its own bonuses, and on top of
 those every rune contributes its own, which differ depending on whether it is
 socketed into a weapon, a helm or body armour, or a shield. Lines that come out
@@ -112,8 +137,8 @@ applied. Matches are shown in the window only, not repeated into the chat log.
 
 | Column   | Contents                                                          |
 | -------- | ----------------------------------------------------------------- |
-| Runeword | The runeword's name, in gold, turning white as you point at it to show it opens. |
-| Runes    | The runes in socket order. The number of runes is the number of sockets the base needs. |
+| Runeword | The runeword's name, in the gold the game draws the item it makes in, turning white as you point at it. |
+| Runes    | The runes in socket order, in the orange the game draws a rune in. The number of runes is the number of sockets the base needs. |
 
 Which bases a runeword can go in is in its summary rather than the list, but
 searching still matches on it, so `shield` still finds every runeword that can be
@@ -173,8 +198,11 @@ Point at any row and the item is described beside the window: its name, its base
 item, the character level it requires, and its stats. The stats are read from the
 same tables and string files the game itself uses to describe an item, so the
 wording matches what you would see on the item, in whatever language your client
-is installed in. Stats the item grants more than once are added together, the way
-the game adds them up.
+is installed in. Stats the item grants more than once are added together, the
+lines are ordered by the same `descpriority` the game orders them by, and the
+resistances and attributes collapse into their combined lines under the same
+conditions - see [the Runewords tab](#summary-panel) for the detail, since both
+tabs render their stats through the same code.
 
 The values are the ranges the item can roll rather than what a particular copy
 rolled, so an Arkaine's Valor reads `+1-2 to All Skills`.
@@ -189,8 +217,8 @@ applied. Matches are shown in the window only, not repeated into the chat log.
 
 | Column | Contents                                                      |
 | ------ | ------------------------------------------------------------- |
-| Unique | The unique's name, in gold, turning white as you point at it.  |
-| Base   | The item it is built on, in orange.                           |
+| Unique | The unique's name, in unique gold.                             |
+| Base   | The item it is built on, in the same gold, since the game draws the whole of a unique's name in one colour. Both columns brighten together as you point at the row. |
 
 A few uniques share a name across several bases - the Rainbow Facet jewels - so
 they appear once per base, next to each other, and the base column is what tells
