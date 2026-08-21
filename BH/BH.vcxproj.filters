@@ -18,6 +18,7 @@
     <ClCompile Include="Drawing\Advanced\Inputhook\Inputhook.cpp" />
     <ClCompile Include="Drawing\Advanced\Keyhook\Keyhook.cpp" />
     <ClCompile Include="Drawing\Advanced\Listhook\Listhook.cpp" />
+    <ClCompile Include="Drawing\Advanced\Tooltiphook\Tooltiphook.cpp" />
     <ClCompile Include="Drawing\Basic\Boxhook\Boxhook.cpp" />
     <ClCompile Include="Drawing\Basic\Crosshook\Crosshook.cpp" />
     <ClCompile Include="Drawing\Basic\Framehook\Framehook.cpp" />
@@ -76,6 +77,7 @@
     <ClInclude Include="Drawing\Advanced\Inputhook\Inputhook.h" />
     <ClInclude Include="Drawing\Advanced\Keyhook\Keyhook.h" />
     <ClInclude Include="Drawing\Advanced\Listhook\Listhook.h" />
+    <ClInclude Include="Drawing\Advanced\Tooltiphook\Tooltiphook.h" />
     <ClInclude Include="Drawing\Basic\Boxhook\Boxhook.h" />
     <ClInclude Include="Drawing\Basic\Crosshook\Crosshook.h" />
     <ClInclude Include="Drawing\Basic\Framehook\Framehook.h" />

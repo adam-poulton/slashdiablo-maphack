@@ -31,43 +31,47 @@ struct RunewordRecipe {
 	bool statsLoaded;
 };
 
-// Detail view capacity, which is what fits below the back link. The longest
-// recipe needs about 24 lines once wrapped.
-#define RW_DETAIL_LINES		28
-
 class RunewordTab : public InfoTab {
 	private:
-		// List view.
 		Drawing::Inputhook* searchBox;
 		Drawing::Listhook* list;
 		Drawing::Texthook* statusText;
-		Drawing::Texthook* prevLink;
-		Drawing::Texthook* nextLink;
 
-		// Detail view, shown in place of the list: centred text inside a border
-		// that is sized to hold it.
-		Drawing::Framehook* detailFrame;
-		Drawing::Texthook* detailLines[RW_DETAIL_LINES];
-		Drawing::Texthook* backLink;
+		// The summary of whichever recipe is being pointed at, drawn alongside
+		// the window rather than over the list. It is a plain tooltip that knows
+		// nothing about runewords; BuildSummaryLines() is what makes it one.
+		Drawing::Tooltiphook* summary;
 
 		std::vector<RunewordRecipe> recipes;
 		std::vector<const RunewordRecipe*> matches;
 		std::string query;			// active filter, always lowercase
 		std::string lastBoxText;	// last text seen in the search box
 		std::map<std::string, int> runeLevels;	// rune code -> level requirement
-		int shownDetail;			// index into matches, or -1 for the list view
+		int shownSummary;			// row the summary was built for, or -1
 		bool recipesLoaded;
 		bool needsRefresh;
+
+		// Tab size the contents were last fitted to, so a resize is noticed.
+		unsigned int laidOutWidth;
+		unsigned int laidOutHeight;
+
+		// Fits the contents to the tab's current size. Everything that depends
+		// on how big the panel is lives here and nowhere else.
+		void ApplyLayout();
 
 		void LoadRuneLevels();
 		void BuildRecipes();
 		void LoadStats(RunewordRecipe* recipe);
 		void ApplyFilter();
 		void PushRows();
-		void UpdateFooter();
-		void ShowDetail(int match);
-		void ShowList();
-		void ApplyViewVisibility();
+		void UpdateStatus();
+
+		// Turns a recipe into the lines that describe it. The only part of the
+		// summary that knows what a runeword is, so another kind of thing can be
+		// described in the same panel by writing its own version of this.
+		void BuildSummaryLines(RunewordRecipe* recipe,
+			std::vector<Drawing::TooltipLine>& lines);
+		void UpdateSummary();
 
 	public:
 		RunewordTab(Drawing::UI* ui);
@@ -75,14 +79,11 @@ class RunewordTab : public InfoTab {
 		void MpqLoaded();
 		void OnDraw();
 		bool OnKey(bool up, BYTE key);
+		void OnOpen();
 		void OnClose();
 
 		// Filter the list from outside the window, for the chat command.
 		void Search(const std::string& text);
 
 		unsigned int GetRecipeCount() { return recipes.size(); };
-
-		static bool __cdecl OnPrevClick(bool up, Drawing::Hook* hook, void* data);
-		static bool __cdecl OnNextClick(bool up, Drawing::Hook* hook, void* data);
-		static bool __cdecl OnBackClick(bool up, Drawing::Hook* hook, void* data);
 };

@@ -14,6 +14,9 @@ void InfoWindow::OnLoad() {
 	LoadConfig();
 
 	infoUI = new UI("Info", INFO_WINDOW_WIDTH, INFO_WINDOW_HEIGHT);
+	// The tabs measure themselves against the window rather than being laid out
+	// to a fixed size, so it is safe to let the user drag it about.
+	infoUI->SetResizable(true);
 
 	runewordTab = new RunewordTab(infoUI);
 	tabs.push_back(runewordTab);
@@ -70,20 +73,25 @@ void InfoWindow::OnLoop() {
 	if (!Toggles[INFO_TOGGLE_NAME].state)
 		infoUI->SetMinimized(true);
 	infoUI->SetVisible(Toggles[INFO_TOGGLE_NAME].state);
-	CheckClosed();
+	CheckOpenState();
 }
 
-// The window can be closed by the hotkey, by escape, by right clicking its title
-// bar, or by turning the feature off, and the last of those never goes through
-// ShowWindow(). So rather than trying to catch each one, watch for the window
-// having gone away and tell the tabs once.
-void InfoWindow::CheckClosed() {
+// The window can be opened by the hotkey, by a chat command, or by ctrl clicking
+// its collapsed title bar, and closed by the hotkey, by escape, by right clicking
+// the title bar, or by turning the feature off. Several of those never go through
+// ShowWindow() at all. So rather than trying to catch each one, watch for the
+// window having appeared or gone away and tell the tabs once.
+void InfoWindow::CheckOpenState() {
 	bool open = Toggles[INFO_TOGGLE_NAME].state && infoUI->IsVisible() &&
 		!infoUI->IsMinimized();
-	if (wasOpen && !open) {
+	if (open != wasOpen) {
 		Lock();
-		for (unsigned int i = 0; i < tabs.size(); i++)
-			tabs[i]->OnClose();
+		for (unsigned int i = 0; i < tabs.size(); i++) {
+			if (open)
+				tabs[i]->OnOpen();
+			else
+				tabs[i]->OnClose();
+		}
 		Unlock();
 	}
 	wasOpen = open;
@@ -95,7 +103,7 @@ void InfoWindow::OnGameExit() {
 	if (!infoUI)
 		return;
 	infoUI->SetVisible(false);
-	CheckClosed();
+	CheckOpenState();
 }
 
 void InfoWindow::OnDraw() {
@@ -159,6 +167,11 @@ void InfoWindow::OnUserInput(const wchar_t* msg, bool fromGame, bool* block) {
 	if (runewordTab) {
 		runewordTab->Search(text);
 		ShowTab(runewordTab);
+		// Typing the command is itself a keyboard action, so hand the keyboard
+		// to the tab whether or not the window was already open, since an
+		// already open window is not a change of state for CheckOpenState() to
+		// notice.
+		runewordTab->OnOpen();
 	}
 	ShowWindow(true);
 }

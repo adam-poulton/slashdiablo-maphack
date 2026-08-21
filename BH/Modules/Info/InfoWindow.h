@@ -22,7 +22,7 @@ class InfoWindow : public Module {
 		bool wasOpen;			// so closing the window can be noticed
 
 		InfoTab* GetActiveTab();
-		void CheckClosed();
+		void CheckOpenState();
 
 	public:
 		InfoWindow() : Module("Info"),

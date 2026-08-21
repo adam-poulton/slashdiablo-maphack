@@ -4,6 +4,7 @@
 #include "../../BH.h"
 #include "../Basic/Texthook/Texthook.h"
 #include "../Basic/Framehook/Framehook.h"
+#include "../Basic/Boxhook/Boxhook.h"
 
 using namespace Drawing;
 
@@ -17,10 +18,15 @@ UI::UI(std::string name, unsigned int xSize, unsigned int ySize) {
 	this->xSize = this->ySize = 0;
 	active = minimized = dragged = visible = false;
 	dragX = dragY = startX = startY = 0;
-	SetXSize(xSize);
-	SetYSize(ySize);
+	resizable = resizing = false;
+	resizeGrabX = resizeGrabY = 0;
 	SetName(name);
 	string path = BH::path + "UI.ini";
+	// The size passed in is the default, which a window the user has resized
+	// overrides. Like the position, it is taken as given here and brought into
+	// range by EnsureInBounds() once there is a screen size to go by.
+	SetXSize(GetPrivateProfileInt(name.c_str(), "XSize", xSize, path.c_str()));
+	SetYSize(GetPrivateProfileInt(name.c_str(), "YSize", ySize, path.c_str()));
 	int x = GetPrivateProfileInt(name.c_str(), "X", 0, path.c_str());
 	SetX(x);
 	int y = GetPrivateProfileInt(name.c_str(), "Y", 0, path.c_str());
@@ -46,6 +52,8 @@ UI::~UI() {
 	Lock();
 	WritePrivateProfileString(name.c_str(), "X", to_string<unsigned int>(GetX()).c_str(), string(BH::path + "UI.ini").c_str());
 	WritePrivateProfileString(name.c_str(), "Y", to_string<unsigned int>(GetY()).c_str(), string(BH::path + "UI.ini").c_str());
+	WritePrivateProfileString(name.c_str(), "XSize", to_string<unsigned int>(GetXSize()).c_str(), string(BH::path + "UI.ini").c_str());
+	WritePrivateProfileString(name.c_str(), "YSize", to_string<unsigned int>(GetYSize()).c_str(), string(BH::path + "UI.ini").c_str());
 	WritePrivateProfileString(name.c_str(), "Minimized", to_string<bool>(IsMinimized()).c_str(), string(BH::path + "UI.ini").c_str());
 	WritePrivateProfileString(name.c_str(), "minimizedX", to_string<unsigned int>(GetMinimizedX()).c_str(), string(BH::path + "UI.ini").c_str());
 	WritePrivateProfileString(name.c_str(), "minimizedY", to_string<unsigned int>(GetMinimizedY()).c_str(), string(BH::path + "UI.ini").c_str());
@@ -111,6 +119,78 @@ void UI::SetMinimizedY(unsigned int newY) {
 	}
 }
 
+// Never larger than the screen, so a window saved on a big monitor can still be
+// resized back on a small one.
+unsigned int UI::GetMinXSize() {
+	unsigned int screenWidth = Hook::GetScreenWidth();
+	if (screenWidth > 0 && UI_MIN_WIDTH > screenWidth)
+		return screenWidth;
+	return UI_MIN_WIDTH;
+}
+
+unsigned int UI::GetMinYSize() {
+	unsigned int screenHeight = Hook::GetScreenHeight();
+	if (screenHeight > 0 && UI_MIN_HEIGHT > screenHeight)
+		return screenHeight;
+	return UI_MIN_HEIGHT;
+}
+
+void UI::SetResizing(bool state, bool write_file) {
+	Lock();
+	resizing = state;
+	if (!state && write_file) {
+		WritePrivateProfileString(name.c_str(), "XSize", to_string<unsigned int>(GetXSize()).c_str(), string(BH::path + "UI.ini").c_str());
+		WritePrivateProfileString(name.c_str(), "YSize", to_string<unsigned int>(GetYSize()).c_str(), string(BH::path + "UI.ini").c_str());
+	}
+	Unlock();
+}
+
+void UI::SetResizing(bool state) {
+	SetResizing(state, false);
+}
+
+// The corner follows the cursor, keeping hold of it wherever it was grabbed, and
+// stops at the minimum size and at the edges of the screen.
+void UI::DragResizeTo(unsigned int mouseX, unsigned int mouseY) {
+	unsigned int screenWidth = Hook::GetScreenWidth();
+	unsigned int screenHeight = Hook::GetScreenHeight();
+
+	int left = (int)GetX(), top = (int)GetY();
+	int newXSize = (int)mouseX + (int)resizeGrabX - left;
+	int newYSize = (int)mouseY + (int)resizeGrabY - top;
+
+	// Not past the edge of the screen, and never smaller than the minimum, in
+	// that order so the minimum wins on a screen too small to hold it.
+	if (screenWidth > 0 && left + newXSize > (int)screenWidth)
+		newXSize = (int)screenWidth - left;
+	if (screenHeight > 0 && top + newYSize > (int)screenHeight)
+		newYSize = (int)screenHeight - top;
+	if (newXSize < (int)GetMinXSize())
+		newXSize = (int)GetMinXSize();
+	if (newYSize < (int)GetMinYSize())
+		newYSize = (int)GetMinYSize();
+
+	SetXSize((unsigned int)newXSize);
+	SetYSize((unsigned int)newYSize);
+}
+
+// Dots stacked into the corner, the usual sign that a corner can be dragged.
+void UI::DrawResizeGrip() {
+	if (!IsResizable())
+		return;
+
+	unsigned int right = GetX() + GetXSize(), bottom = GetY() + GetYSize();
+	bool lit = resizing ||
+		InResizeGrip((*p_D2CLIENT_MouseX), (*p_D2CLIENT_MouseY));
+
+	for (unsigned int row = 0; row < 3; row++) {
+		for (unsigned int col = 0; col + row < 3; col++) {
+			Boxhook::Draw(right - 4 - (col * 3), bottom - 4 - (row * 3), 2, 2,
+				lit ? 0x20 : 0xD0, BTNormal);
+		}
+	}
+}
+
 void UI::OnDraw() {
 	if (!IsVisible()) return;
 	EnsureInBounds();
@@ -164,11 +244,18 @@ void UI::OnDraw() {
 			SetX(newX);
 			SetY(newY);
 		}
+		// There is no mouse move event to hang a resize off, so the corner
+		// catches up with the cursor here, once per frame.
+		if (IsResizing())
+			DragResizeTo((*p_D2CLIENT_MouseX), (*p_D2CLIENT_MouseY));
+
 		Framehook::Draw(GetX(), GetY(), GetXSize(), GetYSize(), 0, (IsActive()?BTNormal:BTOneHalf));
 		Framehook::Draw(GetX(), GetY(), GetXSize(), TITLE_BAR_HEIGHT, 0, BTNormal);
 		Texthook::Draw(GetX() + 4, GetY () + 3, false, 0, InTitle((*p_D2CLIENT_MouseX), (*p_D2CLIENT_MouseY))?Silver:White, GetName());
 		for (list<UITab*>::iterator it = Tabs.begin(); it != Tabs.end(); it++)
 			(*it)->OnDraw();
+		// Last, so it sits over whatever the tab drew into the corner.
+		DrawResizeGrip();
 	}
 }
 
@@ -192,6 +279,22 @@ void UI::EnsureInBounds() {
 			SetMinimizedY(screenHeight - TITLE_BAR_HEIGHT);
 	}
 	else {
+		// A window resized on a bigger screen, or saved before a resolution
+		// change, is brought back to something that fits before its position is
+		// considered, since the position depends on the size. Only for windows
+		// that can be resized at all: a fixed one is the size its contents were
+		// laid out for and must be left alone.
+		if (IsResizable()) {
+			if (GetXSize() > screenWidth)
+				SetXSize(screenWidth);
+			if (GetYSize() > screenHeight)
+				SetYSize(screenHeight);
+			if (GetXSize() < GetMinXSize())
+				SetXSize(GetMinXSize());
+			if (GetYSize() < GetMinYSize())
+				SetYSize(GetMinYSize());
+		}
+
 		// Only pull a window back if it would hang off the screen, and only if
 		// it fits at all, so that the arithmetic can't wrap round.
 		if (GetXSize() < screenWidth && GetX() + GetXSize() > screenWidth)
@@ -236,6 +339,13 @@ bool UI::OnLeftClick(bool up, unsigned int mouseX, unsigned int mouseY) {
 	// A window that isn't being drawn must not swallow the click.
 	if (!IsVisible())
 		return false;
+
+	// Let go of the grip wherever the button comes up, since a resize usually
+	// ends with the cursor away from the corner it started at.
+	if (up && IsResizing()) {
+		SetResizing(false, true);
+		return true;
+	}
 	if (IsMinimized()) {
 		int yPos = GetMinimizedY();
 		int xSize = Texthook::GetTextSize(GetName(), 0).x + 8;
@@ -268,8 +378,23 @@ bool UI::OnLeftClick(bool up, unsigned int mouseX, unsigned int mouseY) {
 			return true;
 		}
 	}
+	// The grip sits inside the window, so it has to be offered the click before
+	// the window itself takes it and starts a drag or a tab switch.
+	if (InResizeGrip(mouseX, mouseY)) {
+		SetActive(true);
+		Sort(this);
+		if (!up) {
+			SetResizing(true);
+			// Hold the corner wherever it was taken hold of, so the window
+			// doesn't jump to put its corner under the cursor.
+			resizeGrabX = (GetX() + GetXSize()) - mouseX;
+			resizeGrabY = (GetY() + GetYSize()) - mouseY;
+		}
+		return true;
+	}
+
 	if (InTitle(mouseX, mouseY) && !IsMinimized()) {
-		if (!up) 
+		if (!up)
 		{
 			SetDragged(true);
 			dragX = mouseX - GetX();
@@ -303,6 +428,7 @@ bool UI::OnLeftClick(bool up, unsigned int mouseX, unsigned int mouseY) {
 	}
 	SetActive(false);
 	SetDragged(false, false);
+	SetResizing(false);
 	return false;
 }
 

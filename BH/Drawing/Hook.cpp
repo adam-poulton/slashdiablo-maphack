@@ -362,6 +362,19 @@ bool Hook::RightClick(bool up, unsigned int x, unsigned int y) {
 	return block;
 }
 
+/* Hook::MouseWheel(int notches, unsigned int x, unsigned int y)
+ *	Offers the wheel to the hooks, front to back. Unlike a click, only one hook
+ *	acts on it: scrolling two things at once with one gesture is never wanted.
+ */
+bool Hook::MouseWheel(int notches, unsigned int x, unsigned int y) {
+	Hooks.sort(ZSort);
+	for (HookIterator it = Hooks.begin(); it!=Hooks.end(); ++it)
+		if ((*it)->IsActive())
+			if ((*it)->OnMouseWheel(notches, x, y))
+				return true;
+	return false;
+}
+
 /* Hook::KeyClick(bool bUp, BYTE bKey, LPARAM lParam)
  *	Calls the Key Click handlers and blocks click if needed.
  */

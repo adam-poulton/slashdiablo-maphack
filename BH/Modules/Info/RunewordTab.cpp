@@ -9,34 +9,22 @@
 
 using namespace Drawing;
 
-// Layout, relative to the tab's content area.
-#define RW_SEARCH_X			6
+// Layout, relative to the tab's content area. Only the margins and the gaps
+// between the three bands are given here; the widths and the height of the list
+// are measured from the tab by ApplyLayout(), so the window can be resized
+// without any of this being restated.
+#define RW_MARGIN			6	// down either side, and below the status line
 #define RW_SEARCH_Y			3
-#define RW_SEARCH_WIDTH		388
-#define RW_LIST_Y			28
-#define RW_LIST_WIDTH		388
-#define RW_LIST_HEIGHT		343		// 28 rows
-#define RW_FOOTER_Y			(RW_LIST_Y + RW_LIST_HEIGHT + 6)
-#define RW_PREV_X			250
-#define RW_NEXT_X			310
+#define RW_SEARCH_GAP		7	// between the search box and the list
+#define RW_FOOTER_GAP		6	// between the list and the status line
+#define RW_FOOTER_HEIGHT	8	// the status line itself
 
-// Column layout, relative to the list's left edge. The runes column is sized to
-// hold the longest recipe ("Jah + Mal + Jah + Sur + Jah + Ber") without cutting
-// it, since the runes are the point of the list.
-#define RW_COL_NAME_X		0
-#define RW_COL_NAME_W		140
-#define RW_COL_RUNES_X		148
-#define RW_COL_RUNES_W		240
-
-// The detail view replaces the list. Its text is centred inside a border sized
-// to hold it, so it reads like the description on the item itself. The back link
-// sits above it, on the same line the list's first row occupies, which is the top
-// of the list because its columns carry no headers.
-#define RW_BACK_Y			RW_LIST_Y
-#define RW_DETAIL_TOP		(RW_LIST_Y + 14)
-#define RW_DETAIL_PAD		7
-#define RW_DETAIL_LINE_H	12
-#define RW_DETAIL_MAX_W		(RW_LIST_WIDTH - (2 * RW_DETAIL_PAD))
+// Column proportions. The name column is fixed at the width of the longest
+// runeword name, and the runes column takes everything left over, since the
+// runes are the point of the list and the longest recipe
+// ("Jah + Mal + Jah + Sur + Jah + Ber") is what needs the room.
+#define RW_COL_NAME_W		136
+#define RW_COL_GAP			4
 
 // Six recipes shipped under working titles in runes.txt and were renamed before
 // release; the files were never updated, so the readable name in "Rune Name" is
@@ -165,38 +153,6 @@ static std::string ItemTypeName(const std::string& code) {
 	return code;
 }
 
-// Splits text over as many lines as it takes to fit the given width. Measuring
-// uses the game's font routines, so this belongs on the drawing thread.
-static void WrapText(const std::string& text, unsigned int font,
-		unsigned int maxWidth, std::vector<std::string>& lines) {
-	if (text.length() == 0 || (unsigned int)Texthook::GetTextSize(text, font).x <= maxWidth) {
-		lines.push_back(text);
-		return;
-	}
-
-	std::string line;
-	size_t pos = 0;
-	while (pos < text.length()) {
-		size_t space = text.find(' ', pos);
-		std::string word = (space == std::string::npos) ?
-			text.substr(pos) : text.substr(pos, space - pos);
-		pos = (space == std::string::npos) ? text.length() : space + 1;
-		if (word.length() == 0)
-			continue;	// runs of spaces
-
-		std::string candidate = line.length() ? (line + " " + word) : word;
-		if (line.length() > 0 &&
-			(unsigned int)Texthook::GetTextSize(candidate, font).x > maxWidth) {
-			lines.push_back(line);
-			line = word;
-		} else {
-			line = candidate;
-		}
-	}
-	if (line.length() > 0)
-		lines.push_back(line);
-}
-
 // Walks the Equiv chain in ItemTypes.txt up to the root categories to work out
 // which of the three rune bonus sets a base takes.
 static const char* BaseSlot(const std::string& code) {
@@ -219,79 +175,59 @@ static const char* BaseSlot(const std::string& code) {
 	return kSlotWeapon;
 }
 
-// A link the user can act on is gold and lights up under the mouse; one that
-// would do nothing is grey and ignores the mouse entirely.
-static void SetLinkEnabled(Texthook* link, bool enabled) {
-	link->SetColor(enabled ? Gold : Grey);
-	link->SetHoverColor(enabled ? White : Disabled);
-}
-
 RunewordTab::RunewordTab(UI* ui) : InfoTab("Runewords", ui),
-	shownDetail(-1),
+	shownSummary(-1),
 	recipesLoaded(false),
 	needsRefresh(true) {
 
-	searchBox = new Inputhook(tab, RW_SEARCH_X, RW_SEARCH_Y, RW_SEARCH_WIDTH, "");
+	searchBox = new Inputhook(tab, RW_MARGIN, RW_SEARCH_Y, 0, "");
 	searchBox->SetPlaceholder("Search by runeword name, rune or item type");
 	// The box holds a whole search rather than something you edit a word of, so
 	// clicking into it starts a new one.
 	searchBox->SetClearOnFocus(true);
 
-	list = new Listhook(tab, RW_SEARCH_X, RW_LIST_Y, RW_LIST_WIDTH, RW_LIST_HEIGHT);
+	// Sized by ApplyLayout() below, along with everything else here.
+	list = new Listhook(tab, RW_MARGIN, 0, 0, 0);
 	std::vector<ListColumn> columns;
-	columns.push_back(ListColumn("", RW_COL_NAME_X, RW_COL_NAME_W, Gold, White));
-	columns.push_back(ListColumn("", RW_COL_RUNES_X, RW_COL_RUNES_W, Orange));
+	columns.push_back(ListColumn("", RW_COL_NAME_W, 0, 0, Gold, White));
+	columns.push_back(ListColumn("", 0, 1, RW_COL_GAP, Orange));
 	list->SetColumns(columns);
 
-	statusText = new Texthook(tab, RW_SEARCH_X, RW_FOOTER_Y, "");
+	statusText = new Texthook(tab, RW_MARGIN, 0, "");
 	statusText->SetColor(Grey);
 
-	prevLink = new Texthook(tab, RW_PREV_X, RW_FOOTER_Y, "< Prev");
-	prevLink->SetLeftCallback(RunewordTab::OnPrevClick, this);
+	// Not part of the tab: the summary sits beside the window, which a hook
+	// belonging to the tab could not reach. Positioned and switched on by
+	// UpdateSummary() once there is a row to describe.
+	summary = new Tooltiphook(InGame, 0, 0);
+	summary->SetActive(false);
 
-	nextLink = new Texthook(tab, RW_NEXT_X, RW_FOOTER_Y, "Next >");
-	nextLink->SetLeftCallback(RunewordTab::OnNextClick, this);
-
-	// Set properly by UpdateFooter() once there are rows to page through.
-	SetLinkEnabled(prevLink, false);
-	SetLinkEnabled(nextLink, false);
-
-	// Created before the text so the border draws behind it. Both are positioned
-	// and sized when a runeword is opened.
-	detailFrame = new Framehook(tab, RW_SEARCH_X, RW_DETAIL_TOP, RW_LIST_WIDTH, 0);
-	detailFrame->SetTransparency(BTOneHalf);
-	for (int i = 0; i < RW_DETAIL_LINES; i++) {
-		detailLines[i] = new Texthook(tab, RW_SEARCH_X, RW_DETAIL_TOP, "");
-		detailLines[i]->SetColor(White);
-	}
-
-	backLink = new Texthook(tab, RW_SEARCH_X, RW_BACK_Y, "< Back to the list");
-	backLink->SetColor(Gold);
-	backLink->SetHoverColor(White);
-	backLink->SetLeftCallback(RunewordTab::OnBackClick, this);
-
-	ApplyViewVisibility();
+	ApplyLayout();
 }
 
-// Only one of the two views is shown at a time; the hooks belonging to the other
-// are switched off so they neither draw nor take clicks.
-void RunewordTab::ApplyViewVisibility() {
-	bool detail = (shownDetail >= 0);
+// Fits the contents to however big the tab currently is: a search box across the
+// top, the list taking whatever height is left between it and the status line,
+// and the summary reading at the same measure as the list. Nothing here is a
+// fixed size, so the window can be resized and this is all it takes to follow.
+void RunewordTab::ApplyLayout() {
+	laidOutWidth = tab->GetXSize();
+	laidOutHeight = tab->GetYSize();
 
-	bool paged = (list->GetPageCount() > 1);
-	list->SetActive(!detail);
-	statusText->SetActive(!detail);
-	prevLink->SetActive(!detail && paged);
-	nextLink->SetActive(!detail && paged);
+	unsigned int contentWidth = (laidOutWidth > 2 * RW_MARGIN) ?
+		(laidOutWidth - (2 * RW_MARGIN)) : 0;
 
-	detailFrame->SetActive(detail);
-	// The lines themselves are switched on individually by ShowDetail(), so that
-	// only the ones holding text are drawn.
-	if (!detail) {
-		for (int i = 0; i < RW_DETAIL_LINES; i++)
-			detailLines[i]->SetActive(false);
-	}
-	backLink->SetActive(detail);
+	// The search box is as tall as its own font, so the list starts below
+	// wherever it actually ends rather than at a guessed offset.
+	unsigned int listY = RW_SEARCH_Y + searchBox->GetYSize() + RW_SEARCH_GAP;
+	unsigned int footerBand = RW_FOOTER_GAP + RW_FOOTER_HEIGHT + RW_MARGIN;
+	unsigned int listHeight = (laidOutHeight > listY + footerBand) ?
+		(laidOutHeight - listY - footerBand) : 0;
+
+	searchBox->SetXSize(contentWidth);
+	list->SetBaseY(listY);
+	list->SetSize(contentWidth, listHeight);
+	statusText->SetBaseY(listY + listHeight + RW_FOOTER_GAP);
+	summary->SetMaxWidth(contentWidth);
 }
 
 void RunewordTab::MpqLoaded() {
@@ -552,120 +488,77 @@ void RunewordTab::PushRows() {
 		rows.push_back(row);
 	}
 	list->SetRows(rows);	// also clears the selection
-	UpdateFooter();
-
-	// Whether the list pages at all depends on the filter.
-	ApplyViewVisibility();
+	// Row numbers now mean different recipes, so whatever the summary was built
+	// for no longer holds.
+	shownSummary = -1;
+	UpdateStatus();
 }
 
-// The status line and the state of the paging links, which change when the page
-// changes as well as when the rows do.
-void RunewordTab::UpdateFooter() {
-	unsigned int pages = list->GetPageCount(), page = list->GetPage();
-
+// The status line, which follows the scroll position as well as the rows, so it
+// is refreshed every frame rather than only when the filter changes.
+void RunewordTab::UpdateStatus() {
 	if (!recipesLoaded) {
 		statusText->SetText("Waiting for game data to finish loading...");
 	} else if (matches.empty()) {
 		statusText->SetText("No runewords match \"%s\"", query.c_str());
-	} else if (pages > 1) {
-		statusText->SetText("%u - %u of %u   (page %u of %u)",
+	} else if (list->GetMaxScrollTop() > 0) {
+		statusText->SetText("%u - %u of %u runewords",
 			list->GetFirstVisibleRow() + 1,
 			list->GetLastVisibleRow(),
-			(unsigned int)matches.size(),
-			page + 1,
-			pages);
+			(unsigned int)matches.size());
 	} else {
 		statusText->SetText("%u runewords", (unsigned int)matches.size());
 	}
-
-	SetLinkEnabled(prevLink, page > 0);
-	SetLinkEnabled(nextLink, page + 1 < pages);
 }
 
-void RunewordTab::ShowDetail(int match) {
-	if (match < 0 || match >= (int)matches.size())
-		return;
-
-	// The recipe list owns the recipes; matches only points into it.
-	RunewordRecipe* recipe = const_cast<RunewordRecipe*>(matches[match]);
-	LoadStats(recipe);
-	shownDetail = match;
-
-	// Built the way the game describes an item: what it is, then what it needs,
-	// then what it does.
-	unsigned int font = detailLines[0]->GetFont();
-	std::vector<std::string> lines;
-	std::vector<TextColor> colors;
-
-	lines.push_back(recipe->name);
-	colors.push_back(Gold);
-	lines.push_back(recipe->runes);
-	colors.push_back(Orange);
+// Built the way the game describes an item: what it is, then what it needs, then
+// what it does. Nothing here places or measures anything; the panel wraps these
+// to its own width and sizes itself to what it ends up holding.
+void RunewordTab::BuildSummaryLines(RunewordRecipe* recipe,
+		std::vector<TooltipLine>& lines) {
+	lines.push_back(TooltipLine(recipe->name, Gold));
+	lines.push_back(TooltipLine(recipe->runes, Orange));
 	if (recipe->requiredLevel > 0) {
 		char required[64];
 		sprintf_s(required, "Required level: %d", recipe->requiredLevel);
-		lines.push_back(required);
-		colors.push_back(White);
+		lines.push_back(TooltipLine(required, White));
 	}
-	lines.push_back(recipe->itemTypes);
-	colors.push_back(White);
-	lines.push_back("");
-	colors.push_back(White);
+	lines.push_back(TooltipLine(recipe->itemTypes, White));
+	lines.push_back(TooltipLine("", White));
 
-	bool truncated = false;
-	for (unsigned int i = 0; i < recipe->stats.size(); i++) {
-		std::vector<std::string> wrapped;
-		WrapText(recipe->stats[i], font, RW_DETAIL_MAX_W, wrapped);
-		for (unsigned int w = 0; w < wrapped.size(); w++) {
-			if (lines.size() >= RW_DETAIL_LINES) {
-				truncated = true;
-				break;
-			}
-			lines.push_back(wrapped[w]);
-			colors.push_back(White);
-		}
-	}
-	if (truncated) {
-		// Better to admit there is more than to end mid list.
-		lines[lines.size() - 1] = "...";
-		colors[colors.size() - 1] = Grey;
-	}
-
-	// The border is sized to the text it holds and everything is centred inside
-	// it, so the block stays in the middle of the panel however long it runs.
-	unsigned int widest = 0;
-	for (unsigned int i = 0; i < lines.size(); i++) {
-		unsigned int width = (unsigned int)Texthook::GetTextSize(lines[i], font).x;
-		if (width > widest)
-			widest = width;
-	}
-	unsigned int boxWidth = widest + (2 * RW_DETAIL_PAD);
-	unsigned int boxX = RW_SEARCH_X + ((RW_LIST_WIDTH - boxWidth) / 2);
-	detailFrame->SetBaseX(boxX);
-	detailFrame->SetXSize(boxWidth);
-	detailFrame->SetYSize((unsigned int)(lines.size() * RW_DETAIL_LINE_H) + (2 * RW_DETAIL_PAD));
-
-	int line = 0;
-	for (; line < (int)lines.size(); line++) {
-		unsigned int width = (unsigned int)Texthook::GetTextSize(lines[line], font).x;
-		detailLines[line]->SetBaseX(boxX + ((boxWidth - width) / 2));
-		detailLines[line]->SetBaseY(RW_DETAIL_TOP + RW_DETAIL_PAD + (line * RW_DETAIL_LINE_H));
-		detailLines[line]->SetColor(colors[line]);
-		detailLines[line]->SetText("%s", lines[line].c_str());
-		detailLines[line]->SetActive(true);
-	}
-	for (; line < RW_DETAIL_LINES; line++) {
-		detailLines[line]->SetText("");
-		detailLines[line]->SetActive(false);
-	}
-
-	ApplyViewVisibility();
+	for (unsigned int i = 0; i < recipe->stats.size(); i++)
+		lines.push_back(TooltipLine(recipe->stats[i], White));
 }
 
-void RunewordTab::ShowList() {
-	shownDetail = -1;
-	list->ClearSelection();
-	ApplyViewVisibility();
+// The summary describes whichever row is being pointed at, and falls back to the
+// selected one so the arrow keys are worth using. Rebuilt only when the row it is
+// describing changes, since rendering a recipe is not free and the mouse sits on
+// one row for many frames.
+void RunewordTab::UpdateSummary() {
+	int row = list->GetHoveredRow();
+	if (row < 0)
+		row = list->GetSelectedRow();
+
+	if (!IsActive() || row < 0 || row >= (int)matches.size()) {
+		summary->SetActive(false);
+		shownSummary = -1;
+		return;
+	}
+
+	if (row != shownSummary) {
+		// The recipe list owns the recipes; matches only points into it.
+		RunewordRecipe* recipe = const_cast<RunewordRecipe*>(matches[row]);
+		LoadStats(recipe);
+
+		std::vector<TooltipLine> lines;
+		BuildSummaryLines(recipe, lines);
+		summary->SetLines(lines);
+		shownSummary = row;
+	}
+
+	// Where it fits depends on how big it turned out, so this follows SetLines().
+	summary->PlaceBeside(tab->GetX(), tab->GetY(), tab->GetXSize(), tab->GetYSize());
+	summary->SetActive(true);
 }
 
 void RunewordTab::Search(const std::string& text) {
@@ -676,33 +569,45 @@ void RunewordTab::Search(const std::string& text) {
 	searchBox->ResetSelection();
 	searchBox->SetCursorPosition(searchBox->GetText().length());
 	lastBoxText = searchBox->GetText();
-	list->SetPage(0);
+	list->SetScrollTop(0);
 	needsRefresh = true;
-	ShowList();
 }
 
-// Reopening the window shouldn't land on someone else's search, or halfway into
-// a runeword they were reading last time.
+// Opening the window puts the caret straight in the search box, so a runeword can
+// be looked up without reaching for the mouse. The box only empties itself when it
+// is clicked into, so a search that arrived with the window - from the chat
+// command - is left alone and simply ready to edit.
+void RunewordTab::OnOpen() {
+	searchBox->SetCursorPosition(searchBox->GetText().length());
+	searchBox->SetFocused(true);
+}
+
+// Reopening the window shouldn't land on someone else's search, and the summary
+// must not be left on screen after the window that raised it has gone.
 void RunewordTab::OnClose() {
 	searchBox->SetFocused(false);
+	summary->SetActive(false);
+	shownSummary = -1;
 	Search("");
 }
 
 void RunewordTab::OnDraw() {
+	// The window can be resized under us, so keep the contents fitted to it.
+	if (tab->GetXSize() != laidOutWidth || tab->GetYSize() != laidOutHeight)
+		ApplyLayout();
+
 	// MpqLoaded can fire before this tab exists, so build on first draw too.
 	if (!recipesLoaded && Tables::isInitialized()) {
 		StatDescriptions::Initialize();
 		BuildRecipes();
 	}
 
-	// The search box is edited by the user, so poll it for changes. Typing goes
-	// back to the list, since the results have changed under it.
+	// The search box is edited by the user, so poll it for changes.
 	if (searchBox->GetText() != lastBoxText) {
 		lastBoxText = searchBox->GetText();
 		query = ToLower(Trim(lastBoxText));
-		list->SetPage(0);
+		list->SetScrollTop(0);
 		needsRefresh = true;
-		ShowList();
 	}
 
 	if (needsRefresh) {
@@ -711,65 +616,43 @@ void RunewordTab::OnDraw() {
 		needsRefresh = false;
 	}
 
-	// Enter opens the first match rather than typing a newline into the box.
+	// Enter in the search box picks the first match rather than typing a newline,
+	// which is what puts its summary up.
 	if (searchBox->TakeSubmitted() && !matches.empty())
-		ShowDetail(0);
+		list->SetSelectedRow(0);
 
-	int selected = list->GetSelectedRow();
-	if (selected >= 0 && selected != shownDetail)
-		ShowDetail(selected);
+	// Both of these follow the mouse and the scroll position, which move on the
+	// input thread, so they are caught up here rather than where they change.
+	UpdateStatus();
+	UpdateSummary();
 }
 
 bool RunewordTab::OnKey(bool up, BYTE key) {
 	switch (key) {
-		case VK_ESCAPE:
-			// Back out of the detail view first, so escape doesn't jump straight
-			// to closing the window while a runeword is open.
-			if (shownDetail < 0)
-				return false;
-			if (up)
-				ShowList();
-			return true;
+		case VK_UP:
+		case VK_DOWN:
 		case VK_PRIOR:
-			if (shownDetail >= 0)
-				return false;
-			if (!up) {
-				list->ChangePage(-1);
-				UpdateFooter();
-			}
-			return true;
 		case VK_NEXT:
-			if (shownDetail >= 0)
-				return false;
-			if (!up) {
-				list->ChangePage(1);
-				UpdateFooter();
+		case VK_HOME:
+		case VK_END: {
+			if (up)
+				return true;
+
+			// A page is a screenful less one row, so the row the user was
+			// reading stays on screen to anchor where they have got to.
+			int visible = (int)list->GetVisibleRows();
+			int step = (visible > 1) ? (visible - 1) : 1;
+			int count = (int)list->GetRowCount();
+			switch (key) {
+				case VK_UP:		list->MoveSelection(-1); break;
+				case VK_DOWN:	list->MoveSelection(1); break;
+				case VK_PRIOR:	list->MoveSelection(-step); break;
+				case VK_NEXT:	list->MoveSelection(step); break;
+				case VK_HOME:	list->SetSelectedRow(0); break;
+				case VK_END:	list->SetSelectedRow(count - 1); break;
 			}
 			return true;
+		}
 	}
 	return false;
-}
-
-bool __cdecl RunewordTab::OnPrevClick(bool up, Hook* hook, void* data) {
-	if (up) {
-		RunewordTab* self = (RunewordTab*)data;
-		self->list->ChangePage(-1);
-		self->UpdateFooter();
-	}
-	return true;
-}
-
-bool __cdecl RunewordTab::OnNextClick(bool up, Hook* hook, void* data) {
-	if (up) {
-		RunewordTab* self = (RunewordTab*)data;
-		self->list->ChangePage(1);
-		self->UpdateFooter();
-	}
-	return true;
-}
-
-bool __cdecl RunewordTab::OnBackClick(bool up, Hook* hook, void* data) {
-	if (up)
-		((RunewordTab*)data)->ShowList();
-	return true;
 }

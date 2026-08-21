@@ -11,11 +11,6 @@ namespace Drawing {
 	#define INPUT_PADDING_TOP		5
 	#define INPUT_PADDING_BOTTOM	3
 
-	// Thickness of the outline around a focused box, and its palette colour.
-	// White is 0x20, per the colour table in Packaging/BH.cfg.
-	#define INPUT_FOCUS_RING		2
-	#define INPUT_FOCUS_COLOR		0x20
-
 	// How long the caret stays on or off, in milliseconds.
 	#define INPUT_BLINK_MS			500
 

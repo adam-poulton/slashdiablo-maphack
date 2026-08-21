@@ -30,6 +30,11 @@ class InfoTab {
 		// this tab is active. Return true to swallow the key.
 		virtual bool OnKey(bool up, BYTE key) { return false; };
 
+		// Called for every tab when the window opens, however it was opened.
+		// Somewhere to put whatever should be ready the moment it appears, such
+		// as focus on the control the user is most likely to reach for.
+		virtual void OnOpen() {};
+
 		// Called for every tab when the window closes, however it was closed.
 		// Somewhere to drop whatever shouldn't still be there next time it opens,
 		// such as a search someone typed.
