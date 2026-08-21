@@ -190,15 +190,18 @@ struct BuiltInProperty {
 	const char* code;
 	const char* stat;		// stand in stat to describe it, if there is one
 	const char* stringKey;	// otherwise the string table key for the label
+	const char* orderStat;	// stat whose descpriority places the line, if the
+							// property is not described by a stat at all
 	bool percent;
 	bool valueless;
 };
 
 static const BuiltInProperty kBuiltIns[] = {
-	{ "dmg%",       "",                     "strModEnhancedDamage", true,  false },
-	{ "dmg-min",    "mindamage",            "",                     false, false },
-	{ "dmg-max",    "maxdamage",            "",                     false, false },
-	{ "indestruct", "item_indesctructible", "",                     false, true  },
+	{ "dmg%",       "",                     "strModEnhancedDamage",
+		"item_mindamage_percent", true,  false },
+	{ "dmg-min",    "mindamage",            "", "", false, false },
+	{ "dmg-max",    "maxdamage",            "", "", false, false },
+	{ "indestruct", "item_indesctructible", "", "", false, true  },
 };
 
 // Elemental damage is stored as separate minimum and maximum stats which the
@@ -216,6 +219,25 @@ static const DamagePair kDamagePairs[] = {
 	{ "coldmindam", "coldmaxdam" },
 };
 
+// CharStats.txt lists the classes in the order the class skill properties number
+// them, with an "Expansion" divider row partway down that is not a class.
+JSONObject* CharClass(int index) {
+	if (index < 0)
+		return NULL;
+	int seen = 0;
+	for (int i = 0; i < Tables::CharStats.size(); i++) {
+		JSONObject* entry = Tables::CharStats.entryAt(i);
+		if (!entry)
+			continue;
+		std::string name = Trim(entry->getString("class"));
+		if (name.length() == 0 || name.compare("Expansion") == 0)
+			continue;
+		if (seen++ == index)
+			return entry;
+	}
+	return NULL;
+}
+
 // The game's own word for "Level", used when building a charges line.
 std::string GetLevelWord() {
 	std::string word = StatDescriptions::GetString("ModStre10b");
@@ -225,8 +247,11 @@ std::string GetLevelWord() {
 struct StatDescription {
 	int func;
 	int val;
+	int priority;	// descpriority, which is what orders the line
 	std::string positive;
 	std::string second;
+
+	StatDescription() : func(0), val(1), priority(0) {};
 };
 
 bool LookupStat(const std::string& stat, StatDescription& out) {
@@ -238,9 +263,39 @@ bool LookupStat(const std::string& stat, StatDescription& out) {
 		return false;	// an internal stat with no description of its own
 	out.func = ToInt(func);
 	out.val = ToInt(entry->getString("descval"), 1);
+	out.priority = ToInt(entry->getString("descpriority"));
 	out.positive = StatDescriptions::GetString(entry->getString("descstrpos"));
 	out.second = StatDescriptions::GetString(entry->getString("descstr2"));
 	return true;
+}
+
+// Where a line without a stat of its own sits in the order, taken from the stat
+// that stands in for it.
+int LookupPriority(const std::string& stat) {
+	JSONObject* entry = Tables::ItemStatCost.findEntry("Stat", stat);
+	return entry ? ToInt(entry->getString("descpriority")) : 0;
+}
+
+// Which of the description rules put the value in front of the text, and which
+// write it as a percentage. Shared by the stat lines and the grouped lines, so
+// both read the same way.
+void FormatFlags(int func, bool& percent, bool& plus) {
+	percent = false;
+	plus = false;
+	switch (func) {
+	case 2: case 5: case 7: case 10: case 20: case 22:
+		percent = true;
+		break;
+	case 4: case 8:
+		percent = true;
+		plus = true;
+		break;
+	case 1: case 6: case 12: case 13:
+		plus = true;
+		break;
+	default:
+		break;
+	}
 }
 
 // Builds one line from a stat's description rule and a value.
@@ -284,6 +339,54 @@ std::string Describe(const StatDescription& desc, const std::string& value,
 }
 
 
+// One of the game's display groups: the stats that fold into a single line when
+// an item grants all of them at the same value, and how that line is written.
+// ItemStatCost.txt defines these in its dgrp columns, so "All Resistances +30"
+// and "+15 to all Attributes" come from the game's own data rather than from a
+// rule spelled out here.
+struct StatGroup {
+	std::vector<std::string> members;
+	StatDescription desc;
+	int priority;	// the highest priority among its members, which is where the
+					// group takes the place of the stats it replaces
+};
+
+std::map<int, StatGroup> statGroups;
+bool statGroupsLoaded = false;
+
+void LoadStatGroups() {
+	if (statGroupsLoaded)
+		return;
+	// The combined line's wording comes from the string tables, so there is
+	// nothing worth keeping until those are in.
+	if (!initialized || Tables::ItemStatCost.size() == 0)
+		return;
+	statGroupsLoaded = true;
+	for (int i = 0; i < Tables::ItemStatCost.size(); i++) {
+		JSONObject* entry = Tables::ItemStatCost.entryAt(i);
+		if (!entry)
+			continue;
+		std::string group = Trim(entry->getString("dgrp"));
+		std::string stat = Trim(entry->getString("Stat"));
+		if (group.length() == 0 || stat.length() == 0)
+			continue;
+
+		StatGroup& target = statGroups[ToInt(group)];
+		if (target.members.empty()) {
+			target.priority = 0;
+			target.desc.func = ToInt(entry->getString("dgrpfunc"));
+			target.desc.val = ToInt(entry->getString("dgrpval"), 1);
+			target.desc.positive = StatDescriptions::GetString(entry->getString("dgrpstrpos"));
+			target.desc.second = StatDescriptions::GetString(entry->getString("dgrpstr2"));
+		}
+		target.members.push_back(stat);
+
+		int priority = ToInt(entry->getString("descpriority"));
+		if (priority > target.priority)
+			target.priority = priority;
+	}
+}
+
 // The stats a damage property grants, as the single line the game shows.
 static bool CollectDamage(JSONObject* property, const std::string& param,
 		int min, int max, std::vector<StatDescriptions::Stat>& stats) {
@@ -295,6 +398,7 @@ static bool CollectDamage(JSONObject* property, const std::string& param,
 	if (first.compare("poisonmindam") == 0) {
 		StatDescriptions::Stat stat;
 		stat.kind = StatDescriptions::StatKindPoison;
+		stat.priority = LookupPriority(first);
 		stat.param = param;
 		stat.low = min;
 		stat.high = max;
@@ -312,6 +416,7 @@ static bool CollectDamage(JSONObject* property, const std::string& param,
 
 		StatDescriptions::Stat stat;
 		stat.kind = StatDescriptions::StatKindDamage;
+		stat.priority = desc.priority;
 		stat.low = min;
 		stat.high = max;
 		if (HasPlaceholder(desc.positive)) {
@@ -399,6 +504,8 @@ void CollectProperty(const std::string& code, const std::string& param,
 		stat.low = min;
 		stat.high = max;
 		stat.percent = kBuiltIns[i].percent;
+		stat.priority = LookupPriority(kBuiltIns[i].stat[0] != 0 ?
+			kBuiltIns[i].stat : kBuiltIns[i].orderStat);
 		if (kBuiltIns[i].stat[0] != 0) {
 			// Described by a stat that exists, just not on this property.
 			stat.stat = kBuiltIns[i].stat;
@@ -441,6 +548,7 @@ void CollectProperty(const std::string& code, const std::string& param,
 		stat.param = param;
 		stat.low = min;
 		stat.high = max;
+		stat.priority = desc.priority;
 
 		if (func == 17 || func == 18) {
 			// Granted per character level, with the amount in the parameter.
@@ -455,7 +563,20 @@ void CollectProperty(const std::string& code, const std::string& param,
 				stat.text = GetString("StrSklTabItem" + ToText(kSkillTabStrings[tab]));
 		}
 
-		stat.id = name + "|" + param;
+		if (func == 21 && name.compare("item_addclassskills") == 0) {
+			// Which class's skills it raises is in the property's own value
+			// column rather than in the item's parameter, so the line has to be
+			// labelled from there. Without it every class reads as the first one.
+			JSONObject* charClass = CharClass(ToInt(property->getString("val" + index), -1));
+			if (charClass)
+				stat.text = GetString(charClass->getString("StrAllSkills"));
+		}
+
+		// Two properties granting the same stat are only the same bonus if they
+		// resolved to the same label, so an item raising two classes' skills
+		// keeps them apart.
+		stat.id = name + "|" + param +
+			(stat.text.length() > 0 ? ("|" + stat.text) : "");
 		stats.push_back(stat);
 
 		// These describe the whole property in one line; the remaining stats are
@@ -480,6 +601,92 @@ void MergeStats(std::vector<Stat>& stats) {
 			merged.push_back(stats[i]);
 	}
 	stats.swap(merged);
+}
+
+// A stat only folds into a group when it is an ordinary stat granted flat or per
+// level, since the group line has nowhere to say what a parameter meant.
+static bool CanGroup(const Stat& stat) {
+	return stat.kind == StatKindNormal && stat.text.length() == 0 &&
+		stat.param.length() == 0;
+}
+
+// Two stats fold together only if they were granted identically, so an item with
+// +20 to three resistances and +30 to the fourth still lists all four.
+static bool GroupsWith(const Stat& a, const Stat& b) {
+	return a.low == b.low && a.high == b.high && a.perLevel == b.perLevel;
+}
+
+void GroupStats(std::vector<Stat>& stats) {
+	LoadStatGroups();
+
+	for (std::map<int, StatGroup>::iterator group = statGroups.begin();
+			group != statGroups.end(); group++) {
+		const std::vector<std::string>& members = group->second.members;
+		if (members.size() < 2)
+			continue;
+
+		// Every member has to be present, and all of them granted the same way,
+		// or the group does not apply and the stats stay as they are.
+		std::vector<int> found(members.size(), -1);
+		bool complete = true;
+		for (unsigned int m = 0; m < members.size() && complete; m++) {
+			for (unsigned int i = 0; i < stats.size() && found[m] < 0; i++) {
+				if (CanGroup(stats[i]) && stats[i].stat.compare(members[m]) == 0)
+					found[m] = (int)i;
+			}
+			complete = (found[m] >= 0) &&
+				GroupsWith(stats[found[m]], stats[found[0]]);
+		}
+		if (!complete)
+			continue;
+
+		// The combined line takes the place of the first of them, so the group
+		// sits where the stats it replaces would have been.
+		const Stat& first = stats[found[0]];
+		Stat combined;
+		combined.kind = StatKindText;
+		combined.priority = group->second.priority;
+		combined.id = "dgrp|" + ToText(group->first);
+
+		bool percent = false, plus = false;
+		FormatFlags(group->second.desc.func, percent, plus);
+		std::string value = first.perLevel ? Eighths(first.low) :
+			Range(first.low, first.high);
+		combined.text = Describe(group->second.desc, value, "", percent, plus,
+			ToText(first.low), ToText(first.high));
+		if (combined.text.length() == 0)
+			continue;
+
+		// Erased back to front, so the indices ahead of each one stay valid.
+		std::vector<int> remove(found);
+		std::sort(remove.begin(), remove.end());
+		int at = remove.front();
+		for (int i = (int)remove.size() - 1; i >= 0; i--)
+			stats.erase(stats.begin() + remove[i]);
+		stats.insert(stats.begin() + at, combined);
+	}
+}
+
+void SortStats(std::vector<Stat>& stats) {
+	// Stable, so stats the tables give equal priority keep the order they were
+	// collected in rather than being shuffled against each other.
+	std::stable_sort(stats.begin(), stats.end(), [](const Stat& a, const Stat& b) {
+		return a.priority > b.priority;
+	});
+}
+
+std::vector<std::string> BuildLines(std::vector<Stat> stats) {
+	MergeStats(stats);
+	GroupStats(stats);
+	SortStats(stats);
+
+	std::vector<std::string> lines;
+	for (unsigned int i = 0; i < stats.size(); i++) {
+		std::string line = Render(stats[i]);
+		if (line.length() > 0)
+			lines.push_back(line);
+	}
+	return lines;
 }
 
 std::string Render(const Stat& stat) {
@@ -514,20 +721,7 @@ std::string Render(const Stat& stat) {
 		desc.positive = stat.text;
 
 	bool percent = false, plus = false;
-	switch (desc.func) {
-	case 2: case 5: case 7: case 10: case 20: case 22:
-		percent = true;
-		break;
-	case 4: case 8:
-		percent = true;
-		plus = true;
-		break;
-	case 1: case 6: case 12:
-		plus = true;
-		break;
-	default:
-		break;
-	}
+	FormatFlags(desc.func, percent, plus);
 
 	std::string value;
 	if (stat.perLevel) {

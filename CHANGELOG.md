@@ -5,6 +5,27 @@ All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
 in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
 
 # Unreleased
+* Item names are drawn in the colour their rarity gives them in the game. A
+  unique's base item is now the same gold as its name, since the game draws the
+  whole of a unique's name in one colour, and the Uniques list brightens both
+  columns together as you point at a row. A runeword takes the gold of the item
+  it makes and its runes the orange the game gives a rune, which is what they
+  already were, now for a stated reason. The rarities, including the runeword and
+  rune pseudo rarities BH needs, live in [ItemRarity.h](BH/ItemRarity.h), and
+  `ItemColorFromQuality` reads the same table so there is one of them rather
+  than two.
+* Item stat lines are now ordered the way the game orders them, by the
+  `descpriority` each stat carries in `ItemStatCost.txt`, highest first, rather
+  than by the order the properties happened to be collected in.
+* Stats the game shows as a single line now render as one: `All Resistances +30`
+  and `+15 to all Attributes`, and only when every stat in the group is granted
+  at the same value. The groups and their wording are read from the `dgrp`
+  columns of `ItemStatCost.txt`, so this is the game's own rule rather than one
+  written into BH.
+* Fix class skill bonuses naming the wrong class. The class comes from the
+  property's `val` column in `Properties.txt`, which was not read, so every one
+  of them read as the first class in the table: Iros Torch said
+  `+1 to Amazon Skill Levels` where it grants Necromancer skills.
 * Add a `Uniques` tab to the Info window: every unique item `UniqueItems.txt`
   flags as enabled, listed by name and base item, with a search box that filters
   by unique name, base item or item type. Pointing at a row describes the item
