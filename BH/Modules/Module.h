@@ -10,6 +10,7 @@ class Module {
 
 		string name;
 		bool active;
+		string invokedCommand;	// the command the current UserInput arrived as
 
 		void Load();
 		void Unload();
@@ -20,6 +21,12 @@ class Module {
 
 		string GetName() { return name; };
 		bool IsActive() { return active; };
+
+		// Chat commands this module answers to besides its own name. A module
+		// that owns several commands reads which one was typed from
+		// GetInvokedCommand() while handling the input.
+		virtual bool OwnsCommand(const string& command) { return false; };
+		const string& GetInvokedCommand() { return invokedCommand; };
 
 		// Module Events
 		virtual void OnLoad() {};

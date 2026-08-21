@@ -2,8 +2,9 @@ Info Window
 ===========
 
 An in-game reference window. It is a tabbed panel, so lookups that would
-otherwise mean alt-tabbing to a wiki can live in the game. Today it has one tab,
-**Runewords**.
+otherwise mean alt-tabbing to a wiki can live in the game. It has two tabs,
+**Runewords** and **Uniques**. Click a tab to switch to it, or use the chat
+command that belongs to it.
 
 ## Opening it
 
@@ -18,7 +19,7 @@ the hotkey. Defaults are on and numpad 9.
 * Drag the open window by its title bar. The position is remembered in `UI.ini`.
 * Closed, it sits as a title bar with the other BH windows near the bottom of
   the screen. Ctrl-click it to reopen, shift-drag it to move it.
-* `.info` in chat opens it.
+* `.info` in chat opens it on whichever tab was last in front.
 
 Closing the window clears where you had got to, so it opens on a clean list
 rather than on the last thing you searched for.
@@ -53,22 +54,21 @@ While the box has focus it fills in solid, gains a second border and shows a
 blinking cursor; unfocused it is translucent and shows a dimmed hint, so it is
 always clear where your typing is going.
 
-Press **enter** to open the first match in the detail pane. Enter is not typed
-into the box, so the search text is left alone.
+Press **enter** to select the first match, which puts its summary up. Enter is
+not typed into the box, so the search text is left alone.
 
-Long lists are paged: `PgUp` and `PgDn`, or the `< Prev` and `Next >` links at
-the bottom right, which only appear when there is more than one page. Paging
-stops at the first and last page rather than wrapping round, and a link that
-would do nothing is greyed out. The footer shows which entries you are looking
-at, or just how many matched when they all fit on one page.
+Long lists scroll: the mouse wheel, the scrollbar in the list's right hand
+gutter, or `PgUp`/`PgDn`, `Home` and `End` on the keyboard. The footer shows
+which entries you are looking at, or just how many matched when they all fit.
 
-### Detail view
+### Summary panel
 
-Click any row, or press enter to take the first match, and the list is replaced
-by that recipe in full: the runes untruncated, the character level it requires
-(the highest level requirement among its runes), which bases it can go in, and
-its stats. It is laid out like the description on an item — centred text inside a
-border drawn to fit it — and long lines are wrapped rather than cut.
+Point at any row and that recipe is described in full in a panel beside the
+window: the runes untruncated, the character level it requires (the highest level
+requirement among its runes), which bases it can go in, and its stats. It is laid
+out like the description on an item - centred text inside a border drawn to fit
+it - and long lines are wrapped rather than cut. The arrow keys move the
+selection, which the panel follows when the mouse is elsewhere.
 
 The stats are read from the same tables and string files the game itself uses to
 describe an item, so the wording matches what you would see on the finished
@@ -99,8 +99,8 @@ Cold Resist +35%                  (Any Shield)
 The tagged lines come from Tal, Thul, Ort and Amn behaving differently in the
 two bases; everything above them is the same either way.
 
-Escape backs out one step at a time: out of the search box, then back to the
-list, then it closes the window.
+Escape backs out one step at a time: out of the search box, then it closes the
+window.
 
 ### Chat command
 
@@ -115,7 +115,7 @@ applied. Matches are shown in the window only, not repeated into the chat log.
 | Runeword | The runeword's name, in gold, turning white as you point at it to show it opens. |
 | Runes    | The runes in socket order. The number of runes is the number of sockets the base needs. |
 
-Which bases a runeword can go in is in its detail view rather than the list, but
+Which bases a runeword can go in is in its summary rather than the list, but
 searching still matches on it, so `shield` still finds every runeword that can be
 made in one. A name too long for its column is cut off with `..`.
 
@@ -141,3 +141,57 @@ the game files, so both the recipe and its bonuses are listed in the source, in
 still comes from the game's own data, so only the runeword's own bonuses are
 written out. If a future patch ships it in `Runes.txt`, the file's version is
 used instead.
+
+## Uniques tab
+
+Every unique item the game allows, searchable, with what it rolls.
+
+The items are read from your `UniqueItems.txt` in the game MPQ archives when BH
+starts, so the list matches what the realm actually allows. The file carries
+unreleased and placeholder rows alongside the real ones; only the rows it flags
+as enabled are listed.
+
+### Searching
+
+Click the search box and type. The list filters as you type, matching on the
+unique's name, its base item and the base's item type, so all of these work:
+
+| Typing   | Shows                                   |
+| -------- | --------------------------------------- |
+| `shako`  | Harlequin Crest                         |
+| `mara`   | Mara's Kaleidoscope                     |
+| `amulet` | every unique amulet                     |
+| `diadem` | every unique built on a Diadem          |
+
+Everything else works as it does on the Runewords tab: clicking into the box
+empties it, enter selects the first match, and the list scrolls with the wheel,
+the scrollbar, or `PgUp`/`PgDn`, `Home` and `End`.
+
+### Summary panel
+
+Point at any row and the item is described beside the window: its name, its base
+item, the character level it requires, and its stats. The stats are read from the
+same tables and string files the game itself uses to describe an item, so the
+wording matches what you would see on the item, in whatever language your client
+is installed in. Stats the item grants more than once are added together, the way
+the game adds them up.
+
+The values are the ranges the item can roll rather than what a particular copy
+rolled, so an Arkaine's Valor reads `+1-2 to All Skills`.
+
+### Chat command
+
+`.uni <search>` opens the window on the Uniques tab with that search already
+applied. Matches are shown in the window only, not repeated into the chat log.
+`.uniques` is a longer alias.
+
+### Columns
+
+| Column | Contents                                                      |
+| ------ | ------------------------------------------------------------- |
+| Unique | The unique's name, in gold, turning white as you point at it.  |
+| Base   | The item it is built on, in orange.                           |
+
+A few uniques share a name across several bases - the Rainbow Facet jewels - so
+they appear once per base, next to each other, and the base column is what tells
+them apart. A name too long for its column is cut off with `..`.

@@ -179,8 +179,10 @@ if defined D2Path (
     <ClCompile Include="Modules\Module.cpp" />
     <ClCompile Include="Modules\ModuleManager.cpp" />
     <ClCompile Include="Modules\Party\Party.cpp" />
+    <ClCompile Include="Modules\Info\InfoText.cpp" />
     <ClCompile Include="Modules\Info\InfoWindow.cpp" />
     <ClCompile Include="Modules\Info\RunewordTab.cpp" />
+    <ClCompile Include="Modules\Info\UniqueTab.cpp" />
     <ClCompile Include="Modules\ScreenInfo\ScreenInfo.cpp" />
     <ClCompile Include="MPQInit.cpp" />
     <ClCompile Include="MPQReader.cpp" />
@@ -246,9 +248,11 @@ if defined D2Path (
     <ClInclude Include="Modules\Module.h" />
     <ClInclude Include="Modules\ModuleManager.h" />
     <ClInclude Include="Modules\Party\Party.h" />
+    <ClInclude Include="Modules\Info\InfoText.h" />
     <ClInclude Include="Modules\Info\InfoWindow.h" />
     <ClInclude Include="Modules\Info\InfoTab.h" />
     <ClInclude Include="Modules\Info\RunewordTab.h" />
+    <ClInclude Include="Modules\Info\UniqueTab.h" />
     <ClInclude Include="Modules\ScreenInfo\ScreenInfo.h" />
     <ClInclude Include="MPQInit.h" />
     <ClInclude Include="MPQReader.h" />

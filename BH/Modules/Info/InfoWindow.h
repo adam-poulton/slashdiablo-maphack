@@ -7,6 +7,7 @@
 #include "../../Drawing.h"
 #include "InfoTab.h"
 #include "RunewordTab.h"
+#include "UniqueTab.h"
 
 // A general purpose reference window. The module owns the window, its hotkey and
 // tab switching; each panel is an InfoTab and only deals with its own contents.
@@ -16,18 +17,18 @@ class InfoWindow : public Module {
 
 		Drawing::UI* infoUI;
 		std::vector<InfoTab*> tabs;
-		RunewordTab* runewordTab;
 
 		std::map<std::string, Toggle> Toggles;
 		bool wasOpen;			// so closing the window can be noticed
 
 		InfoTab* GetActiveTab();
+		InfoTab* GetCurrentTab();
+		InfoTab* GetTabForCommand(const std::string& command);
 		void CheckOpenState();
 
 	public:
 		InfoWindow() : Module("Info"),
 			infoUI(NULL),
-			runewordTab(NULL),
 			wasOpen(false) {
 			InitializeCriticalSection(&crit);
 		};
@@ -44,6 +45,7 @@ class InfoWindow : public Module {
 		void OnLoad();
 		void LoadConfig();
 		void MpqLoaded();
+		bool OwnsCommand(const std::string& command);
 
 		void OnLoop();
 		void OnGameExit();

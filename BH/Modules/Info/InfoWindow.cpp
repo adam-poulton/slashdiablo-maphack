@@ -18,8 +18,9 @@ void InfoWindow::OnLoad() {
 	// to a fixed size, so it is safe to let the user drag it about.
 	infoUI->SetResizable(true);
 
-	runewordTab = new RunewordTab(infoUI);
-	tabs.push_back(runewordTab);
+	// Tab order is the order they are added in.
+	tabs.push_back(new RunewordTab(infoUI));
+	tabs.push_back(new UniqueTab(infoUI));
 
 	// Whether the window starts collapsed to its title bar is remembered in
 	// UI.ini, so leave that alone here. Visibility is driven by OnLoop() so the
@@ -43,6 +44,33 @@ InfoTab* InfoWindow::GetActiveTab() {
 			return tabs[i];
 	}
 	return NULL;
+}
+
+// The tab that is in front, whether or not the window is on screen, so a command
+// that names no tab in particular can leave it where it is.
+InfoTab* InfoWindow::GetCurrentTab() {
+	if (!infoUI || tabs.empty())
+		return NULL;
+	UITab* current = infoUI->GetActiveTab();
+	for (unsigned int i = 0; i < tabs.size(); i++) {
+		if (tabs[i]->GetTab() == current)
+			return tabs[i];
+	}
+	return tabs[0];
+}
+
+// Each tab owns its own chat commands, so the window only has to ask which of
+// them recognises what was typed.
+InfoTab* InfoWindow::GetTabForCommand(const std::string& command) {
+	for (unsigned int i = 0; i < tabs.size(); i++) {
+		if (tabs[i]->HandlesCommand(command))
+			return tabs[i];
+	}
+	return NULL;
+}
+
+bool InfoWindow::OwnsCommand(const std::string& command) {
+	return GetTabForCommand(command) != NULL;
 }
 
 void InfoWindow::ShowTab(InfoTab* tab) {
@@ -163,15 +191,21 @@ void InfoWindow::OnUserInput(const wchar_t* msg, bool fromGame, bool* block) {
 		return;
 	}
 
+	// Which tab to show is the command that was typed; ".info" names no tab in
+	// particular, so it leaves whichever one was last in front where it is.
+	InfoTab* target = GetTabForCommand(GetInvokedCommand());
+	if (!target)
+		target = GetCurrentTab();
+
 	// Results are shown in the window rather than repeated into the chat log.
-	if (runewordTab) {
-		runewordTab->Search(text);
-		ShowTab(runewordTab);
+	if (target) {
+		target->Search(text);
+		ShowTab(target);
 		// Typing the command is itself a keyboard action, so hand the keyboard
 		// to the tab whether or not the window was already open, since an
 		// already open window is not a change of state for CheckOpenState() to
 		// notice.
-		runewordTab->OnOpen();
+		target->OnOpen();
 	}
 	ShowWindow(true);
 }

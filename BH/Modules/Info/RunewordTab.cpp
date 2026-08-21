@@ -6,8 +6,10 @@
 #include "../../MPQReader.h"
 #include "../../StatDescriptions.h"
 #include "../../TableReader.h"
+#include "InfoText.h"
 
 using namespace Drawing;
+using namespace InfoText;
 
 // Layout, relative to the tab's content area. Only the margins and the gaps
 // between the three bands are given here; the widths and the height of the list
@@ -86,22 +88,6 @@ static const char* kSlotWeapon = "weapon";
 static const char* kSlotHelm = "helm";
 static const char* kSlotShield = "shield";
 
-static std::string ToLower(const std::string& text) {
-	std::string result(text);
-	std::transform(result.begin(), result.end(), result.begin(), ::tolower);
-	return result;
-}
-
-static std::string Join(const std::vector<std::string>& parts, const std::string& separator) {
-	std::string result;
-	for (unsigned int i = 0; i < parts.size(); i++) {
-		if (i > 0)
-			result += separator;
-		result += parts[i];
-	}
-	return result;
-}
-
 // runes.txt stores the string table key in "Name" ("Runeword1") and the readable
 // runeword name in "Rune Name" ("Ancient's Pledge"). Some copies of the file
 // mark the latter as a comment column, so accept either spelling.
@@ -128,29 +114,14 @@ static std::string RunewordName(JSONObject* entry) {
 // Rune item codes ("r14") come from runes.txt; the readable name comes from the
 // item data already parsed out of the MPQ archives.
 static std::string RuneName(const std::string& code) {
-	std::map<std::string, ItemAttributes*>::iterator it = ItemAttributeMap.find(code);
-	if (it != ItemAttributeMap.end() && it->second && it->second->name.length() > 0) {
-		std::string name = it->second->name;
-		// "El Rune" reads better as just "El" in a recipe list.
-		const std::string suffix = " Rune";
-		if (name.length() > suffix.length() &&
-			name.compare(name.length() - suffix.length(), suffix.length(), suffix) == 0) {
-			name.erase(name.length() - suffix.length());
-		}
-		return name;
+	std::string name = ItemName(code);
+	// "El Rune" reads better as just "El" in a recipe list.
+	const std::string suffix = " Rune";
+	if (name.length() > suffix.length() &&
+		name.compare(name.length() - suffix.length(), suffix.length(), suffix) == 0) {
+		name.erase(name.length() - suffix.length());
 	}
-	return code;
-}
-
-// Item type codes ("armo") map to the descriptive name in ItemTypes.txt.
-static std::string ItemTypeName(const std::string& code) {
-	JSONObject* entry = Tables::ItemTypes.findEntry("Code", code);
-	if (entry) {
-		std::string name = Trim(entry->getString("ItemType"));
-		if (name.length() > 0)
-			return name;
-	}
-	return code;
+	return name;
 }
 
 // Walks the Equiv chain in ItemTypes.txt up to the root categories to work out
@@ -233,6 +204,10 @@ void RunewordTab::ApplyLayout() {
 void RunewordTab::MpqLoaded() {
 	StatDescriptions::Initialize();
 	BuildRecipes();
+}
+
+bool RunewordTab::HandlesCommand(const std::string& command) {
+	return command.compare("rw") == 0 || command.compare("runewords") == 0;
 }
 
 // Rune level requirements come from misc.txt, which is already parsed and kept
