@@ -6,14 +6,11 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
 
 # Unreleased
 * Item names are drawn in the colour their rarity gives them in the game. A
-  unique's base item is now the same gold as its name, since the game draws the
-  whole of a unique's name in one colour, and the Uniques list brightens both
-  columns together as you point at a row. A runeword takes the gold of the item
-  it makes and its runes the orange the game gives a rune, which is what they
-  already were, now for a stated reason. The rarities, including the runeword and
-  rune pseudo rarities BH needs, live in [ItemRarity.h](BH/ItemRarity.h), and
-  `ItemColorFromQuality` reads the same table so there is one of them rather
-  than two.
+  unique's base item is now the same gold as its name rather than orange, and the
+  Uniques list brightens both columns together as you point at a row. The
+  rarities, including the runeword and rune pseudo rarities BH needs, live in
+  [ItemRarity.h](BH/ItemRarity.h), and `ItemColorFromQuality` reads the same
+  table so there is one of them rather than two.
 * Item stat lines are now ordered the way the game orders them, by the
   `descpriority` each stat carries in `ItemStatCost.txt`, highest first, rather
   than by the order the properties happened to be collected in.
