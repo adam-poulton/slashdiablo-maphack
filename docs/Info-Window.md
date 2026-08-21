@@ -24,16 +24,6 @@ the hotkey. Defaults are on and numpad 9.
 Closing the window clears where you had got to, so it opens on a clean list
 rather than on the last thing you searched for.
 
-## Colours
-
-Item names are drawn in the colour their rarity gives them in the game, so a
-unique reads gold and a rune orange, the same as they would in your inventory.
-Two things the window shows are not item qualities but are still drawn as a
-rarity: a runeword takes the gold of the item it makes, and a rune the orange the
-game gives it. Both are classified as rarities in
-[ItemRarity.h](../BH/ItemRarity.h) rather than coloured by hand wherever they
-appear, so anything added later reads the same way.
-
 ## Runewords tab
 
 Every runeword recipe the game allows, searchable.
@@ -60,10 +50,6 @@ Clicking into the box empties whatever was in it, so a new search is just click
 and type rather than backspacing over the old one. That also puts the whole list
 back, and leaves a runeword you were reading.
 
-While the box has focus it fills in solid, gains a second border and shows a
-blinking cursor; unfocused it is translucent and shows a dimmed hint, so it is
-always clear where your typing is going.
-
 Press **enter** to select the first match, which puts its summary up. Enter is
 not typed into the box, so the search text is left alone.
 
@@ -75,10 +61,8 @@ which entries you are looking at, or just how many matched when they all fit.
 
 Point at any row and that recipe is described in full in a panel beside the
 window: the runes untruncated, the character level it requires (the highest level
-requirement among its runes), which bases it can go in, and its stats. It is laid
-out like the description on an item - centred text inside a border drawn to fit
-it - and long lines are wrapped rather than cut. The arrow keys move the
-selection, which the panel follows when the mouse is elsewhere.
+requirement among its runes), which bases it can go in, and its stats. The arrow
+keys move the selection, which the panel follows when the mouse is elsewhere.
 
 The stats are read from the same tables and string files the game itself uses to
 describe an item, so the wording matches what you would see on the finished
@@ -137,8 +121,8 @@ applied. Matches are shown in the window only, not repeated into the chat log.
 
 | Column   | Contents                                                          |
 | -------- | ----------------------------------------------------------------- |
-| Runeword | The runeword's name, in the gold the game draws the item it makes in, turning white as you point at it. |
-| Runes    | The runes in socket order, in the orange the game draws a rune in. The number of runes is the number of sockets the base needs. |
+| Runeword | The runeword's name.                                              |
+| Runes    | The runes in socket order. The number of runes is the number of sockets the base needs. |
 
 Which bases a runeword can go in is in its summary rather than the list, but
 searching still matches on it, so `shield` still finds every runeword that can be
@@ -217,8 +201,8 @@ applied. Matches are shown in the window only, not repeated into the chat log.
 
 | Column | Contents                                                      |
 | ------ | ------------------------------------------------------------- |
-| Unique | The unique's name, in unique gold.                             |
-| Base   | The item it is built on, in the same gold, since the game draws the whole of a unique's name in one colour. Both columns brighten together as you point at the row. |
+| Unique | The unique's name.                                            |
+| Base   | The item it is built on.                                      |
 
 A few uniques share a name across several bases - the Rainbow Facet jewels - so
 they appear once per base, next to each other, and the base column is what tells
