@@ -25,24 +25,6 @@ using namespace InfoText;
 #define RW_COL_NAME_W		136
 #define RW_COL_GAP			4
 
-// Six recipes were renamed before release and runes.txt still carries the working
-// title in "Rune Name". Applied only when the file still says the stale name, so a
-// modified runes.txt is left alone. The string table wins over both.
-struct RunewordRename {
-	const char* id;
-	const char* fileName;
-	const char* releasedName;
-};
-
-static const RunewordRename kRenames[] = {
-	{ "Runeword4",  "The Beast",     "Beast" },
-	{ "Runeword14", "Bound by Duty", "Chains of Honor" },
-	{ "Runeword26", "Doomsayer",     "Doom" },
-	{ "Runeword37", "Exile's Path",  "Exile" },
-	{ "Runeword47", "Widowmaker",    "Grief" },
-	{ "Runeword99", "Winter",        "Voice of Reason" },
-};
-
 // Recipes the realm enables without shipping them in runes.txt, as property
 // entries in a runes.txt row's shape so they render and add up like the rest. What
 // a rune contributes still comes from Gems.txt, so only the runeword's own bonuses
@@ -81,25 +63,18 @@ static const char* kSlotHelm = "helm";
 static const char* kSlotShield = "shield";
 
 // The string table key is in "Name" ("Runeword1"), the readable name in
-// "Rune Name". Some copies of the file mark the latter as a comment column.
+// "Rune Name".
 static std::string RunewordName(JSONObject* entry) {
 	std::string id = Trim(entry->getString("Name"));
 	std::string localized = StatDescriptions::GetString(id);
 	if (localized.length() > 0)
 		return localized;
-
+	
 	std::string name;
 	const char* fields[] = { "Rune Name", "*Rune Name" };
 	for (int i = 0; i < 2 && name.length() == 0; i++)
 		name = Trim(entry->getString(fields[i]));
-	if (name.length() == 0)
-		return id;
-
-	for (unsigned int i = 0; i < (sizeof(kRenames) / sizeof(kRenames[0])); i++) {
-		if (id.compare(kRenames[i].id) == 0 && name.compare(kRenames[i].fileName) == 0)
-			return kRenames[i].releasedName;
-	}
-	return name;
+	return (name.length() > 0) ? name : id;
 }
 
 // Rune codes ("r14") come from runes.txt, readable names from the parsed item
@@ -448,6 +423,7 @@ void RunewordTab::UpdateStatus() {
 // to whatever it is handed.
 void RunewordTab::BuildSummaryLines(RunewordRecipe* recipe,
 		std::vector<TooltipLine>& lines) {
+	lines.push_back(TooltipLine(recipe->itemTypes, Grey));
 	lines.push_back(TooltipLine(recipe->name, RarityColor(RarityRuneword)));
 	lines.push_back(TooltipLine(recipe->runes, RarityColor(RarityRune)));
 	if (recipe->requiredLevel > 0) {
@@ -455,7 +431,6 @@ void RunewordTab::BuildSummaryLines(RunewordRecipe* recipe,
 		sprintf_s(required, "Required level: %d", recipe->requiredLevel);
 		lines.push_back(TooltipLine(required, White));
 	}
-	lines.push_back(TooltipLine(recipe->itemTypes, White));
 	lines.push_back(TooltipLine("", White));
 
 	for (unsigned int i = 0; i < recipe->stats.size(); i++)

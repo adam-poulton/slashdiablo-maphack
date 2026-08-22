@@ -27,7 +27,7 @@ rather than on the last thing you searched for.
 Every runeword recipe the game allows, read from your `Runes.txt` and
 `ItemTypes.txt` in the game MPQ archives when BH starts. `Runes.txt` also carries
 dozens of placeholder rows that were never finished; those are skipped, leaving
-the 78 released runewords plus the server-side addition below.
+the 78 released runewords plus the realm's server-side `Plague`.
 
 `.rw <search>` opens the tab with that search already applied; `.runewords` is a
 longer alias. Matches are shown in the window only, not repeated into the chat
@@ -59,7 +59,7 @@ as enabled are listed.
 longer alias.
 
 Searching matches the unique's name, its base item and the base's item type, so
-`amulet` finds every unique amulet and `diadem` only Griffon's Headress.
+`amulet` finds every unique amulet and `diadem` only Griffon's Eye.
 
 ### Summary panel
 
