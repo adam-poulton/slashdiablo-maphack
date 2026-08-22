@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include "../../ItemDescription.h"
 #include "InfoTab.h"
 
 // A property entry as it appears in the game's tables.
@@ -22,6 +23,10 @@ struct UniqueRecord {
 
 	std::vector<UniqueProperty> properties;
 	std::vector<std::string> stats;		// built on first view
+
+	// What its properties do to the numbers its base carries, worked out
+	// alongside the stat lines they are described by.
+	ItemDescription::Modifiers modifiers;
 	bool statsLoaded;
 };
 

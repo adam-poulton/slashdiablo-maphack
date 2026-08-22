@@ -59,6 +59,39 @@ namespace StatDescriptions {
 	void CollectProperty(const std::string& code, const std::string& param,
 			int min, int max, std::vector<Stat>& stats);
 
+	// What a property adds to the stats it writes, with nothing said about how
+	// it reads.
+	struct StatTotal {
+		std::string stat;
+		int low;
+		int high;
+
+		StatTotal() : low(0), high(0) {};
+	};
+
+	// Appends what one property entry adds to each stat it writes.
+	//
+	// This asks a different question of the same table rows than
+	// CollectProperty does, which is why it is a separate walk rather than a
+	// second reading of the stats that one collects. Describing an item throws
+	// away exactly what adding it up needs: stats the tables give no wording to
+	// are dropped, a minimum and a maximum are folded into one line that no
+	// longer names either, and the properties the game hardcodes are answered
+	// from a stand in stat rather than from what they really grant.
+	//
+	// Amounts granted per character level are left out. They are a stat of
+	// their own in every case, so a caller adding up a named stat never meets
+	// one, but leaving them out here means a caller cannot mistake the eighths
+	// they are held in for a flat amount.
+	void CollectTotals(const std::string& code, const std::string& param,
+			int min, int max, std::vector<StatTotal>& totals);
+
+	// The range a stat comes to across a set of totals. Absent stats come back
+	// as zero, which is what a caller wants: an item that does not grant it
+	// changes nothing.
+	void TotalFor(const std::vector<StatTotal>& totals, const std::string& stat,
+			int& low, int& high);
+
 	// Adds equal stats together in place, keeping the order they first appear.
 	void MergeStats(std::vector<Stat>& stats);
 

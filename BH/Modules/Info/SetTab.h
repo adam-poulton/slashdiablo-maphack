@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include "../../ItemDescription.h"
 #include "InfoTab.h"
 
 // A property entry as it appears in the game's tables. itemCount is how many
@@ -32,6 +33,11 @@ struct SetItemRecord {
 
 	std::vector<std::string> ownStats;		// built on first view
 	std::vector<std::string> partialStats;	// each already carrying its count
+
+	// What the piece's own always-on properties do to the numbers its base
+	// carries. Its set's bonuses are not in here: they only apply once enough
+	// of the set is worn, and the piece on its own is what this describes.
+	ItemDescription::Modifiers modifiers;
 	bool statsLoaded;
 
 	SetItemRecord() : setIndex(-1), requiredLevel(0), statsLoaded(false) {};

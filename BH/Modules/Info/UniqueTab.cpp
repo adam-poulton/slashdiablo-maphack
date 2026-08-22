@@ -166,12 +166,16 @@ void UniqueTab::LoadStats(UniqueRecord* unique) {
 	StatDescriptions::Initialize();
 
 	std::vector<StatDescriptions::Stat> stats;
+	std::vector<StatDescriptions::StatTotal> totals;
 	for (unsigned int i = 0; i < unique->properties.size(); i++) {
 		const UniqueProperty& property = unique->properties[i];
 		StatDescriptions::CollectProperty(property.code, property.param,
 			property.min, property.max, stats);
+		StatDescriptions::CollectTotals(property.code, property.param,
+			property.min, property.max, totals);
 	}
 	unique->stats = StatDescriptions::BuildLines(stats);
+	unique->modifiers = ItemDescription::ReadModifiers(totals);
 }
 
 void UniqueTab::ApplyFilter() {
@@ -219,7 +223,7 @@ std::vector<TooltipLine> UniqueTab::BuildSummaryLines(UniqueRecord* unique) {
 
 	ItemDescription::Description item;
 	item.AddTitle(unique->name, color);
-	item.AddBase(unique->code, color);
+	item.AddBase(unique->code, color, unique->modifiers);
 
 	// A unique can ask for a higher level than the base it is made on does.
 	if (unique->requiredLevel > item.requirements.level)

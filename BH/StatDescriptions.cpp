@@ -186,6 +186,11 @@ static const int kSkillTabStrings[] = {
 // Not every property without a stat belongs here. Famine lists "ethereal", but
 // ethereality belongs to the base item rather than the runeword and shows
 // nothing on the finished item, so it is left to describe nothing.
+//
+// grants[] is what the property really writes, which is not always what
+// describes it: "dmg%" reads as one line but grants two stats. Both of a
+// property's readings are kept in the one row so that adding a fifth built in
+// is a single edit and the two passes cannot drift apart.
 struct BuiltInProperty {
 	const char* code;
 	const char* stat;		// stand in stat to describe it, if there is one
@@ -194,14 +199,19 @@ struct BuiltInProperty {
 							// property is not described by a stat at all
 	bool percent;
 	bool valueless;
+	const char* grants[2];	// the stats it really writes
 };
 
 static const BuiltInProperty kBuiltIns[] = {
 	{ "dmg%",       "",                     "strModEnhancedDamage",
-		"item_mindamage_percent", true,  false },
-	{ "dmg-min",    "mindamage",            "", "", false, false },
-	{ "dmg-max",    "maxdamage",            "", "", false, false },
-	{ "indestruct", "item_indesctructible", "", "", false, true  },
+		"item_mindamage_percent", true,  false,
+		{ "item_mindamage_percent", "item_maxdamage_percent" } },
+	{ "dmg-min",    "mindamage",            "", "", false, false,
+		{ "mindamage", 0 } },
+	{ "dmg-max",    "maxdamage",            "", "", false, false,
+		{ "maxdamage", 0 } },
+	{ "indestruct", "item_indesctructible", "", "", false, true,
+		{ "item_indesctructible", 0 } },
 };
 
 // Elemental damage is stored as separate minimum and maximum stats which the
@@ -583,6 +593,63 @@ void CollectProperty(const std::string& code, const std::string& param,
 		// parameters to it rather than separate bonuses.
 		if (func == 10 || func == 19 || func == 21 || func == 22)
 			break;
+	}
+}
+
+// The same rows CollectProperty walks, read for what they grant rather than for
+// how they read: no descfunc gate, since a stat with no wording of its own still
+// counts; no folding of a minimum and a maximum into one line, since the two
+// ends are wanted apart; and no stopping early on the properties whose later
+// stats are arguments to the first, since those are arguments to a description
+// and not to a sum.
+void CollectTotals(const std::string& code, const std::string& param,
+		int min, int max, std::vector<StatTotal>& totals) {
+	for (unsigned int i = 0; i < (sizeof(kBuiltIns) / sizeof(kBuiltIns[0])); i++) {
+		if (code.compare(kBuiltIns[i].code) != 0)
+			continue;
+		for (int n = 0; n < 2 && kBuiltIns[i].grants[n]; n++) {
+			StatTotal total;
+			total.stat = kBuiltIns[i].grants[n];
+			total.low = min;
+			total.high = max;
+			totals.push_back(total);
+		}
+		return;
+	}
+
+	JSONObject* property = Tables::Properties.findEntry("code", code);
+	if (!property)
+		return;
+
+	for (int n = 1; n <= 7; n++) {
+		std::string index = ToText(n);
+		std::string name = property->getString("stat" + index);
+		if (name.length() == 0)
+			continue;
+
+		// Granted per character level, and held in eighths in the parameter
+		// rather than in the range, so it is nothing a sum of flat amounts can
+		// take in.
+		int func = ToInt(property->getString("func" + index));
+		if (func == 17 || func == 18)
+			continue;
+
+		StatTotal total;
+		total.stat = name;
+		total.low = min;
+		total.high = max;
+		totals.push_back(total);
+	}
+}
+
+void TotalFor(const std::vector<StatTotal>& totals, const std::string& stat,
+		int& low, int& high) {
+	low = high = 0;
+	for (unsigned int i = 0; i < totals.size(); i++) {
+		if (totals[i].stat.compare(stat) != 0)
+			continue;
+		low += totals[i].low;
+		high += totals[i].high;
 	}
 }
 

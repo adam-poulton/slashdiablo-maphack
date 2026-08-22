@@ -3,6 +3,7 @@
 #include <vector>
 #include "Constants.h"
 #include "Drawing.h"
+#include "StatDescriptions.h"
 
 /*
  * Builds the panel of text that describes an item, in the order and the wording
@@ -21,16 +22,38 @@
  */
 namespace ItemDescription {
 
+	// A low and a high roll, as the tables give them. A range whose ends are
+	// equal is the one number it is, and one with no high end is nothing at all.
+	//
+	// low and high rather than min and max: windows.h leaves those defined as
+	// macros, and a member named either of them does not compile.
+	struct Range {
+		int low;
+		int high;
+
+		Range() : low(0), high(0) {};
+		Range(int low, int high) : low(low), high(high) {};
+		bool Any() const { return high > 0; };
+	};
+
 	// What a character needs to use an item. Zero where nothing is required.
+	//
+	// Strength and dexterity are ranges because a requirement modifier can roll,
+	// and a rolled one leaves the item asking for a range. The level is not: no
+	// modifier moves it.
 	struct Requirements {
 		int level;
-		int strength;
-		int dexterity;
+		Range strength;
+		Range dexterity;
 
-		Requirements() : level(0), strength(0), dexterity(0) {};
+		Requirements() : level(0) {};
 	};
 
 	// What the tables say about a base item, before anything is made of it.
+	//
+	// The numbers are kept as numbers rather than as the lines they will become,
+	// because what is made of a base moves them: an item's own bonuses are
+	// folded in before the lines are worded.
 	struct Base {
 		std::string code;			// "uap"
 		std::string name;			// "Shako"
@@ -38,10 +61,19 @@ namespace ItemDescription {
 		std::string typeName;		// what that type is called, "Helm"
 		Requirements requirements;
 
-		// The numbers the game prints under an item's name: its defense, its
-		// damage and its durability, worded as the game words them. Empty for
-		// the jewellery and charms that have none of them.
-		std::vector<std::string> attributes;
+		// Whichever of these the base carries; a weapon has damage, armour has
+		// defense, and the jewellery and charms have neither.
+		Range defense;
+		Range oneHandDamage;
+		Range twoHandDamage;
+		Range throwDamage;
+
+		// Zero where the game shows none: a bow, which carries a durability it
+		// never prints, or a throwing weapon, which gives the line over to its
+		// stack instead.
+		int durability;
+
+		Base() : durability(0) {};
 	};
 
 	// The base item a code names, or NULL where the tables do not carry it.
@@ -57,6 +89,37 @@ namespace ItemDescription {
 	// What an item type code is called ("armo" -> "Any Armor"), from
 	// ItemTypes.txt. Falls back to the code.
 	std::string TypeName(const std::string& code);
+
+	// What an item's own always-on properties do to the numbers its base carries.
+	//
+	// Per level bonuses are left out. They need a character level the panel does
+	// not have, so they keep to their own stat line and the numbers read as the
+	// game reads them on an item nobody is wearing.
+	struct Modifiers {
+		Range defensePercent;		// item_armor_percent
+		Range defenseFlat;			// armorclass
+
+		// Enhanced damage reaches every way a weapon can be swung, and so do the
+		// plain minimum and maximum. The secondary and throw stats reach only
+		// the two handed and the thrown line.
+		Range damagePercent;
+		Range damageMinFlat;
+		Range damageMaxFlat;
+		Range twoHandMinFlat;
+		Range twoHandMaxFlat;
+		Range throwMinFlat;
+		Range throwMaxFlat;
+
+		Range requirementPercent;	// item_req_percent, negative to lower
+		bool indestructible;
+
+		Modifiers() : indestructible(false) {};
+	};
+
+	// What a set of collected totals comes to. Stats the item grants that do not
+	// bear on its base numbers are ignored here; they are described in their own
+	// right by the stat lines.
+	Modifiers ReadModifiers(const std::vector<StatDescriptions::StatTotal>& totals);
 
 	// One block of stat lines drawn in a single colour, under an optional
 	// heading. Blocks stay separate because the game keeps them separate: an
@@ -76,7 +139,8 @@ namespace ItemDescription {
 	struct Description {
 		std::vector<Drawing::TooltipLine> titles;
 
-		// The base item's own numbers, as Base::attributes gives them.
+		// The base item's numbers, worded, with the item's own modifiers already
+		// folded in. AddBase fills these.
 		std::vector<std::string> attributes;
 
 		Requirements requirements;
@@ -88,9 +152,15 @@ namespace ItemDescription {
 		// what anything describing a made item wants from its base. Nothing is
 		// added for a code the tables do not carry.
 		//
-		// What is made of a base can ask for more than the base does, so a
-		// caller is free to raise the requirements afterwards.
-		void AddBase(const std::string& code, TextColor nameColor);
+		// The modifiers are the item's own, and are folded into the numbers the
+		// way the game folds them. Each still describes itself in a stat line of
+		// its own, which is also what the game does.
+		//
+		// What is made of a base can ask for a higher level than the base does,
+		// so a caller is free to raise that afterwards. Strength and dexterity
+		// are already answered here, since only a modifier moves them.
+		void AddBase(const std::string& code, TextColor nameColor,
+			const Modifiers& modifiers = Modifiers());
 
 		// A block of stat lines with no heading of its own.
 		void AddStats(const std::vector<std::string>& lines,

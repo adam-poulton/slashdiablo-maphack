@@ -293,6 +293,13 @@ void SetTab::LoadItemStats(SetItemRecord* item) {
 
 	item->ownStats = RenderGroup(item->own);
 	item->partialStats = RenderCounted(item->partial);
+
+	std::vector<StatDescriptions::StatTotal> totals;
+	for (unsigned int i = 0; i < item->own.size(); i++) {
+		StatDescriptions::CollectTotals(item->own[i].code, item->own[i].param,
+			item->own[i].min, item->own[i].max, totals);
+	}
+	item->modifiers = ItemDescription::ReadModifiers(totals);
 }
 
 // Cached on the set, so pointing at each of Immortal King's six pieces in turn
@@ -369,7 +376,7 @@ std::vector<TooltipLine> SetTab::BuildSummaryLines(SetItemRecord* item) {
 
 	ItemDescription::Description piece;
 	piece.AddTitle(item->name, color);
-	piece.AddBase(item->code, color);
+	piece.AddBase(item->code, color, item->modifiers);
 
 	// A piece can ask for a higher level than the base it is made on does.
 	if (item->requiredLevel > piece.requirements.level)
