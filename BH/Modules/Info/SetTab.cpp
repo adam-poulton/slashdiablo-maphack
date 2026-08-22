@@ -377,7 +377,7 @@ void SetTab::BuildSummaryLines(SetItemRecord* item,
 	lines.push_back(TooltipLine("", White));
 
 	for (unsigned int i = 0; i < item->ownStats.size(); i++)
-		lines.push_back(TooltipLine(item->ownStats[i], White));
+		lines.push_back(TooltipLine(item->ownStats[i], Blue));
 	for (unsigned int i = 0; i < item->partialStats.size(); i++)
 		lines.push_back(TooltipLine(item->partialStats[i], color));
 

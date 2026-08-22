@@ -423,8 +423,8 @@ void RunewordTab::UpdateStatus() {
 // to whatever it is handed.
 void RunewordTab::BuildSummaryLines(RunewordRecipe* recipe,
 		std::vector<TooltipLine>& lines) {
-	lines.push_back(TooltipLine(recipe->itemTypes, Grey));
 	lines.push_back(TooltipLine(recipe->name, RarityColor(RarityRuneword)));
+	lines.push_back(TooltipLine(recipe->itemTypes, Grey));
 	lines.push_back(TooltipLine(recipe->runes, RarityColor(RarityRune)));
 	if (recipe->requiredLevel > 0) {
 		char required[64];
@@ -434,7 +434,7 @@ void RunewordTab::BuildSummaryLines(RunewordRecipe* recipe,
 	lines.push_back(TooltipLine("", White));
 
 	for (unsigned int i = 0; i < recipe->stats.size(); i++)
-		lines.push_back(TooltipLine(recipe->stats[i], White));
+		lines.push_back(TooltipLine(recipe->stats[i], Blue));
 }
 
 // Follows the mouse, falling back to the selection. Rebuilt only when the row

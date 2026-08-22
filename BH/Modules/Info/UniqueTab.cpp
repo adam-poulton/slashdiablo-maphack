@@ -227,7 +227,7 @@ void UniqueTab::BuildSummaryLines(UniqueRecord* unique,
 	lines.push_back(TooltipLine("", White));
 
 	for (unsigned int i = 0; i < unique->stats.size(); i++)
-		lines.push_back(TooltipLine(unique->stats[i], White));
+		lines.push_back(TooltipLine(unique->stats[i], Blue));
 }
 
 // Follows the mouse, falling back to the selection. Rebuilt only when the row
