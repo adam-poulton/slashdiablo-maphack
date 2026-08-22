@@ -2,8 +2,8 @@
 #include <algorithm>
 #include "../../BH.h"
 #include "../../Common.h"
+#include "../../ItemDescription.h"
 #include "../../ItemRarity.h"
-#include "../../MPQInit.h"
 #include "../../StatDescriptions.h"
 #include "../../TableReader.h"
 #include "InfoText.h"
@@ -115,18 +115,18 @@ void UniqueTab::BuildUniques() {
 
 			UniqueRecord unique;
 			unique.statsLoaded = false;
+			unique.code = code;
 			unique.name = UniqueName(entry);
 			if (unique.name.length() == 0)
 				continue;
 
-			unique.baseName = ItemName(code);
+			unique.baseName = ItemDescription::BaseName(code);
 			unique.requiredLevel = atoi(entry->getString("lvl req").c_str());
 
 			// What makes a search for "amulet" work; the base's name rarely says.
-			std::map<std::string, ItemAttributes*>::iterator attrs =
-				ItemAttributeMap.find(code);
-			if (attrs != ItemAttributeMap.end() && attrs->second)
-				unique.itemType = ItemTypeName(attrs->second->category);
+			const ItemDescription::Base* base = ItemDescription::FindBase(code);
+			if (base)
+				unique.itemType = base->typeName;
 
 			for (int n = 1; n <= UQ_PROPERTY_COUNT; n++) {
 				std::string index = std::to_string(n);
@@ -212,22 +212,21 @@ void UniqueTab::UpdateStatus() {
 	}
 }
 
-// Ordered the way the game describes an item. The panel wraps and sizes itself
-// to whatever it is handed.
-void UniqueTab::BuildSummaryLines(UniqueRecord* unique,
-		std::vector<TooltipLine>& lines) {
+// ItemDescription orders and spaces the panel the way the game describes an
+// item; the tab only says what goes in it.
+std::vector<TooltipLine> UniqueTab::BuildSummaryLines(UniqueRecord* unique) {
 	TextColor color = RarityColor(RarityUnique);
-	lines.push_back(TooltipLine(unique->name, color));
-	lines.push_back(TooltipLine(unique->baseName, color));
-	if (unique->requiredLevel > 0) {
-		char required[64];
-		sprintf_s(required, "Required level: %d", unique->requiredLevel);
-		lines.push_back(TooltipLine(required, White));
-	}
-	lines.push_back(TooltipLine("", White));
 
-	for (unsigned int i = 0; i < unique->stats.size(); i++)
-		lines.push_back(TooltipLine(unique->stats[i], Blue));
+	ItemDescription::Description item;
+	item.AddTitle(unique->name, color);
+	item.AddBase(unique->code, color);
+
+	// A unique can ask for a higher level than the base it is made on does.
+	if (unique->requiredLevel > item.requirements.level)
+		item.requirements.level = unique->requiredLevel;
+
+	item.AddStats(unique->stats, Blue);
+	return ItemDescription::Build(item);
 }
 
 // Follows the mouse, falling back to the selection. Rebuilt only when the row
@@ -248,9 +247,7 @@ void UniqueTab::UpdateSummary() {
 		UniqueRecord* unique = const_cast<UniqueRecord*>(matches[row]);
 		LoadStats(unique);
 
-		std::vector<TooltipLine> lines;
-		BuildSummaryLines(unique, lines);
-		summary->SetLines(lines);
+		summary->SetLines(BuildSummaryLines(unique));
 		shownSummary = row;
 	}
 

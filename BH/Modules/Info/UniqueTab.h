@@ -14,9 +14,10 @@ struct UniqueProperty {
 // A single unique item, pre-formatted for display.
 struct UniqueRecord {
 	std::string name;			// "Harlequin Crest"
+	std::string code;			// the base item's code, "uap"
 	std::string baseName;		// "Shako"
 	std::string itemType;		// "Cap", from the base's item type
-	int requiredLevel;			// 0 if the item has no requirement
+	int requiredLevel;			// what the unique itself asks for, 0 if nothing
 	std::string searchKey;		// lowercased name/base/type, used for filtering
 
 	std::vector<UniqueProperty> properties;
@@ -57,8 +58,7 @@ class UniqueTab : public InfoTab {
 		void PushRows();
 		void UpdateStatus();
 
-		void BuildSummaryLines(UniqueRecord* unique,
-			std::vector<Drawing::TooltipLine>& lines);
+		std::vector<Drawing::TooltipLine> BuildSummaryLines(UniqueRecord* unique);
 		void UpdateSummary();
 
 	public:

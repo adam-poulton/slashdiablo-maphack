@@ -3,8 +3,8 @@
 #include <map>
 #include "../../BH.h"
 #include "../../Common.h"
+#include "../../ItemDescription.h"
 #include "../../ItemRarity.h"
-#include "../../MPQInit.h"
 #include "../../StatDescriptions.h"
 #include "../../TableReader.h"
 #include "InfoText.h"
@@ -221,12 +221,13 @@ void SetTab::BuildItems() {
 			continue;
 
 		SetItemRecord item;
+		item.code = code;
 		item.name = TableName(Trim(entry->getString("index")));
 		if (item.name.length() == 0)
 			continue;
 
 		item.setName = TableName(Trim(entry->getString("set")));
-		item.baseName = ItemName(code);
+		item.baseName = ItemDescription::BaseName(code);
 		item.requiredLevel = atoi(entry->getString("lvl req").c_str());
 
 		std::map<std::string, int>::iterator found =
@@ -235,10 +236,9 @@ void SetTab::BuildItems() {
 			item.setIndex = found->second;
 
 		// What makes a search for "amulet" work; the base's name rarely says.
-		std::map<std::string, ItemAttributes*>::iterator attrs =
-			ItemAttributeMap.find(code);
-		if (attrs != ItemAttributeMap.end() && attrs->second)
-			item.itemType = ItemTypeName(attrs->second->category);
+		const ItemDescription::Base* base = ItemDescription::FindBase(code);
+		if (base)
+			item.itemType = base->typeName;
 
 		for (int n = 1; n <= ST_OWN_COUNT; n++) {
 			std::string index = std::to_string(n);
@@ -362,46 +362,34 @@ void SetTab::UpdateStatus() {
 	}
 }
 
-// Ordered the way the game describes a set item. The panel wraps and sizes itself
-// to whatever it is handed.
-void SetTab::BuildSummaryLines(SetItemRecord* item,
-		std::vector<TooltipLine>& lines) {
+// ItemDescription orders and spaces the panel the way the game describes an
+// item; the tab only says what goes in it.
+std::vector<TooltipLine> SetTab::BuildSummaryLines(SetItemRecord* item) {
 	TextColor color = RarityColor(RaritySet);
-	lines.push_back(TooltipLine(item->name, color));
-	lines.push_back(TooltipLine(item->baseName, color));
-	if (item->requiredLevel > 0) {
-		char required[64];
-		sprintf_s(required, "Required level: %d", item->requiredLevel);
-		lines.push_back(TooltipLine(required, White));
+
+	ItemDescription::Description piece;
+	piece.AddTitle(item->name, color);
+	piece.AddBase(item->code, color);
+
+	// A piece can ask for a higher level than the base it is made on does.
+	if (item->requiredLevel > piece.requirements.level)
+		piece.requirements.level = item->requiredLevel;
+
+	piece.AddStats(item->ownStats, Blue);
+	piece.AddStats(item->partialStats, color);
+
+	if (item->setIndex >= 0 && item->setIndex < (int)sets.size()) {
+		SetRecord* set = &sets[item->setIndex];
+		LoadSetStats(set);
+
+		// The set's other pieces are not listed: they are already on screen either
+		// side of the row, and a set as deep as Trang-Oul's would take the panel
+		// past the bottom of a 640x480 screen.
+		piece.AddSection(set->name, Gold, std::vector<std::string>(), color, true);
+		piece.AddSection("Partial Set Bonus", Gold, set->partialStats, color);
+		piece.AddSection("Complete Set Bonus", Gold, set->fullStats, color);
 	}
-	lines.push_back(TooltipLine("", White));
-
-	for (unsigned int i = 0; i < item->ownStats.size(); i++)
-		lines.push_back(TooltipLine(item->ownStats[i], Blue));
-	for (unsigned int i = 0; i < item->partialStats.size(); i++)
-		lines.push_back(TooltipLine(item->partialStats[i], color));
-
-	if (item->setIndex < 0 || item->setIndex >= (int)sets.size())
-		return;
-	SetRecord* set = &sets[item->setIndex];
-	LoadSetStats(set);
-
-	// The set's other pieces are not listed: they are already on screen either
-	// side of the row, and a set as deep as Trang-Oul's would take the panel past
-	// the bottom of a 640x480 screen.
-	lines.push_back(TooltipLine("", White));
-	lines.push_back(TooltipLine(set->name, Gold));
-
-	if (!set->partialStats.empty()) {
-		lines.push_back(TooltipLine("Partial Set Bonus", Gold));
-		for (unsigned int i = 0; i < set->partialStats.size(); i++)
-			lines.push_back(TooltipLine(set->partialStats[i], color));
-	}
-	if (!set->fullStats.empty()) {
-		lines.push_back(TooltipLine("Complete Set Bonus", Gold));
-		for (unsigned int i = 0; i < set->fullStats.size(); i++)
-			lines.push_back(TooltipLine(set->fullStats[i], color));
-	}
+	return ItemDescription::Build(piece);
 }
 
 // Follows the mouse, falling back to the selection. Rebuilt only when the row
@@ -425,9 +413,7 @@ void SetTab::UpdateSummary() {
 		SetItemRecord* item = const_cast<SetItemRecord*>(rowItems[row]);
 		LoadItemStats(item);
 
-		std::vector<TooltipLine> lines;
-		BuildSummaryLines(item, lines);
-		summary->SetLines(lines);
+		summary->SetLines(BuildSummaryLines(item));
 		shownSummary = row;
 	}
 

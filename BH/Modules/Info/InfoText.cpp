@@ -1,8 +1,5 @@
 #include "InfoText.h"
 #include <algorithm>
-#include "../../Common.h"
-#include "../../MPQInit.h"
-#include "../../TableReader.h"
 
 namespace InfoText {
 
@@ -20,23 +17,6 @@ std::string Join(const std::vector<std::string>& parts, const std::string& separ
 		result += parts[i];
 	}
 	return result;
-}
-
-std::string ItemTypeName(const std::string& code) {
-	JSONObject* entry = Tables::ItemTypes.findEntry("Code", code);
-	if (entry) {
-		std::string name = Trim(entry->getString("ItemType"));
-		if (name.length() > 0)
-			return name;
-	}
-	return code;
-}
-
-std::string ItemName(const std::string& code) {
-	std::map<std::string, ItemAttributes*>::iterator it = ItemAttributeMap.find(code);
-	if (it != ItemAttributeMap.end() && it->second && it->second->name.length() > 0)
-		return it->second->name;
-	return code;
 }
 
 };

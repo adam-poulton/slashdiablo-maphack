@@ -188,6 +188,7 @@ if defined D2Path (
     <ClCompile Include="Modules\ScreenInfo\ScreenInfo.cpp" />
     <ClCompile Include="MPQInit.cpp" />
     <ClCompile Include="MPQReader.cpp" />
+    <ClCompile Include="ItemDescription.cpp" />
     <ClCompile Include="StatDescriptions.cpp" />
     <ClCompile Include="Mustache.cpp" />
     <ClCompile Include="Patch.cpp" />
@@ -260,6 +261,7 @@ if defined D2Path (
     <ClInclude Include="Modules\ScreenInfo\ScreenInfo.h" />
     <ClInclude Include="MPQInit.h" />
     <ClInclude Include="MPQReader.h" />
+    <ClInclude Include="ItemDescription.h" />
     <ClInclude Include="StatDescriptions.h" />
     <ClInclude Include="Mustache.h" />
     <ClInclude Include="Patch.h" />

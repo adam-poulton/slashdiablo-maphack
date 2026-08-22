@@ -1,7 +1,7 @@
 #pragma once
-#include <map>
 #include <string>
 #include <vector>
+#include "../../ItemDescription.h"
 #include "InfoTab.h"
 
 // A property entry as it appears in the game's tables.
@@ -17,7 +17,9 @@ struct RunewordRecipe {
 	std::string name;		// "Enigma"
 	std::string runes;		// "Jah + Ith + Ber"
 	std::string itemTypes;	// "Any Armor"
-	int requiredLevel;		// highest level requirement of its runes, 0 if unknown
+	// Highest level requirement among its runes. A runeword goes in any of a
+	// range of bases, so it carries no strength or dexterity of its own.
+	ItemDescription::Requirements requirements;
 	std::string searchKey;	// lowercased name/runes/types, used for filtering
 
 	std::vector<RunewordProperty> properties;	// the runeword's own bonuses
@@ -44,7 +46,6 @@ class RunewordTab : public InfoTab {
 		std::vector<const RunewordRecipe*> matches;
 		std::string query;			// active filter, always lowercase
 		std::string lastBoxText;	// last text seen in the search box
-		std::map<std::string, int> runeLevels;	// rune code -> level requirement
 		int shownSummary;			// row the summary was built for, or -1
 		bool recipesLoaded;
 		bool needsRefresh;
@@ -56,15 +57,13 @@ class RunewordTab : public InfoTab {
 		// The only place anything is sized or positioned.
 		void ApplyLayout();
 
-		void LoadRuneLevels();
 		void BuildRecipes();
 		void LoadStats(RunewordRecipe* recipe);
 		void ApplyFilter();
 		void PushRows();
 		void UpdateStatus();
 
-		void BuildSummaryLines(RunewordRecipe* recipe,
-			std::vector<Drawing::TooltipLine>& lines);
+		std::vector<Drawing::TooltipLine> BuildSummaryLines(RunewordRecipe* recipe);
 		void UpdateSummary();
 
 	public:

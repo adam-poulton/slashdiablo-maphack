@@ -19,11 +19,12 @@ struct SetProperty {
 // One piece of a set, pre-formatted for display.
 struct SetItemRecord {
 	std::string name;			// "Tal Rasha's Fine-Spun Cloth"
+	std::string code;			// the base item's code, "lbl"
 	std::string baseName;		// "Mesh Belt"
 	std::string itemType;		// "Belt", from the base's item type
 	std::string setName;		// "Tal Rasha's Wrappings"
 	int setIndex;				// into the set list, or -1 for an orphan
-	int requiredLevel;			// 0 if the item has no requirement
+	int requiredLevel;			// what the piece itself asks for, 0 if nothing
 	std::string searchKey;		// lowercased name/base/type/set, for filtering
 
 	std::vector<SetProperty> own;		// the item's own always-on properties
@@ -94,8 +95,7 @@ class SetTab : public InfoTab {
 		void PushRows();
 		void UpdateStatus();
 
-		void BuildSummaryLines(SetItemRecord* item,
-			std::vector<Drawing::TooltipLine>& lines);
+		std::vector<Drawing::TooltipLine> BuildSummaryLines(SetItemRecord* item);
 		void UpdateSummary();
 
 	public:

@@ -2,9 +2,8 @@
 #include <algorithm>
 #include "../../BH.h"
 #include "../../Common.h"
+#include "../../ItemDescription.h"
 #include "../../ItemRarity.h"
-#include "../../MPQInit.h"
-#include "../../MPQReader.h"
 #include "../../StatDescriptions.h"
 #include "../../TableReader.h"
 #include "InfoText.h"
@@ -77,10 +76,10 @@ static std::string RunewordName(JSONObject* entry) {
 	return (name.length() > 0) ? name : id;
 }
 
-// Rune codes ("r14") come from runes.txt, readable names from the parsed item
-// data.
+// Rune codes ("r14") come from runes.txt; what a rune is called comes from the
+// string table, the same as any other base item.
 static std::string RuneName(const std::string& code) {
-	std::string name = ItemName(code);
+	std::string name = ItemDescription::BaseName(code);
 	// "El Rune" reads better as just "El" in a recipe list.
 	const std::string suffix = " Rune";
 	if (name.length() > suffix.length() &&
@@ -168,23 +167,16 @@ bool RunewordTab::HandlesCommand(const std::string& command) {
 	return command.compare("rw") == 0 || command.compare("runewords") == 0;
 }
 
-// From misc.txt: ItemAttributes keeps only the item's quality level, which is a
-// different number.
-void RunewordTab::LoadRuneLevels() {
-	if (!runeLevels.empty())
-		return;
-	std::map<std::string, MPQData*>::iterator data = MpqDataMap.find("misc");
-	if (data == MpqDataMap.end() || !data->second)
-		return;
-	for (auto row = data->second->data.begin(); row != data->second->data.end(); row++) {
-		std::string code = (*row)["code"];
-		if (code.length() > 0 && (*row)["levelreq"].length() > 0)
-			runeLevels[code] = atoi((*row)["levelreq"].c_str());
-	}
+// A runeword can be made as soon as its highest rune can be worn, which is what
+// the runes ask for as base items.
+static void RaiseToRuneLevel(const std::string& code,
+		ItemDescription::Requirements& requirements) {
+	const ItemDescription::Base* rune = ItemDescription::FindBase(code);
+	if (rune && rune->requirements.level > requirements.level)
+		requirements.level = rune->requirements.level;
 }
 
 void RunewordTab::BuildRecipes() {
-	LoadRuneLevels();
 	recipes.clear();
 	matches.clear();
 
@@ -201,7 +193,6 @@ void RunewordTab::BuildRecipes() {
 
 			RunewordRecipe recipe;
 			recipe.statsLoaded = false;
-			recipe.requiredLevel = 0;
 
 			std::vector<std::string> runeNames;
 			for (int n = 1; n <= 6; n++) {
@@ -210,8 +201,7 @@ void RunewordTab::BuildRecipes() {
 					continue;
 				recipe.runeCodes.push_back(code);
 				runeNames.push_back(RuneName(code));
-				if (runeLevels.count(code) && runeLevels[code] > recipe.requiredLevel)
-					recipe.requiredLevel = runeLevels[code];
+				RaiseToRuneLevel(code, recipe.requirements);
 			}
 			if (runeNames.empty())
 				continue;
@@ -226,7 +216,7 @@ void RunewordTab::BuildRecipes() {
 				std::string code = Trim(entry->getString("itype" + std::to_string(n)));
 				if (code.length() == 0)
 					continue;
-				types.push_back(ItemTypeName(code));
+				types.push_back(ItemDescription::TypeName(code));
 
 				// One block of rune bonuses per distinct kind of base.
 				const char* slot = BaseSlot(code);
@@ -244,7 +234,7 @@ void RunewordTab::BuildRecipes() {
 			for (int n = 1; n <= 3; n++) {
 				std::string code = Trim(entry->getString("etype" + std::to_string(n)));
 				if (code.length() > 0)
-					excluded.push_back(ItemTypeName(code));
+					excluded.push_back(ItemDescription::TypeName(code));
 			}
 			if (!excluded.empty())
 				recipe.itemTypes += " (not " + Join(excluded, ", ") + ")";
@@ -278,18 +268,16 @@ void RunewordTab::BuildRecipes() {
 
 		RunewordRecipe recipe;
 		recipe.statsLoaded = false;
-		recipe.requiredLevel = 0;
 		recipe.name = extra.name;
 
 		std::vector<std::string> runeNames;
 		for (int n = 0; n < 6 && extra.runes[n]; n++) {
 			recipe.runeCodes.push_back(extra.runes[n]);
 			runeNames.push_back(RuneName(extra.runes[n]));
-			if (runeLevels.count(extra.runes[n]) && runeLevels[extra.runes[n]] > recipe.requiredLevel)
-				recipe.requiredLevel = runeLevels[extra.runes[n]];
+			RaiseToRuneLevel(extra.runes[n], recipe.requirements);
 		}
 		recipe.runes = Join(runeNames, " + ");
-		recipe.itemTypes = ItemTypeName(extra.itemType);
+		recipe.itemTypes = ItemDescription::TypeName(extra.itemType);
 		recipe.baseSlots.push_back(BaseSlot(extra.itemType));
 		recipe.baseLabels.push_back(recipe.itemTypes);
 
@@ -419,22 +407,18 @@ void RunewordTab::UpdateStatus() {
 	}
 }
 
-// Ordered the way the game describes an item. The panel wraps and sizes itself
-// to whatever it is handed.
-void RunewordTab::BuildSummaryLines(RunewordRecipe* recipe,
-		std::vector<TooltipLine>& lines) {
-	lines.push_back(TooltipLine(recipe->name, RarityColor(RarityRuneword)));
-	lines.push_back(TooltipLine(recipe->itemTypes, Grey));
-	lines.push_back(TooltipLine(recipe->runes, RarityColor(RarityRune)));
-	if (recipe->requiredLevel > 0) {
-		char required[64];
-		sprintf_s(required, "Required level: %d", recipe->requiredLevel);
-		lines.push_back(TooltipLine(required, White));
-	}
-	lines.push_back(TooltipLine("", White));
-
-	for (unsigned int i = 0; i < recipe->stats.size(); i++)
-		lines.push_back(TooltipLine(recipe->stats[i], Blue));
+// ItemDescription orders and spaces the panel the way the game describes a
+// recipe; the tab only says what goes in it.
+std::vector<TooltipLine> RunewordTab::BuildSummaryLines(RunewordRecipe* recipe) {
+	ItemDescription::Recipe runeword;
+	runeword.name = recipe->name;
+	runeword.nameColor = RarityColor(RarityRuneword);
+	runeword.appliesTo = recipe->itemTypes;
+	runeword.ingredients = recipe->runes;
+	runeword.ingredientColor = RarityColor(RarityRune);
+	runeword.requirements = recipe->requirements;
+	runeword.AddStats(recipe->stats, Blue);
+	return ItemDescription::Build(runeword);
 }
 
 // Follows the mouse, falling back to the selection. Rebuilt only when the row
@@ -455,9 +439,7 @@ void RunewordTab::UpdateSummary() {
 		RunewordRecipe* recipe = const_cast<RunewordRecipe*>(matches[row]);
 		LoadStats(recipe);
 
-		std::vector<TooltipLine> lines;
-		BuildSummaryLines(recipe, lines);
-		summary->SetLines(lines);
+		summary->SetLines(BuildSummaryLines(recipe));
 		shownSummary = row;
 	}
 
