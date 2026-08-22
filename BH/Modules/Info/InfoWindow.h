@@ -27,6 +27,9 @@ class InfoWindow : public Module {
 		InfoTab* GetTabForCommand(const std::string& command);
 		void CheckOpenState();
 
+		// Moves the tab in front by delta places, wrapping at either end.
+		void CycleTab(int delta);
+
 	public:
 		InfoWindow() : Module("Info"),
 			infoUI(NULL),

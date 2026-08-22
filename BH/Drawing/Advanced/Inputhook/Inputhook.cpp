@@ -257,6 +257,11 @@ unsigned int Inputhook::GetCharacterLimit() {
 				Erase(GetCursorPosition(), 1);
 			}
 		break;
+		case VK_TAB:
+			//Tab isn't text, and is left unswallowed so whatever owns the box can
+			//use it to move between the panels of its window.
+			Unlock();
+			return false;
 		case VK_ESCAPE:
 			//Escape drops focus, but is deliberately not swallowed. Whatever owns
 			//the box usually wants to close on escape too, and a box that took
@@ -368,8 +373,8 @@ unsigned int Inputhook::GetCharacterLimit() {
 				Unlock();
 				return false;
 			}
-			//Only printable characters belong in the box; control codes like
-			//return and tab would otherwise be inserted verbatim.
+			//Only printable characters belong in the box; control codes would
+			//otherwise be inserted verbatim.
 			if (out[0] < ' ' || out[0] == 0x7F) {
 				Unlock();
 				return true;

@@ -74,6 +74,30 @@ void InfoWindow::ShowTab(InfoTab* tab) {
 		infoUI->SetCurrentTab(tab->GetTab());
 }
 
+// Tab and shift tab walk the row of tabs. The search boxes pass the key up
+// rather than typing it, so it is the window's to spend on this.
+void InfoWindow::CycleTab(int delta) {
+	if (tabs.size() < 2)
+		return;
+
+	InfoTab* current = GetCurrentTab();
+	int count = (int)tabs.size();
+	int index = 0;
+	for (int i = 0; i < count; i++) {
+		if (tabs[i] == current) {
+			index = i;
+			break;
+		}
+	}
+	index = ((index + delta) % count + count) % count;
+
+	ShowTab(tabs[index]);
+	// So the caret lands in the tab that just came forward.
+	Lock();
+	tabs[index]->OnOpen();
+	Unlock();
+}
+
 void InfoWindow::ShowWindow(bool show) {
 	if (!infoUI)
 		return;
@@ -153,6 +177,15 @@ void InfoWindow::OnKey(bool up, BYTE key, LPARAM lParam, bool* block) {
 	InfoTab* active = GetActiveTab();
 	if (active && active->OnKey(up, key)) {
 		*block = true;
+		return;
+	}
+
+	if (key == VK_TAB) {
+		*block = true;
+		if (!up) {
+			bool shift = (GetKeyState(VK_LSHIFT) & 0x80) || (GetKeyState(VK_RSHIFT) & 0x80);
+			CycleTab(shift ? -1 : 1);
+		}
 		return;
 	}
 
