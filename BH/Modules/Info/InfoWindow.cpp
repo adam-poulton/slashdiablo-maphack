@@ -14,8 +14,7 @@ void InfoWindow::OnLoad() {
 	LoadConfig();
 
 	infoUI = new UI("Info", INFO_WINDOW_WIDTH, INFO_WINDOW_HEIGHT);
-	// The tabs measure themselves against the window rather than being laid out
-	// to a fixed size, so it is safe to let the user drag it about.
+	// Safe because the tabs measure themselves against the window.
 	infoUI->SetResizable(true);
 
 	// Tab order is the order they are added in.
@@ -23,9 +22,8 @@ void InfoWindow::OnLoad() {
 	tabs.push_back(new UniqueTab(infoUI));
 	tabs.push_back(new SetTab(infoUI));
 
-	// Whether the window starts collapsed to its title bar is remembered in
-	// UI.ini, so leave that alone here. Visibility is driven by OnLoop() so the
-	// window stays hidden until we are actually in a game.
+	// UI.ini remembers whether it starts collapsed, so leave that alone here.
+	// OnLoop() drives visibility, so it stays hidden until we are in a game.
 }
 
 void InfoWindow::LoadConfig() {
@@ -47,8 +45,7 @@ InfoTab* InfoWindow::GetActiveTab() {
 	return NULL;
 }
 
-// The tab that is in front, whether or not the window is on screen, so a command
-// that names no tab in particular can leave it where it is.
+// The tab in front, whether or not the window is on screen.
 InfoTab* InfoWindow::GetCurrentTab() {
 	if (!infoUI || tabs.empty())
 		return NULL;
@@ -60,8 +57,6 @@ InfoTab* InfoWindow::GetCurrentTab() {
 	return tabs[0];
 }
 
-// Each tab owns its own chat commands, so the window only has to ask which of
-// them recognises what was typed.
 InfoTab* InfoWindow::GetTabForCommand(const std::string& command) {
 	for (unsigned int i = 0; i < tabs.size(); i++) {
 		if (tabs[i]->HandlesCommand(command))
@@ -84,8 +79,7 @@ void InfoWindow::ShowWindow(bool show) {
 		return;
 	if (show)
 		Toggles[INFO_TOGGLE_NAME].state = true;
-	// Collapsing the window to its title bar also deactivates its controls, so
-	// they can't swallow input while it is out of the way.
+	// Collapsing also deactivates the controls, so they can't swallow input.
 	infoUI->SetMinimized(!show);
 	infoUI->SetVisible(Toggles[INFO_TOGGLE_NAME].state);
 	if (show) {
@@ -97,19 +91,16 @@ void InfoWindow::ShowWindow(bool show) {
 void InfoWindow::OnLoop() {
 	if (!infoUI)
 		return;
-	// Disabling the feature entirely hides the window; collapse it as well so
-	// its controls stop responding to clicks and keys.
+	// Collapse as well as hide, so the controls stop taking input.
 	if (!Toggles[INFO_TOGGLE_NAME].state)
 		infoUI->SetMinimized(true);
 	infoUI->SetVisible(Toggles[INFO_TOGGLE_NAME].state);
 	CheckOpenState();
 }
 
-// The window can be opened by the hotkey, by a chat command, or by ctrl clicking
-// its collapsed title bar, and closed by the hotkey, by escape, by right clicking
-// the title bar, or by turning the feature off. Several of those never go through
-// ShowWindow() at all. So rather than trying to catch each one, watch for the
-// window having appeared or gone away and tell the tabs once.
+// Several of the ways the window opens and closes - ctrl clicking its collapsed
+// title bar, right clicking it, escape - never go through ShowWindow(), so the
+// tabs are told by watching for the window having appeared or gone away.
 void InfoWindow::CheckOpenState() {
 	bool open = Toggles[INFO_TOGGLE_NAME].state && infoUI->IsVisible() &&
 		!infoUI->IsMinimized();
@@ -127,8 +118,7 @@ void InfoWindow::CheckOpenState() {
 }
 
 void InfoWindow::OnGameExit() {
-	// Nothing is drawn outside a game, so make sure the window agrees and stops
-	// taking input while we are back on the menus.
+	// Nothing is drawn outside a game, so stop taking input on the menus too.
 	if (!infoUI)
 		return;
 	infoUI->SetVisible(false);
@@ -159,17 +149,15 @@ void InfoWindow::OnKey(bool up, BYTE key, LPARAM lParam, bool* block) {
 	if (!toggle.state || !infoUI || infoUI->IsMinimized())
 		return;
 
-	// The active tab gets first refusal, so it can use escape to back out of its
-	// own state before the window closes.
+	// First refusal, so a tab can use escape before the window closes.
 	InfoTab* active = GetActiveTab();
 	if (active && active->OnKey(up, key)) {
 		*block = true;
 		return;
 	}
 
-	// Escape closes the window rather than opening the game menu. When a text
-	// box has focus it consumes escape first to drop that focus, so the second
-	// press closes the window.
+	// Closes the window rather than opening the game menu. A focused text box
+	// takes the first press to drop focus, so the second one lands here.
 	if (key == VK_ESCAPE) {
 		*block = true;
 		if (up)
@@ -180,8 +168,8 @@ void InfoWindow::OnKey(bool up, BYTE key, LPARAM lParam, bool* block) {
 void InfoWindow::OnUserInput(const wchar_t* msg, bool fromGame, bool* block) {
 	*block = true;
 
-	// A command with no argument leaves the parameter pointer just past the end
-	// of the command, so read defensively and keep only printable characters.
+	// A command with no argument leaves the pointer just past the end of it, so
+	// read defensively and keep only printable characters.
 	std::string text;
 	for (int i = 0; msg && i < 64 && msg[i] >= L' ' && msg[i] <= L'~'; i++)
 		text += (char)msg[i];
@@ -192,20 +180,16 @@ void InfoWindow::OnUserInput(const wchar_t* msg, bool fromGame, bool* block) {
 		return;
 	}
 
-	// Which tab to show is the command that was typed; ".info" names no tab in
-	// particular, so it leaves whichever one was last in front where it is.
+	// ".info" names no tab, so it leaves whichever was last in front.
 	InfoTab* target = GetTabForCommand(GetInvokedCommand());
 	if (!target)
 		target = GetCurrentTab();
 
-	// Results are shown in the window rather than repeated into the chat log.
 	if (target) {
 		target->Search(text);
 		ShowTab(target);
-		// Typing the command is itself a keyboard action, so hand the keyboard
-		// to the tab whether or not the window was already open, since an
-		// already open window is not a change of state for CheckOpenState() to
-		// notice.
+		// Unconditionally, since an already open window is not a change of state
+		// for CheckOpenState() to notice.
 		target->OnOpen();
 	}
 	ShowWindow(true);

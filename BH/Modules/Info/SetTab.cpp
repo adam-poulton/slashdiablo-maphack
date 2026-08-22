@@ -75,8 +75,7 @@ static std::vector<std::string> RenderGroup(const std::vector<SetProperty>& prop
 	return StatDescriptions::BuildLines(stats);
 }
 
-// The same for bonuses unlocked by piece count, a count at a time so each adds up
-// only among itself, tagged and ordered by that count.
+// A count at a time, so each adds up only among itself.
 static std::vector<std::string> RenderCounted(const std::vector<SetProperty>& properties) {
 	std::vector<std::string> lines;
 	for (int count = 2; count <= ST_PARTIAL_COUNT + 1; count++) {
@@ -201,8 +200,7 @@ void SetTab::BuildSets() {
 	});
 }
 
-// Ordered by set, then by table order within it, which is the game's own head to
-// toe order.
+// Table order within a set is the game's own head to toe order.
 void SetTab::BuildItems() {
 	items.clear();
 	matches.clear();
@@ -211,8 +209,7 @@ void SetTab::BuildItems() {
 	for (unsigned int i = 0; i < sets.size(); i++)
 		setIndexByName[ToLower(sets[i].name)] = (int)i;
 
-	// Table order has to survive until the pieces are grouped, since it is the
-	// order they are listed in within their set.
+	// Table order has to survive until the pieces are grouped.
 	std::vector<SetItemRecord> parsed;
 	for (int i = 0; i < Tables::SetItems.size(); i++) {
 		JSONObject* entry = Tables::SetItems.entryAt(i);
@@ -272,8 +269,7 @@ void SetTab::BuildItems() {
 		parsed.push_back(item);
 	}
 
-	// Anything whose set the sets table does not carry goes last, so a realm
-	// addition still appears.
+	// A piece whose set the sets table does not carry still goes in, at the end.
 	for (unsigned int i = 0; i < sets.size(); i++) {
 		for (unsigned int n = 0; n < parsed.size(); n++) {
 			if (parsed[n].setIndex == (int)i)
@@ -319,9 +315,8 @@ void SetTab::ApplyFilter() {
 	}
 }
 
-// A heading per set, above its pieces. Driven off the rows rather than the data,
-// so a filter that cuts a set's first piece still leaves the set named above
-// whichever is now first, and a set with no matches drops out entirely.
+// Headings are driven off the rows rather than the data, so a filter that cuts a
+// set's first piece still names the set above whichever is now first.
 void SetTab::PushRows() {
 	unsigned int mostRows = (unsigned int)(matches.size() + sets.size());
 	std::vector<ListRow> rows;
@@ -343,10 +338,8 @@ void SetTab::PushRows() {
 
 	list->SetRows(rows);	// also clears the selection
 
-	// Done here rather than on open, which is usually before the game data has
-	// loaded, and only on an unfiltered list: the chat command opens straight onto
-	// a search, and folding only what it matched would leave every other set
-	// unfolded for when the search is cleared.
+	// Not on open, which is usually before the game data has loaded, and not on a
+	// filtered list, which would leave every set it did not match unfolded.
 	if (foldOnPush && query.empty() && !rows.empty()) {
 		list->FoldAllGroups();
 		foldOnPush = false;
@@ -471,7 +464,6 @@ void SetTab::OnClose() {
 }
 
 void SetTab::OnDraw() {
-	// The window can be resized under us, so keep the contents fitted to it.
 	if (tab->GetXSize() != laidOutWidth || tab->GetYSize() != laidOutHeight)
 		ApplyLayout();
 
@@ -498,8 +490,7 @@ void SetTab::OnDraw() {
 		needsRefresh = false;
 	}
 
-	// The first row is a heading, which describes nothing, so enter takes the
-	// first row holding a piece.
+	// Row 0 is a heading, so enter takes the first row holding a piece.
 	if (searchBox->TakeSubmitted()) {
 		for (unsigned int i = 0; i < rowItems.size(); i++) {
 			if (rowItems[i]) {
@@ -515,8 +506,8 @@ void SetTab::OnDraw() {
 
 bool SetTab::OnKey(bool up, BYTE key) {
 	switch (key) {
-		// The selection is left on the set rather than let go of, so folding and
-		// unfolding are both reachable from wherever the last press left you.
+		// The selection ends on the set rather than being let go of, so folding and
+		// unfolding are both reachable from wherever the last press left it.
 		case VK_LEFT:
 		case VK_RIGHT: {
 			if (up)
@@ -528,7 +519,6 @@ bool SetTab::OnKey(bool up, BYTE key) {
 				return true;
 
 			if (key == VK_LEFT) {
-				// Up to the set, the row that is still there once it folds.
 				list->SetSelectedRow(group);
 				list->SetGroupFolded(group, true);
 			} else if (row != group) {

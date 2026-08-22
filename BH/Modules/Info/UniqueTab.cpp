@@ -11,20 +11,16 @@
 using namespace Drawing;
 using namespace InfoText;
 
-// Layout, relative to the tab's content area. Only the margins and the gaps
-// between the three bands are given here; the widths and the height of the list
-// are measured from the tab by ApplyLayout(), so the window can be resized
-// without any of this being restated.
+// Margins and the gaps between the three bands. Widths and the list height are
+// measured from the tab by ApplyLayout().
 #define UQ_MARGIN			6	// down either side, and below the status line
 #define UQ_SEARCH_Y			3
 #define UQ_SEARCH_GAP		7	// between the search box and the list
 #define UQ_FOOTER_GAP		6	// between the list and the status line
 #define UQ_FOOTER_HEIGHT	8	// the status line itself
 
-// Column proportions. Both columns hold a name, so both are given a share of the
-// width rather than a fixed size, and the unique's own name takes the larger
-// share since it is the longer of the two ("Bul-Kathos' Tribal Guardian" against
-// "Ceremonial Javelin").
+// The unique's own name takes the larger share, being the longer of the two
+// ("Bul-Kathos' Tribal Guardian" against "Ceremonial Javelin").
 #define UQ_COL_NAME_WEIGHT	3
 #define UQ_COL_BASE_WEIGHT	2
 #define UQ_COL_GAP			4
@@ -32,9 +28,8 @@ using namespace InfoText;
 // How many prop/par/min/max groups UniqueItems.txt gives each row.
 #define UQ_PROPERTY_COUNT	12
 
-// UniqueItems.txt keeps the item's name in "index", which doubles as its string
-// table key. The string table is preferred so a localised client reads correctly,
-// and the raw index is the fallback for realm additions that have no entry.
+// "index" doubles as the string table key, which is preferred so a localised
+// client reads correctly. The raw index is the fallback for realm additions.
 static std::string UniqueName(JSONObject* entry) {
 	std::string index = Trim(entry->getString("index"));
 	std::string localized = StatDescriptions::GetString(index);
@@ -48,14 +43,10 @@ UniqueTab::UniqueTab(UI* ui) : InfoTab("Uniques", ui),
 
 	searchBox = new Inputhook(tab, UQ_MARGIN, UQ_SEARCH_Y, 0, "");
 	searchBox->SetPlaceholder("Search by unique name, base item or item type");
-	// The box holds a whole search rather than something you edit a word of, so
-	// clicking into it starts a new one.
 	searchBox->SetClearOnFocus(true);
 
-	// Sized by ApplyLayout() below, along with everything else here.
 	list = new Listhook(tab, UQ_MARGIN, 0, 0, 0);
-	// Both columns name the same item, which the game draws in one colour, so
-	// they take the unique colour together and brighten together on hover.
+	// Both columns name the same item, so they share its colour.
 	TextColor unique = RarityColor(RarityUnique);
 	std::vector<ListColumn> columns;
 	columns.push_back(ListColumn("", 0, UQ_COL_NAME_WEIGHT, 0, unique, White));
@@ -65,19 +56,15 @@ UniqueTab::UniqueTab(UI* ui) : InfoTab("Uniques", ui),
 	statusText = new Texthook(tab, UQ_MARGIN, 0, "");
 	statusText->SetColor(Grey);
 
-	// Not part of the tab: the summary sits beside the window, which a hook
-	// belonging to the tab could not reach. Positioned and switched on by
-	// UpdateSummary() once there is a row to describe.
+	// Placed and switched on by UpdateSummary().
 	summary = new Tooltiphook(InGame, 0, 0);
 	summary->SetActive(false);
 
 	ApplyLayout();
 }
 
-// Fits the contents to however big the tab currently is: a search box across the
-// top, the list taking whatever height is left between it and the status line,
-// and the summary reading at the same measure as the list. Nothing here is a
-// fixed size, so the window can be resized and this is all it takes to follow.
+// The list takes whatever height is left between the search box and the status
+// line, so a resize needs nothing but this.
 void UniqueTab::ApplyLayout() {
 	laidOutWidth = tab->GetXSize();
 	laidOutHeight = tab->GetYSize();
@@ -85,8 +72,7 @@ void UniqueTab::ApplyLayout() {
 	unsigned int contentWidth = (laidOutWidth > 2 * UQ_MARGIN) ?
 		(laidOutWidth - (2 * UQ_MARGIN)) : 0;
 
-	// The search box is as tall as its own font, so the list starts below
-	// wherever it actually ends rather than at a guessed offset.
+	// Measured off the box rather than guessed, since its height follows its font.
 	unsigned int listY = UQ_SEARCH_Y + searchBox->GetYSize() + UQ_SEARCH_GAP;
 	unsigned int footerBand = UQ_FOOTER_GAP + UQ_FOOTER_HEIGHT + UQ_MARGIN;
 	unsigned int listHeight = (laidOutHeight > listY + footerBand) ?
@@ -112,9 +98,8 @@ void UniqueTab::BuildUniques() {
 	uniques.clear();
 	matches.clear();
 
-	// UniqueItems.txt keeps unreleased and placeholder items around, so only list
-	// the ones flagged enabled. If nothing is flagged (a modified file), fall
-	// back to every row that names a base item.
+	// Only the rows flagged enabled; the file keeps unreleased and placeholder
+	// items too. A modified file with nothing flagged falls back to every row.
 	for (int pass = 0; pass < 2 && uniques.empty(); pass++) {
 		bool requireEnabled = (pass == 0);
 		for (int i = 0; i < Tables::UniqueItems.size(); i++) {
@@ -137,8 +122,7 @@ void UniqueTab::BuildUniques() {
 			unique.baseName = ItemName(code);
 			unique.requiredLevel = atoi(entry->getString("lvl req").c_str());
 
-			// The base's item type is what makes a search for "amulet" or "boots"
-			// work, since the base item's own name rarely says which it is.
+			// What makes a search for "amulet" work; the base's name rarely says.
 			std::map<std::string, ItemAttributes*>::iterator attrs =
 				ItemAttributeMap.find(code);
 			if (attrs != ItemAttributeMap.end() && attrs->second)
@@ -162,8 +146,8 @@ void UniqueTab::BuildUniques() {
 		}
 	}
 
-	// A handful of items share a name across several bases (the facet jewels), so
-	// the base is the tiebreak and equal names still land next to each other.
+	// The facet jewels share a name across several bases, so the base is the
+	// tiebreak and equal names still land next to each other.
 	std::sort(uniques.begin(), uniques.end(), [](const UniqueRecord& a, const UniqueRecord& b) {
 		std::string nameA = ToLower(a.name), nameB = ToLower(b.name);
 		if (nameA != nameB)
@@ -175,9 +159,6 @@ void UniqueTab::BuildUniques() {
 	needsRefresh = true;
 }
 
-// Renders an item's stats the first time it is looked at. Collecting the
-// properties first and rendering them together is what lets the lines be added
-// up, grouped and ordered the way the item's own description is.
 void UniqueTab::LoadStats(UniqueRecord* unique) {
 	if (unique->statsLoaded)
 		return;
@@ -211,14 +192,11 @@ void UniqueTab::PushRows() {
 		rows.push_back(row);
 	}
 	list->SetRows(rows);	// also clears the selection
-	// Row numbers now mean different items, so whatever the summary was built
-	// for no longer holds.
 	shownSummary = -1;
 	UpdateStatus();
 }
 
-// The status line, which follows the scroll position as well as the rows, so it
-// is refreshed every frame rather than only when the filter changes.
+// Follows the scroll position as well as the rows, so it is refreshed per frame.
 void UniqueTab::UpdateStatus() {
 	if (!uniquesLoaded) {
 		statusText->SetText("Waiting for game data to finish loading...");
@@ -234,9 +212,8 @@ void UniqueTab::UpdateStatus() {
 	}
 }
 
-// Built the way the game describes an item: what it is, then what it needs, then
-// what it does. Nothing here places or measures anything; the panel wraps these
-// to its own width and sizes itself to what it ends up holding.
+// Ordered the way the game describes an item. The panel wraps and sizes itself
+// to whatever it is handed.
 void UniqueTab::BuildSummaryLines(UniqueRecord* unique,
 		std::vector<TooltipLine>& lines) {
 	TextColor color = RarityColor(RarityUnique);
@@ -253,10 +230,8 @@ void UniqueTab::BuildSummaryLines(UniqueRecord* unique,
 		lines.push_back(TooltipLine(unique->stats[i], White));
 }
 
-// The summary describes whichever row is being pointed at, and falls back to the
-// selected one so the arrow keys are worth using. Rebuilt only when the row it is
-// describing changes, since rendering an item is not free and the mouse sits on
-// one row for many frames.
+// Follows the mouse, falling back to the selection. Rebuilt only when the row
+// changes, since the mouse sits on one row for many frames.
 void UniqueTab::UpdateSummary() {
 	int row = list->GetHoveredRow();
 	if (row < 0)
@@ -269,7 +244,7 @@ void UniqueTab::UpdateSummary() {
 	}
 
 	if (row != shownSummary) {
-		// The unique list owns the records; matches only points into it.
+		// uniques owns the records; matches only points into it.
 		UniqueRecord* unique = const_cast<UniqueRecord*>(matches[row]);
 		LoadStats(unique);
 
@@ -279,7 +254,7 @@ void UniqueTab::UpdateSummary() {
 		shownSummary = row;
 	}
 
-	// Where it fits depends on how big it turned out, so this follows SetLines().
+	// Must follow SetLines(): where it fits depends on how big it turned out.
 	summary->PlaceBeside(tab->GetX(), tab->GetY(), tab->GetXSize(), tab->GetYSize());
 	summary->SetActive(true);
 }
@@ -296,17 +271,13 @@ void UniqueTab::Search(const std::string& text) {
 	needsRefresh = true;
 }
 
-// Opening the window puts the caret straight in the search box, so an item can be
-// looked up without reaching for the mouse. The box only empties itself when it
-// is clicked into, so a search that arrived with the window - from the chat
-// command - is left alone and simply ready to edit.
+// The caret goes straight in the search box. A search that arrived with the
+// window, from the chat command, is left alone: the box only clears on a click.
 void UniqueTab::OnOpen() {
 	searchBox->SetCursorPosition(searchBox->GetText().length());
 	searchBox->SetFocused(true);
 }
 
-// Reopening the window shouldn't land on someone else's search, and the summary
-// must not be left on screen after the window that raised it has gone.
 void UniqueTab::OnClose() {
 	searchBox->SetFocused(false);
 	summary->SetActive(false);
@@ -315,17 +286,15 @@ void UniqueTab::OnClose() {
 }
 
 void UniqueTab::OnDraw() {
-	// The window can be resized under us, so keep the contents fitted to it.
 	if (tab->GetXSize() != laidOutWidth || tab->GetYSize() != laidOutHeight)
 		ApplyLayout();
 
-	// MpqLoaded can fire before this tab exists, so build on first draw too.
+	// MpqLoaded can fire before this tab exists.
 	if (!uniquesLoaded && Tables::isInitialized()) {
 		StatDescriptions::Initialize();
 		BuildUniques();
 	}
 
-	// The search box is edited by the user, so poll it for changes.
 	if (searchBox->GetText() != lastBoxText) {
 		lastBoxText = searchBox->GetText();
 		query = ToLower(Trim(lastBoxText));
@@ -339,13 +308,11 @@ void UniqueTab::OnDraw() {
 		needsRefresh = false;
 	}
 
-	// Enter in the search box picks the first match rather than typing a newline,
-	// which is what puts its summary up.
+	// Enter picks the first match rather than typing a newline.
 	if (searchBox->TakeSubmitted() && !matches.empty())
 		list->SetSelectedRow(0);
 
-	// Both of these follow the mouse and the scroll position, which move on the
-	// input thread, so they are caught up here rather than where they change.
+	// The mouse and the scroll position move on the input thread, so catch up here.
 	UpdateStatus();
 	UpdateSummary();
 }
@@ -361,8 +328,7 @@ bool UniqueTab::OnKey(bool up, BYTE key) {
 			if (up)
 				return true;
 
-			// A page is a screenful less one row, so the row the user was
-			// reading stays on screen to anchor where they have got to.
+			// A screenful less one row, so the row being read stays on screen.
 			int visible = (int)list->GetVisibleRows();
 			int step = (visible > 1) ? (visible - 1) : 1;
 			int count = (int)list->GetRowCount();

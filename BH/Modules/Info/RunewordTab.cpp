@@ -12,28 +12,22 @@
 using namespace Drawing;
 using namespace InfoText;
 
-// Layout, relative to the tab's content area. Only the margins and the gaps
-// between the three bands are given here; the widths and the height of the list
-// are measured from the tab by ApplyLayout(), so the window can be resized
-// without any of this being restated.
+// Margins and the gaps between the three bands. Widths and the list height are
+// measured from the tab by ApplyLayout().
 #define RW_MARGIN			6	// down either side, and below the status line
 #define RW_SEARCH_Y			3
 #define RW_SEARCH_GAP		7	// between the search box and the list
 #define RW_FOOTER_GAP		6	// between the list and the status line
 #define RW_FOOTER_HEIGHT	8	// the status line itself
 
-// Column proportions. The name column is fixed at the width of the longest
-// runeword name, and the runes column takes everything left over, since the
-// runes are the point of the list and the longest recipe
-// ("Jah + Mal + Jah + Sur + Jah + Ber") is what needs the room.
+// The name column is fixed at the longest runeword name and the runes take the
+// rest, since "Jah + Mal + Jah + Sur + Jah + Ber" is what needs the room.
 #define RW_COL_NAME_W		136
 #define RW_COL_GAP			4
 
-// Six recipes shipped under working titles in runes.txt and were renamed before
-// release; the files were never updated, so the readable name in "Rune Name" is
-// stale. Keyed by the row's internal id, and only applied when the stale name is
-// still what the file says, so a modified runes.txt is left alone. The string
-// table is preferred over both when it has an entry.
+// Six recipes were renamed before release and runes.txt still carries the working
+// title in "Rune Name". Applied only when the file still says the stale name, so a
+// modified runes.txt is left alone. The string table wins over both.
 struct RunewordRename {
 	const char* id;
 	const char* fileName;
@@ -49,11 +43,10 @@ static const RunewordRename kRenames[] = {
 	{ "Runeword99", "Winter",        "Voice of Reason" },
 };
 
-// Recipes the realm enables server-side without shipping them in runes.txt.
-// Their bonuses have to be given here too, as property entries in the same shape
-// as a runes.txt row so they render and add up like everything else. What a rune
-// contributes still comes from Gems.txt, so only the runeword's own bonuses are
-// listed. Anything the property tables cannot express goes in lines[] as text.
+// Recipes the realm enables without shipping them in runes.txt, as property
+// entries in a runes.txt row's shape so they render and add up like the rest. What
+// a rune contributes still comes from Gems.txt, so only the runeword's own bonuses
+// are listed; anything the property tables cannot express goes in lines[].
 struct ExtraRuneword {
 	const char* name;
 	const char* runes[6];
@@ -75,23 +68,20 @@ static const ExtraRuneword kExtraRunewords[] = {
 			{ "dmg-fire",     "",               5,  30 },
 		},
 		{
-			// Per level amounts are held in eighths, which cannot express the
-			// 0.3% per level this grants, so it is spelled out.
+			// Per level amounts are held in eighths, which cannot express 0.3%.
 			"0.3% Deadly Strike (Based on Character Level)",
 		}
 	},
 };
 
-// Which set of rune bonuses a base takes. gems.txt gives every rune three sets,
-// one for weapons, one for helms and body armour and one for shields, which is
-// why the same runeword rolls differently depending on what it is made in.
+// gems.txt gives every rune three sets of bonuses - weapon, helm or body armour,
+// shield - which is why the same runeword rolls differently per base.
 static const char* kSlotWeapon = "weapon";
 static const char* kSlotHelm = "helm";
 static const char* kSlotShield = "shield";
 
-// runes.txt stores the string table key in "Name" ("Runeword1") and the readable
-// runeword name in "Rune Name" ("Ancient's Pledge"). Some copies of the file
-// mark the latter as a comment column, so accept either spelling.
+// The string table key is in "Name" ("Runeword1"), the readable name in
+// "Rune Name". Some copies of the file mark the latter as a comment column.
 static std::string RunewordName(JSONObject* entry) {
 	std::string id = Trim(entry->getString("Name"));
 	std::string localized = StatDescriptions::GetString(id);
@@ -112,8 +102,8 @@ static std::string RunewordName(JSONObject* entry) {
 	return name;
 }
 
-// Rune item codes ("r14") come from runes.txt; the readable name comes from the
-// item data already parsed out of the MPQ archives.
+// Rune codes ("r14") come from runes.txt, readable names from the parsed item
+// data.
 static std::string RuneName(const std::string& code) {
 	std::string name = ItemName(code);
 	// "El Rune" reads better as just "El" in a recipe list.
@@ -125,8 +115,7 @@ static std::string RuneName(const std::string& code) {
 	return name;
 }
 
-// Walks the Equiv chain in ItemTypes.txt up to the root categories to work out
-// which of the three rune bonus sets a base takes.
+// Walks the Equiv chain in ItemTypes.txt up to the root categories.
 static const char* BaseSlot(const std::string& code) {
 	std::string current = code;
 	for (int depth = 0; depth < 12 && current.length() > 0; depth++) {
@@ -142,8 +131,7 @@ static const char* BaseSlot(const std::string& code) {
 			break;
 		current = Trim(entry->getString("Equiv1"));
 	}
-	// Anything that isn't clearly armour takes the weapon bonuses, which is what
-	// the game does with the leftover types runewords are allowed in.
+	// What the game does with the leftover types runewords are allowed in.
 	return kSlotWeapon;
 }
 
@@ -154,14 +142,10 @@ RunewordTab::RunewordTab(UI* ui) : InfoTab("Runewords", ui),
 
 	searchBox = new Inputhook(tab, RW_MARGIN, RW_SEARCH_Y, 0, "");
 	searchBox->SetPlaceholder("Search by runeword name, rune or item type");
-	// The box holds a whole search rather than something you edit a word of, so
-	// clicking into it starts a new one.
 	searchBox->SetClearOnFocus(true);
 
-	// Sized by ApplyLayout() below, along with everything else here.
 	list = new Listhook(tab, RW_MARGIN, 0, 0, 0);
-	// The recipe's name is drawn as the item it makes, and the runes in the
-	// colour the game gives a rune.
+	// The name as the item it makes, the runes in the colour a rune is given.
 	std::vector<ListColumn> columns;
 	columns.push_back(ListColumn("", RW_COL_NAME_W, 0, 0,
 		RarityColor(RarityRuneword), White));
@@ -171,19 +155,15 @@ RunewordTab::RunewordTab(UI* ui) : InfoTab("Runewords", ui),
 	statusText = new Texthook(tab, RW_MARGIN, 0, "");
 	statusText->SetColor(Grey);
 
-	// Not part of the tab: the summary sits beside the window, which a hook
-	// belonging to the tab could not reach. Positioned and switched on by
-	// UpdateSummary() once there is a row to describe.
+	// Placed and switched on by UpdateSummary().
 	summary = new Tooltiphook(InGame, 0, 0);
 	summary->SetActive(false);
 
 	ApplyLayout();
 }
 
-// Fits the contents to however big the tab currently is: a search box across the
-// top, the list taking whatever height is left between it and the status line,
-// and the summary reading at the same measure as the list. Nothing here is a
-// fixed size, so the window can be resized and this is all it takes to follow.
+// The list takes whatever height is left between the search box and the status
+// line, so a resize needs nothing but this.
 void RunewordTab::ApplyLayout() {
 	laidOutWidth = tab->GetXSize();
 	laidOutHeight = tab->GetYSize();
@@ -191,8 +171,7 @@ void RunewordTab::ApplyLayout() {
 	unsigned int contentWidth = (laidOutWidth > 2 * RW_MARGIN) ?
 		(laidOutWidth - (2 * RW_MARGIN)) : 0;
 
-	// The search box is as tall as its own font, so the list starts below
-	// wherever it actually ends rather than at a guessed offset.
+	// Measured off the box rather than guessed, since its height follows its font.
 	unsigned int listY = RW_SEARCH_Y + searchBox->GetYSize() + RW_SEARCH_GAP;
 	unsigned int footerBand = RW_FOOTER_GAP + RW_FOOTER_HEIGHT + RW_MARGIN;
 	unsigned int listHeight = (laidOutHeight > listY + footerBand) ?
@@ -214,9 +193,8 @@ bool RunewordTab::HandlesCommand(const std::string& command) {
 	return command.compare("rw") == 0 || command.compare("runewords") == 0;
 }
 
-// Rune level requirements come from misc.txt, which is already parsed and kept
-// in memory; ItemAttributes only keeps the item's quality level, which is not
-// the same number.
+// From misc.txt: ItemAttributes keeps only the item's quality level, which is a
+// different number.
 void RunewordTab::LoadRuneLevels() {
 	if (!runeLevels.empty())
 		return;
@@ -235,9 +213,8 @@ void RunewordTab::BuildRecipes() {
 	recipes.clear();
 	matches.clear();
 
-	// runes.txt keeps disabled recipes around as placeholders, so only list the
-	// ones flagged complete. If nothing is flagged (a modified runes.txt), fall
-	// back to every row that actually has runes assigned.
+	// Only the rows flagged complete; the file keeps placeholders too. A modified
+	// runes.txt with nothing flagged falls back to every row that has runes.
 	for (int pass = 0; pass < 2 && recipes.empty(); pass++) {
 		bool requireComplete = (pass == 0);
 		for (int i = 0; i < Tables::Runewords.size(); i++) {
@@ -357,15 +334,9 @@ void RunewordTab::BuildRecipes() {
 	needsRefresh = true;
 }
 
-// Renders a recipe's stats the first time it is looked at.
-//
-// The finished item's stats are the runeword's own bonuses plus what each rune
-// adds, and the game adds equal stats together rather than listing them twice,
-// so the same is done here before rendering. Runes give different bonuses in a
-// weapon, a helm or body armour, and a shield, so this is worked out once per
-// kind of base the runeword allows: lines that come out the same whatever it is
-// made in are listed plainly, and only the ones that differ say which base they
-// belong to.
+// Stats are the runeword's own bonuses plus each rune's, added together the way
+// the game does. Runes differ by base, so this runs once per kind of base the
+// runeword allows and only the lines that differ are tagged with their base.
 void RunewordTab::LoadStats(RunewordRecipe* recipe) {
 	if (recipe->statsLoaded)
 		return;
@@ -379,7 +350,7 @@ void RunewordTab::LoadStats(RunewordRecipe* recipe) {
 			property.min, property.max, own);
 	}
 
-	// One rendered list per kind of base, each already added up.
+	// One rendered list per kind of base.
 	std::vector<std::vector<std::string>> perBase;
 	for (unsigned int s = 0; s < recipe->baseSlots.size(); s++) {
 		std::vector<StatDescriptions::Stat> stats = own;
@@ -400,8 +371,7 @@ void RunewordTab::LoadStats(RunewordRecipe* recipe) {
 			}
 		}
 		std::vector<std::string> lines = StatDescriptions::BuildLines(stats);
-		// These don't depend on the base, so adding them to every list leaves
-		// them in the set the bases have in common.
+		// Base independent, so adding them to every list leaves them in common.
 		for (unsigned int i = 0; i < recipe->extraLines.size(); i++)
 			lines.push_back(recipe->extraLines[i]);
 		perBase.push_back(lines);
@@ -414,8 +384,7 @@ void RunewordTab::LoadStats(RunewordRecipe* recipe) {
 		return;
 	}
 
-	// Lines every base has in common need no explanation; the rest are tagged
-	// with the base they apply to.
+	// Only the lines the bases disagree on are tagged.
 	for (unsigned int i = 0; i < perBase[0].size(); i++) {
 		bool everywhere = true;
 		for (unsigned int b = 1; b < perBase.size() && everywhere; b++) {
@@ -455,14 +424,11 @@ void RunewordTab::PushRows() {
 		rows.push_back(row);
 	}
 	list->SetRows(rows);	// also clears the selection
-	// Row numbers now mean different recipes, so whatever the summary was built
-	// for no longer holds.
 	shownSummary = -1;
 	UpdateStatus();
 }
 
-// The status line, which follows the scroll position as well as the rows, so it
-// is refreshed every frame rather than only when the filter changes.
+// Follows the scroll position as well as the rows, so it is refreshed per frame.
 void RunewordTab::UpdateStatus() {
 	if (!recipesLoaded) {
 		statusText->SetText("Waiting for game data to finish loading...");
@@ -478,9 +444,8 @@ void RunewordTab::UpdateStatus() {
 	}
 }
 
-// Built the way the game describes an item: what it is, then what it needs, then
-// what it does. Nothing here places or measures anything; the panel wraps these
-// to its own width and sizes itself to what it ends up holding.
+// Ordered the way the game describes an item. The panel wraps and sizes itself
+// to whatever it is handed.
 void RunewordTab::BuildSummaryLines(RunewordRecipe* recipe,
 		std::vector<TooltipLine>& lines) {
 	lines.push_back(TooltipLine(recipe->name, RarityColor(RarityRuneword)));
@@ -497,10 +462,8 @@ void RunewordTab::BuildSummaryLines(RunewordRecipe* recipe,
 		lines.push_back(TooltipLine(recipe->stats[i], White));
 }
 
-// The summary describes whichever row is being pointed at, and falls back to the
-// selected one so the arrow keys are worth using. Rebuilt only when the row it is
-// describing changes, since rendering a recipe is not free and the mouse sits on
-// one row for many frames.
+// Follows the mouse, falling back to the selection. Rebuilt only when the row
+// changes, since the mouse sits on one row for many frames.
 void RunewordTab::UpdateSummary() {
 	int row = list->GetHoveredRow();
 	if (row < 0)
@@ -513,7 +476,7 @@ void RunewordTab::UpdateSummary() {
 	}
 
 	if (row != shownSummary) {
-		// The recipe list owns the recipes; matches only points into it.
+		// recipes owns the records; matches only points into it.
 		RunewordRecipe* recipe = const_cast<RunewordRecipe*>(matches[row]);
 		LoadStats(recipe);
 
@@ -523,7 +486,7 @@ void RunewordTab::UpdateSummary() {
 		shownSummary = row;
 	}
 
-	// Where it fits depends on how big it turned out, so this follows SetLines().
+	// Must follow SetLines(): where it fits depends on how big it turned out.
 	summary->PlaceBeside(tab->GetX(), tab->GetY(), tab->GetXSize(), tab->GetYSize());
 	summary->SetActive(true);
 }
@@ -540,17 +503,13 @@ void RunewordTab::Search(const std::string& text) {
 	needsRefresh = true;
 }
 
-// Opening the window puts the caret straight in the search box, so a runeword can
-// be looked up without reaching for the mouse. The box only empties itself when it
-// is clicked into, so a search that arrived with the window - from the chat
-// command - is left alone and simply ready to edit.
+// The caret goes straight in the search box. A search that arrived with the
+// window, from the chat command, is left alone: the box only clears on a click.
 void RunewordTab::OnOpen() {
 	searchBox->SetCursorPosition(searchBox->GetText().length());
 	searchBox->SetFocused(true);
 }
 
-// Reopening the window shouldn't land on someone else's search, and the summary
-// must not be left on screen after the window that raised it has gone.
 void RunewordTab::OnClose() {
 	searchBox->SetFocused(false);
 	summary->SetActive(false);
@@ -559,17 +518,15 @@ void RunewordTab::OnClose() {
 }
 
 void RunewordTab::OnDraw() {
-	// The window can be resized under us, so keep the contents fitted to it.
 	if (tab->GetXSize() != laidOutWidth || tab->GetYSize() != laidOutHeight)
 		ApplyLayout();
 
-	// MpqLoaded can fire before this tab exists, so build on first draw too.
+	// MpqLoaded can fire before this tab exists.
 	if (!recipesLoaded && Tables::isInitialized()) {
 		StatDescriptions::Initialize();
 		BuildRecipes();
 	}
 
-	// The search box is edited by the user, so poll it for changes.
 	if (searchBox->GetText() != lastBoxText) {
 		lastBoxText = searchBox->GetText();
 		query = ToLower(Trim(lastBoxText));
@@ -583,13 +540,11 @@ void RunewordTab::OnDraw() {
 		needsRefresh = false;
 	}
 
-	// Enter in the search box picks the first match rather than typing a newline,
-	// which is what puts its summary up.
+	// Enter picks the first match rather than typing a newline.
 	if (searchBox->TakeSubmitted() && !matches.empty())
 		list->SetSelectedRow(0);
 
-	// Both of these follow the mouse and the scroll position, which move on the
-	// input thread, so they are caught up here rather than where they change.
+	// The mouse and the scroll position move on the input thread, so catch up here.
 	UpdateStatus();
 	UpdateSummary();
 }
@@ -605,8 +560,7 @@ bool RunewordTab::OnKey(bool up, BYTE key) {
 			if (up)
 				return true;
 
-			// A page is a screenful less one row, so the row the user was
-			// reading stays on screen to anchor where they have got to.
+			// A screenful less one row, so the row being read stays on screen.
 			int visible = (int)list->GetVisibleRows();
 			int step = (visible > 1) ? (visible - 1) : 1;
 			int count = (int)list->GetRowCount();

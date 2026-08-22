@@ -10,8 +10,8 @@
 #include "SetTab.h"
 #include "UniqueTab.h"
 
-// A general purpose reference window. The module owns the window, its hotkey and
-// tab switching; each panel is an InfoTab and only deals with its own contents.
+// The module owns the window, its hotkey and tab switching; each panel is an
+// InfoTab and deals only with its own contents.
 class InfoWindow : public Module {
 	private:
 		CRITICAL_SECTION crit;
@@ -54,7 +54,7 @@ class InfoWindow : public Module {
 		void OnKey(bool up, BYTE key, LPARAM lParam, bool* block);
 		void OnUserInput(const wchar_t* msg, bool fromGame, bool* block);
 
-		// Open the window on a given tab, or collapse it to its title bar.
+		// Collapses to the title bar rather than hiding.
 		void ShowWindow(bool show);
 		void ShowTab(InfoTab* tab);
 };

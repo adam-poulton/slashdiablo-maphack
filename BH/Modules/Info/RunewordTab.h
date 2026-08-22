@@ -4,8 +4,7 @@
 #include <vector>
 #include "InfoTab.h"
 
-// A property entry as it appears in the game's tables: what it grants, its
-// parameter and the range it rolls.
+// A property entry as it appears in the game's tables.
 struct RunewordProperty {
 	std::string code;
 	std::string param;
@@ -37,9 +36,8 @@ class RunewordTab : public InfoTab {
 		Drawing::Listhook* list;
 		Drawing::Texthook* statusText;
 
-		// The summary of whichever recipe is being pointed at, drawn alongside
-		// the window rather than over the list. It is a plain tooltip that knows
-		// nothing about runewords; BuildSummaryLines() is what makes it one.
+		// Sits beside the window rather than inside the tab, which is why it is a
+		// bare Tooltiphook rather than one of the tab's hooks.
 		Drawing::Tooltiphook* summary;
 
 		std::vector<RunewordRecipe> recipes;
@@ -55,8 +53,7 @@ class RunewordTab : public InfoTab {
 		unsigned int laidOutWidth;
 		unsigned int laidOutHeight;
 
-		// Fits the contents to the tab's current size. Everything that depends
-		// on how big the panel is lives here and nowhere else.
+		// The only place anything is sized or positioned.
 		void ApplyLayout();
 
 		void LoadRuneLevels();
@@ -66,9 +63,6 @@ class RunewordTab : public InfoTab {
 		void PushRows();
 		void UpdateStatus();
 
-		// Turns a recipe into the lines that describe it. The only part of the
-		// summary that knows what a runeword is, so another kind of thing can be
-		// described in the same panel by writing its own version of this.
 		void BuildSummaryLines(RunewordRecipe* recipe,
 			std::vector<Drawing::TooltipLine>& lines);
 		void UpdateSummary();

@@ -3,8 +3,7 @@
 #include <vector>
 #include "InfoTab.h"
 
-// A property entry as it appears in the game's tables: what it grants, its
-// parameter and the range it rolls.
+// A property entry as it appears in the game's tables.
 struct UniqueProperty {
 	std::string code;
 	std::string param;
@@ -25,17 +24,16 @@ struct UniqueRecord {
 	bool statsLoaded;
 };
 
-// The unique items panel: every unique the realm has enabled, its base item, and
-// what it rolls. Laid out and driven the same way as the runewords panel.
+// The unique items panel, laid out and driven the same way as the runewords
+// panel.
 class UniqueTab : public InfoTab {
 	private:
 		Drawing::Inputhook* searchBox;
 		Drawing::Listhook* list;
 		Drawing::Texthook* statusText;
 
-		// The summary of whichever item is being pointed at, drawn alongside the
-		// window rather than over the list. It is a plain tooltip that knows
-		// nothing about unique items; BuildSummaryLines() is what makes it one.
+		// Sits beside the window rather than inside the tab, which is why it is a
+		// bare Tooltiphook rather than one of the tab's hooks.
 		Drawing::Tooltiphook* summary;
 
 		std::vector<UniqueRecord> uniques;
@@ -50,8 +48,7 @@ class UniqueTab : public InfoTab {
 		unsigned int laidOutWidth;
 		unsigned int laidOutHeight;
 
-		// Fits the contents to the tab's current size. Everything that depends
-		// on how big the panel is lives here and nowhere else.
+		// The only place anything is sized or positioned.
 		void ApplyLayout();
 
 		void BuildUniques();
@@ -60,8 +57,6 @@ class UniqueTab : public InfoTab {
 		void PushRows();
 		void UpdateStatus();
 
-		// Turns an item into the lines that describe it. The only part of the
-		// summary that knows what a unique item is.
 		void BuildSummaryLines(UniqueRecord* unique,
 			std::vector<Drawing::TooltipLine>& lines);
 		void UpdateSummary();
