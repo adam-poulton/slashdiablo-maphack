@@ -1,5 +1,6 @@
 #pragma once
 
+#include <set>
 #include <string>
 #include <vector>
 #include "../../Hook.h"
@@ -40,6 +41,22 @@ namespace Drawing {
 			color(color), hoverColor(hoverColor) {};
 	};
 
+	// One row of a Listhook. A group row is a heading over the rows that follow:
+	// drawn across the full width from the left edge rather than inside the
+	// columns, with the rows under it indented, and folding them away when clicked.
+	//
+	// A heading's first cell is its identity as well as its label - it is what the
+	// list remembers a fold against, so folding survives the rows being pushed
+	// again for a new filter. Its other cells are ignored.
+	struct ListRow {
+		std::vector<std::string> cells;
+		bool group;
+
+		ListRow() : group(false) {};
+		ListRow(const std::vector<std::string>& cells, bool group = false) :
+			cells(cells), group(group) {};
+	};
+
 	// A scrollable, column oriented list of text rows. The caller supplies the
 	// column proportions and the rows; the list works out the column pixels, how
 	// many rows fit, cuts cells that are too wide for their column, draws the
@@ -71,12 +88,34 @@ namespace Drawing {
 
 			std::vector<ListColumn> columns;				// as supplied
 			std::vector<ColumnLayout> layout;				// resolved to pixels
-			std::vector<std::vector<std::string>> rows;		// as supplied
+			std::vector<ListRow> rows;						// as supplied
 			std::vector<std::vector<std::string>> fitted;	// cut to column widths
+
+			// Where each heading's row count lands, following its label's width.
+			std::vector<unsigned int> groupCountX;
+
+			// Which rows are on screen, as ascending indices into rows. Folding
+			// only touches this, so rows stays whole.
+			std::vector<unsigned int> shown;
+
+			// Folded headings, by label rather than by row, so a fold outlives the
+			// row numbers it was made against.
+			std::set<std::string> folded;
+			bool foldingSuspended;	// draw unfolded, without forgetting the folds
 			unsigned int xSize, ySize;
 			unsigned int font;
 			unsigned int scrollTop;	// row drawn at the top of the list
 			TextColor headerColor;
+			TextColor groupColor;
+			TextColor groupHoverColor;
+			unsigned int groupIndent;	// rows under a group, in from its text
+			bool hasGroups;				// whether anything is indented at all
+
+			// The fold markers as measured at the current font: each of them, and
+			// the column they share, which is as wide as the wider one.
+			unsigned int unfoldWidth;
+			unsigned int foldWidth;
+			unsigned int markerWidth;
 			int selectedRow;	// -1 when nothing is selected
 			bool draggingThumb;	// scrollbar thumb held by the mouse
 			int thumbGrabOffset;	// where in the thumb it was grabbed, in pixels
@@ -86,6 +125,29 @@ namespace Drawing {
 			void Layout();
 			void FitRows();
 			std::string FitCell(const std::string& text, unsigned int width);
+
+			// Everything that folds or unfolds ends in AfterFold(), which puts the
+			// selection and the view back onto rows that still exist. Assume the
+			// lock is held.
+			void RebuildShown();
+			void AfterFold();
+
+			// The three parts a heading is drawn from, and where they go. Assume
+			// the lock is held.
+			std::string GroupMarker(unsigned int row);
+			std::string GroupLabel(unsigned int row);
+			std::string GroupCount(unsigned int row);
+			void MeasureMarkers();
+			unsigned int GroupLabelX();
+			unsigned int GroupMarkerX(unsigned int row);
+			unsigned int GroupRowCount(unsigned int row);
+			bool IsFolded(unsigned int row);
+
+			// ShownPosition() is -1 for a folded row; PositionAtOrAfter() gives
+			// where it would sit, so a folded row still resolves to somewhere.
+			// Assume the lock is held.
+			int ShownPosition(int row);
+			int PositionAtOrAfter(int row);
 
 			// Pulls the view back when it starts past the last full screenful,
 			// which anything changing how many rows are visible can cause.
@@ -126,6 +188,30 @@ namespace Drawing {
 			TextColor GetHeaderColor() { return headerColor; };
 			void SetHeaderColor(TextColor newColor) { Lock(); headerColor = newColor; Unlock(); };
 
+			// The indent is only taken out of the width once the list holds a
+			// group row, so an ungrouped list is laid out as it always was.
+			TextColor GetGroupColor() { return groupColor; };
+			void SetGroupColor(TextColor newColor) { Lock(); groupColor = newColor; Unlock(); };
+			TextColor GetGroupHoverColor() { return groupHoverColor; };
+			void SetGroupHoverColor(TextColor newColor) { Lock(); groupHoverColor = newColor; Unlock(); };
+			unsigned int GetGroupIndent() { return groupIndent; };
+			void SetGroupIndent(unsigned int newIndent);
+
+			// A folded heading keeps its rows off the screen without moving any row
+			// numbers: they simply aren't drawn and can't be reached. Clicking a
+			// heading folds it, so a caller gets that for nothing.
+			int GetGroupRowFor(int row);
+			bool IsGroupFolded(int groupRow);
+			void SetGroupFolded(int groupRow, bool fold);
+			void ToggleGroup(int groupRow);
+			void FoldAllGroups();
+			void UnfoldAllGroups();
+
+			// For a filter that has to show what it matched whether or not its
+			// heading was folded.
+			bool IsFoldingSuspended() { return foldingSuspended; };
+			void SetFoldingSuspended(bool suspend);
+
 			// Selection. Rows are indexed as supplied to SetRows(), which clears
 			// the selection because the rows no longer mean the same thing.
 			// Selecting a row scrolls it into view.
@@ -134,14 +220,19 @@ namespace Drawing {
 			// the selected row again, or the empty space past the last row,
 			// clears it. So whatever a caller hangs off the selection can always
 			// be dismissed from the list itself.
+			//
+			// A row folded away under a heading cannot be selected, so naming one
+			// moves on to the nearest row that can be. That way a caller can name
+			// a row without having to know how the list is folded.
 			int GetSelectedRow() { return selectedRow; };
 			void SetSelectedRow(int row);
 			void ClearSelection() { SetSelectedRow(-1); };
 
-			// Moves the selection by whole rows, as the arrow keys do, stopping
-			// at the ends rather than wrapping. With nothing selected it starts
-			// from the top of the visible rows, so the first press lands
-			// somewhere the user can see.
+			// Moves the selection by whole rows on screen, as the arrow keys do,
+			// stopping at the ends rather than wrapping. With nothing selected it
+			// starts from the top of the visible rows, so the first press lands
+			// somewhere the user can see. Rows folded away are not on screen, so a
+			// folded group costs one row of travel rather than all of its own.
 			void MoveSelection(int delta);
 
 			const std::vector<ListColumn>& GetColumns() { return columns; };
@@ -152,7 +243,13 @@ namespace Drawing {
 			unsigned int GetColumnX(unsigned int column);
 			unsigned int GetColumnWidth(unsigned int column);
 
+			// Row numbers are as supplied to SetRows(), headings and folded rows
+			// included, so they mean the same thing however the list is folded.
 			unsigned int GetRowCount() { return rows.size(); };
+			bool IsGroupRow(int row);
+			void SetRows(const std::vector<ListRow>& newRows);
+
+			// Rows with no grouping, which is the common case.
 			void SetRows(const std::vector<std::vector<std::string>>& newRows);
 
 			// Height of one row, how much room the header takes, and how many
@@ -168,6 +265,7 @@ namespace Drawing {
 
 			// Scrolling. The view is a window of GetVisibleRows() rows starting
 			// at the top row; Scroll() stops at either end rather than wrapping.
+			// Counted in rows on screen, so folding shortens the list.
 			unsigned int GetFirstVisibleRow() { return scrollTop; };
 			unsigned int GetLastVisibleRow();
 			unsigned int GetMaxScrollTop();

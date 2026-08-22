@@ -35,6 +35,7 @@ set(MODULE_SOURCES "Modules/Module.cpp"
                    "Modules/Info/InfoText.cpp"
                    "Modules/Info/InfoWindow.cpp"
                    "Modules/Info/RunewordTab.cpp"
+                   "Modules/Info/SetTab.cpp"
                    "Modules/Info/UniqueTab.cpp"
                    "Modules/ScreenInfo/ScreenInfo.cpp"
                    "Modules/StashExport/StashExport.cpp")

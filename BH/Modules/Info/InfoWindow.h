@@ -7,6 +7,7 @@
 #include "../../Drawing.h"
 #include "InfoTab.h"
 #include "RunewordTab.h"
+#include "SetTab.h"
 #include "UniqueTab.h"
 
 // A general purpose reference window. The module owns the window, its hotkey and

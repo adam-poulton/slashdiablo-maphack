@@ -276,6 +276,7 @@ Table Tables::Properties;
 Table Tables::Runewords;
 Table Tables::UniqueItems;
 Table Tables::SetItems;
+Table Tables::Sets;
 Table Tables::Skills;
 Table Tables::MagicPrefix;
 Table Tables::MagicSuffix;
@@ -313,6 +314,7 @@ bool Tables::initTables(){
 		success &= TableReader::loadMPQData("MagicSuffix", MagicSuffix);
 		success &= TableReader::loadMPQData("UniqueItems", UniqueItems);
 		success &= TableReader::loadMPQData("SetItems", SetItems);
+		success &= TableReader::loadMPQData("Sets", Sets);
 		success &= TableReader::loadMPQData("RarePrefix", RarePrefix);
 		success &= TableReader::loadMPQData("RareSuffix", RareSuffix);
 		success &= TableReader::loadMPQData("CharStats", CharStats);
@@ -324,6 +326,10 @@ bool Tables::initTables(){
 		});
 		SetItems.removeWhere([](JSONElement* obj){
 			return ((JSONObject*)obj)->getString("item").length() == 0;
+		});
+		// Sets.txt ends on a blank row.
+		Sets.removeWhere([](JSONElement* obj){
+			return ((JSONObject*)obj)->getString("index").length() == 0;
 		});
 	}
 

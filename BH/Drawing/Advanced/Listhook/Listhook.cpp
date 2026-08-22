@@ -9,6 +9,23 @@ using namespace Drawing;
 #define LIST_HEADER_GAP		4
 #define LIST_ELLIPSIS		".."
 
+// How far the rows under a heading sit in from its text.
+#define LIST_GROUP_INDENT	8
+
+// The marker gets a column of its own rather than being pasted onto the front of
+// the label: the two markers are not the same width in the game's fonts, so
+// pasting them on shifted the whole heading sideways on every fold. The column is
+// measured from the markers so it holds the wider at any font, and each is centred
+// in it so both states sit in the same place.
+//
+// The marker and the count keep the dim colour throughout, so they read as
+// controls rather than as the first and last characters of the heading.
+#define LIST_GROUP_MARKER_GAP	3
+#define LIST_GROUP_COUNT_GAP	4
+#define LIST_GROUP_DIM_COLOR	Grey
+#define LIST_GROUP_UNFOLDED		"-"
+#define LIST_GROUP_FOLDED		"+"
+
 // The scrollbar sits in a gutter on the right, kept clear of the columns whether
 // or not there is anything to scroll. LIST_WHEEL_ROWS is how far one notch of
 // the wheel moves the view.
@@ -31,11 +48,17 @@ static unsigned int FontHeight(unsigned int font) {
 
 Listhook::Listhook(HookVisibility visibility, unsigned int x, unsigned int y, unsigned int xSize, unsigned int ySize) :
 Hook(visibility, x, y), xSize(xSize), ySize(ySize), font(0), scrollTop(0), headerColor(Gold),
+groupColor(Gold), groupHoverColor(White), groupIndent(LIST_GROUP_INDENT),
+hasGroups(false), unfoldWidth(0), foldWidth(0), markerWidth(0),
+foldingSuspended(false),
 selectedRow(-1), draggingThumb(false), thumbGrabOffset(0) {
 }
 
 Listhook::Listhook(HookGroup* group, unsigned int x, unsigned int y, unsigned int xSize, unsigned int ySize) :
 Hook(group, x, y), xSize(xSize), ySize(ySize), font(0), scrollTop(0), headerColor(Gold),
+groupColor(Gold), groupHoverColor(White), groupIndent(LIST_GROUP_INDENT),
+hasGroups(false), unfoldWidth(0), foldWidth(0), markerWidth(0),
+foldingSuspended(false),
 selectedRow(-1), draggingThumb(false), thumbGrabOffset(0) {
 }
 
@@ -71,12 +94,203 @@ void Listhook::SetColumns(const std::vector<ListColumn>& newColumns) {
 	Unlock();
 }
 
-void Listhook::SetRows(const std::vector<std::vector<std::string>>& newRows) {
+void Listhook::SetRows(const std::vector<ListRow>& newRows) {
 	Lock();
 	rows = newRows;
-	FitRows();
+	hasGroups = false;
+	for (unsigned int r = 0; r < rows.size() && !hasGroups; r++)
+		hasGroups = rows[r].group;
+	// Grouping decides the indent, which changes the width the columns share, so
+	// the columns are resolved again rather than only the cells refitted.
+	RebuildShown();
+	Layout();
 	selectedRow = -1;
 	ClampScroll();
+	Unlock();
+}
+
+void Listhook::SetRows(const std::vector<std::vector<std::string>>& newRows) {
+	std::vector<ListRow> plain;
+	plain.reserve(newRows.size());
+	for (unsigned int r = 0; r < newRows.size(); r++)
+		plain.push_back(ListRow(newRows[r]));
+	SetRows(plain);
+}
+
+bool Listhook::IsGroupRow(int row) {
+	return row >= 0 && row < (int)rows.size() && rows[row].group;
+}
+
+void Listhook::SetGroupIndent(unsigned int newIndent) {
+	Lock();
+	groupIndent = newIndent;
+	Layout();
+	Unlock();
+}
+
+// Measured on layout rather than on draw, so drawing costs no measurement.
+void Listhook::MeasureMarkers() {
+	if (!hasGroups) {
+		unfoldWidth = foldWidth = markerWidth = 0;
+		return;
+	}
+	unfoldWidth = (unsigned int)Texthook::GetTextSize(LIST_GROUP_UNFOLDED, font).x;
+	foldWidth = (unsigned int)Texthook::GetTextSize(LIST_GROUP_FOLDED, font).x;
+	markerWidth = (unfoldWidth > foldWidth) ? unfoldWidth : foldWidth;
+}
+
+// Zero without headings, so nothing is indented for a marker never drawn.
+unsigned int Listhook::GroupLabelX() {
+	return hasGroups ? (markerWidth + LIST_GROUP_MARKER_GAP) : 0;
+}
+
+unsigned int Listhook::GroupMarkerX(unsigned int row) {
+	unsigned int width = IsFolded(row) ? foldWidth : unfoldWidth;
+	return (markerWidth > width) ? ((markerWidth - width) / 2) : 0;
+}
+
+// An unlabelled heading cannot have been folded: there is nothing to key it on.
+bool Listhook::IsFolded(unsigned int row) {
+	if (foldingSuspended || !rows[row].group || rows[row].cells.empty())
+		return false;
+	return folded.find(rows[row].cells[0]) != folded.end();
+}
+
+unsigned int Listhook::GroupRowCount(unsigned int row) {
+	unsigned int count = 0;
+	for (unsigned int r = row + 1; r < rows.size() && !rows[r].group; r++)
+		count++;
+	return count;
+}
+
+// No marker while folding is suspended: a list that cannot be folded should not
+// offer to be. The label still starts past the empty column, so nothing moves.
+std::string Listhook::GroupMarker(unsigned int row) {
+	if (foldingSuspended || !rows[row].group || rows[row].cells.empty())
+		return "";
+	return IsFolded(row) ? LIST_GROUP_FOLDED : LIST_GROUP_UNFOLDED;
+}
+
+std::string Listhook::GroupLabel(unsigned int row) {
+	return rows[row].cells.empty() ? "" : rows[row].cells[0];
+}
+
+// What is folded away cannot be counted off the screen, so the heading says.
+std::string Listhook::GroupCount(unsigned int row) {
+	if (!IsFolded(row))
+		return "";
+	unsigned int count = GroupRowCount(row);
+	if (count == 0)
+		return "";
+	return "[" + std::to_string(count) + "]";
+}
+
+void Listhook::RebuildShown() {
+	shown.clear();
+	shown.reserve(rows.size());
+
+	bool hiding = false;
+	for (unsigned int r = 0; r < rows.size(); r++) {
+		if (rows[r].group) {
+			hiding = IsFolded(r);
+			shown.push_back(r);
+		} else if (!hiding) {
+			shown.push_back(r);
+		}
+	}
+}
+
+int Listhook::ShownPosition(int row) {
+	for (unsigned int i = 0; i < shown.size(); i++) {
+		if ((int)shown[i] == row)
+			return (int)i;
+	}
+	return -1;
+}
+
+int Listhook::PositionAtOrAfter(int row) {
+	for (unsigned int i = 0; i < shown.size(); i++) {
+		if ((int)shown[i] >= row)
+			return (int)i;
+	}
+	return (int)shown.size();
+}
+
+// A selection folded away is let go of rather than quietly moved to a neighbour
+// the user did not choose.
+void Listhook::AfterFold() {
+	RebuildShown();
+	FitRows();	// the marker and count changed, even if no column did
+	if (selectedRow >= 0 && ShownPosition(selectedRow) < 0)
+		selectedRow = -1;
+	ClampScroll();
+	ScrollSelectionIntoView();
+}
+
+int Listhook::GetGroupRowFor(int row) {
+	Lock();
+	int group = -1;
+	if (row >= 0 && row < (int)rows.size()) {
+		for (int r = row; r >= 0; r--) {
+			if (rows[r].group) {
+				group = r;
+				break;
+			}
+		}
+	}
+	Unlock();
+	return group;
+}
+
+bool Listhook::IsGroupFolded(int groupRow) {
+	return IsGroupRow(groupRow) && IsFolded((unsigned int)groupRow);
+}
+
+void Listhook::SetGroupFolded(int groupRow, bool fold) {
+	if (!IsGroupRow(groupRow) || rows[groupRow].cells.empty())
+		return;
+	// Honouring this would record a fold nothing on screen reflects, which would
+	// then spring open the moment folding resumed.
+	if (foldingSuspended)
+		return;
+
+	Lock();
+	const std::string& label = rows[groupRow].cells[0];
+	if (fold)
+		folded.insert(label);
+	else
+		folded.erase(label);
+	AfterFold();
+	Unlock();
+}
+
+void Listhook::ToggleGroup(int groupRow) {
+	SetGroupFolded(groupRow, !IsGroupFolded(groupRow));
+}
+
+void Listhook::FoldAllGroups() {
+	Lock();
+	for (unsigned int r = 0; r < rows.size(); r++) {
+		if (rows[r].group && !rows[r].cells.empty())
+			folded.insert(rows[r].cells[0]);
+	}
+	AfterFold();
+	Unlock();
+}
+
+void Listhook::UnfoldAllGroups() {
+	Lock();
+	folded.clear();
+	AfterFold();
+	Unlock();
+}
+
+void Listhook::SetFoldingSuspended(bool suspend) {
+	if (suspend == foldingSuspended)
+		return;
+	Lock();
+	foldingSuspended = suspend;
+	AfterFold();
 	Unlock();
 }
 
@@ -92,8 +306,12 @@ void Listhook::ClampScroll() {
 // resize does not leave a ragged edge or a gap.
 void Listhook::Layout() {
 	layout.assign(columns.size(), ColumnLayout());
+	MeasureMarkers();
 
-	unsigned int available = GetContentWidth();
+	// Headings ignore all of this and run the full width from the edge.
+	unsigned int indent = hasGroups ? (GroupLabelX() + groupIndent) : 0;
+	unsigned int content = GetContentWidth();
+	unsigned int available = (content > indent) ? (content - indent) : 0;
 	unsigned int fixed = 0, totalWeight = 0;
 	for (unsigned int c = 0; c < columns.size(); c++) {
 		fixed += columns[c].gap + columns[c].minWidth;
@@ -107,7 +325,7 @@ void Listhook::Layout() {
 			lastWeighted = c;
 	}
 
-	unsigned int x = 0;
+	unsigned int x = indent;
 	for (unsigned int c = 0; c < columns.size(); c++) {
 		x += columns[c].gap;
 
@@ -123,10 +341,11 @@ void Listhook::Layout() {
 
 		// A list too narrow to hold its minimums truncates on the right rather
 		// than drawing cells out past the gutter.
-		if (x >= available)
+		unsigned int edge = indent + available;
+		if (x >= edge)
 			width = 0;
-		else if (x + width > available)
-			width = available - x;
+		else if (x + width > edge)
+			width = edge - x;
 
 		layout[c] = ColumnLayout(x, width);
 		x += width;
@@ -168,10 +387,30 @@ std::string Listhook::FitCell(const std::string& text, unsigned int width) {
 void Listhook::FitRows() {
 	fitted.clear();
 	fitted.reserve(rows.size());
+	groupCountX.assign(rows.size(), 0);
 	for (unsigned int r = 0; r < rows.size(); r++) {
 		std::vector<std::string> cells;
-		for (unsigned int c = 0; c < layout.size() && c < rows[r].size(); c++)
-			cells.push_back(FitCell(rows[r][c], layout[c].width));
+		if (rows[r].group) {
+			// The count is never cut, so the label is fitted to what is left of
+			// the full width once the marker and the count have had their share.
+			std::string count = GroupCount(r);
+			unsigned int taken = GroupLabelX();
+			if (count.length() > 0) {
+				taken += LIST_GROUP_COUNT_GAP +
+					(unsigned int)Texthook::GetTextSize(count, font).x;
+			}
+			unsigned int content = GetContentWidth();
+			unsigned int width = (content > taken) ? (content - taken) : 0;
+
+			std::string label = FitCell(GroupLabel(r), width);
+			groupCountX[r] = GroupLabelX() + LIST_GROUP_COUNT_GAP +
+				(unsigned int)Texthook::GetTextSize(label, font).x;
+			cells.push_back(label);
+			cells.push_back(count);
+		} else {
+			for (unsigned int c = 0; c < layout.size() && c < rows[r].cells.size(); c++)
+				cells.push_back(FitCell(rows[r].cells[c], layout[c].width));
+		}
 		fitted.push_back(cells);
 	}
 }
@@ -206,9 +445,20 @@ unsigned int Listhook::GetContentWidth() {
 	return (xSize > gutter) ? (xSize - gutter) : 0;
 }
 
+// Naming a folded row lands on the nearest row that is not, so a caller need not
+// know how the list is folded.
 void Listhook::SetSelectedRow(int row) {
 	Lock();
-	selectedRow = (row < 0 || row >= (int)rows.size()) ? -1 : row;
+	if (row < 0 || row >= (int)rows.size()) {
+		selectedRow = -1;
+	} else if (ShownPosition(row) >= 0) {
+		selectedRow = row;
+	} else {
+		int at = PositionAtOrAfter(row);
+		if (at >= (int)shown.size())
+			at = (int)shown.size() - 1;
+		selectedRow = (at >= 0) ? (int)shown[at] : -1;
+	}
 	ScrollSelectionIntoView();
 	Unlock();
 }
@@ -217,9 +467,10 @@ void Listhook::SetSelectedRow(int row) {
 // moves the view a row at a time instead of jumping the selection to the middle.
 void Listhook::ScrollSelectionIntoView() {
 	unsigned int visible = GetVisibleRows();
-	if (selectedRow < 0 || visible == 0)
+	int position = ShownPosition(selectedRow);
+	if (position < 0 || visible == 0)
 		return;
-	unsigned int row = (unsigned int)selectedRow;
+	unsigned int row = (unsigned int)position;
 	if (row < scrollTop)
 		scrollTop = row;
 	else if (row >= scrollTop + visible)
@@ -227,26 +478,29 @@ void Listhook::ScrollSelectionIntoView() {
 }
 
 void Listhook::MoveSelection(int delta) {
-	if (rows.empty() || delta == 0)
+	if (shown.empty() || delta == 0)
 		return;
 
 	Lock();
+	int last = (int)shown.size() - 1;
+
+	// Counted in rows on screen, so a folded group costs one row of travel.
 	int target;
 	if (selectedRow < 0) {
 		// Nothing selected yet, so step in from the edge the user is heading
 		// away from rather than from the top of the list they cannot see.
 		unsigned int visible = GetVisibleRows();
-		unsigned int last = (visible > 0) ? (scrollTop + visible - 1) : scrollTop;
-		target = (delta > 0) ? (int)scrollTop : (int)last;
+		int edge = (visible > 0) ? (int)(scrollTop + visible - 1) : (int)scrollTop;
+		target = (delta > 0) ? (int)scrollTop : edge;
 	} else {
-		target = selectedRow + delta;
+		target = ShownPosition(selectedRow) + delta;
 	}
 	if (target < 0)
 		target = 0;
-	if (target > (int)rows.size() - 1)
-		target = (int)rows.size() - 1;
+	if (target > last)
+		target = last;
 
-	selectedRow = target;
+	selectedRow = (int)shown[target];
 	ScrollSelectionIntoView();
 	Unlock();
 }
@@ -259,17 +513,17 @@ int Listhook::GetHoveredRow() {
 	unsigned int offset = (mouseY - top) / GetRowHeight();
 	if (offset >= GetVisibleRows())
 		return -1;
-	unsigned int index = GetFirstVisibleRow() + offset;
-	return (index < rows.size()) ? (int)index : -1;
+	unsigned int position = GetFirstVisibleRow() + offset;
+	return (position < shown.size()) ? (int)shown[position] : -1;
 }
 
 // Kept at least a row tall so there is always something to grab, however long
 // the list gets.
 unsigned int Listhook::ScrollThumbHeight() {
 	unsigned int track = ScrollTrackHeight(), visible = GetVisibleRows();
-	if (rows.empty() || visible == 0)
+	if (shown.empty() || visible == 0)
 		return track;
-	unsigned int height = (track * visible) / (unsigned int)rows.size();
+	unsigned int height = (track * visible) / (unsigned int)shown.size();
 	unsigned int minimum = GetRowHeight();
 	return (height < minimum) ? minimum : height;
 }
@@ -358,12 +612,21 @@ bool Listhook::OnLeftClick(bool up, unsigned int x, unsigned int y) {
 		return false;
 
 	unsigned int offset = (y - top) / rowHeight;
-	unsigned int index = GetFirstVisibleRow() + offset;
+	unsigned int position = GetFirstVisibleRow() + offset;
+	unsigned int index = (position < shown.size()) ? shown[position] : rows.size();
 	if (offset >= GetVisibleRows() || index >= rows.size()) {
 		// The empty space past the last row is still part of the list, and
 		// clicking it lets go of the selection. That is the usual way to dismiss
 		// whatever the selection was putting on screen.
 		ClearSelection();
+		return true;
+	}
+
+	// The heading takes the selection too, so carrying on by keyboard starts from
+	// the heading the mouse just used.
+	if (rows[index].group) {
+		SetSelectedRow((int)index);
+		ToggleGroup((int)index);
 		return true;
 	}
 
@@ -388,16 +651,16 @@ bool Listhook::OnMouseWheel(int notches, unsigned int x, unsigned int y) {
 
 unsigned int Listhook::GetLastVisibleRow() {
 	unsigned int last = scrollTop + GetVisibleRows();
-	if (last > rows.size())
-		last = rows.size();
+	if (last > shown.size())
+		last = shown.size();
 	return last;
 }
 
 unsigned int Listhook::GetMaxScrollTop() {
 	unsigned int visible = GetVisibleRows();
-	if (visible == 0 || rows.size() <= visible)
+	if (visible == 0 || shown.size() <= visible)
 		return 0;
-	return rows.size() - visible;
+	return shown.size() - visible;
 }
 
 void Listhook::SetScrollTop(unsigned int row) {
@@ -449,7 +712,35 @@ void Listhook::OnDraw() {
 
 	int hovered = GetHoveredRow();
 	unsigned int first = GetFirstVisibleRow(), last = GetLastVisibleRow();
-	for (unsigned int r = first; r < last && r < fitted.size(); r++, y += rowHeight) {
+	for (unsigned int position = first; position < last; position++, y += rowHeight) {
+		unsigned int r = shown[position];
+		if (r >= fitted.size())
+			continue;
+
+		if (rows[r].group) {
+			bool selected = ((int)r == selectedRow);
+			if (selected)
+				Boxhook::Draw(GetX() - 2, y, contentWidth, rowHeight, 0, BTOneHalf);
+
+			TextColor color = ((selected || (int)r == hovered) &&
+				groupHoverColor != Disabled) ? groupHoverColor : groupColor;
+
+			std::string marker = GroupMarker(r);
+			if (marker.length() > 0) {
+				Texthook::Draw(GetX() + GroupMarkerX(r), y, None, font,
+					LIST_GROUP_DIM_COLOR, "%s", marker.c_str());
+			}
+			if (fitted[r].size() > 0 && fitted[r][0].length() > 0) {
+				Texthook::Draw(GetX() + GroupLabelX(), y, None, font, color, "%s",
+					fitted[r][0].c_str());
+			}
+			if (fitted[r].size() > 1 && fitted[r][1].length() > 0) {
+				Texthook::Draw(GetX() + groupCountX[r], y, None, font,
+					LIST_GROUP_DIM_COLOR, "%s", fitted[r][1].c_str());
+			}
+			continue;
+		}
+
 		bool selected = ((int)r == selectedRow);
 		// A band of shade behind the selected row, which is what tells it apart
 		// from whichever row happens to be under the mouse.

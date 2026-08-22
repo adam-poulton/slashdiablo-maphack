@@ -241,6 +241,12 @@ unsigned int Inputhook::GetCharacterLimit() {
 	 Lock();
 	 bool ctrlState = ((GetKeyState(VK_LCONTROL) & 0x80) || (GetKeyState(VK_RCONTROL) & 0x80));
 	 bool shiftState = ((GetKeyState(VK_LSHIFT) & 0x80) || (GetKeyState(VK_RSHIFT) & 0x80));
+	 //An empty box has no text for the horizontal arrows to move through, so a box
+	 //that took focus of its own accord doesn't cost its owner those keys.
+	 if (text.length() == 0 && (key == VK_LEFT || key == VK_RIGHT)) {
+		 Unlock();
+		 return false;
+	 }
 	 switch(key) {
 		case VK_BACK:
 			if (!up)

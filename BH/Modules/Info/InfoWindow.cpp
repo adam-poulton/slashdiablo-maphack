@@ -21,6 +21,7 @@ void InfoWindow::OnLoad() {
 	// Tab order is the order they are added in.
 	tabs.push_back(new RunewordTab(infoUI));
 	tabs.push_back(new UniqueTab(infoUI));
+	tabs.push_back(new SetTab(infoUI));
 
 	// Whether the window starts collapsed to its title bar is remembered in
 	// UI.ini, so leave that alone here. Visibility is driven by OnLoop() so the

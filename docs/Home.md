@@ -33,8 +33,8 @@ Here are some guides to creating your own configuration files:
   variables you can display
 * [Run Tracker](Run-Tracker.md) — recording each run's statistics and drops to a
   file
-* [Info Window](Info-Window.md) — the in-game reference window, its Runewords
-  and Uniques tabs and the `.rw` and `.uni` chat commands
+* [Info Window](Info-Window.md) — the in-game reference window, its Runewords,
+  Uniques and Sets tabs and the `.rw`, `.uni` and `.set` chat commands
 
 ### Reference tables
 

@@ -5,89 +5,13 @@ All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
 in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
 
 # Unreleased
-* Item names are drawn in the colour their rarity gives them in the game. A
-  unique's base item is now the same gold as its name rather than orange, and the
-  Uniques list brightens both columns together as you point at a row. The
-  rarities, including the runeword and rune pseudo rarities BH needs, live in
-  [ItemRarity.h](BH/ItemRarity.h), and `ItemColorFromQuality` reads the same
-  table so there is one of them rather than two.
-* Item stat lines are now ordered the way the game orders them, by the
-  `descpriority` each stat carries in `ItemStatCost.txt`, highest first, rather
-  than by the order the properties happened to be collected in.
-* Stats the game shows as a single line now render as one: `All Resistances +30`
-  and `+15 to all Attributes`, and only when every stat in the group is granted
-  at the same value. The groups and their wording are read from the `dgrp`
-  columns of `ItemStatCost.txt`, so this is the game's own rule rather than one
-  written into BH.
-* Fix class skill bonuses naming the wrong class. The class comes from the
-  property's `val` column in `Properties.txt`, which was not read, so every one
-  of them read as the first class in the table: Iros Torch said
-  `+1 to Amazon Skill Levels` where it grants Necromancer skills.
-* Add a `Uniques` tab to the Info window: every unique item `UniqueItems.txt`
-  flags as enabled, listed by name and base item, with a search box that filters
-  by unique name, base item or item type. Pointing at a row describes the item
-  beside the window - its base, its required level and the ranges it rolls -
-  built from the game's own property tables and string files, so it reads as it
-  does on the item. `.uni <search>` and `.uniques <search>` open the tab with
-  that search applied. See [Info Window](docs/Info-Window.md).
-* Info window tabs now own their own chat commands, so `.rw` reaches the
-  Runewords tab and `.uni` the Uniques tab rather than the module aliasing them
-  by hand, and `.info` leaves whichever tab was last in front where it is.
-* Add `Info Window` option (`BH_settings.cfg`, default `True, VK_NUMPAD9`): a
-  tabbed in-game reference window, opened with the hotkey or `.info`, closed
-  with escape. Its first tab lists the 78 released runeword recipes plus the
-  server-side `Plague`, with a search box that filters by runeword name, rune
-  name or item type and paging with `PgUp`/`PgDn`. `.rw <search>` opens the tab
-  with that search applied. Selecting a row, or pressing enter to take the
-  first match, opens a detail view with the full recipe, its socket count, its
-  required character level and its stats. The stats include what each rune
-  contributes, added together where several sources grant the same stat, and
-  only the lines that actually differ between the bases a runeword allows say
-  which base they apply to (Spirit in a sword gains the runes' elemental damage,
-  in a shield their resistances). Descriptions are built from
-  the game's own property tables and string files, so they read as they do on
-  the item and follow the client's language. Recipes whose working title is
-  still in `Runes.txt`
-  (`Bound by Duty`, `Doomsayer`, `Widowmaker`, `Winter`, `Exile's Path`,
-  `The Beast`) are shown under their released names. See
-  [Info Window](docs/Info-Window.md).
-* Add a `Listhook` drawing component: a paged list with a configurable column
-  layout that measures and trims cells to fit their column, plus row selection,
-  so future reference tabs don't each hand-roll a table.
-* Add a `StatDescriptions` service that turns the property entries in the game's
-  data tables into the description lines the game shows on an item, reading the
-  string tables out of the MPQ archives. `Gems.txt` and `SkillDesc.txt` are now
-  loaded alongside the other tables.
-* Hooks belonging to a UI tab can be shown and hidden individually, so a tab can
-  swap between views. Hooks start shown, so existing tabs are unaffected.
-* Text input boxes take a hint string shown while they are empty, and their
-  clickable area now matches the box as drawn rather than just the text height,
-  which left the bottom of the box dead to clicks. They also take focus on the
-  press rather than the release, report enter to their owner instead of typing
-  it, and no longer accept any control character as text.
-* Fix window positions and sizes being discarded when a BH window is created
-  before the game reports its resolution. Windows are built while BH injects, so
-  the position read back from `UI.ini` was thrown away and every window opened at
-  the top left corner, then saved that position over the real one. A window is
-  now kept on screen only once there is a resolution to judge it against. The
-  same fault could leave a window with no background and an unclickable,
-  undraggable title bar. Also stop `UI.ini` state from triggering a config write
-  during startup.
-* Fix collapsed BH windows swapping places. Their position was derived from the
-  order in which windows happened to be collapsed, so opening one moved the
-  others. Each window now stays where it was put, and only the default position
-  for a window that has never been moved is offset to avoid overlapping.
-* Fix a collapsed window being clamped to the screen by its full window width
-  instead of its title bar width, which pulled wide windows back from their
-  saved position.
-* Fix BH windows consuming mouse clicks while they are not on screen. Windows
-  are only drawn in game, but the window procedure routed clicks to them
-  everywhere, so a window left open in `UI.ini` could swallow menu and lobby
-  clicks with nothing visible. Clicks now reach a window only when it is
-  actually being drawn, and the same applies to the controls on its tabs.
-* Give text input boxes a focused state: a solid field, a second border and a
-  blinking cursor while focused, translucent with dimmed text while not. The
-  idle and focused text colors are settable per box.
+* Add an in-game reference window with a responsive interface.
+  Open it with numpad 9 or `.info`.
+  Searchable tab for runewords, unique items and set items. Commands `.rw <search>` `.uni <search>` `.set <search>` 
+  On by default, and configurable as `Info Window` in `BH_settings.cfg`.
+  See [Info Window](docs/Info-Window.md).
+* Fix BH windows not staying where you put them when multiple were on screen.
+* Fix BH windows swallowing mouse clicks in menus and lobby under certain circumstances.
 
 # Release Notes for 1.9.11g (2026-08-19)
 * Add `Monster Curses` option (`BH_settings.cfg`, default `True, None`) to mark

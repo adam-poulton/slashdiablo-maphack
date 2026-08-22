@@ -50,6 +50,7 @@ public:
 	static Table Runewords;
 	static Table UniqueItems;
 	static Table SetItems;
+	static Table Sets;
 	static Table Skills;
 	static Table MagicPrefix;
 	static Table MagicSuffix;
