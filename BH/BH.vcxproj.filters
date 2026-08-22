@@ -43,6 +43,7 @@
     <ClCompile Include="Modules\Party\Party.cpp" />
     <ClCompile Include="Modules\Info\InfoText.cpp" />
     <ClCompile Include="Modules\Info\InfoWindow.cpp" />
+    <ClCompile Include="Modules\Info\RecipeTab.cpp" />
     <ClCompile Include="Modules\Info\RunewordTab.cpp" />
     <ClCompile Include="Modules\Info\SetTab.cpp" />
     <ClCompile Include="Modules\Info\UniqueTab.cpp" />
@@ -116,6 +117,7 @@
     <ClInclude Include="Modules\Info\InfoText.h" />
     <ClInclude Include="Modules\Info\InfoWindow.h" />
     <ClInclude Include="Modules\Info\InfoTab.h" />
+    <ClInclude Include="Modules\Info\RecipeTab.h" />
     <ClInclude Include="Modules\Info\RunewordTab.h" />
     <ClInclude Include="Modules\Info\SetTab.h" />
     <ClInclude Include="Modules\Info\UniqueTab.h" />

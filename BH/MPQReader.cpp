@@ -74,7 +74,8 @@ bool ReadMPQFiles() {
 		"RareSuffix",
 		"CharStats",
 		"Gems",
-		"SkillDesc"
+		"SkillDesc",
+		"CubeMain"
 	};
 	const int NUM_MPQS = sizeof(mpqFiles) / sizeof(mpqFiles[0]);
 	for (int i = 0; i < NUM_MPQS; i++) {

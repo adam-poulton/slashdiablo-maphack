@@ -59,6 +59,7 @@ public:
 	static Table CharStats;
 	static Table Gems;
 	static Table SkillDesc;
+	static Table CubeMain;
 	/*static Table Armor;
 	static Table Weapons;
 	static Table Misc;*/

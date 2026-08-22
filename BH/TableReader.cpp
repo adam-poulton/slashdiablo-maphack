@@ -285,6 +285,7 @@ Table Tables::RareSuffix;
 Table Tables::CharStats;
 Table Tables::Gems;
 Table Tables::SkillDesc;
+Table Tables::CubeMain;
 
 Table Strings;
 Table Expansion;
@@ -320,6 +321,7 @@ bool Tables::initTables(){
 		success &= TableReader::loadMPQData("CharStats", CharStats);
 		success &= TableReader::loadMPQData("Gems", Gems);
 		success &= TableReader::loadMPQData("SkillDesc", SkillDesc);
+		success &= TableReader::loadMPQData("CubeMain", CubeMain);
 
 		UniqueItems.removeWhere([](JSONElement* obj){
 			return ((JSONObject*)obj)->getString("index").compare("Expansion") == 0;

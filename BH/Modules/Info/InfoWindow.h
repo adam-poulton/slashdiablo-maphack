@@ -6,6 +6,7 @@
 #include "../../Config.h"
 #include "../../Drawing.h"
 #include "InfoTab.h"
+#include "RecipeTab.h"
 #include "RunewordTab.h"
 #include "SetTab.h"
 #include "UniqueTab.h"

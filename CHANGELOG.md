@@ -7,7 +7,8 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
 # Unreleased
 * Add an in-game reference window with a responsive interface.
   Open it with numpad 9 or `.info`.
-  Searchable tab for runewords, unique items and set items. Commands `.rw <search>` `.uni <search>` `.set <search>` 
+  Searchable tab for runewords, unique items, set items and Horadric Cube
+  recipes. Commands `.rw <search>` `.uni <search>` `.set <search>` `.cube <search>`
   On by default, and configurable as `Info Window` in `BH_settings.cfg`.
   See [Info Window](docs/Info-Window.md).
 * Fix BH windows not staying where you put them when multiple were on screen.

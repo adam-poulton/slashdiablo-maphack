@@ -2,9 +2,9 @@ Info Window
 ===========
 
 An in-game reference window. It is a tabbed panel, so lookups that would
-otherwise mean alt-tabbing to a wiki can live in the game. It has three tabs,
-**Runewords**, **Uniques** and **Sets**. Click a tab to switch to it, or use the
-chat command that belongs to it.
+otherwise mean alt-tabbing to a wiki can live in the game. It has four tabs,
+**Runewords**, **Uniques**, **Sets** and **Recipes**. Click a tab to switch to
+it, or use the chat command that belongs to it.
 
 ## Opening it
 
@@ -66,7 +66,7 @@ Searching matches the unique's name, its base item and the base's item type, so
 Point at a unique and it is described beside the window: its base item, the
 character level it requires, and its stats, rendered exactly as they are on
 [the Runewords tab](#summary-panel) - added together, ordered by `descpriority`
-and grouped by `dgrp`, since all three tabs render stats through the same code.
+and grouped by `dgrp`, since every tab renders stats through the same code.
 
 
 ## Sets tab
@@ -92,4 +92,45 @@ it, since that is where they move the caret.
 
 Point at a piece and it is described beside the window: what it grants on its
 own, then, under its set's name, what the set grants. The stats come from the
-same tables and string files the game itself uses
+same tables and string files the game itself uses.
+
+## Recipes tab
+
+Every Horadric Cube recipe the game allows, read from your `CubeMain.txt` in the
+game MPQ archives when BH starts. The file carries unfinished and placeholder
+recipes alongside the real ones; only the rows it flags as enabled are listed.
+
+`.cube <search>` opens the tab with that search already applied; `.recipes` is a
+longer alias.
+
+Recipes are left in the order `CubeMain.txt` gives them, which walks the cube
+from the quest recipes through the potions, the gems and the runes to the
+crafting and the upgrades, so a chain reads end to end rather than being broken
+apart alphabetically.
+
+Searching matches what a recipe makes, what it takes and what it does, so
+`perfect ruby` finds both the recipe that makes one and every recipe that spends
+one, and `ladder` finds the recipes only a ladder character can use.
+
+A recipe names a range of items as often as it names one, so it reads as the
+cube reads it: `Unsocketed Normal Weapon + Ral Rune + Amn Rune + Perfect
+Amethyst` rather
+than as a particular sword. Where the recipe forces a prefix or a suffix, the
+result is named by it, so the prismatic amulet recipe is listed as what it
+actually makes.
+
+### Summary panel
+
+Point at a recipe and it is described beside the window: what it makes, what it
+is made from, the bonuses the result is guaranteed, and, under those, what else
+the recipe does - the sockets it adds, the levels it costs, the item level the
+result comes out at, and any condition on using it at all.
+
+The bonuses are read from the same tables and string files the game itself uses
+to describe an item, so a crafted item's guaranteed bonuses are worded exactly
+as they are on [the Runewords tab](#summary-panel) and read in whatever language
+your client is installed in.
+
+The sockets a recipe adds and the levels it costs are shown in words rather than
+as bonuses, because that is what the game does with them: it puts them into the
+shape of the item instead of giving either a line of its own.
