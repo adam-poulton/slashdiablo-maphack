@@ -30,6 +30,12 @@ struct CubeRecipe {
 	std::vector<std::string> notes;
 
 	std::vector<CubeProperty> properties;	// the bonuses the result is given
+
+	// Bonuses given as ready made text, for what the result carries that no
+	// property entry describes. They read as stat lines because that is what
+	// they are to whoever is reading them, whatever the tables can express.
+	std::vector<std::string> extraLines;
+
 	std::vector<std::string> stats;			// built on first view
 	bool statsLoaded;
 

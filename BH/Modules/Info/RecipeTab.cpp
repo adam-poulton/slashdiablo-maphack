@@ -21,14 +21,7 @@ using namespace InfoText;
 #define RC_FOOTER_GAP		6	// between the list and the status line
 #define RC_FOOTER_HEIGHT	8	// the status line itself
 
-// What a recipe makes and what it is made from read as one line, parted by this
-// rather than by a column of clear space, so a short result leaves its
-// ingredients room instead of leaving a gap. It sits against the result with no
-// gap in front of it, the way a colon belongs to the word before it.
-//
-// A middle dot would read better still, but the game's string tables are ASCII
-// throughout and none of them carries one, so there is no telling whether the
-// font a client is running has the glyph.
+// Separate what a recipe makes and what it is made from
 #define RC_SEPARATOR		": "
 #define RC_COL_GAP			1
 
@@ -37,6 +30,11 @@ using namespace InfoText;
 #define RC_INPUT_COUNT		7
 #define RC_MOD_COUNT		5
 #define RC_AFFIX_MOD_COUNT	3
+
+// What crafting rolls on top of the bonuses a recipe guarantees, and the item
+// level at which the roll will always be the maximum.
+#define RC_CRAFT_AFFIX_LINE	"+1-4 Random Affixes"
+#define RC_CRAFT_AFFIX_LEVEL	71
 
 // The cube's own wildcard, standing for any item at all rather than for a base
 // item or an item type. Its qualifiers are what narrow it, so it reads as
@@ -590,11 +588,12 @@ void RecipeTab::BuildRecipes() {
 			recipe.result = Join(words, " ");
 
 			// A crafted item rolls magic bonuses of its own on top of the ones the
-			// recipe guarantees. How many is the game's rule for crafting rather
-			// than anything the row says, so it is said in words beside the bonuses
-			// that are certain rather than pretended to be one of them.
-			if (made && made->rarity == RarityCrafted)
-				recipe.notes.push_back("1 to 4 random magic bonuses as well");
+			// recipe guarantees, which is as much a part of what it comes out with
+			// as the rest and so reads as one of its bonuses. How many it rolls is
+			// left to a note, that being a condition rather than a bonus.
+			bool crafted = (made && made->rarity == RarityCrafted);
+			if (crafted)
+				recipe.extraLines.push_back(RC_CRAFT_AFFIX_LINE);
 
 			// The item level of the result, which is what a recipe making a magic
 			// or a rare item is really choosing: it decides which bonuses the
@@ -613,6 +612,13 @@ void RecipeTab::BuildRecipes() {
 				levels.push_back(std::to_string(itemShare) + "% of the item's");
 			if (!levels.empty())
 				recipe.notes.push_back("Item level: " + Join(levels, " + "));
+
+			// Which is what decides how many of those affixes are rolled, so it
+			// follows the item level rather than leading it.
+			if (crafted) {
+				recipe.notes.push_back("All 4 affixes are guaranteed at item level " +
+					std::to_string(RC_CRAFT_AFFIX_LEVEL));
+			}
 
 			if (output.Has("rch"))
 				recipe.notes.push_back("Charges are recharged");
@@ -691,6 +697,11 @@ void RecipeTab::LoadStats(CubeRecipe* recipe) {
 			property.min, property.max, stats);
 	}
 	recipe->stats = StatDescriptions::BuildLines(stats);
+
+	// After the described bonuses, the ready made ones being what the tables
+	// could not put in order among them.
+	for (unsigned int i = 0; i < recipe->extraLines.size(); i++)
+		recipe->stats.push_back(recipe->extraLines[i]);
 }
 
 void RecipeTab::ApplyFilter() {
