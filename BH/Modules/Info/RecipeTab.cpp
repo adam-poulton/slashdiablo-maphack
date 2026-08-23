@@ -435,7 +435,8 @@ void RecipeTab::MpqLoaded() {
 }
 
 bool RecipeTab::HandlesCommand(const std::string& command) {
-	return command.compare("cube") == 0 || command.compare("recipes") == 0;
+	return command.compare("cube") == 0 || command.compare("recipe") == 0 ||
+		command.compare("recipes") == 0;
 }
 
 // The sockets a recipe adds and the levels it costs are held as properties, but
