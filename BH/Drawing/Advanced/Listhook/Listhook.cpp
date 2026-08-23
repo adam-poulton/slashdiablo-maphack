@@ -754,6 +754,9 @@ void Listhook::OnDraw() {
 			TextColor color = columns[c].color;
 			if ((selected || (int)r == hovered) && columns[c].hoverColor != Disabled)
 				color = columns[c].hoverColor;
+			// Last, so a colour the row names outlasts the lift as well.
+			if (c < rows[r].colors.size() && rows[r].colors[c] != Disabled)
+				color = rows[r].colors[c];
 			Texthook::Draw(GetX() + layout[c].x, y, None, font, color, "%s",
 				fitted[r][c].c_str());
 		}

@@ -365,11 +365,12 @@ RecipeTab::RecipeTab(UI* ui) : InfoTab("Recipes", ui),
 	searchBox->SetClearOnFocus(true);
 
 	list = new Listhook(tab, RC_MARGIN, 0, 0, 0);
-	// A column carries one colour, and a recipe makes whatever quality of item
-	// it makes, so the result is left the colour of a plain item here and drawn
-	// in its own rarity in the summary panel, where there is a colour per line.
+	// A recipe makes whatever quality of item it makes, so the result's colour
+	// comes from the row rather than from the column, and it stays put under the
+	// mouse; the ingredients are what lift, which is what gives the row its
+	// answer to being pointed at.
 	std::vector<ListColumn> columns;
-	columns.push_back(ListColumn("", 0, RC_COL_RESULT_WEIGHT, 0, White, Gold));
+	columns.push_back(ListColumn("", 0, RC_COL_RESULT_WEIGHT, 0, White));
 	columns.push_back(ListColumn("", 0, RC_COL_INGREDIENT_WEIGHT, RC_COL_GAP, Grey, White));
 	list->SetColumns(columns);
 	list->SetGroupColor(Gold);
@@ -533,7 +534,7 @@ void RecipeTab::BuildRecipes() {
 				words.push_back(Label(quality->word.key, quality->word.fallback));
 			}
 			if (quality)
-				recipe.resultRarity = quality->rarity;
+				recipe.resultColor = RarityColor(quality->rarity);
 
 			if (family.length() > 0)
 				words.push_back(family);
@@ -662,7 +663,10 @@ void RecipeTab::PushRows() {
 			shownGroups++;
 		}
 
-		rows.push_back(ListRow({ matches[i]->result, matches[i]->ingredients }));
+		// The result carries its own colour; the ingredients keep the column's.
+		ListRow row({ matches[i]->result, matches[i]->ingredients });
+		row.colors.push_back(matches[i]->resultColor);
+		rows.push_back(row);
 		rowRecipes.push_back(matches[i]);
 	}
 
@@ -695,7 +699,7 @@ void RecipeTab::UpdateStatus() {
 std::vector<TooltipLine> RecipeTab::BuildSummaryLines(CubeRecipe* recipe) {
 	ItemDescription::Recipe cube;
 	cube.name = recipe->result;
-	cube.nameColor = RarityColor(recipe->resultRarity);
+	cube.nameColor = recipe->resultColor;
 	cube.ingredients = recipe->ingredients;
 	cube.AddStats(recipe->stats, Blue);
 	cube.AddStats(recipe->notes, Grey, true);

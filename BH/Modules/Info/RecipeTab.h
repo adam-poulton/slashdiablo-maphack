@@ -2,7 +2,6 @@
 #include <string>
 #include <vector>
 #include "../../ItemDescription.h"
-#include "../../ItemRarity.h"
 #include "InfoTab.h"
 
 // A property entry as it appears in the game's tables.
@@ -17,7 +16,13 @@ struct CubeProperty {
 struct CubeRecipe {
 	std::string group;			// the heading it sits under, "Gem"
 	std::string result;			// "Perfect Ruby", as the game names it
-	ItemRarity resultRarity;	// what the result is drawn in
+
+	// What the result is drawn in, both in the list and at the top of the
+	// summary panel, so a recipe reads as the item it makes wherever it is
+	// shown. Gold where the recipe names no quality, since the result is still
+	// an item's name and gold is what the game gives a name it has no colour of
+	// its own for.
+	TextColor resultColor;
 	std::string ingredients;	// "3 Flawless Ruby"
 	std::string searchKey;		// lowercased group/result/ingredients/notes
 
@@ -29,7 +34,7 @@ struct CubeRecipe {
 	std::vector<std::string> stats;			// built on first view
 	bool statsLoaded;
 
-	CubeRecipe() : resultRarity(RarityNormal), statsLoaded(false) {};
+	CubeRecipe() : resultColor(Gold), statsLoaded(false) {};
 };
 
 // The Horadric Cube panel, laid out and driven the same way as the runewords

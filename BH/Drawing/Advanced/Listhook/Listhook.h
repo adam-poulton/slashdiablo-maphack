@@ -48,8 +48,20 @@ namespace Drawing {
 	// A heading's first cell is its identity as well as its label - it is what the
 	// list remembers a fold against, so folding survives the rows being pushed
 	// again for a new filter. Its other cells are ignored.
+	//
+	// A row can name a cell's colour itself, where what the cell says varies from
+	// row to row in a way the column cannot: an item's rarity, say. A colour left
+	// Disabled, or a cell past the end of colors, takes its column's colour as
+	// usual. A colour the row names wins over the column's hover colour too,
+	// since lifting the row would throw away the very thing the colour is there
+	// to show; the shade behind the selected row is what marks it either way.
+	//
+	// Colours are set as a member rather than passed to a constructor of their
+	// own: a braced list initialises a bool as readily as a vector, so a second
+	// two argument constructor could not be told from the grouping one.
 	struct ListRow {
 		std::vector<std::string> cells;
+		std::vector<TextColor> colors;
 		bool group;
 
 		ListRow() : group(false) {};

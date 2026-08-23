@@ -143,6 +143,12 @@ shows, so it is read out of the description `CubeMain.txt` carries on the row; a
 realm that adds a family of its own reads as a crafted item until it is named
 here.
 
+Each result is drawn in the colour the item it makes is drawn in, in the list and
+at the top of the summary panel alike, so the crafting recipes read orange, the
+rerolls blue and yellow and the unique upgrades gold. A recipe whose result has
+no quality of its own - a gem, a rune, a potion - is drawn in gold as well, since
+what it says is still an item's name.
+
 ### Summary panel
 
 Point at a recipe and it is described beside the window: what it makes, what it
