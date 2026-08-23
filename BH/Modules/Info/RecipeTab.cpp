@@ -202,6 +202,12 @@ static const char* kGroupTypes[] = {
 	"book", "ques", "weap", "armo",
 };
 
+// The two grouping types the tab has something of its own to say about: a rune
+// is drawn in the colour the game gives a rune rather than as a plain item, and
+// a quest item is gathered under the quest recipes rather than under its type.
+#define RC_TYPE_RUNE		"rune"
+#define RC_TYPE_QUEST		"ques"
+
 // Headings for what a recipe does, where that says more than what it makes
 // does: every socket recipe makes a different item, but they are all one recipe
 // to anyone looking for one. The game writes none of these anywhere, so there
@@ -328,7 +334,8 @@ static std::string InputPhrase(const CubeToken& token) {
 // what the recipes anyone hunts for as a group have in common, and failing that
 // what kind of item it makes, which gathers the gem and rune chains up.
 static std::string RecipeGroup(const CubeToken& output, const CubeToken& named,
-		const CubeQuality* made, const std::string& family, bool socketed) {
+		const std::string& madeType, const CubeQuality* made,
+		const std::string& family, bool socketed) {
 	if (made && made->rarity == RarityCrafted)
 		return (family.length() > 0) ? family : RC_GROUP_CRAFTING;
 	if (socketed || output.Has("uns"))
@@ -342,10 +349,9 @@ static std::string RecipeGroup(const CubeToken& output, const CubeToken& named,
 	if (base && base->quest > 0)
 		return RC_GROUP_QUEST;
 
-	std::string type = GroupTypeFor(named.code);
-	if (type.length() > 0) {
-		return (type.compare("ques") == 0) ? RC_GROUP_QUEST :
-			ItemDescription::TypeName(type);
+	if (madeType.length() > 0) {
+		return (madeType.compare(RC_TYPE_QUEST) == 0) ? RC_GROUP_QUEST :
+			ItemDescription::TypeName(madeType);
 	}
 	// A recipe that names no item at all makes none: it opens a portal, which
 	// the quest recipes are what do.
@@ -533,8 +539,13 @@ void RecipeTab::BuildRecipes() {
 					family.length() == 0) {
 				words.push_back(Label(quality->word.key, quality->word.fallback));
 			}
+			// A rune carries no quality, but the game still gives its name a
+			// colour of its own, which is the one BH draws a rune in everywhere.
+			std::string madeType = GroupTypeFor(named.code);
 			if (quality)
 				recipe.resultColor = RarityColor(quality->rarity);
+			else if (madeType.compare(RC_TYPE_RUNE) == 0)
+				recipe.resultColor = RarityColor(RarityRune);
 
 			if (family.length() > 0)
 				words.push_back(family);
@@ -597,7 +608,8 @@ void RecipeTab::BuildRecipes() {
 			else if (difficulty >= 2)
 				recipe.notes.push_back("Hell only");
 
-			recipe.group = RecipeGroup(output, named, made, family, socketed);
+			recipe.group = RecipeGroup(output, named, madeType, made, family,
+				socketed);
 			recipe.searchKey = ToLower(recipe.group + " " + recipe.result + " " +
 				recipe.ingredients + " " + Join(recipe.notes, " "));
 			recipes.push_back(recipe);
