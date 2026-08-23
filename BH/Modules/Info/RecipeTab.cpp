@@ -587,19 +587,46 @@ void RecipeTab::BuildRecipes() {
 				words.push_back(suffix);
 			recipe.result = Join(words, " ");
 
-			// A crafted item rolls magic bonuses of its own on top of the ones the
-			// recipe guarantees, which is as much a part of what it comes out with
-			// as the rest and so reads as one of its bonuses. How many it rolls is
-			// left to a note, that being a condition rather than a bonus.
+			// A crafted item rolls rare affix bonuses of its own on top of the ones the
+			// recipe guarantees
 			bool crafted = (made && made->rarity == RarityCrafted);
 			if (crafted)
 				recipe.extraLines.push_back(RC_CRAFT_AFFIX_LINE);
 
+			// An input allowed at any tier is allowed as its exceptional and its
+			// elite version too, which is not something its own name says.
+			for (unsigned int n = 0; n < inputs.size(); n++) {
+				if (!inputs[n].Has("upg"))
+					continue;
+
+				std::vector<std::string> upgrades;
+				const ItemDescription::Base* base =
+					ItemDescription::FindBase(inputs[n].code);
+				if (base) {
+					const std::string codes[] = { base->exceptional, base->elite };
+					for (int c = 0; c < 2; c++) {
+						if (codes[c].length() > 0)
+							upgrades.push_back(ItemDescription::BaseName(codes[c]));
+					}
+				}
+
+				// A base whose table names no upgrade still allows one, so the
+				// recipe says as much without being able to say which.
+				if (upgrades.empty()) {
+					recipe.notes.push_back(
+						"The exceptional and elite bases also work");
+				}
+				else {
+					recipe.notes.push_back("Alt bases: " +
+						Join(upgrades, ", "));
+				}
+				break;
+			}
+
 			// The item level of the result, which is what a recipe making a magic
 			// or a rare item is really choosing: it decides which bonuses the
-			// item can roll. The game works it out as a flat amount plus a share
-			// of the character's level and a share of the level of the item that
-			// went in, so it is said here as the sum it is.
+			// item can roll. The game calculates as a flat amount plus a share
+			// of the character's level and a share of the level of the input item
 			std::vector<std::string> levels;
 			int flatLevel = atoi(entry->getString("lvl").c_str());
 			int playerShare = atoi(entry->getString("plvl").c_str());
@@ -607,32 +634,23 @@ void RecipeTab::BuildRecipes() {
 			if (flatLevel > 0)
 				levels.push_back(std::to_string(flatLevel));
 			if (playerShare > 0)
-				levels.push_back(std::to_string(playerShare) + "% of your level");
+				levels.push_back(std::to_string(playerShare) + "% clvl");
 			if (itemShare > 0)
-				levels.push_back(std::to_string(itemShare) + "% of the item's");
+				levels.push_back(std::to_string(itemShare) + "% ilvl");
 			if (!levels.empty())
-				recipe.notes.push_back("Item level: " + Join(levels, " + "));
+				recipe.notes.push_back("Craft ilvl: " + Join(levels, " + "));
 
 			// Which is what decides how many of those affixes are rolled, so it
 			// follows the item level rather than leading it.
 			if (crafted) {
-				recipe.notes.push_back("All 4 affixes are guaranteed at item level " +
+				recipe.notes.push_back("Always 4 affixes at craft ilvl " +
 					std::to_string(RC_CRAFT_AFFIX_LEVEL));
 			}
 
 			if (output.Has("rch"))
 				recipe.notes.push_back("Charges are recharged");
 			if (output.Has("uns"))
-				recipe.notes.push_back("The gems and runes are destroyed");
-			// An input allowed at any tier is allowed as its exceptional and its
-			// elite version too, which is not something its name says.
-			for (unsigned int n = 0; n < inputs.size(); n++) {
-				if (inputs[n].Has("upg")) {
-					recipe.notes.push_back(
-						"The exceptional and elite versions also work");
-					break;
-				}
-			}
+				recipe.notes.push_back("The socketted items are destroyed");
 
 			// A row can make more than one thing. Only the first names the
 			// recipe; the rest are said in a note, so nothing is dropped.

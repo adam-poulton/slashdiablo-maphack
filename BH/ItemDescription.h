@@ -64,6 +64,12 @@ namespace ItemDescription {
 		// item. Which quest is of no interest; that it is one is.
 		int quest;
 
+		// The codes of the same item a tier up, and empty where the tables name
+		// none. A base has its own code in these columns where it has no upgrade,
+		// which reads here as having none.
+		std::string exceptional;	// ubercode
+		std::string elite;			// ultracode
+
 		Requirements requirements;
 
 		// Whichever of these the base carries; a weapon has damage, armour has

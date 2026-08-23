@@ -168,6 +168,14 @@ static void LoadBases() {
 			base.typeName = TypeName(base.type);
 			base.quest = Column(*row, "quest");
 
+			// A base pointing an upgrade column at itself has no upgrade there.
+			std::string exceptional = Text(*row, "ubercode");
+			std::string elite = Text(*row, "ultracode");
+			if (exceptional.compare(code) != 0)
+				base.exceptional = exceptional;
+			if (elite.compare(code) != 0)
+				base.elite = elite;
+
 			// Armor.txt has no reqdex column at all, and a blank cell is what an
 			// item with no requirement of that kind carries.
 			base.requirements.level = Column(*row, "levelreq");
