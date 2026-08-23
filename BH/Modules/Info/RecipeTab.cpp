@@ -32,9 +32,11 @@ using namespace InfoText;
 #define RC_SEPARATOR		": "
 #define RC_COL_GAP			1
 
-// How many inputs and how many output bonuses CubeMain.txt gives each row.
+// How many inputs and how many output bonuses CubeMain.txt gives each row, and
+// how many bonuses an affix carries in MagicPrefix.txt and MagicSuffix.txt.
 #define RC_INPUT_COUNT		7
 #define RC_MOD_COUNT		5
+#define RC_AFFIX_MOD_COUNT	3
 
 // The cube's own wildcard, standing for any item at all rather than for a base
 // item or an item type. Its qualifiers are what narrow it, so it reads as
@@ -293,13 +295,27 @@ static TextColor NameColor(ItemRarity rarity) {
 	return (color == White) ? Gold : color;
 }
 
-// A forced prefix or suffix, by the row it sits on in its table. CubeMain.txt
-// names it by row rather than by name, so a realm that reorders its affixes
-// moves what a recipe makes with it.
-static std::string AffixName(Table& table, int row) {
+// A forced prefix or suffix, by the row it sits on in its table.
+// CubeMain.txt names it by row rather than by name.
+// What an affix grants is on the same row, so it is collected here.
+static std::string ReadAffix(Table& table, int row,
+		std::vector<CubeProperty>& properties) {
 	JSONObject* entry = table.entryAt(row);
 	if (!entry)
 		return "";
+
+	for (int n = 1; n <= RC_AFFIX_MOD_COUNT; n++) {
+		std::string index = std::to_string(n);
+		CubeProperty property;
+		property.code = ToLower(Trim(entry->getString("mod" + index + "code")));
+		if (property.code.length() == 0)
+			continue;
+		property.param = Trim(entry->getString("mod" + index + "param"));
+		property.min = atoi(entry->getString("mod" + index + "min").c_str());
+		property.max = atoi(entry->getString("mod" + index + "max").c_str());
+		properties.push_back(property);
+	}
+
 	std::string name = Trim(entry->getString("Name"));
 	std::string localized = StatDescriptions::GetString(name);
 	return (localized.length() > 0) ? localized : name;
@@ -343,8 +359,7 @@ static std::string InputPhrase(const CubeToken& token) {
 
 // Which heading a recipe belongs under. CubeMain.txt has no column saying so,
 // so it is read out of the row: first what the recipe does to the item, which is
-// what the recipes anyone hunts for as a group have in common, and failing that
-// what kind of item it makes, which gathers the gem and rune chains up.
+// what grouped recipes have in common, and failing that what kind of item it makes.
 static std::string RecipeGroup(const CubeToken& output, const CubeToken& named,
 		const std::string& madeType, const CubeQuality* made,
 		const std::string& family, bool socketed) {
@@ -365,8 +380,7 @@ static std::string RecipeGroup(const CubeToken& output, const CubeToken& named,
 		return (madeType.compare(RC_TYPE_QUEST) == 0) ? RC_GROUP_QUEST :
 			ItemDescription::TypeName(madeType);
 	}
-	// A recipe that names no item at all makes none: it opens a portal, which
-	// the quest recipes are what do.
+	// A recipe that names no item at all makes none: it opens a portal.
 	return (named.code.compare(RC_ANY_ITEM) == 0) ?
 		RC_GROUP_REROLLING : RC_GROUP_QUEST;
 }
@@ -384,13 +398,11 @@ RecipeTab::RecipeTab(UI* ui) : InfoTab("Recipes", ui),
 
 	list = new Listhook(tab, RC_MARGIN, 0, 0, 0);
 	// One line in two colours: what the recipe makes, in the colour of the item
-	// it makes, and then what it is made from flowing straight on from it. The
-	// ingredients are the end of the line and so the end that is cut, which
-	// leaves the result whole however narrow the window is drawn.
+	// it makes, and then what it is made from flowing straight on from it.
 	//
 	// A recipe makes whatever quality of item it makes, so the result's colour
-	// comes from the row rather than from the column. Both columns still lift to
-	// white under the mouse, as every other list's do.
+	// comes from the row rather than from the column. Items that would render
+	// white are made gold to allow for white on hover.
 	std::vector<ListColumn> columns;
 	columns.push_back(ListColumn("", 0, 1, 0, Gold, White));
 	columns.push_back(ListColumn("", 0, 0, RC_COL_GAP, Grey, White, true));
@@ -547,8 +559,10 @@ void RecipeTab::BuildRecipes() {
 			// An affix or a craft family names the result outright, so the quality
 			// word would only repeat what the name already says; the colour still
 			// carries it.
-			std::string prefix = AffixName(Tables::MagicPrefix, output.Number("pre", -1));
-			std::string suffix = AffixName(Tables::MagicSuffix, output.Number("suf", -1));
+			std::string prefix = ReadAffix(Tables::MagicPrefix,
+				output.Number("pre", -1), recipe.properties);
+			std::string suffix = ReadAffix(Tables::MagicSuffix,
+				output.Number("suf", -1), recipe.properties);
 			std::string family;
 			if (made && made->rarity == RarityCrafted)
 				family = CraftFamily(entry->getString("description"));
@@ -574,6 +588,13 @@ void RecipeTab::BuildRecipes() {
 			if (suffix.length() > 0)
 				words.push_back(suffix);
 			recipe.result = Join(words, " ");
+
+			// A crafted item rolls magic bonuses of its own on top of the ones the
+			// recipe guarantees. How many is the game's rule for crafting rather
+			// than anything the row says, so it is said in words beside the bonuses
+			// that are certain rather than pretended to be one of them.
+			if (made && made->rarity == RarityCrafted)
+				recipe.notes.push_back("1 to 4 random magic bonuses as well");
 
 			// The item level of the result, which is what a recipe making a magic
 			// or a rare item is really choosing: it decides which bonuses the
