@@ -103,17 +103,16 @@ recipes alongside the real ones; only the rows it flags as enabled are listed.
 `.cube <search>` opens the tab with that search already applied; `.recipes` is a
 longer alias.
 
-Recipes are grouped, and every group starts folded, so the tab opens as a list
-of the kinds of recipe there are rather than as a hundred and fifty rows to
-scroll through. `CubeMain.txt` has no
-column saying which kind a recipe is, so each is read out of its own row: first
-what the recipe does to the item, which is what the recipes anyone hunts for as a
-group have in common - `Sockets`, `Repairing`, `Upgrading`, `Rerolling`, and the
-four crafting families - and failing that what kind of item it makes, which
-gathers the chains up under `Gem` and `Rune`. That last part walks up the `Equiv`
-columns of `ItemTypes.txt`, so a heading is whatever the realm calls that item
-type and a type the realm adds is gathered under whichever known type it
-descends from.
+Recipes are grouped, and every group starts folded, so the tab opens as a list of
+the kinds of recipe there are rather than as a hundred and fifty rows to scroll
+through. `CubeMain.txt` has no column saying which kind a recipe is, so each is
+read out of its own row: first what the recipe does to the item, which is what the
+recipes anyone hunts for as a group have in common - `Sockets`, `Repairing`,
+`Upgrading`, `Rerolling`, and the four crafting families - and failing that what
+kind of item it makes, which gathers the chains up under `Gem` and `Rune`. That
+last part walks up the `Equiv` columns of `ItemTypes.txt`, so a heading is
+whatever the realm calls that item type and a type the realm adds is gathered
+under whichever known type it descends from.
 
 Groups appear in the order `CubeMain.txt` first reaches them, which walks the
 cube from the quest recipes through the potions, the gems and the runes to the
@@ -142,15 +141,6 @@ that is what they are known as. The family is not something the game itself ever
 shows, so it is read out of the description `CubeMain.txt` carries on the row; a
 realm that adds a family of its own reads as a crafted item until it is named
 here.
-
-Each result is drawn in the colour the item it makes is drawn in, in the list and
-at the top of the summary panel alike, so the crafting recipes read orange, the
-rerolls blue and yellow, the unique upgrades gold and the runes in their own
-orange. Where the game gives a name no colour of its own it is drawn in gold
-rather than in white: a plain name is white in game, but so is everything else in
-the panel around it, and gold is what keeps a name reading as one.
-
-Pointing at a row lifts it to white, as it does on the other tabs.
 
 ### Summary panel
 
