@@ -52,9 +52,8 @@ namespace Drawing {
 	// A row can name a cell's colour itself, where what the cell says varies from
 	// row to row in a way the column cannot: an item's rarity, say. A colour left
 	// Disabled, or a cell past the end of colors, takes its column's colour as
-	// usual. A colour the row names wins over the column's hover colour too,
-	// since lifting the row would throw away the very thing the colour is there
-	// to show; the shade behind the selected row is what marks it either way.
+	// usual. Either way the column's hover colour goes over the top, so a row
+	// still lifts under the mouse the way every other list's rows do.
 	//
 	// Colours are set as a member rather than passed to a constructor of their
 	// own: a braced list initialises a bool as readily as a vector, so a second

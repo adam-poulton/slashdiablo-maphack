@@ -19,9 +19,8 @@ struct CubeRecipe {
 
 	// What the result is drawn in, both in the list and at the top of the
 	// summary panel, so a recipe reads as the item it makes wherever it is
-	// shown. Where the recipe names no quality it is the colour the game gives
-	// that kind of item, and gold for a kind it colours no differently, since
-	// the result is still an item's name.
+	// shown. Gold wherever the game gives the name no colour of its own, which
+	// is what a plain item and every quality the game draws plain come to.
 	TextColor resultColor;
 	std::string ingredients;	// "3 Flawless Ruby"
 	std::string searchKey;		// lowercased group/result/ingredients/notes

@@ -145,10 +145,12 @@ here.
 
 Each result is drawn in the colour the item it makes is drawn in, in the list and
 at the top of the summary panel alike, so the crafting recipes read orange, the
-rerolls blue and yellow and the unique upgrades gold. A recipe whose result has
-no quality of its own is drawn in the colour the game gives that kind of item -
-the runes in their own orange - and in gold for a kind it colours no differently,
-since what the cell says is still an item's name.
+rerolls blue and yellow, the unique upgrades gold and the runes in their own
+orange. Where the game gives a name no colour of its own it is drawn in gold
+rather than in white: a plain name is white in game, but so is everything else in
+the panel around it, and gold is what keeps a name reading as one.
+
+Pointing at a row lifts it to white, as it does on the other tabs.
 
 ### Summary panel
 

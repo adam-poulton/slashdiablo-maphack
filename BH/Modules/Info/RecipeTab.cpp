@@ -281,6 +281,14 @@ static std::string CodeName(const std::string& code) {
 	return (localized.length() > 0) ? localized : code;
 }
 
+// The colour an item's name is drawn in, with gold wherever the game gives it no
+// colour of its own. A plain name is white in game, but so is everything else in
+// the panel around it, and gold is what keeps a name reading as one.
+static TextColor NameColor(ItemRarity rarity) {
+	TextColor color = RarityColor(rarity);
+	return (color == White) ? Gold : color;
+}
+
 // A forced prefix or suffix, by the row it sits on in its table. CubeMain.txt
 // names it by row rather than by name, so a realm that reorders its affixes
 // moves what a recipe makes with it.
@@ -372,11 +380,10 @@ RecipeTab::RecipeTab(UI* ui) : InfoTab("Recipes", ui),
 
 	list = new Listhook(tab, RC_MARGIN, 0, 0, 0);
 	// A recipe makes whatever quality of item it makes, so the result's colour
-	// comes from the row rather than from the column, and it stays put under the
-	// mouse; the ingredients are what lift, which is what gives the row its
-	// answer to being pointed at.
+	// comes from the row rather than from the column. Both columns still lift to
+	// white under the mouse, as every other list's do.
 	std::vector<ListColumn> columns;
-	columns.push_back(ListColumn("", 0, RC_COL_RESULT_WEIGHT, 0, White));
+	columns.push_back(ListColumn("", 0, RC_COL_RESULT_WEIGHT, 0, Gold, White));
 	columns.push_back(ListColumn("", 0, RC_COL_INGREDIENT_WEIGHT, RC_COL_GAP, Grey, White));
 	list->SetColumns(columns);
 	list->SetGroupColor(Gold);
@@ -542,10 +549,12 @@ void RecipeTab::BuildRecipes() {
 			// A rune carries no quality, but the game still gives its name a
 			// colour of its own, which is the one BH draws a rune in everywhere.
 			std::string madeType = GroupTypeFor(named.code);
+			ItemRarity rarity = RarityNone;
 			if (quality)
-				recipe.resultColor = RarityColor(quality->rarity);
+				rarity = quality->rarity;
 			else if (madeType.compare(RC_TYPE_RUNE) == 0)
-				recipe.resultColor = RarityColor(RarityRune);
+				rarity = RarityRune;
+			recipe.resultColor = NameColor(rarity);
 
 			if (family.length() > 0)
 				words.push_back(family);
