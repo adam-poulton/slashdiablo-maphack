@@ -5,8 +5,16 @@
 #include <algorithm>
 #include <iterator>
 
-// The commands BH answers itself rather than through a module.
-static const char* kOwnCommands[] = { "help", "reload", "save" };
+// The commands BH answers itself rather than through a module. Answering and
+// printing both read this, so a name BH takes and a name BH advertises cannot
+// drift apart.
+static std::vector<ChatCommand> OwnCommands() {
+	std::vector<ChatCommand> commands;
+	commands.push_back(ChatCommand("help", { "commands" }));
+	commands.push_back(ChatCommand("reload"));
+	commands.push_back(ChatCommand("save"));
+	return commands;
+}
 
 // The commands the game answers for itself. BH sees every command first and has
 // no way to ask the game whether it knows one, so without this a command that
@@ -122,10 +130,7 @@ static void PrintLine(const std::string& label,
 }
 
 void ModuleManager::PrintCommands() {
-	std::vector<ChatCommand> own;
-	for (int i = 0; i < (int)(sizeof(kOwnCommands) / sizeof(kOwnCommands[0])); i++)
-		own.push_back(ChatCommand(kOwnCommands[i]));
-	PrintLine("BH", own);
+	PrintLine("BH", OwnCommands());
 
 	for (map<string, Module*>::iterator it = moduleList.begin();
 			it != moduleList.end(); ++it) {
@@ -150,20 +155,29 @@ bool ModuleManager::UserInput(wchar_t* module, wchar_t* msg, bool fromGame) {
 	name = WStringToString(modname);
 	transform(name.begin(), name.end(), name.begin(), ::tolower);
 
-	if (name.compare("reload") == 0)
+	// Whichever of BH's own commands was reached, under the one name the rest of
+	// this knows it by, so an alias is said in the list and nowhere else.
+	std::vector<ChatCommand> own = OwnCommands();
+	std::string command;
+	for (unsigned int i = 0; i < own.size() && command.empty(); i++) {
+		if (own[i].Answers(name))
+			command = own[i].name;
+	}
+
+	if (command.compare("reload") == 0)
 	{
 		ReloadConfig();
 		Print("\377c4BH:\377c0 Successfully reloaded configuration.");
 		return true;
 	}
 
-	if (name.compare("save") == 0) {
+	if (command.compare("save") == 0) {
 		BH::config->Write();
 		Print("\377c4BH:\377c0 Successfully saved configuration.");
 		return true;
 	}
 
-	if (name.compare("help") == 0) {
+	if (command.compare("help") == 0) {
 		PrintCommands();
 		return true;
 	}

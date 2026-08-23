@@ -9,7 +9,7 @@ channel. `.help` lists them.
 `.help` prints every command BH answers, a line per module:
 
 ```
-BH: .help .reload .save
+BH: .help (.commands) .reload .save
 Info: .info .rw (.runewords) .uni (.uniques) .set (.sets)
 Info: .cube (.recipe, .recipes)
 ```
@@ -37,11 +37,11 @@ without an answer.
 
 ## BH
 
-| Command | What it does |
-| --- | --- |
-| `.help` | Lists every command BH answers. |
-| `.reload` | Rereads `BH.cfg` and `BH_settings.cfg` from disk. |
-| `.save` | Writes the current settings back to `BH_settings.cfg`. |
+| Command | Also | What it does |
+| --- | --- | --- |
+| `.help` | `.commands` | Lists every command BH answers. |
+| `.reload` | | Rereads `BH.cfg` and `BH_settings.cfg` from disk. |
+| `.save` | | Writes the current settings back to `BH_settings.cfg`. |
 
 ## Info
 
