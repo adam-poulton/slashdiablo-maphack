@@ -23,10 +23,14 @@ using namespace InfoText;
 
 // What a recipe makes and what it is made from read as one line, parted by this
 // rather than by a column of clear space, so a short result leaves its
-// ingredients room instead of leaving a gap. The clear space in front of it is
-// the ingredients column's own gap.
-#define RC_SEPARATOR		"= "
-#define RC_COL_GAP			5
+// ingredients room instead of leaving a gap. It sits against the result with no
+// gap in front of it, the way a colon belongs to the word before it.
+//
+// A middle dot would read better still, but the game's string tables are ASCII
+// throughout and none of them carries one, so there is no telling whether the
+// font a client is running has the glyph.
+#define RC_SEPARATOR		": "
+#define RC_COL_GAP			1
 
 // How many inputs and how many output bonuses CubeMain.txt gives each row.
 #define RC_INPUT_COUNT		7
