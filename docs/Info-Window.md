@@ -103,21 +103,38 @@ recipes alongside the real ones; only the rows it flags as enabled are listed.
 `.cube <search>` opens the tab with that search already applied; `.recipes` is a
 longer alias.
 
-Recipes are left in the order `CubeMain.txt` gives them, which walks the cube
-from the quest recipes through the potions, the gems and the runes to the
-crafting and the upgrades, so a chain reads end to end rather than being broken
-apart alphabetically.
+Recipes are grouped, and every group starts folded, so the tab opens as a list
+of the kinds of recipe there are rather than as a hundred and fifty rows to
+scroll through. `CubeMain.txt` has no
+column saying which kind a recipe is, so each is read out of its own row: first
+what the recipe does to the item, which is what the recipes anyone hunts for as a
+group have in common - `Sockets`, `Repairing`, `Upgrading`, `Rerolling`, and the
+four crafting families - and failing that what kind of item it makes, which
+gathers the chains up under `Gem` and `Rune`. That last part walks up the `Equiv`
+columns of `ItemTypes.txt`, so a heading is whatever the realm calls that item
+type and a type the realm adds is gathered under whichever known type it
+descends from.
 
-Searching matches what a recipe makes, what it takes and what it does, so
-`perfect ruby` finds both the recipe that makes one and every recipe that spends
-one, and `ladder` finds the recipes only a ladder character can use.
+Groups appear in the order `CubeMain.txt` first reaches them, which walks the
+cube from the quest recipes through the potions, the gems and the runes to the
+crafting and the upgrades, and recipes keep the file's order inside their group,
+so a chain reads end to end rather than being broken apart alphabetically.
+
+The left and right arrows fold and unfold groups, from a group or from anything
+inside it, exactly as they do on [the Sets tab](#sets-tab). They reach the search
+box instead once there is something typed in it.
+
+Searching matches what a recipe makes, what it takes, what it does and the group
+it is in, so `perfect ruby` finds both the recipe that makes one and every recipe
+that spends one, `caster` finds the nine caster crafting recipes, and `ladder`
+finds the recipes only a ladder character can use. A search unfolds whatever it
+matched and folds it back up again when the search is cleared.
 
 A recipe names a range of items as often as it names one, so it reads as the
 cube reads it: `Unsocketed Normal Weapon + Ral Rune + Amn Rune + Perfect
-Amethyst` rather
-than as a particular sword. Where the recipe forces a prefix or a suffix, the
-result is named by it, so the prismatic amulet recipe is listed as what it
-actually makes.
+Amethyst` rather than as a particular sword. Where the recipe forces a prefix or
+a suffix, the result is named by it, so the prismatic amulet recipe is listed as
+what it actually makes.
 
 The crafting recipes are listed under the family they belong to - `Hit Power`,
 `Blood`, `Caster` and `Safety` - rather than all reading as a crafted item, since

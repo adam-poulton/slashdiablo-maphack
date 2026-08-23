@@ -1,4 +1,7 @@
 #include "RecipeTab.h"
+#include <algorithm>
+#include <map>
+#include <set>
 #include "../../BH.h"
 #include "../../Common.h"
 #include "../../ItemDescription.h"
@@ -191,6 +194,63 @@ static std::string CraftFamily(const std::string& description) {
 	return "";
 }
 
+// The item types worth gathering recipes under, nearest first. Each is a real
+// ItemTypes.txt row, so a heading is whatever the realm calls that type and a
+// type the realm adds is gathered under whichever of these it descends from.
+static const char* kGroupTypes[] = {
+	"gem", "rune", "jewl", "poti", "misl", "ring", "amul", "char", "scro",
+	"book", "ques", "weap", "armo",
+};
+
+// Headings for what a recipe does, where that says more than what it makes
+// does: every socket recipe makes a different item, but they are all one recipe
+// to anyone looking for one. The game writes none of these anywhere, so there
+// is no string of its own to read them from.
+#define RC_GROUP_CRAFTING	"Crafting"
+#define RC_GROUP_SOCKETS	"Sockets"
+#define RC_GROUP_REPAIRING	"Repairing"
+#define RC_GROUP_UPGRADING	"Upgrading"
+#define RC_GROUP_REROLLING	"Rerolling"
+#define RC_GROUP_QUEST		"Quest"
+
+// The nearest grouping type at or above a code's own item type. Both Equiv
+// columns are followed, since a type can descend from two - a shield is armour
+// and a second hand - and the nearer of them wins.
+static std::string GroupTypeFor(const std::string& code) {
+	std::vector<std::string> level;
+	const ItemDescription::Base* base = ItemDescription::FindBase(code);
+	if (base)
+		level.push_back(base->type);
+	else if (Tables::ItemTypes.findEntry("Code", code))
+		level.push_back(code);
+
+	std::set<std::string> seen(level.begin(), level.end());
+	while (!level.empty()) {
+		for (unsigned int i = 0; i < level.size(); i++) {
+			for (int n = 0; n < (int)(sizeof(kGroupTypes) / sizeof(kGroupTypes[0])); n++) {
+				if (level[i].compare(kGroupTypes[n]) == 0)
+					return level[i];
+			}
+		}
+
+		std::vector<std::string> parents;
+		for (unsigned int i = 0; i < level.size(); i++) {
+			JSONObject* entry = Tables::ItemTypes.findEntry("Code", level[i]);
+			if (!entry)
+				continue;
+			const char* columns[] = { "Equiv1", "Equiv2" };
+			for (int c = 0; c < 2; c++) {
+				std::string parent = Trim(entry->getString(columns[c]));
+				// seen also stops a table whose Equiv chain loops back on itself.
+				if (parent.length() > 0 && seen.insert(parent).second)
+					parents.push_back(parent);
+			}
+		}
+		level = parents;
+	}
+	return "";
+}
+
 // What a cell's code names. Base items are looked up before item types, since a
 // few codes are both: "rin" is a ring and "ring" is the type of all rings.
 static std::string CodeName(const std::string& code) {
@@ -263,7 +323,39 @@ static std::string InputPhrase(const CubeToken& token) {
 	return phrase;
 }
 
+// Which heading a recipe belongs under. CubeMain.txt has no column saying so,
+// so it is read out of the row: first what the recipe does to the item, which is
+// what the recipes anyone hunts for as a group have in common, and failing that
+// what kind of item it makes, which gathers the gem and rune chains up.
+static std::string RecipeGroup(const CubeToken& output, const CubeToken& named,
+		const CubeQuality* made, const std::string& family, bool socketed) {
+	if (made && made->rarity == RarityCrafted)
+		return (family.length() > 0) ? family : RC_GROUP_CRAFTING;
+	if (socketed || output.Has("uns"))
+		return RC_GROUP_SOCKETS;
+	if (output.Has("rep") || output.Has("rch"))
+		return RC_GROUP_REPAIRING;
+	if (output.Has("mod") && (output.Has("exc") || output.Has("eli")))
+		return RC_GROUP_UPGRADING;
+
+	const ItemDescription::Base* base = ItemDescription::FindBase(named.code);
+	if (base && base->quest > 0)
+		return RC_GROUP_QUEST;
+
+	std::string type = GroupTypeFor(named.code);
+	if (type.length() > 0) {
+		return (type.compare("ques") == 0) ? RC_GROUP_QUEST :
+			ItemDescription::TypeName(type);
+	}
+	// A recipe that names no item at all makes none: it opens a portal, which
+	// the quest recipes are what do.
+	return (named.code.compare(RC_ANY_ITEM) == 0) ?
+		RC_GROUP_REROLLING : RC_GROUP_QUEST;
+}
+
 RecipeTab::RecipeTab(UI* ui) : InfoTab("Recipes", ui),
+	shownGroups(0),
+	foldOnPush(true),
 	shownSummary(-1),
 	recipesLoaded(false),
 	needsRefresh(true) {
@@ -280,6 +372,7 @@ RecipeTab::RecipeTab(UI* ui) : InfoTab("Recipes", ui),
 	columns.push_back(ListColumn("", 0, RC_COL_RESULT_WEIGHT, 0, White, Gold));
 	columns.push_back(ListColumn("", 0, RC_COL_INGREDIENT_WEIGHT, RC_COL_GAP, Grey, White));
 	list->SetColumns(columns);
+	list->SetGroupColor(Gold);
 
 	statusText = new Texthook(tab, RC_MARGIN, 0, "");
 	statusText->SetColor(Grey);
@@ -421,9 +514,11 @@ void RecipeTab::BuildRecipes() {
 			AppendWords(output.Has("exc") || output.Has("eli") ? output : named,
 				kTiers, (int)(sizeof(kTiers) / sizeof(kTiers[0])), words);
 
-			const CubeQuality* quality = FindQuality(output);
-			if (!quality)
-				quality = FindQuality(named);
+			// A crafted result is one the output itself says is crafted; a quality
+			// the result only inherits was the input's already, and inheriting it
+			// does not make the recipe a crafting recipe.
+			const CubeQuality* made = FindQuality(output);
+			const CubeQuality* quality = made ? made : FindQuality(named);
 
 			// An affix or a craft family names the result outright, so the quality
 			// word would only repeat what the name already says; the colour still
@@ -431,7 +526,7 @@ void RecipeTab::BuildRecipes() {
 			std::string prefix = AffixName(Tables::MagicPrefix, output.Number("pre", -1));
 			std::string suffix = AffixName(Tables::MagicSuffix, output.Number("suf", -1));
 			std::string family;
-			if (quality && quality->rarity == RarityCrafted)
+			if (made && made->rarity == RarityCrafted)
 				family = CraftFamily(entry->getString("description"));
 			if (quality && prefix.length() == 0 && suffix.length() == 0 &&
 					family.length() == 0) {
@@ -501,15 +596,31 @@ void RecipeTab::BuildRecipes() {
 			else if (difficulty >= 2)
 				recipe.notes.push_back("Hell only");
 
-			recipe.searchKey = ToLower(recipe.result + " " + recipe.ingredients +
-				" " + Join(recipe.notes, " "));
+			recipe.group = RecipeGroup(output, named, made, family, socketed);
+			recipe.searchKey = ToLower(recipe.group + " " + recipe.result + " " +
+				recipe.ingredients + " " + Join(recipe.notes, " "));
 			recipes.push_back(recipe);
 		}
 	}
 
-	// Left in the order CubeMain.txt gives them, which walks the cube from the
-	// quest recipes through the potions, the gems and the runes to the crafting
-	// and the upgrades. Sorting would break the chains apart.
+	// Recipes keep the order CubeMain.txt gives them, which walks the cube from
+	// the quest recipes through the potions, the gems and the runes to the
+	// crafting and the upgrades; sorting them would break the chains apart. The
+	// file reaches the same kind of recipe at several points, though, so the
+	// groups are gathered up: each keeps the place the file first reaches it,
+	// and the recipes inside it keep their own order.
+	std::map<std::string, int> place;
+	for (unsigned int i = 0; i < recipes.size(); i++) {
+		if (place.find(recipes[i].group) == place.end()) {
+			int next = (int)place.size();
+			place[recipes[i].group] = next;
+		}
+	}
+	std::stable_sort(recipes.begin(), recipes.end(),
+		[&place](const CubeRecipe& a, const CubeRecipe& b) {
+			return place[a.group] < place[b.group];
+		});
+
 	recipesLoaded = true;
 	needsRefresh = true;
 }
@@ -538,32 +649,44 @@ void RecipeTab::ApplyFilter() {
 }
 
 void RecipeTab::PushRows() {
-	std::vector<std::vector<std::string>> rows;
-	rows.reserve(matches.size());
+	std::vector<ListRow> rows;
+	rows.reserve(matches.size() * 2);
+	rowRecipes.clear();
+	rowRecipes.reserve(matches.size() * 2);
+	shownGroups = 0;
+
 	for (unsigned int i = 0; i < matches.size(); i++) {
-		std::vector<std::string> row;
-		row.push_back(matches[i]->result);
-		row.push_back(matches[i]->ingredients);
-		rows.push_back(row);
+		if (i == 0 || matches[i]->group != matches[i - 1]->group) {
+			rows.push_back(ListRow({ matches[i]->group }, true));
+			rowRecipes.push_back(NULL);
+			shownGroups++;
+		}
+
+		rows.push_back(ListRow({ matches[i]->result, matches[i]->ingredients }));
+		rowRecipes.push_back(matches[i]);
 	}
+
 	list->SetRows(rows);	// also clears the selection
+
+	// Not on open, which is usually before the game data has loaded, and not on
+	// a filtered list, which would leave every group it did not match unfolded.
+	if (foldOnPush && query.empty() && !rows.empty()) {
+		list->FoldAllGroups();
+		foldOnPush = false;
+	}
 	shownSummary = -1;
 	UpdateStatus();
 }
 
-// Follows the scroll position as well as the rows, so it is refreshed per frame.
 void RecipeTab::UpdateStatus() {
 	if (!recipesLoaded) {
 		statusText->SetText("Waiting for game data to finish loading...");
 	} else if (matches.empty()) {
 		statusText->SetText("No recipes match \"%s\"", query.c_str());
-	} else if (list->GetMaxScrollTop() > 0) {
-		statusText->SetText("%u - %u of %u recipes",
-			list->GetFirstVisibleRow() + 1,
-			list->GetLastVisibleRow(),
-			(unsigned int)matches.size());
 	} else {
-		statusText->SetText("%u recipes", (unsigned int)matches.size());
+		statusText->SetText("%u recipes in %u group%s",
+			(unsigned int)matches.size(), shownGroups,
+			(shownGroups == 1) ? "" : "s");
 	}
 }
 
@@ -586,15 +709,18 @@ void RecipeTab::UpdateSummary() {
 	if (row < 0)
 		row = list->GetSelectedRow();
 
-	if (!IsActive() || row < 0 || row >= (int)matches.size()) {
+	// A heading describes nothing of its own; it only gathers its recipes up.
+	bool describable = IsActive() && row >= 0 && row < (int)rowRecipes.size() &&
+		rowRecipes[row] != NULL;
+	if (!describable) {
 		summary->SetActive(false);
 		shownSummary = -1;
 		return;
 	}
 
 	if (row != shownSummary) {
-		// recipes owns the records; matches only points into it.
-		CubeRecipe* recipe = const_cast<CubeRecipe*>(matches[row]);
+		// recipes owns the records; rowRecipes only points into it.
+		CubeRecipe* recipe = const_cast<CubeRecipe*>(rowRecipes[row]);
 		LoadStats(recipe);
 
 		summary->SetLines(BuildSummaryLines(recipe));
@@ -629,6 +755,7 @@ void RecipeTab::OnClose() {
 	searchBox->SetFocused(false);
 	summary->SetActive(false);
 	shownSummary = -1;
+	foldOnPush = true;
 	Search("");
 }
 
@@ -651,21 +778,55 @@ void RecipeTab::OnDraw() {
 
 	if (needsRefresh) {
 		ApplyFilter();
+		// Suspended rather than cleared, so clearing the search restores the
+		// user's folds.
+		list->SetFoldingSuspended(!query.empty());
 		PushRows();
 		needsRefresh = false;
 	}
 
-	// Enter picks the first match rather than typing a newline.
-	if (searchBox->TakeSubmitted() && !matches.empty())
-		list->SetSelectedRow(0);
+	// Row 0 is a heading, so enter takes the first row holding a recipe.
+	if (searchBox->TakeSubmitted()) {
+		for (unsigned int i = 0; i < rowRecipes.size(); i++) {
+			if (rowRecipes[i]) {
+				list->SetSelectedRow((int)i);
+				break;
+			}
+		}
+	}
 
-	// The mouse and the scroll position move on the input thread, so catch up here.
-	UpdateStatus();
+	// The mouse and the selection move on the input thread, so catch up here.
 	UpdateSummary();
 }
 
 bool RecipeTab::OnKey(bool up, BYTE key) {
 	switch (key) {
+		// The selection ends on the heading rather than being let go of, so
+		// folding and unfolding are both reachable from wherever the last press
+		// left it.
+		case VK_LEFT:
+		case VK_RIGHT: {
+			if (up)
+				return true;
+
+			int row = list->GetSelectedRow();
+			int group = list->GetGroupRowFor(row);
+			if (group < 0)
+				return true;
+
+			if (key == VK_LEFT) {
+				list->SetSelectedRow(group);
+				list->SetGroupFolded(group, true);
+			} else if (row != group) {
+				// Already inside the group, so there is nowhere further in to go.
+			} else if (list->IsGroupFolded(group)) {
+				list->SetGroupFolded(group, false);
+			} else {
+				list->MoveSelection(1);		// open already, so step into it
+			}
+			return true;
+		}
+
 		case VK_UP:
 		case VK_DOWN:
 		case VK_PRIOR:

@@ -15,10 +15,11 @@ struct CubeProperty {
 
 // A single Horadric Cube recipe, pre-formatted for display.
 struct CubeRecipe {
+	std::string group;			// the heading it sits under, "Gem"
 	std::string result;			// "Perfect Ruby", as the game names it
 	ItemRarity resultRarity;	// what the result is drawn in
 	std::string ingredients;	// "3 Flawless Ruby"
-	std::string searchKey;		// lowercased result/ingredients/notes
+	std::string searchKey;		// lowercased group/result/ingredients/notes
 
 	// What the recipe does beyond making the result: the sockets it adds, the
 	// levels it costs, and the conditions it is only allowed under.
@@ -45,6 +46,13 @@ class RecipeTab : public InfoTab {
 
 		std::vector<CubeRecipe> recipes;
 		std::vector<const CubeRecipe*> matches;
+
+		// The recipe on each list row, and NULL on the heading rows, so a row
+		// number means the same thing however the list is folded.
+		std::vector<const CubeRecipe*> rowRecipes;
+		unsigned int shownGroups;	// headings pushed, for the status line
+		bool foldOnPush;			// fold the groups on the next rows pushed
+
 		std::string query;			// active filter, always lowercase
 		std::string lastBoxText;	// last text seen in the search box
 		int shownSummary;			// row the summary was built for, or -1

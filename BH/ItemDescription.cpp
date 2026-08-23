@@ -166,6 +166,7 @@ static void LoadBases() {
 				base.name = Text(*row, "name");
 			base.type = Text(*row, "type");
 			base.typeName = TypeName(base.type);
+			base.quest = Column(*row, "quest");
 
 			// Armor.txt has no reqdex column at all, and a blank cell is what an
 			// item with no requirement of that kind carries.

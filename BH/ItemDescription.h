@@ -59,6 +59,11 @@ namespace ItemDescription {
 		std::string name;			// "Shako"
 		std::string type;			// its ItemTypes.txt code, "helm"
 		std::string typeName;		// what that type is called, "Helm"
+
+		// The quest the item belongs to, and 0 for anything that is not a quest
+		// item. Which quest is of no interest; that it is one is.
+		int quest;
+
 		Requirements requirements;
 
 		// Whichever of these the base carries; a weapon has damage, armour has
@@ -73,7 +78,7 @@ namespace ItemDescription {
 		// stack instead.
 		int durability;
 
-		Base() : durability(0) {};
+		Base() : quest(0), durability(0) {};
 	};
 
 	// The base item a code names, or NULL where the tables do not carry it.
