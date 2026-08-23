@@ -160,7 +160,8 @@ static void LoadBases() {
 
 			Base base;
 			base.code = code;
-			base.name = StatDescriptions::GetString(Text(*row, "namestr"));
+			base.name = NameLine(
+				StatDescriptions::GetString(Text(*row, "namestr")));
 			if (base.name.length() == 0)
 				base.name = Text(*row, "name");
 			base.type = Text(*row, "type");
@@ -179,6 +180,11 @@ static void LoadBases() {
 		}
 	}
 	basesLoaded = true;
+}
+
+std::string NameLine(const std::string& text) {
+	size_t breakAt = text.find_last_of("\r\n");
+	return (breakAt == std::string::npos) ? text : text.substr(breakAt + 1);
 }
 
 const Base* FindBase(const std::string& code) {

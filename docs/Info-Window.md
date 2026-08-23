@@ -119,6 +119,13 @@ than as a particular sword. Where the recipe forces a prefix or a suffix, the
 result is named by it, so the prismatic amulet recipe is listed as what it
 actually makes.
 
+The crafting recipes are listed under the family they belong to - `Hit Power`,
+`Blood`, `Caster` and `Safety` - rather than all reading as a crafted item, since
+that is what they are known as. The family is not something the game itself ever
+shows, so it is read out of the description `CubeMain.txt` carries on the row; a
+realm that adds a family of its own reads as a crafted item until it is named
+here.
+
 ### Summary panel
 
 Point at a recipe and it is described beside the window: what it makes, what it

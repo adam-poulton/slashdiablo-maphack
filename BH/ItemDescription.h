@@ -80,6 +80,13 @@ namespace ItemDescription {
 	// Valid until the game data is reloaded.
 	const Base* FindBase(const std::string& code);
 
+	// The line of a string table entry that is an item's name. A few items carry
+	// how to use them in the same string as their name, and the game draws the
+	// name last with the rest above it, so the last line is the name and the
+	// lines in front of it are not. Anything drawing a name in one line wants
+	// this rather than the whole entry.
+	std::string NameLine(const std::string& text);
+
 	// The name a base item goes by, falling back to the code itself. Weapons,
 	// Armor and Misc all key their name into the string table, which is both how
 	// a localised client reads and how a few of them come out right at all:

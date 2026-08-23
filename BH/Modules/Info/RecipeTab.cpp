@@ -164,6 +164,33 @@ static const CubePortal kPortals[] = {
 	{ "Pandemonium Finale Portal", "To Tristram", "To Tristram" },
 };
 
+// The families of crafted item. CubeMain.txt gives them no name of their own,
+// since the game never shows one - a crafted item is named by the affixes it
+// happens to roll - but the recipes are known by their family, so it is read out
+// of the description the row carries, which is the only place the row says which
+// family it belongs to. A family not named here reads as a crafted item, which
+// is what every crafted recipe read as before any of them were named.
+struct CubeCraftFamily {
+	const char* marker;		// as the description writes it, in lower case
+	const char* name;
+};
+
+static const CubeCraftFamily kCraftFamilies[] = {
+	{ "hitpower", "Hit Power" },
+	{ "blood",    "Blood" },
+	{ "caster",   "Caster" },
+	{ "safety",   "Safety" },
+};
+
+static std::string CraftFamily(const std::string& description) {
+	std::string text = ToLower(description);
+	for (int i = 0; i < (int)(sizeof(kCraftFamilies) / sizeof(kCraftFamilies[0])); i++) {
+		if (text.find(kCraftFamilies[i].marker) != std::string::npos)
+			return kCraftFamilies[i].name;
+	}
+	return "";
+}
+
 // What a cell's code names. Base items are looked up before item types, since a
 // few codes are both: "rin" is a ring and "ring" is the type of all rings.
 static std::string CodeName(const std::string& code) {
@@ -183,7 +210,8 @@ static std::string CodeName(const std::string& code) {
 		if (code.compare(kPortals[i].output) == 0)
 			return Label(kPortals[i].key, kPortals[i].fallback);
 	}
-	std::string localized = StatDescriptions::GetString(code);
+	std::string localized = ItemDescription::NameLine(
+		StatDescriptions::GetString(code));
 	return (localized.length() > 0) ? localized : code;
 }
 
@@ -397,15 +425,23 @@ void RecipeTab::BuildRecipes() {
 			if (!quality)
 				quality = FindQuality(named);
 
-			// An affix names the result outright, so the quality word would only
-			// repeat what the name already says; the colour still carries it.
+			// An affix or a craft family names the result outright, so the quality
+			// word would only repeat what the name already says; the colour still
+			// carries it.
 			std::string prefix = AffixName(Tables::MagicPrefix, output.Number("pre", -1));
 			std::string suffix = AffixName(Tables::MagicSuffix, output.Number("suf", -1));
-			if (quality && prefix.length() == 0 && suffix.length() == 0)
+			std::string family;
+			if (quality && quality->rarity == RarityCrafted)
+				family = CraftFamily(entry->getString("description"));
+			if (quality && prefix.length() == 0 && suffix.length() == 0 &&
+					family.length() == 0) {
 				words.push_back(Label(quality->word.key, quality->word.fallback));
+			}
 			if (quality)
 				recipe.resultRarity = quality->rarity;
 
+			if (family.length() > 0)
+				words.push_back(family);
 			if (prefix.length() > 0)
 				words.push_back(prefix);
 			words.push_back(CodeName(named.code));
