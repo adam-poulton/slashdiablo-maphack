@@ -70,7 +70,7 @@ class UniqueTab : public InfoTab {
 		UniqueTab(Drawing::UI* ui);
 
 		void MpqLoaded();
-		bool HandlesCommand(const std::string& command);
+		std::vector<ChatCommand> GetCommands();
 		void OnDraw();
 		bool OnKey(bool up, BYTE key);
 		void OnOpen();

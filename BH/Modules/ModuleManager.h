@@ -12,6 +12,14 @@ class ModuleManager {
 
 		void FixName(std::string& name);
 
+		// Prints every command BH answers, module by module. The game keeps its
+		// own commands to itself and cannot be told about anyone else's, so this
+		// is the only place they are all written down.
+		void PrintCommands();
+
+		// Prints where to find BH's commands, for a command BH does not answer.
+		void HintCommands(const std::string& command);
+
 	public:
 		ModuleManager();
 		~ModuleManager();

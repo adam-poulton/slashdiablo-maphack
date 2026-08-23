@@ -11,6 +11,12 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
   recipes. Commands `.rw <search>` `.uni <search>` `.set <search>` `.cube <search>`
   On by default, and configurable as `Info Window` in `BH_settings.cfg`.
   See [Info Window](docs/Info-Window.md).
+* Add `.help`, listing every chat command BH answers. The game keeps its own
+  command list inside `D2Client.dll` and it cannot be added to, so a command BH
+  does not recognise now points at `.help` instead. See
+  [Chat Commands](docs/Chat-Commands.md).
+* Fix `.save` also being handed to the game, which answered it with its own
+  command list.
 * Fix BH windows not staying where you put them when multiple were on screen.
 * Fix BH windows swallowing mouse clicks in menus and lobby under certain circumstances.
 

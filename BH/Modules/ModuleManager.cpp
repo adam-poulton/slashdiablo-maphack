@@ -5,6 +5,20 @@
 #include <algorithm>
 #include <iterator>
 
+// The commands BH answers itself rather than through a module.
+static const char* kOwnCommands[] = { "help", "reload", "save" };
+
+// The commands the game answers for itself. BH sees every command first and has
+// no way to ask the game whether it knows one, so without this a command that
+// worked perfectly well would be answered with a hint about BH's. These are what
+// the game's own help advertises; a realm that adds more belongs here too.
+static const char* kGameCommands[] = { "claim" };
+
+// Roughly what fits on a line of the chat log before it has to be broken up.
+// Counted in characters rather than pixels, the chat log being the game's to draw
+// rather than anything BH lays out itself.
+#define BH_HELP_WIDTH	64
+
 ModuleManager::ModuleManager() {
 
 }
@@ -71,6 +85,64 @@ void ModuleManager::MpqLoaded() {
 	}
 }
 
+// ".cube (.recipe, .recipes)": the command to type, and in brackets the other
+// names that reach the same one.
+static std::string CommandText(const ChatCommand& command) {
+	std::string text = "." + command.name;
+	if (command.aliases.empty())
+		return text;
+
+	text += " (";
+	for (unsigned int i = 0; i < command.aliases.size(); i++) {
+		if (i > 0)
+			text += ", ";
+		text += "." + command.aliases[i];
+	}
+	return text + ")";
+}
+
+// One line per module, with a module's commands broken across lines rather than
+// run off the end of the chat log. The label is repeated on a continuation line
+// rather than left off, the chat log being somewhere other messages land in
+// between.
+static void PrintLine(const std::string& label,
+		const std::vector<ChatCommand>& commands) {
+	std::string line;
+	for (unsigned int i = 0; i < commands.size(); i++) {
+		std::string next = CommandText(commands[i]);
+		if (line.length() > 0 &&
+				label.length() + line.length() + next.length() + 2 > BH_HELP_WIDTH) {
+			Print("\377c4%s:\377c0%s", label.c_str(), line.c_str());
+			line.clear();
+		}
+		line += " " + next;
+	}
+	if (line.length() > 0)
+		Print("\377c4%s:\377c0%s", label.c_str(), line.c_str());
+}
+
+void ModuleManager::PrintCommands() {
+	std::vector<ChatCommand> own;
+	for (int i = 0; i < (int)(sizeof(kOwnCommands) / sizeof(kOwnCommands[0])); i++)
+		own.push_back(ChatCommand(kOwnCommands[i]));
+	PrintLine("BH", own);
+
+	for (map<string, Module*>::iterator it = moduleList.begin();
+			it != moduleList.end(); ++it) {
+		std::vector<ChatCommand> commands = it->second->GetCommands();
+		if (!commands.empty())
+			PrintLine(it->second->GetName(), commands);
+	}
+}
+
+void ModuleManager::HintCommands(const std::string& command) {
+	for (int i = 0; i < (int)(sizeof(kGameCommands) / sizeof(kGameCommands[0])); i++) {
+		if (command.compare(kGameCommands[i]) == 0)
+			return;
+	}
+	Print("\377c4BH:\377c0 no such BH command. Type \377c3.help\377c0 for the list.");
+}
+
 bool ModuleManager::UserInput(wchar_t* module, wchar_t* msg, bool fromGame) {
 	bool block = false;
 	std::string name;
@@ -88,6 +160,12 @@ bool ModuleManager::UserInput(wchar_t* module, wchar_t* msg, bool fromGame) {
 	if (name.compare("save") == 0) {
 		BH::config->Write();
 		Print("\377c4BH:\377c0 Successfully saved configuration.");
+		return true;
+	}
+
+	if (name.compare("help") == 0) {
+		PrintCommands();
+		return true;
 	}
 
 	// A module is reached by its own name, or by any of the shorter commands it
@@ -109,6 +187,10 @@ bool ModuleManager::UserInput(wchar_t* module, wchar_t* msg, bool fromGame) {
 		// leave it where the handler can read it.
 		target->invokedCommand = name;
 		__raise target->UserInput(msg, fromGame, &block);
+	} else {
+		// Nothing is blocked either way, so the game still gets its turn at a
+		// command that turns out to be one of its own.
+		HintCommands(name);
 	}
 	return block;
 }

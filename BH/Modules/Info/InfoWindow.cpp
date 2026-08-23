@@ -66,8 +66,16 @@ InfoTab* InfoWindow::GetTabForCommand(const std::string& command) {
 	return NULL;
 }
 
-bool InfoWindow::OwnsCommand(const std::string& command) {
-	return GetTabForCommand(command) != NULL;
+// The window's own name first, which opens it on whichever tab was last in
+// front, and then whatever each tab answers to.
+std::vector<ChatCommand> InfoWindow::GetCommands() {
+	std::vector<ChatCommand> commands;
+	commands.push_back(ChatCommand("info"));
+	for (unsigned int i = 0; i < tabs.size(); i++) {
+		std::vector<ChatCommand> own = tabs[i]->GetCommands();
+		commands.insert(commands.end(), own.begin(), own.end());
+	}
+	return commands;
 }
 
 void InfoWindow::ShowTab(InfoTab* tab) {

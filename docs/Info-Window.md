@@ -101,7 +101,7 @@ game MPQ archives when BH starts. The file carries unfinished and placeholder
 recipes alongside the real ones; only the rows it flags as enabled are listed.
 
 `.cube <search>` opens the tab with that search already applied; `.recipe` and
-`.recipes` are longer aliases.
+`.recipes` are longer aliases for it.
 
 Recipes are grouped, and every group starts folded, so the tab opens as a list of
 the kinds of recipe there are rather than as a hundred and fifty rows to scroll

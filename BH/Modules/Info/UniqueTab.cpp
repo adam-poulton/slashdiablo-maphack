@@ -90,8 +90,8 @@ void UniqueTab::MpqLoaded() {
 	BuildUniques();
 }
 
-bool UniqueTab::HandlesCommand(const std::string& command) {
-	return command.compare("uni") == 0 || command.compare("uniques") == 0;
+std::vector<ChatCommand> UniqueTab::GetCommands() {
+	return { { "uni", { "uniques" } } };
 }
 
 void UniqueTab::BuildUniques() {

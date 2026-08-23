@@ -1,7 +1,9 @@
 #pragma once
 #include <string>
+#include <vector>
 #include <Windows.h>
 #include "../../Drawing.h"
+#include "../Module.h"
 
 // One panel of the Info window. Subclasses build their own controls into the
 // tab in their constructor and refresh them from OnDraw().
@@ -25,7 +27,22 @@ class InfoTab {
 		// The chat commands that open this tab, lowercased and without their
 		// leading dot. Answering one is what makes the Info window switch to
 		// this tab and hand it whatever was typed after the command.
-		virtual bool HandlesCommand(const std::string& command) { return false; };
+		//
+		// Listed rather than answered one at a time, so the window can say what
+		// its tabs can be asked as well as answer it.
+		virtual std::vector<ChatCommand> GetCommands() {
+			return std::vector<ChatCommand>();
+		};
+
+		// Whether this tab answers a command, which is its own list searched.
+		bool HandlesCommand(const std::string& command) {
+			std::vector<ChatCommand> commands = GetCommands();
+			for (unsigned int i = 0; i < commands.size(); i++) {
+				if (commands[i].Answers(command))
+					return true;
+			}
+			return false;
+		};
 
 		// Filter the tab's contents from outside the window, for the chat
 		// command. An empty search clears the filter.

@@ -50,7 +50,7 @@ class InfoWindow : public Module {
 		void OnLoad();
 		void LoadConfig();
 		void MpqLoaded();
-		bool OwnsCommand(const std::string& command);
+		std::vector<ChatCommand> GetCommands();
 
 		void OnLoop();
 		void OnGameExit();

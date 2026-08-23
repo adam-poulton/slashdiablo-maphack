@@ -153,8 +153,8 @@ void SetTab::MpqLoaded() {
 	BuildItems();
 }
 
-bool SetTab::HandlesCommand(const std::string& command) {
-	return command.compare("set") == 0 || command.compare("sets") == 0;
+std::vector<ChatCommand> SetTab::GetCommands() {
+	return { { "set", { "sets" } } };
 }
 
 void SetTab::BuildSets() {
