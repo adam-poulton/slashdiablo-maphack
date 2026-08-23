@@ -387,9 +387,13 @@ std::string Listhook::FitCell(const std::string& text, unsigned int width) {
 void Listhook::FitRows() {
 	fitted.clear();
 	fitted.reserve(rows.size());
+	cellX.clear();
+	cellX.reserve(rows.size());
 	groupCountX.assign(rows.size(), 0);
+	unsigned int content = GetContentWidth();
 	for (unsigned int r = 0; r < rows.size(); r++) {
 		std::vector<std::string> cells;
+		std::vector<unsigned int> positions;
 		if (rows[r].group) {
 			// The count is never cut, so the label is fitted to what is left of
 			// the full width once the marker and the count have had their share.
@@ -399,7 +403,6 @@ void Listhook::FitRows() {
 				taken += LIST_GROUP_COUNT_GAP +
 					(unsigned int)Texthook::GetTextSize(count, font).x;
 			}
-			unsigned int content = GetContentWidth();
 			unsigned int width = (content > taken) ? (content - taken) : 0;
 
 			std::string label = FitCell(GroupLabel(r), width);
@@ -408,10 +411,28 @@ void Listhook::FitRows() {
 			cells.push_back(label);
 			cells.push_back(count);
 		} else {
-			for (unsigned int c = 0; c < layout.size() && c < rows[r].cells.size(); c++)
-				cells.push_back(FitCell(rows[r].cells[c], layout[c].width));
+			// Where the cell before this one ended, for a column that flows on
+			// from it rather than starting at a column of its own.
+			unsigned int cursor = 0;
+			for (unsigned int c = 0; c < layout.size() && c < rows[r].cells.size(); c++) {
+				bool flows = (c > 0 && columns[c].flow);
+				unsigned int x = flows ? (cursor + columns[c].gap) : layout[c].x;
+
+				// A flow is laid out against the rest of the line rather than
+				// against a share of it, from the column it runs on from onward,
+				// so the line is only cut where it runs out.
+				unsigned int width = layout[c].width;
+				if (flows || (c + 1 < columns.size() && columns[c + 1].flow))
+					width = (content > x) ? (content - x) : 0;
+
+				std::string cell = FitCell(rows[r].cells[c], width);
+				cursor = x + (unsigned int)Texthook::GetTextSize(cell, font).x;
+				cells.push_back(cell);
+				positions.push_back(x);
+			}
 		}
 		fitted.push_back(cells);
+		cellX.push_back(positions);
 	}
 }
 
@@ -757,7 +778,7 @@ void Listhook::OnDraw() {
 			// Over the top of either, so the lift is the last word.
 			if ((selected || (int)r == hovered) && columns[c].hoverColor != Disabled)
 				color = columns[c].hoverColor;
-			Texthook::Draw(GetX() + layout[c].x, y, None, font, color, "%s",
+			Texthook::Draw(GetX() + cellX[r][c], y, None, font, color, "%s",
 				fitted[r][c].c_str());
 		}
 	}

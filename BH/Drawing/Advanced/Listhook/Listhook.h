@@ -25,6 +25,15 @@ namespace Drawing {
 	// set it to make the column read as something you can click. It is also the
 	// colour the column takes on the selected row, so the selection and the
 	// mouse lift a row the same way.
+	//
+	// flow makes the column start where the cell before it ended rather than at a
+	// column of its own, so two cells read as one line in two colours. A flowing
+	// column, and the column a flow runs on from, are laid out against the rest of
+	// the line rather than against a share of it: nothing is cut until the line as
+	// a whole runs out, and it is the far end of the line that is cut. minWidth
+	// and weight say nothing about a flowing column, and neither does a header,
+	// there being no column there to head. The first column cannot flow, having
+	// nothing to flow from.
 	struct ListColumn {
 		std::string header;
 		unsigned int minWidth;
@@ -32,13 +41,15 @@ namespace Drawing {
 		unsigned int gap;
 		TextColor color;
 		TextColor hoverColor;
+		bool flow;
 
 		ListColumn() : minWidth(0), weight(0), gap(0), color(White),
-			hoverColor(Disabled) {};
+			hoverColor(Disabled), flow(false) {};
 		ListColumn(std::string header, unsigned int minWidth, unsigned int weight,
-				unsigned int gap, TextColor color, TextColor hoverColor = Disabled) :
+				unsigned int gap, TextColor color, TextColor hoverColor = Disabled,
+				bool flow = false) :
 			header(header), minWidth(minWidth), weight(weight), gap(gap),
-			color(color), hoverColor(hoverColor) {};
+			color(color), hoverColor(hoverColor), flow(flow) {};
 	};
 
 	// One row of a Listhook. A group row is a heading over the rows that follow:
@@ -101,6 +112,11 @@ namespace Drawing {
 			std::vector<ColumnLayout> layout;				// resolved to pixels
 			std::vector<ListRow> rows;						// as supplied
 			std::vector<std::vector<std::string>> fitted;	// cut to column widths
+
+			// Where each cell was drawn, parallel to fitted. Held per row rather
+			// than per column because a flowing column lands wherever the cell
+			// before it happened to end, which is a different place on every row.
+			std::vector<std::vector<unsigned int>> cellX;
 
 			// Where each heading's row count lands, following its label's width.
 			std::vector<unsigned int> groupCountX;
@@ -250,7 +266,8 @@ namespace Drawing {
 			void SetColumns(const std::vector<ListColumn>& newColumns);
 
 			// Where a column actually landed once its share of the width was
-			// resolved. Both are 0 for an out of range index.
+			// resolved. Both are 0 for an out of range index, and neither says
+			// anything about a flowing column, which lands per row.
 			unsigned int GetColumnX(unsigned int column);
 			unsigned int GetColumnWidth(unsigned int column);
 

@@ -21,12 +21,12 @@ using namespace InfoText;
 #define RC_FOOTER_GAP		6	// between the list and the status line
 #define RC_FOOTER_HEIGHT	8	// the status line itself
 
-// The ingredients take the larger share, being a list where the result is one
-// item ("3 Health Potion + 3 Mana Potion + Standard Gem" against "Rejuvenation
-// Potion").
-#define RC_COL_RESULT_WEIGHT		2
-#define RC_COL_INGREDIENT_WEIGHT	3
-#define RC_COL_GAP					4
+// What a recipe makes and what it is made from read as one line, parted by this
+// rather than by a column of clear space, so a short result leaves its
+// ingredients room instead of leaving a gap. The clear space in front of it is
+// the ingredients column's own gap.
+#define RC_SEPARATOR		"= "
+#define RC_COL_GAP			5
 
 // How many inputs and how many output bonuses CubeMain.txt gives each row.
 #define RC_INPUT_COUNT		7
@@ -379,12 +379,17 @@ RecipeTab::RecipeTab(UI* ui) : InfoTab("Recipes", ui),
 	searchBox->SetClearOnFocus(true);
 
 	list = new Listhook(tab, RC_MARGIN, 0, 0, 0);
+	// One line in two colours: what the recipe makes, in the colour of the item
+	// it makes, and then what it is made from flowing straight on from it. The
+	// ingredients are the end of the line and so the end that is cut, which
+	// leaves the result whole however narrow the window is drawn.
+	//
 	// A recipe makes whatever quality of item it makes, so the result's colour
 	// comes from the row rather than from the column. Both columns still lift to
 	// white under the mouse, as every other list's do.
 	std::vector<ListColumn> columns;
-	columns.push_back(ListColumn("", 0, RC_COL_RESULT_WEIGHT, 0, Gold, White));
-	columns.push_back(ListColumn("", 0, RC_COL_INGREDIENT_WEIGHT, RC_COL_GAP, Grey, White));
+	columns.push_back(ListColumn("", 0, 1, 0, Gold, White));
+	columns.push_back(ListColumn("", 0, 0, RC_COL_GAP, Grey, White, true));
 	list->SetColumns(columns);
 	list->SetGroupColor(Gold);
 
@@ -685,7 +690,8 @@ void RecipeTab::PushRows() {
 		}
 
 		// The result carries its own colour; the ingredients keep the column's.
-		ListRow row({ matches[i]->result, matches[i]->ingredients });
+		ListRow row({ matches[i]->result,
+			RC_SEPARATOR + matches[i]->ingredients });
 		row.colors.push_back(matches[i]->resultColor);
 		rows.push_back(row);
 		rowRecipes.push_back(matches[i]);
