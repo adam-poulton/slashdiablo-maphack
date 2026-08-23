@@ -6,16 +6,26 @@ channel. `.help` lists them.
 
 ## Finding them
 
-`.help` prints every command BH answers, a line per module:
+`.help` prints every command BH answers, with what it takes and what it does,
+under a line naming what owns it:
 
 ```
-BH: .help (.commands) .reload .save
-Info: .info .rw (.runewords) .uni (.uniques) .set (.sets)
-Info: .cube (.recipe, .recipes)
+BH:
+  .help (.commands) - Lists every command BH answers
+  .reload - Rereads BH.cfg and BH_settings.cfg from disk
+  .save - Writes the current settings back to BH_settings.cfg
+Info:
+  .info <search> - Opens the window on the tab last in front
+  .rw (.runewords) <search> - Opens the Runewords tab
+  .uni (.uniques) <search> - Opens the Uniques tab
+  .set (.sets) <search> - Opens the Sets tab
+  .cube (.recipe, .recipes) <search> - Opens the Recipes tab
 ```
 
 A command in brackets is another name for the one in front of it, not a command
-of its own, so `.recipe` and `.recipes` both open what `.cube` opens.
+of its own, so `.recipe` and `.recipes` both open what `.cube` opens. What
+follows in angle brackets is what the command takes after the name, and is always
+optional.
 
 The game keeps a command list of its own, which is what it shows when you mistype
 one - `commands: .claim`. BH's commands are not in it and cannot be added to it:
@@ -64,6 +74,16 @@ was typed from `GetInvokedCommand()` while handling the input. Listing them is
 what puts them in `.help`; there is nowhere else they are written down, so a
 command left off the list is a command nobody can find.
 
-Each entry is a `ChatCommand`: the name to print, and the other names that reach
-the same command. Matching searches all of them, so an alias costs nothing beyond
-saying that is what it is.
+Each entry is a `ChatCommand`, filled in by aggregate initialisation so that a
+command reads as a plain description of itself:
+
+```cpp
+{ "cube", { "recipe", "recipes" }, "<search>", "Opens the Recipes tab" }
+```
+
+The name to print, the other names that reach it, what it takes after the name,
+and what it does. Matching searches the name and every alias, so an alias costs
+nothing beyond saying that is what it is.
+
+The description shares a line of the chat log with the command, and nothing wraps
+it, so keep it to a few words or the game will cut what does not fit.

@@ -10,9 +10,12 @@
 // drift apart.
 static std::vector<ChatCommand> OwnCommands() {
 	std::vector<ChatCommand> commands;
-	commands.push_back(ChatCommand("help", { "commands" }));
-	commands.push_back(ChatCommand("reload"));
-	commands.push_back(ChatCommand("save"));
+	commands.push_back(ChatCommand{ "help", { "commands" }, "",
+		"Lists every command BH answers" });
+	commands.push_back(ChatCommand{ "reload", {}, "",
+		"Rereads BH.cfg and BH_settings.cfg from disk" });
+	commands.push_back(ChatCommand{ "save", {}, "",
+		"Writes the current settings back to BH_settings.cfg" });
 	return commands;
 }
 
@@ -21,11 +24,6 @@ static std::vector<ChatCommand> OwnCommands() {
 // worked perfectly well would be answered with a hint about BH's. These are what
 // the game's own help advertises; a realm that adds more belongs here too.
 static const char* kGameCommands[] = { "claim" };
-
-// Roughly what fits on a line of the chat log before it has to be broken up.
-// Counted in characters rather than pixels, the chat log being the game's to draw
-// rather than anything BH lays out itself.
-#define BH_HELP_WIDTH	64
 
 ModuleManager::ModuleManager() {
 
@@ -93,50 +91,49 @@ void ModuleManager::MpqLoaded() {
 	}
 }
 
-// ".cube (.recipe, .recipes)": the command to type, and in brackets the other
-// names that reach the same one.
+// ".cube (.recipe, .recipes) <search>": every name that reaches the command, and
+// then what it takes after one of them.
 static std::string CommandText(const ChatCommand& command) {
 	std::string text = "." + command.name;
-	if (command.aliases.empty())
-		return text;
-
-	text += " (";
-	for (unsigned int i = 0; i < command.aliases.size(); i++) {
-		if (i > 0)
-			text += ", ";
-		text += "." + command.aliases[i];
+	if (!command.aliases.empty()) {
+		text += " (";
+		for (unsigned int i = 0; i < command.aliases.size(); i++) {
+			if (i > 0)
+				text += ", ";
+			text += "." + command.aliases[i];
+		}
+		text += ")";
 	}
-	return text + ")";
+	if (command.args.length() > 0)
+		text += " " + command.args;
+	return text;
 }
 
-// One line per module, with a module's commands broken across lines rather than
-// run off the end of the chat log. The label is repeated on a continuation line
-// rather than left off, the chat log being somewhere other messages land in
-// between.
-static void PrintLine(const std::string& label,
+// A line per command under a line naming what owns them, indented under it.
+// Nothing is lined up into columns: the chat log is the game's to draw in a font
+// of its own, so padding with spaces would not line up anyway.
+static void PrintGroup(const std::string& label,
 		const std::vector<ChatCommand>& commands) {
-	std::string line;
+	Print("\377c4%s:", label.c_str());
 	for (unsigned int i = 0; i < commands.size(); i++) {
-		std::string next = CommandText(commands[i]);
-		if (line.length() > 0 &&
-				label.length() + line.length() + next.length() + 2 > BH_HELP_WIDTH) {
-			Print("\377c4%s:\377c0%s", label.c_str(), line.c_str());
-			line.clear();
+		std::string text = CommandText(commands[i]);
+		if (commands[i].description.length() > 0) {
+			Print("  \377c4%s\377c0 - %s", text.c_str(),
+				commands[i].description.c_str());
+		} else {
+			Print("  \377c4%s", text.c_str());
 		}
-		line += " " + next;
 	}
-	if (line.length() > 0)
-		Print("\377c4%s:\377c0%s", label.c_str(), line.c_str());
 }
 
 void ModuleManager::PrintCommands() {
-	PrintLine("BH", OwnCommands());
+	PrintGroup("BH", OwnCommands());
 
 	for (map<string, Module*>::iterator it = moduleList.begin();
 			it != moduleList.end(); ++it) {
 		std::vector<ChatCommand> commands = it->second->GetCommands();
 		if (!commands.empty())
-			PrintLine(it->second->GetName(), commands);
+			PrintGroup(it->second->GetName(), commands);
 	}
 }
 

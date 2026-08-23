@@ -435,7 +435,8 @@ void RecipeTab::MpqLoaded() {
 }
 
 std::vector<ChatCommand> RecipeTab::GetCommands() {
-	return { { "cube", { "recipe", "recipes" } } };
+	return { { "cube", { "recipe", "recipes" }, "<search>",
+		"Opens the Recipes tab" } };
 }
 
 // The sockets a recipe adds and the levels it costs are held as properties, but

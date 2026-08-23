@@ -91,7 +91,7 @@ void UniqueTab::MpqLoaded() {
 }
 
 std::vector<ChatCommand> UniqueTab::GetCommands() {
-	return { { "uni", { "uniques" } } };
+	return { { "uni", { "uniques" }, "<search>", "Opens the Uniques tab" } };
 }
 
 void UniqueTab::BuildUniques() {

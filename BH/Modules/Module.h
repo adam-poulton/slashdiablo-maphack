@@ -5,17 +5,21 @@
 
 using namespace std;
 
-// A chat command and the other names that reach it. The first name is the one to
-// print and the rest are the same command by another name, which is worth saying
-// rather than listing each as a command of its own.
+// A chat command: the name to print, the other names that reach the same one,
+// what it takes after the name, and what it does. Aliases are held as aliases
+// rather than as commands of their own so that saying so costs nothing.
+//
+// The description lands on one line of the chat log beside the command, so keep
+// it to a few words; nothing wraps it and the game will cut what does not fit.
+// Filled in by aggregate initialisation, a command being a plain description of
+// itself:
+//
+//     { "cube", { "recipe", "recipes" }, "<search>", "Opens the Recipes tab" }
 struct ChatCommand {
 	string name;
 	vector<string> aliases;
-
-	ChatCommand() {};
-	ChatCommand(const string& name) : name(name) {};
-	ChatCommand(const string& name, const vector<string>& aliases) :
-		name(name), aliases(aliases) {};
+	string args;			// "<search>", and empty where it takes none
+	string description;
 
 	// Whether this command answers a name, its own or any of its aliases.
 	bool Answers(const string& command) const {

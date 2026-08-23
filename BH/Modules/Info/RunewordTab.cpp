@@ -164,7 +164,7 @@ void RunewordTab::MpqLoaded() {
 }
 
 std::vector<ChatCommand> RunewordTab::GetCommands() {
-	return { { "rw", { "runewords" } } };
+	return { { "rw", { "runewords" }, "<search>", "Opens the Runewords tab" } };
 }
 
 // A runeword can be made as soon as its highest rune can be worn, which is what

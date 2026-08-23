@@ -154,7 +154,7 @@ void SetTab::MpqLoaded() {
 }
 
 std::vector<ChatCommand> SetTab::GetCommands() {
-	return { { "set", { "sets" } } };
+	return { { "set", { "sets" }, "<search>", "Opens the Sets tab" } };
 }
 
 void SetTab::BuildSets() {

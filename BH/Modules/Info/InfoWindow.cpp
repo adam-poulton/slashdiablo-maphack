@@ -70,7 +70,8 @@ InfoTab* InfoWindow::GetTabForCommand(const std::string& command) {
 // front, and then whatever each tab answers to.
 std::vector<ChatCommand> InfoWindow::GetCommands() {
 	std::vector<ChatCommand> commands;
-	commands.push_back(ChatCommand("info"));
+	commands.push_back(ChatCommand{ "info", {}, "<search>",
+		"Opens the window on the tab last in front" });
 	for (unsigned int i = 0; i < tabs.size(); i++) {
 		std::vector<ChatCommand> own = tabs[i]->GetCommands();
 		commands.insert(commands.end(), own.begin(), own.end());
