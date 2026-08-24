@@ -13,8 +13,11 @@ namespace ItemDescription {
 // nothing but a name.
 static const char* kBaseTables[] = { "weapons", "armor", "misc" };
 
-// Read once and kept, since a panel asks for a base a row at a time.
+// Read once and kept, since a panel asks for a base a row at a time. The order
+// is held alongside the map: a map is keyed by code, and table order is the
+// game's own progression through the tiers, which is worth keeping.
 static std::map<std::string, Base> bases;
+static std::vector<const Base*> baseOrder;
 static bool basesLoaded = false;
 
 static int Column(const std::map<std::string, std::string>& row,
@@ -140,6 +143,19 @@ static void RenderAttributes(const Base& base, const Modifiers& modifiers,
 	}
 }
 
+// An item can be given no more sockets than its base allows and no more than
+// its type allows at the item level it rolled at, and MaxSock40 is the highest
+// of those three bands.
+static int MaxSockets(const std::map<std::string, std::string>& row,
+		const std::string& type) {
+	int sockets = Column(row, "gemsockets");
+	JSONObject* entry = Tables::ItemTypes.findEntry("Code", type);
+	if (!entry)
+		return sockets;
+	int cap = atoi(entry->getString("MaxSock40").c_str());
+	return (sockets < cap) ? sockets : cap;
+}
+
 // Nothing is cached until the tables the names and types come out of are all
 // readable, so that a base is never remembered half resolved.
 static void LoadBases() {
@@ -166,11 +182,21 @@ static void LoadBases() {
 				base.name = Text(*row, "name");
 			base.type = Text(*row, "type");
 			base.typeName = TypeName(base.type);
+			base.weapon = weapon;
+			base.spawnable = (Column(*row, "spawnable") == 1);
+			base.level = Column(*row, "level");
 			base.quest = Column(*row, "quest");
+			base.speed = weapon ? Column(*row, "speed") : 0;
+			base.maxSockets = MaxSockets(*row, base.type);
 
-			// A base pointing an upgrade column at itself has no upgrade there.
+			// A base pointing an upgrade column at itself has no upgrade there, and
+			// is itself the tier that column stands for.
 			std::string exceptional = Text(*row, "ubercode");
 			std::string elite = Text(*row, "ultracode");
+			if (elite.compare(code) == 0)
+				base.tier = TierElite;
+			else if (exceptional.compare(code) == 0)
+				base.tier = TierExceptional;
 			if (exceptional.compare(code) != 0)
 				base.exceptional = exceptional;
 			if (elite.compare(code) != 0)
@@ -185,7 +211,16 @@ static void LoadBases() {
 				Column(*row, "reqdex"));
 
 			ReadNumbers(*row, weapon, base);
-			bases[code] = base;
+
+			// A map keeps its nodes put, so a pointer taken here survives the rest of
+			// the load. Listed on the way in rather than afterwards, so that a code
+			// two tables both carry is one base, in the place it first appeared.
+			std::pair<std::map<std::string, Base>::iterator, bool> stored =
+				bases.insert(std::make_pair(code, base));
+			if (stored.second)
+				baseOrder.push_back(&stored.first->second);
+			else
+				stored.first->second = base;
 		}
 	}
 	basesLoaded = true;
@@ -200,6 +235,11 @@ const Base* FindBase(const std::string& code) {
 	LoadBases();
 	std::map<std::string, Base>::iterator found = bases.find(code);
 	return (found != bases.end()) ? &found->second : NULL;
+}
+
+const std::vector<const Base*>& AllBases() {
+	LoadBases();
+	return baseOrder;
 }
 
 std::string BaseName(const std::string& code) {
@@ -289,6 +329,27 @@ void Description::AddBase(const std::string& code, TextColor nameColor,
 		modifiers.requirementPercent, Range());
 	requirements.dexterity = Apply(requirements.dexterity,
 		modifiers.requirementPercent, Range());
+}
+
+void Description::AddBaseLimits(const std::string& code) {
+	const Base* base = FindBase(code);
+	if (!base)
+		return;
+
+	// In brackets, since the number counts down rather than up and is quoted that
+	// way wherever weapons are compared. The label comes with a trailing space of
+	// its own, so it is trimmed and the gap put back.
+	if (base->weapon) {
+		attributes.push_back(Trim(Label("StrSkill106", "Attack Speed:")) + " [" +
+			std::to_string(base->speed) + "]");
+	}
+
+	// As a range, because it is one: a base that can take six can also come with
+	// one, and the number an item ends up with is rolled.
+	if (base->maxSockets > 0) {
+		attributes.push_back(Trim(Label("ModStre8c", "Sockets")) + ": " +
+			RangeText(Range(1, base->maxSockets)));
+	}
 }
 
 void Description::AddStats(const std::vector<std::string>& lines, TextColor color,

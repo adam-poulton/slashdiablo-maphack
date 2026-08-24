@@ -49,6 +49,15 @@ namespace ItemDescription {
 		Requirements() : level(0) {};
 	};
 
+	// Which of the three tiers a base belongs to. A base names the other two in
+	// its upgrade columns, and the tier it is itself by pointing one of them at
+	// its own code.
+	enum Tier {
+		TierNormal,
+		TierExceptional,
+		TierElite
+	};
+
 	// What the tables say about a base item, before anything is made of it.
 	//
 	// The numbers are kept as numbers rather than as the lines they will become,
@@ -59,6 +68,11 @@ namespace ItemDescription {
 		std::string name;			// "Shako"
 		std::string type;			// its ItemTypes.txt code, "helm"
 		std::string typeName;		// what that type is called, "Helm"
+
+		Tier tier;
+		bool weapon;				// out of Weapons.txt, so speed means something
+		bool spawnable;				// whether the game ever drops it at all
+		int level;					// the level from which it starts dropping
 
 		// The quest the item belongs to, and 0 for anything that is not a quest
 		// item. Which quest is of no interest; that it is one is.
@@ -84,8 +98,24 @@ namespace ItemDescription {
 		// stack instead.
 		int durability;
 
-		Base() : quest(0), durability(0) {};
+		// Weapons.txt holds speed as a modifier rather than as a rate, so it
+		// counts down: a weapon at -30 swings faster than one at 0. Zero for
+		// anything that is not a weapon.
+		int speed;
+
+		// The most sockets the base can ever roll, and 0 for one that takes
+		// none. What an item actually rolls is capped again by its own level;
+		// this is the cap at the highest of those bands.
+		int maxSockets;
+
+		Base() : tier(TierNormal), weapon(false), spawnable(false), level(0),
+			quest(0), durability(0), speed(0), maxSockets(0) {};
 	};
+
+	// Every base the tables carry, in the order they are read: the weapons, then
+	// the armour, then the miscellany, each in its own table's order. Empty until
+	// the game data has loaded.
+	const std::vector<const Base*>& AllBases();
 
 	// The base item a code names, or NULL where the tables do not carry it.
 	// Valid until the game data is reloaded.
@@ -179,6 +209,12 @@ namespace ItemDescription {
 		// are already answered here, since only a modifier moves them.
 		void AddBase(const std::string& code, TextColor nameColor,
 			const Modifiers& modifiers = Modifiers());
+
+		// How fast the base swings and how many sockets it can be given, under
+		// the numbers AddBase worded. Kept apart from AddBase because a made
+		// item answers both for itself: a unique carries the sockets it was
+		// given rather than the six its base could have rolled.
+		void AddBaseLimits(const std::string& code);
 
 		// A block of stat lines with no heading of its own.
 		void AddStats(const std::vector<std::string>& lines,

@@ -182,6 +182,7 @@ if defined D2Path (
     <ClCompile Include="Modules\Party\Party.cpp" />
     <ClCompile Include="Modules\Info\InfoText.cpp" />
     <ClCompile Include="Modules\Info\InfoWindow.cpp" />
+    <ClCompile Include="Modules\Info\BaseTab.cpp" />
     <ClCompile Include="Modules\Info\RecipeTab.cpp" />
     <ClCompile Include="Modules\Info\RunewordTab.cpp" />
     <ClCompile Include="Modules\Info\SetTab.cpp" />
@@ -256,6 +257,7 @@ if defined D2Path (
     <ClInclude Include="Modules\Info\InfoText.h" />
     <ClInclude Include="Modules\Info\InfoWindow.h" />
     <ClInclude Include="Modules\Info\InfoTab.h" />
+    <ClInclude Include="Modules\Info\BaseTab.h" />
     <ClInclude Include="Modules\Info\RecipeTab.h" />
     <ClInclude Include="Modules\Info\RunewordTab.h" />
     <ClInclude Include="Modules\Info\SetTab.h" />

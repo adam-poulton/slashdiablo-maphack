@@ -22,6 +22,7 @@ void InfoWindow::OnLoad() {
 	tabs.push_back(new UniqueTab(infoUI));
 	tabs.push_back(new SetTab(infoUI));
 	tabs.push_back(new RecipeTab(infoUI));
+	tabs.push_back(new BaseTab(infoUI));
 
 	// UI.ini remembers whether it starts collapsed, so leave that alone here.
 	// OnLoop() drives visibility, so it stays hidden until we are in a game.

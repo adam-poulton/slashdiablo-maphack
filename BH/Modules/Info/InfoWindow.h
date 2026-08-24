@@ -5,6 +5,7 @@
 #include "../Module.h"
 #include "../../Config.h"
 #include "../../Drawing.h"
+#include "BaseTab.h"
 #include "InfoTab.h"
 #include "RecipeTab.h"
 #include "RunewordTab.h"

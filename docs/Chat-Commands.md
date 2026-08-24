@@ -15,11 +15,12 @@ BH:
   .reload - Rereads BH.cfg and BH_settings.cfg from disk
   .save - Writes the current settings back to BH_settings.cfg
 Info:
-  .info <search> - Opens the window on the tab last in front
+  .info <search> - Opens the info window on the tab last accessed
   .rw (.runewords) <search> - Opens the Runewords tab
   .uni (.uniques) <search> - Opens the Uniques tab
   .set (.sets) <search> - Opens the Sets tab
   .cube (.recipe, .recipes) <search> - Opens the Recipes tab
+  .base (.bases) <search> - Opens the Bases tab
 ```
 
 A command in brackets is another name for the one in front of it, not a command
@@ -28,7 +29,7 @@ follows in angle brackets is what the command takes after the name, and is alway
 optional.
 
 The game keeps a command list of its own, which is what it shows when you mistype
-one - `commands: .claim`. BH's commands are not in it and cannot be added to it:
+one - `commands: .claim`. BH's commands are not in it and cannot (easily) be added to it:
 the list, the dispatch and that help text all live inside `D2Client.dll`, with no
 table to register against. So BH answers for its own instead, and a command BH
 does not recognise is met with a pointer to `.help`.
@@ -66,6 +67,7 @@ already typed in its search box.
 | `.uni` | `.uniques` | Opens the Uniques tab. |
 | `.set` | `.sets` | Opens the Sets tab. |
 | `.cube` | `.recipe`, `.recipes` | Opens the Recipes tab. |
+| `.base` | `.bases` | Opens the Bases tab. |
 
 ## Adding one
 

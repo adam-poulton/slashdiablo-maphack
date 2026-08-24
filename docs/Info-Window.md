@@ -2,9 +2,9 @@ Info Window
 ===========
 
 An in-game reference window. It is a tabbed panel, so lookups that would
-otherwise mean alt-tabbing to a wiki can live in the game. It has four tabs,
-**Runewords**, **Uniques**, **Sets** and **Recipes**. Click a tab to switch to
-it, or use the chat command that belongs to it.
+otherwise mean alt-tabbing to a wiki can live in the game. It has five tabs,
+**Runewords**, **Uniques**, **Sets**, **Recipes** and **Bases**. Click a tab to
+switch to it, `Tab` / `Shift + Tab` to cycle or use the chat commands.
 
 ## Opening it
 
@@ -96,51 +96,23 @@ same tables and string files the game itself uses.
 
 ## Recipes tab
 
-Every Horadric Cube recipe the game allows, read from your `CubeMain.txt` in the
-game MPQ archives when BH starts. The file carries unfinished and placeholder
-recipes alongside the real ones; only the rows it flags as enabled are listed.
+Every Horadric Cube recipe the game allows, read from game MPQ archives when BH starts.
+The file carries unfinished and placeholder recipes alongside the real ones;
+ only the rows it flags as enabled are listed.
 
 `.cube <search>` opens the tab with that search already applied; `.recipe` and
 `.recipes` are longer aliases for it.
 
-Recipes are grouped, and every group starts folded, so the tab opens as a list of
-the kinds of recipe there are rather than as a hundred and fifty rows to scroll
-through. `CubeMain.txt` has no column saying which kind a recipe is, so each is
-read out of its own row: first what the recipe does to the item, which is what the
-recipes anyone hunts for as a group have in common - `Sockets`, `Repairing`,
-`Upgrading`, `Rerolling`, and the four crafting families - and failing that what
-kind of item it makes, which gathers the chains up under `Gem` and `Rune`. That
-last part walks up the `Equiv` columns of `ItemTypes.txt`, so a heading is
-whatever the realm calls that item type and a type the realm adds is gathered
-under whichever known type it descends from.
-
-Groups appear in the order `CubeMain.txt` first reaches them, which walks the
-cube from the quest recipes through the potions, the gems and the runes to the
-crafting and the upgrades, and recipes keep the file's order inside their group,
-so a chain reads end to end rather than being broken apart alphabetically.
-
-The left and right arrows fold and unfold groups, from a group or from anything
-inside it, exactly as they do on [the Sets tab](#sets-tab). They reach the search
-box instead once there is something typed in it.
+Recipes are grouped, and appear in the order `CubeMain.txt` first reaches them,
+recipes keep the file's order inside their group.
 
 Searching matches what a recipe makes, what it takes, what it does and the group
 it is in, so `perfect ruby` finds both the recipe that makes one and every recipe
 that spends one, `caster` finds the nine caster crafting recipes, and `ladder`
-finds the recipes only a ladder character can use. A search unfolds whatever it
-matched and folds it back up again when the search is cleared.
+finds the recipes only a ladder character can use.
 
-A recipe names a range of items as often as it names one, so it reads as the
-cube reads it: `Unsocketed Normal Weapon + Ral Rune + Amn Rune + Perfect
-Amethyst` rather than as a particular sword. Where the recipe forces a prefix or
-a suffix, the result is named by it, so the prismatic amulet recipe is listed as
-what it actually makes.
-
-The crafting recipes are listed under the family they belong to - `Hit Power`,
-`Blood`, `Caster` and `Safety` - rather than all reading as a crafted item, since
-that is what they are known as. The family is not something the game itself ever
-shows, so it is read out of the description `CubeMain.txt` carries on the row; a
-realm that adds a family of its own reads as a crafted item until it is named
-here.
+The crafting recipes are grouped under the family they belong to - `Hit Power`,
+`Blood`, `Caster` and `Safety` - where available.
 
 ### Summary panel
 
@@ -150,10 +122,35 @@ the recipe does - the sockets it adds, the levels it costs, the item level the
 result comes out at, and any condition on using it at all.
 
 The bonuses are read from the same tables and string files the game itself uses
-to describe an item, so a crafted item's guaranteed bonuses are worded exactly
-as they are on [the Runewords tab](#summary-panel) and read in whatever language
-your client is installed in.
+for localisation, where possible.
 
-The sockets a recipe adds and the levels it costs are shown in words rather than
-as bonuses, because that is what the game does with them: it puts them into the
-shape of the item instead of giving either a line of its own.
+## Bases tab
+
+Every base item the game drops, before anything is made of it, read from your
+`Weapons.txt`, `Armor.txt`, `Misc.txt` and `ItemTypes.txt` in the game MPQ
+archives when BH starts. The files carry quest pieces and rows that were never
+finished alongside the real ones; only the rows flagged as spawnable are
+listed.
+
+`.base <search>` opens the tab with that search already applied; `.bases` is a
+longer alias.
+
+Bases are grouped by item type, and groups appear in the order the tables first reach them,
+which walks the weapons, then the armour, then the jewellery, gems and runes.
+Inside a group the bases run normal, then exceptional, then elite, and each tier in the
+order it starts dropping.
+
+Searching matches the base's name, its item type, its tier and its three letter
+code, so `elite` finds every elite base, `circlet` all four circlets, and `uap`
+the Shako.
+
+### Summary panel
+
+Point at a base and it is described beside the window, as the game describes it
+in your inventory: its damage or its defense, its durability, and what a
+character needs to use it. Under those are the two things the game only ever
+shows once an item has been made of it:
+
+* **Attack speed**, on weapons. `Weapons.txt` holds it as a modifier rather than
+  as a rate, so it counts down - a weapon at `[-30]` swings faster than one at `[0]`.
+* **Sockets**, as the range an item made on the base can roll.
