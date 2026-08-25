@@ -1,5 +1,6 @@
 #include "ItemDisplay.h"
 #include "Item.h"
+#include "../../D2Helpers.h"
 
 // All the types able to be combined with the + operator
 #define COMBO_STATS					\
@@ -938,6 +939,10 @@ void Condition::BuildConditions(vector<Condition*> &conditions, string token) {
 		Condition::AddOperand(conditions, new AffixLevelCondition(operation, value));
 	} else if (key == "CLVL") {
 		Condition::AddOperand(conditions, new CharStatCondition(STAT_LEVEL, 0, operation, value));
+	} else if (key == "AREALVL") {
+		Condition::AddOperand(conditions, new AreaLevelCondition(operation, value));
+	} else if (key == "AREAID") {
+		Condition::AddOperand(conditions, new AreaIdCondition(operation, value));
 	} else if (key == "FILTLVL") {
 		Condition::AddOperand(conditions, new FilterLevelCondition(operation, value));
 	} else if (key == "DIFF") {
@@ -1741,6 +1746,40 @@ bool DifficultyCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1,
 }
 bool DifficultyCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
 	return IntegerCompare(D2CLIENT_GetDifficulty(), operation, targetDiff);
+}
+
+// Only an item lying in the world has an area to speak of, and for those the character's
+// area is the area the item dropped in.
+static bool IsOnGround(UnitAny *item) {
+	return item->dwMode == ITEM_MODE_ON_GROUND || item->dwMode == ITEM_MODE_BEING_DROPPED;
+}
+
+static unsigned int GetCurrentAreaLevel() {
+	DWORD areaId = GetPlayerArea();
+	sgptDataTable* dataTable = *p_D2COMMON_sgptDataTable;
+	if (areaId == 0 || !dataTable || !dataTable->pLevelsTxt || areaId >= dataTable->dwLevelsRecs) {
+		return 0;
+	}
+	LevelsTxt* levelTxt = &dataTable->pLevelsTxt[areaId];
+	int difficulty = D2CLIENT_GetDifficulty();
+	if ((*p_D2LAUNCH_BnData)->nCharFlags & PLAYER_TYPE_EXPANSION) {
+		return levelTxt->wMonLvlEx[difficulty];
+	}
+	return levelTxt->wMonLvl[difficulty];
+}
+
+bool AreaLevelCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
+	return IsOnGround(uInfo->item) && IntegerCompare(GetCurrentAreaLevel(), operation, areaLevel);
+}
+bool AreaLevelCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+	return info->ground && IntegerCompare(GetCurrentAreaLevel(), operation, areaLevel);
+}
+
+bool AreaIdCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
+	return IsOnGround(uInfo->item) && IntegerCompare(GetPlayerArea(), operation, areaId);
+}
+bool AreaIdCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+	return info->ground && IntegerCompare(GetPlayerArea(), operation, areaId);
 }
 
 bool FilterLevelCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
