@@ -276,6 +276,7 @@ Table Tables::Properties;
 Table Tables::Runewords;
 Table Tables::UniqueItems;
 Table Tables::SetItems;
+Table Tables::Sets;
 Table Tables::Skills;
 Table Tables::MagicPrefix;
 Table Tables::MagicSuffix;
@@ -284,6 +285,7 @@ Table Tables::RareSuffix;
 Table Tables::CharStats;
 Table Tables::Gems;
 Table Tables::SkillDesc;
+Table Tables::CubeMain;
 
 Table Strings;
 Table Expansion;
@@ -313,17 +315,23 @@ bool Tables::initTables(){
 		success &= TableReader::loadMPQData("MagicSuffix", MagicSuffix);
 		success &= TableReader::loadMPQData("UniqueItems", UniqueItems);
 		success &= TableReader::loadMPQData("SetItems", SetItems);
+		success &= TableReader::loadMPQData("Sets", Sets);
 		success &= TableReader::loadMPQData("RarePrefix", RarePrefix);
 		success &= TableReader::loadMPQData("RareSuffix", RareSuffix);
 		success &= TableReader::loadMPQData("CharStats", CharStats);
 		success &= TableReader::loadMPQData("Gems", Gems);
 		success &= TableReader::loadMPQData("SkillDesc", SkillDesc);
+		success &= TableReader::loadMPQData("CubeMain", CubeMain);
 
 		UniqueItems.removeWhere([](JSONElement* obj){
 			return ((JSONObject*)obj)->getString("index").compare("Expansion") == 0;
 		});
 		SetItems.removeWhere([](JSONElement* obj){
 			return ((JSONObject*)obj)->getString("item").length() == 0;
+		});
+		// Sets.txt ends on a blank row.
+		Sets.removeWhere([](JSONElement* obj){
+			return ((JSONObject*)obj)->getString("index").length() == 0;
 		});
 	}
 

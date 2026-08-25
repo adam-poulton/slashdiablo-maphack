@@ -1,6 +1,15 @@
 #include "Module.h"
 #include "../BH.h"
 
+bool Module::OwnsCommand(const string& command) {
+	vector<ChatCommand> commands = GetCommands();
+	for (unsigned int i = 0; i < commands.size(); i++) {
+		if (commands[i].Answers(command))
+			return true;
+	}
+	return false;
+}
+
 Module::Module(string name) : name(name), active(false) {
 	BH::moduleManager->Add(this);
 }

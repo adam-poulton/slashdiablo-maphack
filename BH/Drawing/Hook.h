@@ -142,6 +142,10 @@ namespace Drawing {
 			//Function gets called when someone types, return true to block the input.
 			virtual bool OnKey(bool up, BYTE key, LPARAM lParam) { return false; };
 
+			//Function gets called when the mouse wheel turns, return true to block it.
+			//notches is signed: positive is a turn away from the user, ie scroll up.
+			virtual bool OnMouseWheel(int notches, unsigned int x, unsigned int y) { return false; };
+
 
 			//Static function to draw all the hooks with the given visibility.
 			static void Draw(HookVisibility type);
@@ -150,6 +154,7 @@ namespace Drawing {
 			static bool LeftClick(bool up, unsigned int x, unsigned int y);
 			static bool RightClick(bool up, unsigned int x, unsigned int y);
 			static bool KeyClick(bool bUp, BYTE bKey, LPARAM lParam);
+			static bool MouseWheel(int notches, unsigned int x, unsigned int y);
 
 			//Misc Hook Functions needed
 			static unsigned int GetScreenHeight();

@@ -33,8 +33,10 @@ Here are some guides to creating your own configuration files:
   variables you can display
 * [Run Tracker](Run-Tracker.md) — recording each run's statistics and drops to a
   file
-* [Info Window](Info-Window.md) — the in-game reference window, its Runewords
-  tab and the `.rw` chat command
+* [Info Window](Info-Window.md) — the in-game reference window, its Runewords,
+  Uniques, Sets and Recipes tabs and the chat commands that open them
+* [Chat Commands](Chat-Commands.md) - every command BH answers, and why
+  the game's own list does not mention them
 
 ### Reference tables
 

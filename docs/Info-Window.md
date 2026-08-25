@@ -2,8 +2,9 @@ Info Window
 ===========
 
 An in-game reference window. It is a tabbed panel, so lookups that would
-otherwise mean alt-tabbing to a wiki can live in the game. Today it has one tab,
-**Runewords**.
+otherwise mean alt-tabbing to a wiki can live in the game. It has five tabs,
+**Runewords**, **Uniques**, **Sets**, **Recipes** and **Bases**. Click a tab to
+switch to it, `Tab` / `Shift + Tab` to cycle or use the chat commands.
 
 ## Opening it
 
@@ -11,133 +12,145 @@ otherwise mean alt-tabbing to a wiki can live in the game. Today it has one tab,
 the hotkey. Defaults are on and numpad 9.
 
 * Press the hotkey to open the window, and again to close it.
-* **Escape closes it** while it is open, instead of opening the game menu. If a
-  search box has focus, the first escape drops that focus and the second closes
-  the window.
+* **Escape closes it** while it is open, instead of opening the game menu.
 * Right-clicking the title bar also closes it.
 * Drag the open window by its title bar. The position is remembered in `UI.ini`.
 * Closed, it sits as a title bar with the other BH windows near the bottom of
   the screen. Ctrl-click it to reopen, shift-drag it to move it.
-* `.info` in chat opens it.
+* `.info` in chat opens it on whichever tab was last in front.
 
 Closing the window clears where you had got to, so it opens on a clean list
 rather than on the last thing you searched for.
 
 ## Runewords tab
 
-Every runeword recipe the game allows, searchable.
+Every runeword recipe the game allows, read from your `Runes.txt` and
+`ItemTypes.txt` in the game MPQ archives when BH starts. `Runes.txt` also carries
+dozens of placeholder rows that were never finished; those are skipped, leaving
+the 78 released runewords plus the realm's server-side `Plague`.
 
-The recipes are read from your `Runes.txt` and `ItemTypes.txt` in the game MPQ
-archives when BH starts, so the list matches what the realm actually allows.
-`Runes.txt` also carries dozens of placeholder rows that were never finished;
-those are skipped, leaving the 78 released runewords plus the server-side
-additions listed below.
+`.rw <search>` opens the tab with that search already applied; `.runewords` is a
+longer alias. Matches are shown in the window only, not repeated into the chat
+log.
 
-### Searching
+Searching matches the runeword's name, its rune names and the item types it is
+allowed in, so `ber` finds every runeword that takes a Ber rune and `polearm`
+every one that can be made in a polearm.
+The number of runes in a recipe is the number of sockets the base needs.
 
-Click the search box and type. The list filters as you type, matching on
-runeword name, rune name and item type, so all of these work:
+### Summary panel
 
-| Typing     | Shows                                              |
-| ---------- | -------------------------------------------------- |
-| `enig`     | Enigma                                             |
-| `ber`      | every runeword that uses a Ber rune                |
-| `shield`   | every runeword that can go in a shield             |
-| `polearm`  | every runeword that can go in a polearm            |
-
-Clicking into the box empties whatever was in it, so a new search is just click
-and type rather than backspacing over the old one. That also puts the whole list
-back, and leaves a runeword you were reading.
-
-While the box has focus it fills in solid, gains a second border and shows a
-blinking cursor; unfocused it is translucent and shows a dimmed hint, so it is
-always clear where your typing is going.
-
-Press **enter** to open the first match in the detail pane. Enter is not typed
-into the box, so the search text is left alone.
-
-Long lists are paged: `PgUp` and `PgDn`, or the `< Prev` and `Next >` links at
-the bottom right, which only appear when there is more than one page. Paging
-stops at the first and last page rather than wrapping round, and a link that
-would do nothing is greyed out. The footer shows which entries you are looking
-at, or just how many matched when they all fit on one page.
-
-### Detail view
-
-Click any row, or press enter to take the first match, and the list is replaced
-by that recipe in full: the runes untruncated, the character level it requires
-(the highest level requirement among its runes), which bases it can go in, and
-its stats. It is laid out like the description on an item — centred text inside a
-border drawn to fit it — and long lines are wrapped rather than cut.
+Point at a recipe and it is described beside the window: its runes, the character
+level it requires - which is the highest requirement among its runes - the bases
+it can go in, and its stats.
 
 The stats are read from the same tables and string files the game itself uses to
-describe an item, so the wording matches what you would see on the finished
-item, in whatever language your client is installed in.
+describe an item, so the wording matches the finished item in whatever language
+your client is installed in.
 
-Stats from more than one source are added together, the way the game adds them
-up on the finished item. Infinity gets its crushing blow from two Ber runes and
-shows the total, `40% Chance of Crushing Blow`; Last Wish has it on the runeword
-*and* on a Ber and shows `60-70%`.
+## Uniques tab
 
-**Stats depend on the base.** A runeword grants its own bonuses, and on top of
-those every rune contributes its own, which differ depending on whether it is
-socketed into a weapon, a helm or body armour, or a shield. Lines that come out
-the same whatever the runeword is made in are listed plainly; only the ones that
-differ are tagged with the base they belong to. So a runeword allowed in one
-kind of base, like Enigma, has no tags at all, while Spirit reads:
+Every unique item the game allows, with what it rolls, read from your
+`UniqueItems.txt` in the game MPQ archives when BH starts. The file carries
+unreleased and placeholder rows alongside the real ones; only the rows it flags
+as enabled are listed.
 
-```
-+2 to All Skills
-+25-35% Faster Cast Rate
-...
-+75 poison damage over 5 seconds  (Sword)
-+3-14 Cold Damage                 (Sword)
-Poison Resist +35%                (Any Shield)
-Cold Resist +35%                  (Any Shield)
-```
+`.uni <search>` opens the tab with that search already applied; `.uniques` is a
+longer alias.
 
-The tagged lines come from Tal, Thul, Ort and Amn behaving differently in the
-two bases; everything above them is the same either way.
+Searching matches the unique's name, its base item and the base's item type, so
+`amulet` finds every unique amulet and `diadem` only Griffon's Eye.
 
-Escape backs out one step at a time: out of the search box, then back to the
-list, then it closes the window.
+### Summary panel
 
-### Chat command
+Point at a unique and it is described beside the window: its base item, the
+character level it requires, and its stats, rendered exactly as they are on
+[the Runewords tab](#summary-panel) - added together, ordered by `descpriority`
+and grouped by `dgrp`, since every tab renders stats through the same code.
 
-`.rw <search>` opens the window on the Runewords tab with that search already
-applied. Matches are shown in the window only, not repeated into the chat log.
-`.runewords` is a longer alias.
 
-### Columns
+## Sets tab
 
-| Column   | Contents                                                          |
-| -------- | ----------------------------------------------------------------- |
-| Runeword | The runeword's name, in gold, turning white as you point at it to show it opens. |
-| Runes    | The runes in socket order. The number of runes is the number of sockets the base needs. |
+Every piece of every set the game allows, grouped under its set, with what the
+piece grants and what its set grants around it. Read from your `SetItems.txt` and
+`Sets.txt` in the game MPQ archives when BH starts, so the list matches what the
+realm actually allows.
 
-Which bases a runeword can go in is in its detail view rather than the list, but
-searching still matches on it, so `shield` still finds every runeword that can be
-made in one. A name too long for its column is cut off with `..`.
+`.set <search>` opens the tab with that search already applied; `.sets` is a
+longer alias.
 
-### Names that differ from the game files
+Searching matches the piece's name, its base item, the base's item type and its
+set's name, so `amulet` finds every set amulet and `tal ra` finds all five pieces of
+Tal Rasha's Wrappings. Within a set the pieces are in the game's own order rather
+than alphabetical, so a set reads head to toe.
 
-Six recipes were renamed before release and the game files still carry the
-working title. The window shows the released name:
+The left and right arrows fold and unfold sets, from a set or from anything
+inside it. They reach the search box instead once there is something typed in
+it, since that is where they move the caret.
 
-| Name in `Runes.txt` | Shown as         |
-| ------------------- | ---------------- |
-| The Beast           | Beast            |
-| Bound by Duty       | Chains of Honor  |
-| Doomsayer           | Doom             |
-| Exile's Path        | Exile            |
-| Widowmaker          | Grief            |
-| Winter              | Voice of Reason  |
+### Summary panel
 
-### Server-side recipes
+Point at a piece and it is described beside the window: what it grants on its
+own, then, under its set's name, what the set grants. The stats come from the
+same tables and string files the game itself uses.
 
-`Plague` (Cham + Fal + Um, any weapon) is enabled by the realm rather than by
-the game files, so both the recipe and its bonuses are listed in the source, in
-[RunewordTab.cpp](../BH/Modules/Info/RunewordTab.cpp). What its runes contribute
-still comes from the game's own data, so only the runeword's own bonuses are
-written out. If a future patch ships it in `Runes.txt`, the file's version is
-used instead.
+## Recipes tab
+
+Every Horadric Cube recipe the game allows, read from game MPQ archives when BH starts.
+The file carries unfinished and placeholder recipes alongside the real ones;
+ only the rows it flags as enabled are listed.
+
+`.cube <search>` opens the tab with that search already applied; `.recipe` and
+`.recipes` are longer aliases for it.
+
+Recipes are grouped, and appear in the order `CubeMain.txt` first reaches them,
+recipes keep the file's order inside their group.
+
+Searching matches what a recipe makes, what it takes, what it does and the group
+it is in, so `perfect ruby` finds both the recipe that makes one and every recipe
+that spends one, `caster` finds the nine caster crafting recipes, and `ladder`
+finds the recipes only a ladder character can use.
+
+The crafting recipes are grouped under the family they belong to - `Hit Power`,
+`Blood`, `Caster` and `Safety` - where available.
+
+### Summary panel
+
+Point at a recipe and it is described beside the window: what it makes, what it
+is made from, the bonuses the result is guaranteed, and, under those, what else
+the recipe does - the sockets it adds, the levels it costs, the item level the
+result comes out at, and any condition on using it at all.
+
+The bonuses are read from the same tables and string files the game itself uses
+for localisation, where possible.
+
+## Bases tab
+
+Every base item the game drops, before anything is made of it, read from your
+`Weapons.txt`, `Armor.txt`, `Misc.txt` and `ItemTypes.txt` in the game MPQ
+archives when BH starts. The files carry quest pieces and rows that were never
+finished alongside the real ones; only the rows flagged as spawnable are
+listed.
+
+`.base <search>` opens the tab with that search already applied; `.bases` is a
+longer alias.
+
+Bases are grouped by item type, and groups appear in the order the tables first reach them,
+which walks the weapons, then the armour, then the jewellery, gems and runes.
+Inside a group the bases run normal, then exceptional, then elite, and each tier in the
+order it starts dropping.
+
+Searching matches the base's name, its item type, its tier and its three letter
+code, so `elite` finds every elite base, `circlet` all four circlets, and `uap`
+the Shako.
+
+### Summary panel
+
+Point at a base and it is described beside the window, as the game describes it
+in your inventory: its damage or its defense, its durability, and what a
+character needs to use it. Under those are the two things the game only ever
+shows once an item has been made of it:
+
+* **Attack speed**, on weapons. `Weapons.txt` holds it as a modifier rather than
+  as a rate, so it counts down - a weapon at `[-30]` swings faster than one at `[0]`.
+* **Sockets**, as the range an item made on the base can roll.

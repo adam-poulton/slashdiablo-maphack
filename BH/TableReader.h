@@ -50,6 +50,7 @@ public:
 	static Table Runewords;
 	static Table UniqueItems;
 	static Table SetItems;
+	static Table Sets;
 	static Table Skills;
 	static Table MagicPrefix;
 	static Table MagicSuffix;
@@ -58,6 +59,7 @@ public:
 	static Table CharStats;
 	static Table Gems;
 	static Table SkillDesc;
+	static Table CubeMain;
 	/*static Table Armor;
 	static Table Weapons;
 	static Table Misc;*/

@@ -5,29 +5,36 @@
 #include "../Module.h"
 #include "../../Config.h"
 #include "../../Drawing.h"
+#include "BaseTab.h"
 #include "InfoTab.h"
+#include "RecipeTab.h"
 #include "RunewordTab.h"
+#include "SetTab.h"
+#include "UniqueTab.h"
 
-// A general purpose reference window. The module owns the window, its hotkey and
-// tab switching; each panel is an InfoTab and only deals with its own contents.
+// The module owns the window, its hotkey and tab switching; each panel is an
+// InfoTab and deals only with its own contents.
 class InfoWindow : public Module {
 	private:
 		CRITICAL_SECTION crit;
 
 		Drawing::UI* infoUI;
 		std::vector<InfoTab*> tabs;
-		RunewordTab* runewordTab;
 
 		std::map<std::string, Toggle> Toggles;
 		bool wasOpen;			// so closing the window can be noticed
 
 		InfoTab* GetActiveTab();
-		void CheckClosed();
+		InfoTab* GetCurrentTab();
+		InfoTab* GetTabForCommand(const std::string& command);
+		void CheckOpenState();
+
+		// Moves the tab in front by delta places, wrapping at either end.
+		void CycleTab(int delta);
 
 	public:
 		InfoWindow() : Module("Info"),
 			infoUI(NULL),
-			runewordTab(NULL),
 			wasOpen(false) {
 			InitializeCriticalSection(&crit);
 		};
@@ -44,6 +51,7 @@ class InfoWindow : public Module {
 		void OnLoad();
 		void LoadConfig();
 		void MpqLoaded();
+		std::vector<ChatCommand> GetCommands();
 
 		void OnLoop();
 		void OnGameExit();
@@ -51,7 +59,7 @@ class InfoWindow : public Module {
 		void OnKey(bool up, BYTE key, LPARAM lParam, bool* block);
 		void OnUserInput(const wchar_t* msg, bool fromGame, bool* block);
 
-		// Open the window on a given tab, or collapse it to its title bar.
+		// Collapses to the title bar rather than hiding.
 		void ShowWindow(bool show);
 		void ShowTab(InfoTab* tab);
 };

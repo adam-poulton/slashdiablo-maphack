@@ -1,11 +1,10 @@
 #pragma once
-#include <map>
 #include <string>
 #include <vector>
+#include "../../ItemDescription.h"
 #include "InfoTab.h"
 
-// A property entry as it appears in the game's tables: what it grants, its
-// parameter and the range it rolls.
+// A property entry as it appears in the game's tables.
 struct RunewordProperty {
 	std::string code;
 	std::string param;
@@ -18,7 +17,9 @@ struct RunewordRecipe {
 	std::string name;		// "Enigma"
 	std::string runes;		// "Jah + Ith + Ber"
 	std::string itemTypes;	// "Any Armor"
-	int requiredLevel;		// highest level requirement of its runes, 0 if unknown
+	// Highest level requirement among its runes. A runeword goes in any of a
+	// range of bases, so it carries no strength or dexterity of its own.
+	ItemDescription::Requirements requirements;
 	std::string searchKey;	// lowercased name/runes/types, used for filtering
 
 	std::vector<RunewordProperty> properties;	// the runeword's own bonuses
@@ -31,58 +32,50 @@ struct RunewordRecipe {
 	bool statsLoaded;
 };
 
-// Detail view capacity, which is what fits below the back link. The longest
-// recipe needs about 24 lines once wrapped.
-#define RW_DETAIL_LINES		28
-
 class RunewordTab : public InfoTab {
 	private:
-		// List view.
 		Drawing::Inputhook* searchBox;
 		Drawing::Listhook* list;
 		Drawing::Texthook* statusText;
-		Drawing::Texthook* prevLink;
-		Drawing::Texthook* nextLink;
 
-		// Detail view, shown in place of the list: centred text inside a border
-		// that is sized to hold it.
-		Drawing::Framehook* detailFrame;
-		Drawing::Texthook* detailLines[RW_DETAIL_LINES];
-		Drawing::Texthook* backLink;
+		// Sits beside the window rather than inside the tab, which is why it is a
+		// bare Tooltiphook rather than one of the tab's hooks.
+		Drawing::Tooltiphook* summary;
 
 		std::vector<RunewordRecipe> recipes;
 		std::vector<const RunewordRecipe*> matches;
 		std::string query;			// active filter, always lowercase
 		std::string lastBoxText;	// last text seen in the search box
-		std::map<std::string, int> runeLevels;	// rune code -> level requirement
-		int shownDetail;			// index into matches, or -1 for the list view
+		int shownSummary;			// row the summary was built for, or -1
 		bool recipesLoaded;
 		bool needsRefresh;
 
-		void LoadRuneLevels();
+		// Tab size the contents were last fitted to, so a resize is noticed.
+		unsigned int laidOutWidth;
+		unsigned int laidOutHeight;
+
+		// The only place anything is sized or positioned.
+		void ApplyLayout();
+
 		void BuildRecipes();
 		void LoadStats(RunewordRecipe* recipe);
 		void ApplyFilter();
 		void PushRows();
-		void UpdateFooter();
-		void ShowDetail(int match);
-		void ShowList();
-		void ApplyViewVisibility();
+		void UpdateStatus();
+
+		std::vector<Drawing::TooltipLine> BuildSummaryLines(RunewordRecipe* recipe);
+		void UpdateSummary();
 
 	public:
 		RunewordTab(Drawing::UI* ui);
 
 		void MpqLoaded();
+		std::vector<ChatCommand> GetCommands();
 		void OnDraw();
 		bool OnKey(bool up, BYTE key);
+		void OnOpen();
 		void OnClose();
-
-		// Filter the list from outside the window, for the chat command.
 		void Search(const std::string& text);
 
 		unsigned int GetRecipeCount() { return recipes.size(); };
-
-		static bool __cdecl OnPrevClick(bool up, Drawing::Hook* hook, void* data);
-		static bool __cdecl OnNextClick(bool up, Drawing::Hook* hook, void* data);
-		static bool __cdecl OnBackClick(bool up, Drawing::Hook* hook, void* data);
 };

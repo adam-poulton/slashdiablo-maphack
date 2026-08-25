@@ -12,6 +12,7 @@
 #include "Drawing\Advanced\Inputhook\Inputhook.h"
 #include "Drawing\Advanced\Keyhook\Keyhook.h"
 #include "Drawing\Advanced\Listhook\Listhook.h"
+#include "Drawing\Advanced\Tooltiphook\Tooltiphook.h"
 
 #include "Drawing\UI\UI.h"
 #include "Drawing\UI\UITab.h"

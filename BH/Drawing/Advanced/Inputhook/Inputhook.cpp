@@ -1,6 +1,5 @@
 #include "Inputhook.h"
 #include "../../../D2Ptrs.h"
-#include "../../Basic/Boxhook/Boxhook.h"
 #include "../../Basic/Framehook/Framehook.h"
 #include "../../../Common.h"
 
@@ -179,20 +178,6 @@ unsigned int Inputhook::GetCharacterLimit() {
 	 //Current text width
 	 POINT textSize = Texthook::GetTextSize(GetText().substr(textPos, GetCursorPosition() - textPos), GetFont());
 
-	 //An outline around a focused box, in white rather than in the black
-	 //everything else here is drawn in, since a black band on a dark panel was
-	 //invisible however it was blended. Drawn as four bars rather than as a
-	 //filled box behind the field, so it cannot tint the field itself.
-	 if (focused) {
-		 int ring = INPUT_FOCUS_RING;
-		 int left = GetX() - ring, top = GetY() - ring;
-		 int ringWidth = GetXSize() + (2 * ring), ringHeight = boxHeight + (2 * ring);
-		 Boxhook::Draw(left, top, ringWidth, ring, INPUT_FOCUS_COLOR, BTNormal);
-		 Boxhook::Draw(left, top + ringHeight - ring, ringWidth, ring, INPUT_FOCUS_COLOR, BTNormal);
-		 Boxhook::Draw(left, top, ring, ringHeight, INPUT_FOCUS_COLOR, BTNormal);
-		 Boxhook::Draw(left + ringWidth - ring, top, ring, ringHeight, INPUT_FOCUS_COLOR, BTNormal);
-	 }
-
 	 //Draw the outline box!
 	 RECT pRect  = {static_cast<long>(GetX()), static_cast<long>(GetY()), static_cast<long>(GetX() + GetXSize()), static_cast<long>(GetY() + boxHeight)};
 	 D2GFX_DrawRectangle(GetX(), GetY(), GetX() + GetXSize(), GetY() + boxHeight, 0, focused ? BTFull : BTOneHalf);
@@ -256,6 +241,12 @@ unsigned int Inputhook::GetCharacterLimit() {
 	 Lock();
 	 bool ctrlState = ((GetKeyState(VK_LCONTROL) & 0x80) || (GetKeyState(VK_RCONTROL) & 0x80));
 	 bool shiftState = ((GetKeyState(VK_LSHIFT) & 0x80) || (GetKeyState(VK_RSHIFT) & 0x80));
+	 //An empty box has no text for the horizontal arrows to move through, so a box
+	 //that took focus of its own accord doesn't cost its owner those keys.
+	 if (text.length() == 0 && (key == VK_LEFT || key == VK_RIGHT)) {
+		 Unlock();
+		 return false;
+	 }
 	 switch(key) {
 		case VK_BACK:
 			if (!up)
@@ -266,10 +257,20 @@ unsigned int Inputhook::GetCharacterLimit() {
 				Erase(GetCursorPosition(), 1);
 			}
 		break;
+		case VK_TAB:
+			//Tab isn't text, and is left unswallowed so whatever owns the box can
+			//use it to move between the panels of its window.
+			Unlock();
+			return false;
 		case VK_ESCAPE:
+			//Escape drops focus, but is deliberately not swallowed. Whatever owns
+			//the box usually wants to close on escape too, and a box that took
+			//focus on its own eating the first press reads as the key not
+			//working. Falling through lets one press do both.
 			if (up)
 				SetFocused(false);
-		break;
+			Unlock();
+			return false;
 		case VK_RETURN:
 			//Enter isn't text; hand it to the owner to act on.
 			if (!up)
@@ -372,8 +373,8 @@ unsigned int Inputhook::GetCharacterLimit() {
 				Unlock();
 				return false;
 			}
-			//Only printable characters belong in the box; control codes like
-			//return and tab would otherwise be inserted verbatim.
+			//Only printable characters belong in the box; control codes would
+			//otherwise be inserted verbatim.
 			if (out[0] < ' ' || out[0] == 0x7F) {
 				Unlock();
 				return true;

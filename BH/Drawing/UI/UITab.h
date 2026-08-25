@@ -3,8 +3,6 @@
 #include "UI.h"
 
 namespace Drawing {
-	#define TAB_HEIGHT 13
-
 	class UITab : public HookGroup {
 		private:
 			std::string name;

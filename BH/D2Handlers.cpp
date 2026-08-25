@@ -93,6 +93,14 @@ LONG WINAPI GameWindowEvent(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 		__raise BH::moduleManager->OnRightClick(true, mouseX, mouseY, &blockEvent);
 	}
 
+	if (uMsg == WM_MOUSEWHEEL) {
+		// The wheel arrives in multiples of WHEEL_DELTA. The position it reports is in screen coordinates,
+		// so use the game's cursor position like every other handler here.
+		int notches = (int)(short)HIWORD(wParam) / WHEEL_DELTA;
+		if (notches != 0 && Drawing::Hook::MouseWheel(notches, mouseX, mouseY))
+			blockEvent = true;
+	}
+
 	// Only allow BH hotkeys when game and chat box is closed
 	if (D2CLIENT_GetPlayerUnit() && !D2CLIENT_GetUIState(UI_CHAT_CONSOLE)) {
 		if (uMsg == WM_KEYDOWN) {

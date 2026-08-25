@@ -9,9 +9,20 @@ namespace Drawing {
 	class UI;
 	class UITab;
 
+	// Window chrome: the title bar across the top and the row of tab headings
+	// under it. A tab measures itself against the window less both of these.
 	#define TITLE_BAR_HEIGHT 15
+	#define TAB_HEIGHT 13
 	#define MINIMIZED_Y_POS 585
 	#define MINIMIZED_X_POS 234
+
+	// The grip in the bottom right corner that resizes the window, and how small
+	// a window may be dragged. The minimum has to leave room below the title bar
+	// and the tab row for a tab to have any height at all, since a tab measures
+	// itself against the window.
+	#define RESIZE_GRIP_SIZE	12
+	#define UI_MIN_WIDTH		200
+	#define UI_MIN_HEIGHT		(TITLE_BAR_HEIGHT + TAB_HEIGHT + 60)
 
 	class UI : public HookGroup {
 		private:
@@ -21,11 +32,18 @@ namespace Drawing {
 			bool active, minimized, dragged, visible;//If UI is active or minimized or dragged
 			unsigned int dragX, dragY;//Position where we grabbed it.
 			unsigned int startX, startY;//Position where we grabbed it.
+			bool resizable;//Whether the window offers a resize grip at all
+			bool resizing;//Corner grip held by the mouse
+			unsigned int resizeGrabX, resizeGrabY;//Corner to grab point, in pixels
 			std::string name;//Name of the UI
 			UITab* currentTab;//Current tab open at the time.
 			CRITICAL_SECTION crit;//Critical section
 
 			void EnsureInBounds();
+
+			// Follows the mouse while the grip is held, and draws the grip.
+			void DragResizeTo(unsigned int mouseX, unsigned int mouseY);
+			void DrawResizeGrip();
 		public:
 			std::list<UITab*> Tabs;
 
@@ -75,6 +93,30 @@ namespace Drawing {
 
 			bool OnRightClick(bool up, unsigned int mouseX, unsigned int mouseY);
 			static bool RightClick(bool up, unsigned int mouseX, unsigned int mouseY);
+
+			// Whether the window can be resized by dragging its corner. Off by
+			// default: a window whose contents are laid out to a fixed size would
+			// be resized around them, so this is for windows whose tabs measure
+			// themselves against the window.
+			bool IsResizable() { return resizable; };
+			void SetResizable(bool state) { Lock(); resizable = state; if (!state) resizing = false; Unlock(); };
+
+			// True while the corner grip is held, in which case the window is
+			// following the mouse and clicks belong to the grip.
+			bool IsResizing() { return resizing; };
+			void SetResizing(bool state, bool write_file);
+			void SetResizing(bool state);
+
+			// Smallest the window may be dragged to, clamped so a window can
+			// always be got back to a usable size on a small screen.
+			unsigned int GetMinXSize();
+			unsigned int GetMinYSize();
+
+			bool InResizeGrip(unsigned int xPos, unsigned int yPos) {
+				return resizable && !minimized &&
+					xPos >= x + xSize - RESIZE_GRIP_SIZE && xPos <= x + xSize &&
+					yPos >= y + ySize - RESIZE_GRIP_SIZE && yPos <= y + ySize;
+			};
 
 			bool InWindow(unsigned int xPos, unsigned int yPos) { return xPos >= x && xPos <= x + xSize && yPos >= y && yPos <= y + ySize; };
 			bool InTitle(unsigned int xPos, unsigned int yPos) { return xPos >= x && xPos <= x + xSize && yPos >= y && yPos <= y + TITLE_BAR_HEIGHT; };

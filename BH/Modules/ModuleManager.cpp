@@ -5,6 +5,26 @@
 #include <algorithm>
 #include <iterator>
 
+// The commands BH answers itself rather than through a module. Answering and
+// printing both read this, so a name BH takes and a name BH advertises cannot
+// drift apart.
+static std::vector<ChatCommand> OwnCommands() {
+	std::vector<ChatCommand> commands;
+	commands.push_back(ChatCommand{ "help", { "commands" }, "",
+		"Lists every command BH answers" });
+	commands.push_back(ChatCommand{ "reload", {}, "",
+		"Rereads BH.cfg and BH_settings.cfg from disk" });
+	commands.push_back(ChatCommand{ "save", {}, "",
+		"Writes the current settings back to BH_settings.cfg" });
+	return commands;
+}
+
+// The commands the game answers for itself. BH sees every command first and has
+// no way to ask the game whether it knows one, so without this a command that
+// worked perfectly well would be answered with a hint about BH's. These are what
+// the game's own help advertises; a realm that adds more belongs here too.
+static const char* kGameCommands[] = { "claim" };
+
 ModuleManager::ModuleManager() {
 
 }
@@ -71,6 +91,60 @@ void ModuleManager::MpqLoaded() {
 	}
 }
 
+// ".cube (.recipe, .recipes) <search>": every name that reaches the command, and
+// then what it takes after one of them.
+static std::string CommandText(const ChatCommand& command) {
+	std::string text = "." + command.name;
+	if (!command.aliases.empty()) {
+		text += " (";
+		for (unsigned int i = 0; i < command.aliases.size(); i++) {
+			if (i > 0)
+				text += ", ";
+			text += "." + command.aliases[i];
+		}
+		text += ")";
+	}
+	if (command.args.length() > 0)
+		text += " " + command.args;
+	return text;
+}
+
+// A line per command under a line naming what owns them, indented under it.
+// Nothing is lined up into columns: the chat log is the game's to draw in a font
+// of its own, so padding with spaces would not line up anyway.
+static void PrintGroup(const std::string& label,
+		const std::vector<ChatCommand>& commands) {
+	Print("\377c4%s:", label.c_str());
+	for (unsigned int i = 0; i < commands.size(); i++) {
+		std::string text = CommandText(commands[i]);
+		if (commands[i].description.length() > 0) {
+			Print("  \377c4%s\377c0 - %s", text.c_str(),
+				commands[i].description.c_str());
+		} else {
+			Print("  \377c4%s", text.c_str());
+		}
+	}
+}
+
+void ModuleManager::PrintCommands() {
+	PrintGroup("BH", OwnCommands());
+
+	for (map<string, Module*>::iterator it = moduleList.begin();
+			it != moduleList.end(); ++it) {
+		std::vector<ChatCommand> commands = it->second->GetCommands();
+		if (!commands.empty())
+			PrintGroup(it->second->GetName(), commands);
+	}
+}
+
+void ModuleManager::HintCommands(const std::string& command) {
+	for (int i = 0; i < (int)(sizeof(kGameCommands) / sizeof(kGameCommands[0])); i++) {
+		if (command.compare(kGameCommands[i]) == 0)
+			return;
+	}
+	Print("\377c4BH:\377c0 no such BH command. Type \377c3.help\377c0 for the list.");
+}
+
 bool ModuleManager::UserInput(wchar_t* module, wchar_t* msg, bool fromGame) {
 	bool block = false;
 	std::string name;
@@ -78,26 +152,56 @@ bool ModuleManager::UserInput(wchar_t* module, wchar_t* msg, bool fromGame) {
 	name = WStringToString(modname);
 	transform(name.begin(), name.end(), name.begin(), ::tolower);
 
-	if (name.compare("reload") == 0)
+	// Whichever of BH's own commands was reached, under the one name the rest of
+	// this knows it by, so an alias is said in the list and nowhere else.
+	std::vector<ChatCommand> own = OwnCommands();
+	std::string command;
+	for (unsigned int i = 0; i < own.size() && command.empty(); i++) {
+		if (own[i].Answers(name))
+			command = own[i].name;
+	}
+
+	if (command.compare("reload") == 0)
 	{
 		ReloadConfig();
 		Print("\377c4BH:\377c0 Successfully reloaded configuration.");
 		return true;
 	}
 
-	if (name.compare("save") == 0) {
+	if (command.compare("save") == 0) {
 		BH::config->Write();
 		Print("\377c4BH:\377c0 Successfully saved configuration.");
+		return true;
 	}
 
-	// Short aliases for modules with awkward chat commands.
-	if (name.compare("rw") == 0 || name.compare("runewords") == 0)
-		name = "info";
+	if (command.compare("help") == 0) {
+		PrintCommands();
+		return true;
+	}
 
-	for (map<string, Module*>::iterator it = moduleList.begin(); it != moduleList.end(); ++it) {
-		if (name.compare((*it).first) == 0) {
-			__raise it->second->UserInput(msg, fromGame, &block);
+	// A module is reached by its own name, or by any of the shorter commands it
+	// claims for itself.
+	Module* target = NULL;
+	map<string, Module*>::iterator named = moduleList.find(name);
+	if (named != moduleList.end()) {
+		target = named->second;
+	} else {
+		for (map<string, Module*>::iterator it = moduleList.begin();
+				it != moduleList.end() && !target; ++it) {
+			if (it->second->OwnsCommand(name))
+				target = it->second;
 		}
+	}
+
+	if (target) {
+		// Which command was typed is part of what the module is being asked, so
+		// leave it where the handler can read it.
+		target->invokedCommand = name;
+		__raise target->UserInput(msg, fromGame, &block);
+	} else {
+		// Nothing is blocked either way, so the game still gets its turn at a
+		// command that turns out to be one of its own.
+		HintCommands(name);
 	}
 	return block;
 }

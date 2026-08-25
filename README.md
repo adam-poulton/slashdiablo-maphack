@@ -55,9 +55,10 @@ Major features include:
   * Record each run's length, XP gained, kill counts and drops to a file in
     your Diablo `data` directory (off by default)
 * Kill counters and kill rates (unique/champion/total) on the automap
-* Tabbed in-game info window (default hotkey: numpad 9), currently a runeword
-  recipe lookup searchable by runeword name, rune or item type, also reachable
-  with `.rw` in chat — see [Info Window](docs/Info-Window.md)
+* Tabbed in-game info window (default hotkey: numpad 9): a runeword recipe
+  lookup, a unique item lookup and a set item lookup, each searchable and each
+  with its own chat command (`.rw`, `.uni` and `.set`) - see
+  [Info Window](docs/Info-Window.md)
 * Gamble refresh hotkey for Gheed, Jamella and Anya (default: F5)
 * Reload configs in-game with ctrl+r or numpad 0 (both configurable)
 
