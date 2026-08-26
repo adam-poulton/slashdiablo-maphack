@@ -52,6 +52,11 @@
 
 struct UnitAny;
 
+// The threshold is the tome quantity at or below which ground scrolls stay visible, so 19
+// is the highest useful value: show scrolls only while a tome is not completely full.
+#define TOME_MAX_SCROLLS 20
+#define MAX_SCROLL_VISIBILITY_THRESHOLD (TOME_MAX_SCROLLS - 1)
+
 class Item : public Module {
 	private:
 		static map<std::string, Toggle> Toggles;
@@ -63,6 +68,10 @@ class Item : public Module {
 		static unsigned int pingLevelSetting;
 		static unsigned int trackerPingLevelSetting;
 		static int statRangeColor;
+		static unsigned int scrollVisibilityThreshold;
+		Drawing::Inputhook* scrollThresholdInput{};
+
+		void SyncScrollVisibilityThreshold();
 
 		void ResetPatches();
 	public:
@@ -98,6 +107,7 @@ class Item : public Module {
 		static unsigned int GetFilterLevel() { return filterLevelSetting; }
 		static unsigned int GetPingLevel() { return pingLevelSetting; }
 		static unsigned int GetTrackerPingLevel() { return trackerPingLevelSetting >= 0 ? trackerPingLevelSetting : pingLevelSetting; }
+		static unsigned int GetScrollVisibilityThreshold() { return scrollVisibilityThreshold; }
 
 };
 

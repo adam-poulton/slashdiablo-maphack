@@ -88,6 +88,11 @@ Inputhook::Inputhook(HookGroup* group, unsigned int x, unsigned int y, unsigned 
 	vsprintf_s(buffer, 4096, newText.c_str(), arg);
 	va_end(arg);
 	text = buffer;
+	ResetSelection();
+	if (GetCursorPosition() > text.length())
+		SetCursorPosition(text.length());
+	if (GetTextPos() > text.length())
+		SetTextPos(0);
  }
 
  void Inputhook::SetFont(unsigned int newFont) {

@@ -62,6 +62,7 @@ unsigned int Item::filterLevelSetting = 0;
 unsigned int Item::pingLevelSetting = 0;
 unsigned int Item::trackerPingLevelSetting = -1;
 int Item::statRangeColor = TextColor::DarkGreen;
+unsigned int Item::scrollVisibilityThreshold = MAX_SCROLL_VISIBILITY_THRESHOLD;
 UnitAny* Item::viewingUnit;
 
 Patch* itemNamePatch = new Patch(Call, D2CLIENT, { 0x92366, 0x96736 }, (int)ItemName_Interception, 6);
@@ -140,11 +141,14 @@ void Item::LoadConfig() {
 	BH::config->ReadToggle("Allow Unknown Items", "None", false, Toggles["Allow Unknown Items"]);
 	BH::config->ReadToggle("Suppress Invalid Stats", "None", false, Toggles["Suppress Invalid Stats"]);
 	BH::config->ReadToggle("Always Show Item Stat Ranges", "None", true, Toggles["Always Show Item Stat Ranges"]);
-	BH::config->ReadToggle("Smart Scrolls", "None", false, Toggles["Smart Scrolls"]);
+	BH::config->ReadToggle("Hide Redundant Scrolls", "None", false, Toggles["Hide Redundant Scrolls"]);
 	BH::config->ReadInt("Filter Level", filterLevelSetting);
 	BH::config->ReadInt("Ping Level", pingLevelSetting);
 	BH::config->ReadInt("Run Details Ping Level", trackerPingLevelSetting);
 	BH::config->ReadInt("Stat Range Color", statRangeColor);
+	BH::config->ReadInt("Scroll Visibility Threshold", scrollVisibilityThreshold);
+	if (scrollVisibilityThreshold > MAX_SCROLL_VISIBILITY_THRESHOLD)
+		scrollVisibilityThreshold = MAX_SCROLL_VISIBILITY_THRESHOLD;
 	BH::config->ReadBoolean("Ordered Item Filtering", OrderedFiltering);
 
 	LoadNoIlvlCodes();
@@ -189,6 +193,33 @@ void Item::ResetPatches() {
 		permShowItems3->Remove();
 		permShowItems4->Remove();
 		permShowItems5->Remove();
+	}
+}
+
+// Whichever of the input box and the config value changed last wins, so the box follows a
+// config reload. Non-numeric text is ignored, leaving a half-typed box harmless.
+void Item::SyncScrollVisibilityThreshold() {
+	if (!scrollThresholdInput)
+		return;
+
+	static unsigned int lastValue = scrollVisibilityThreshold;
+	static string lastText = to_string<unsigned int>(scrollVisibilityThreshold);
+
+	string text = scrollThresholdInput->GetText();
+	if (text != lastText) {
+		lastText = text;
+		if (!text.empty() && text.find_first_not_of("0123456789") == string::npos) {
+			unsigned int value = 0;
+			from_string<unsigned int>(value, text, std::dec);
+			if (value > MAX_SCROLL_VISIBILITY_THRESHOLD)
+				value = MAX_SCROLL_VISIBILITY_THRESHOLD;
+			scrollVisibilityThreshold = value;
+			lastValue = value;
+		}
+	} else if (scrollVisibilityThreshold != lastValue) {
+		lastValue = scrollVisibilityThreshold;
+		lastText = to_string<unsigned int>(scrollVisibilityThreshold);
+		scrollThresholdInput->SetText(lastText);
 	}
 }
 
@@ -257,8 +288,10 @@ void Item::DrawSettings() {
 	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Suppress Invalid Stats"].toggle, "");
 	y += 15;
 
-	new Checkhook(settingsTab, 4, y, &Toggles["Smart Scrolls"].state, "Smart Scrolls");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Smart Scrolls"].toggle, "");
+	new Checkhook(settingsTab, 4, y, &Toggles["Hide Redundant Scrolls"].state, "Hide Redundant Scrolls");
+	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Hide Redundant Scrolls"].toggle, "");
+	new Texthook(settingsTab, 288, y, "Show <=");
+	scrollThresholdInput = new Inputhook(settingsTab, 336, y - INPUT_PADDING_TOP, 34, to_string<unsigned int>(scrollVisibilityThreshold));
 	y += 15;
 
 	// no Keyhook: this changes how BH.cfg is interpreted, so it isn't hotkey-toggleable
@@ -308,6 +341,7 @@ void Item::OnUnload() {
 
 void Item::OnLoop() {
 	ResetPatches();
+	SyncScrollVisibilityThreshold();
 	static unsigned int localFilterLevel = 0;
 	static unsigned int localPingLevel = 0;
 	// This is a bit of a hack to reset the cache when the user changes the item filter level
