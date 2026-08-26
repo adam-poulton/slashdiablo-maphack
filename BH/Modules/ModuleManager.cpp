@@ -1,4 +1,6 @@
 #include "ModuleManager.h"
+#include "../About.h"
+#include "Settings/SettingsRegistry.h"
 #include "Module.h"
 #include "../D2Helpers.h"
 #include "../BH.h"
@@ -16,6 +18,8 @@ static std::vector<ChatCommand> OwnCommands() {
 		"Rereads BH.cfg and BH_settings.cfg from disk" });
 	commands.push_back(ChatCommand{ "save", {}, "",
 		"Writes the current settings back to BH_settings.cfg" });
+	commands.push_back(ChatCommand{ "version", {}, "",
+		"Prints which build of BH and of the game this is" });
 	return commands;
 }
 
@@ -51,7 +55,10 @@ void ModuleManager::Add(Module* module) {
 }
 
 Module* ModuleManager::Get(string name) {
-	// Get a pointer to a module
+	// Through the same folding Add() used, so that a module can be looked up by
+	// the name it calls itself. Without this, Get() only worked for names that
+	// happened to already be lowercase and unspaced.
+	FixName(name);
 	if (moduleList.count(name) > 0) {
 		return moduleList[name];
 	}
@@ -168,8 +175,17 @@ bool ModuleManager::UserInput(wchar_t* module, wchar_t* msg, bool fromGame) {
 		return true;
 	}
 
+	if (command.compare("version") == 0) {
+		// The same lines the menus and the settings window show, from the same
+		// place, so what gets reported cannot differ from what is on screen.
+		std::vector<std::string> lines = About::Lines();
+		for (unsigned int i = 0; i < lines.size(); i++)
+			Print("\377c4BH:\377c0 %s", lines[i].c_str());
+		return true;
+	}
+
 	if (command.compare("save") == 0) {
-		BH::config->Write();
+		Settings::Persist();
 		Print("\377c4BH:\377c0 Successfully saved configuration.");
 		return true;
 	}

@@ -4,6 +4,18 @@
 #include "../../Basic/Framehook/Framehook.h"
 
 using namespace Drawing;
+
+// The box, and the clear space between it and the label. The label was drawn at a
+// bare 18 while the reported width was the label's alone, which put the hook's
+// clickable area 18 pixels left of what it draws: the far end of a label could not
+// be clicked, and a short label was not over the hook at all.
+#define CHECK_BOX_SIZE		12
+#define CHECK_LABEL_GAP		6
+
+// The label sits a little below the top of the box, so the two read as one line
+// rather than the text sitting on the box's rim.
+#define CHECK_LABEL_TOP		2
+
 /* Basic Hook Initializer
  *		Used for drawing a checkbox on screen.
  */
@@ -13,6 +25,7 @@ Hook(visibility, x, y) {
 	SetTextColor(White);
 	state = checked;
 	SetHoverColor(Disabled);
+	SetDisabledColor(DISABLED_TEXT_COLOR);
 	char buffer[4096];
 	va_list arg;
 	va_start(arg, formatString);
@@ -30,6 +43,7 @@ Hook(group, x, y) {
 	SetTextColor(Gold);
 	state = checked;
 	SetHoverColor(Tan);
+	SetDisabledColor(DISABLED_TEXT_COLOR);
 	char buffer[4096];
 	va_list arg;
 	va_start(arg, formatString);
@@ -70,6 +84,22 @@ void Checkhook::SetHoverColor(TextColor newHoverColor) {
 	Unlock();
 }
 
+/* GetDisabledColor()
+ *	Returns the color drawn while switched off.
+ */
+TextColor Checkhook::GetDisabledColor() {
+	return disabledColor;
+}
+
+/* SetDisabledColor()
+ *	Sets the color to draw while switched off.
+ */
+void Checkhook::SetDisabledColor(TextColor newColor) {
+	Lock();
+	disabledColor = newColor;
+	Unlock();
+}
+
 /* GetCheck()
  *	Returns what text will be drawn.
  */
@@ -90,23 +120,35 @@ void Checkhook::SetText(std::string formatString, ...) {
 }
 
 /* GetXSize()
- *	Returns how long the text is.
+ *	The box and its label together, which is what the hook draws and so what
+ *	it should answer for when it is clicked or measured.
  */
 unsigned int Checkhook::GetXSize() {
+	if (text.length() == 0)
+		return CHECK_BOX_SIZE;
+
 	DWORD width, fileNo;
 	wchar_t* wString = AnsiToUnicode(text.c_str());
 	DWORD oldFont = D2WIN_SetTextSize(0);
 	D2WIN_GetTextWidthFileNo(wString, &width, &fileNo);
 	D2WIN_SetTextSize(oldFont);
 	delete[] wString;
-	return width + 20; 
+	// Exactly the box, the gap and the label, which is what is drawn. There used
+	// to be a further twenty pixels here, a rough allowance for the box from
+	// before the box was measured; kept alongside the exact figure it left every
+	// checkbox claiming to be wider than it looked.
+	return width + CHECK_BOX_SIZE + CHECK_LABEL_GAP;
 }
 
 /* GetXSize()
  *	Returns how tall the text is.
  */
 unsigned int Checkhook::GetYSize() {
-	return 12;
+	return CHECK_BOX_SIZE;
+}
+
+unsigned int Checkhook::GetTextInset() {
+	return CHECK_LABEL_TOP;
 }
 
 /* IsChecked()
@@ -134,20 +176,24 @@ void Checkhook::OnDraw() {
 
 	Lock();
 
-	Framehook::Draw(GetX(), GetY(), 12, 12, 0, BTFull);
+	Framehook::Draw(GetX(), GetY(), CHECK_BOX_SIZE, CHECK_BOX_SIZE, 0, BTFull);
 
 
 	unsigned int drawColor = color;
 	unsigned int checkColor = White;
-	if (InRange(*p_D2CLIENT_MouseX, *p_D2CLIENT_MouseY) && GetHoverColor() != Disabled) {
+	if (!IsEnabled()) {
+		drawColor = checkColor = disabledColor;
+	} else if (InRange(*p_D2CLIENT_MouseX, *p_D2CLIENT_MouseY) && GetHoverColor() != Disabled) {
 		drawColor = hoverColor;
 		checkColor = hoverColor;
 	}
 
 	if (IsChecked())
-		Texthook::Draw(GetX() + 3, GetY() + 2, false, 0, (TextColor)checkColor, "X");
+		Texthook::Draw(GetX() + 3, GetY() + CHECK_LABEL_TOP, false, 0,
+			(TextColor)checkColor, "X");
 
-	Texthook::Draw(GetX() + 18, GetY() + 2, false, 0, (TextColor)drawColor, text);
+	Texthook::Draw(GetX() + CHECK_BOX_SIZE + CHECK_LABEL_GAP,
+		GetY() + CHECK_LABEL_TOP, false, 0, (TextColor)drawColor, text);
 	Unlock();
 }
 

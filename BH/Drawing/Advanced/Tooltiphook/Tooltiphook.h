@@ -69,6 +69,14 @@ namespace Drawing {
 			void PlaceBeside(unsigned int x, unsigned int y,
 				unsigned int width, unsigned int height);
 
+			// Puts the panel over the given rectangle, under it when there is no
+			// room over, and lines it up with its left edge. For describing one
+			// line of a list rather than the list itself: beside would put the
+			// panel a long way from the line that raised it. Call it after
+			// SetLines(), for the same reason as PlaceBeside().
+			void PlaceAbove(unsigned int x, unsigned int y,
+				unsigned int width, unsigned int height);
+
 			void OnDraw();
 	};
 };

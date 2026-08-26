@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 #include "../../ItemDescription.h"
-#include "InfoTab.h"
+#include "../Window/UIPanel.h"
 
 // A property entry as it appears in the game's tables. itemCount is how many
 // pieces have to be worn for it to apply, and 0 for a bonus that is always on.
@@ -59,11 +59,9 @@ struct SetRecord {
 
 // The set items panel, laid out and driven the same way as the runewords and
 // uniques panels.
-class SetTab : public InfoTab {
+class SetTab : public UIPanel {
 	private:
-		Drawing::Inputhook* searchBox;
 		Drawing::Listhook* list;
-		Drawing::Texthook* statusText;
 
 		// Sits beside the window rather than inside the tab, which is why it is a
 		// bare Tooltiphook rather than one of the tab's hooks.
@@ -81,7 +79,6 @@ class SetTab : public InfoTab {
 		bool foldOnPush;			// fold the sets on the next rows pushed
 
 		std::string query;			// active filter, always lowercase
-		std::string lastBoxText;	// last text seen in the search box
 		int shownSummary;			// row the summary was built for, or -1
 		bool setsLoaded;
 		bool needsRefresh;
@@ -99,7 +96,6 @@ class SetTab : public InfoTab {
 		void LoadSetStats(SetRecord* set);
 		void ApplyFilter();
 		void PushRows();
-		void UpdateStatus();
 
 		std::vector<Drawing::TooltipLine> BuildSummaryLines(SetItemRecord* item);
 		void UpdateSummary();
@@ -111,9 +107,11 @@ class SetTab : public InfoTab {
 		std::vector<ChatCommand> GetCommands();
 		void OnDraw();
 		bool OnKey(bool up, BYTE key);
-		void OnOpen();
 		void OnClose();
 		void Search(const std::string& text);
+		void OnSearchSubmitted();
+		std::string GetSearchPlaceholder();
+		std::string GetStatus();
 
 		unsigned int GetItemCount() { return items.size(); };
 		unsigned int GetSetCount() { return sets.size(); };

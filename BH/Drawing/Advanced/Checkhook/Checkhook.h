@@ -7,7 +7,7 @@ namespace Drawing {
 	class Checkhook : public Hook {
 		private:
 			bool* state;//Holds if the checkbox is checked.
-			TextColor color, hoverColor;//Holds text color/hover color.
+			TextColor color, hoverColor, disabledColor;//Holds text color/hover color.
 			std::string text;//The text beside the checkhook.
 		public:
 			Checkhook(HookVisibility visibility, unsigned int x, unsigned int y, bool* checked, std::string formatString, ...);
@@ -31,6 +31,14 @@ namespace Drawing {
 			//Sets the hover color
 			void SetHoverColor(TextColor newColor);
 
+			//Returns the color the box and its label are drawn in while switched off.
+			TextColor GetDisabledColor();
+
+			//Sets the color to draw while switched off. Settable because one colour
+			//for every disabled hook leaves a disabled hook unable to say anything
+			//else about itself.
+			void SetDisabledColor(TextColor newColor);
+
 			//Gets the text
 			std::string GetText();
 
@@ -42,6 +50,7 @@ namespace Drawing {
 
 			//Returns the total hright of the check hook
 			unsigned int GetYSize();
+			unsigned int GetTextInset();
 
 			//Draw the text.
 			void OnDraw();

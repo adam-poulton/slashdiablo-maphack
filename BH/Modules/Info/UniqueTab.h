@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 #include "../../ItemDescription.h"
-#include "InfoTab.h"
+#include "../Window/UIPanel.h"
 
 // A property entry as it appears in the game's tables.
 struct UniqueProperty {
@@ -32,11 +32,9 @@ struct UniqueRecord {
 
 // The unique items panel, laid out and driven the same way as the runewords
 // panel.
-class UniqueTab : public InfoTab {
+class UniqueTab : public UIPanel {
 	private:
-		Drawing::Inputhook* searchBox;
 		Drawing::Listhook* list;
-		Drawing::Texthook* statusText;
 
 		// Sits beside the window rather than inside the tab, which is why it is a
 		// bare Tooltiphook rather than one of the tab's hooks.
@@ -45,7 +43,6 @@ class UniqueTab : public InfoTab {
 		std::vector<UniqueRecord> uniques;
 		std::vector<const UniqueRecord*> matches;
 		std::string query;			// active filter, always lowercase
-		std::string lastBoxText;	// last text seen in the search box
 		int shownSummary;			// row the summary was built for, or -1
 		bool uniquesLoaded;
 		bool needsRefresh;
@@ -61,7 +58,6 @@ class UniqueTab : public InfoTab {
 		void LoadStats(UniqueRecord* unique);
 		void ApplyFilter();
 		void PushRows();
-		void UpdateStatus();
 
 		std::vector<Drawing::TooltipLine> BuildSummaryLines(UniqueRecord* unique);
 		void UpdateSummary();
@@ -73,9 +69,11 @@ class UniqueTab : public InfoTab {
 		std::vector<ChatCommand> GetCommands();
 		void OnDraw();
 		bool OnKey(bool up, BYTE key);
-		void OnOpen();
 		void OnClose();
 		void Search(const std::string& text);
+		void OnSearchSubmitted();
+		std::string GetSearchPlaceholder();
+		std::string GetStatus();
 
 		unsigned int GetUniqueCount() { return uniques.size(); };
 };

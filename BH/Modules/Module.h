@@ -71,6 +71,16 @@ class Module {
 		virtual void OnUnload() {};
 
 		virtual void LoadConfig() {};
+
+		// Called with the keys of this module's settings that have just changed,
+		// however they changed - the settings window, a hotkey, or a reload. This
+		// is where the work that used to be done every frame on the off chance
+		// belongs: reinstalling patches, resetting caches, rereading rules.
+		//
+		// Coarse on purpose. A module's settings mostly funnel into one or two
+		// actions, and doing them once per change is cheaper than doing them
+		// twenty-five times a second no matter how little was actually asked for.
+		virtual void OnSettingsChanged(const vector<string>& keys) {};
 		virtual void MpqLoaded() {};
 
 		virtual void OnLoop() {};

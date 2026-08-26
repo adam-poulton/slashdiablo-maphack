@@ -1,5 +1,6 @@
 #include "Hook.h"
 #include "Advanced/Colorhook/Colorhook.h"
+#include "Advanced/Combohook/Combohook.h"
 #include "../D2Ptrs.h"
 
 using namespace Drawing;
@@ -11,7 +12,7 @@ std::list<Hook*> Hook::Hooks;
  *		Used for just drawing basic things on screen.
  */
 Hook::Hook(HookVisibility visibility, unsigned int x, unsigned int y) : 
-visibility(visibility), x(x), y(y), z(1), active(true), alignment(None), group(false), left(false), right(false), leftVoid(false), rightVoid(false) {
+visibility(visibility), x(x), y(y), z(1), active(true), enabled(true), alignment(None), group(false), left(false), right(false), leftVoid(false), rightVoid(false) {
 	InitializeCriticalSection(&crit);
 	Hooks.push_back(this);
 }
@@ -20,10 +21,25 @@ visibility(visibility), x(x), y(y), z(1), active(true), alignment(None), group(f
  *		Used in conjuction with other basic hooks to create an advanced hook.
  */
 Hook::Hook(HookGroup *group, unsigned int x, unsigned int y) :
-visibility(Group), x(x), y(y), z(1), active(true), alignment(None), group(group), left(false), right(false), leftVoid(false), rightVoid(false) {
+visibility(Group), x(x), y(y), z(1), active(true), enabled(true), alignment(None), group(group), left(false), right(false), leftVoid(false), rightVoid(false) {
 	InitializeCriticalSection(&crit);
 	Hooks.push_back(this);
 	group->Hooks.push_back(this);
+}
+
+/* ~Hook()
+ *	Takes the hook back out of everything holding a pointer to it. The dispatch
+ *	list and the group both keep raw pointers, so a hook that is deleted without
+ *	removing itself leaves them dangling.
+ *
+ *	Hooks are created and destroyed from the draw thread, which is also the only
+ *	thread that walks these lists.
+ */
+Hook::~Hook() {
+	Hooks.remove(this);
+	if (GetVisibility() == Group && group)
+		group->Hooks.remove(this);
+	DeleteCriticalSection(&crit);
 }
 
 /* Lock()
@@ -62,8 +78,10 @@ unsigned int Hook::GetX() {
 	}
 
 	if (alignment & Right) {
+		// Flush with the group's right edge, less whatever inset the base x asks
+		// for. An inset of zero, which is the usual case, is flush.
 		if (GetVisibility() == Group)
-			return (group->GetX() + group->GetY()) - GetXSize();
+			return (group->GetX() + group->GetXSize()) - GetXSize() - x;
 		return retX - GetXSize();
 	}
 	return retX;
@@ -176,6 +194,22 @@ void Hook::SetActive(bool newActive) {
 	Unlock();
 }
 
+/* IsEnabled()
+ *	Returns whether the hook answers input.
+ */
+bool Hook::IsEnabled() {
+	return enabled;
+}
+
+/* SetEnabled(bool newEnabled)
+ *	Sets whether the hook answers input.
+ */
+void Hook::SetEnabled(bool newEnabled) {
+	Lock();
+	enabled = newEnabled;
+	Unlock();
+}
+
 /* GetAlignment()
  *	Returns how we are going to align the hook
  */
@@ -258,14 +292,16 @@ void Hook::SetRightCallback(OnClick rightHandler, void *voidVar) {
 }
 
 /* InRange(unsigned int x, unsigned int y)
- *	Returns if the x/y are within the draw's area.
+ *	Returns if the x/y are within the draw's area. The far edges are exclusive, so
+ *	two hooks that sit against each other do not both answer for the pixel where
+ *	they meet.
  */
 bool Hook::InRange(unsigned int x, unsigned int y) {
-	return (IsActive() &&
+	return (IsActive() && IsEnabled() &&
 		x >= GetX() &&
 		y >= GetY() &&
-		x <= GetX() + GetXSize() &&
-		y <= GetY() + GetYSize());
+		x < GetX() + GetXSize() &&
+		y < GetY() + GetYSize());
 }
 
 /* Hook::GetScreenHeight()
@@ -322,6 +358,14 @@ void Hook::Draw(HookVisibility type) {
 	for (HookIterator it = Hooks.begin(); it!=Hooks.end(); ++it)
 		if ((*it)->GetVisibility() == type || (*it)->GetVisibility() == Perm)
 			(*it)->OnDraw();
+
+	// An open dropdown, over the top of everything drawn so far. It has to be:
+	// the list hangs down over whatever is laid out under it, and a hook inside a
+	// panel is drawn in the order the panel holds it, which is before its
+	// neighbours. Only in the in game pass, so it is drawn once per frame.
+	if (type == InGame && Combohook::current)
+		Combohook::current->DrawOpenList();
+
 	if (Colorhook::current) {
 		Colorhook::current->OnDraw();
 		return;
@@ -339,7 +383,7 @@ bool Hook::LeftClick(bool up, unsigned int x, unsigned int y) {
 		return true;
 	}
 	for (list<Hook*>::iterator it = Hooks.begin(); it!=Hooks.end(); ++it)
-		if ((*it)->IsActive())
+		if ((*it)->IsActive() && (*it)->IsEnabled())
 			if ((*it)->OnLeftClick(up, x, y))
 				block = true;
 	return block;
@@ -356,7 +400,7 @@ bool Hook::RightClick(bool up, unsigned int x, unsigned int y) {
 		return true;
 	}
 	for (HookIterator it = Hooks.begin(); it!=Hooks.end(); ++it)
-		if ((*it)->IsActive())
+		if ((*it)->IsActive() && (*it)->IsEnabled())
 			if ((*it)->OnRightClick(up, x, y))
 				block = true;
 	return block;
@@ -369,7 +413,7 @@ bool Hook::RightClick(bool up, unsigned int x, unsigned int y) {
 bool Hook::MouseWheel(int notches, unsigned int x, unsigned int y) {
 	Hooks.sort(ZSort);
 	for (HookIterator it = Hooks.begin(); it!=Hooks.end(); ++it)
-		if ((*it)->IsActive())
+		if ((*it)->IsActive() && (*it)->IsEnabled())
 			if ((*it)->OnMouseWheel(notches, x, y))
 				return true;
 	return false;
@@ -382,7 +426,7 @@ bool Hook::KeyClick(bool bUp, BYTE bKey, LPARAM lParam) {
 	Hooks.sort(ZSort);
 	bool block = false;
 	for (HookIterator it = Hooks.begin(); it!=Hooks.end(); ++it)
-		if ((*it)->IsActive())
+		if ((*it)->IsActive() && (*it)->IsEnabled())
 			if ((*it)->OnKey(bUp, bKey, lParam))
 				block = true;
 	return block;

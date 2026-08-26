@@ -44,6 +44,7 @@
  */
 
 #include "Item.h"
+#include "../Settings/SettingsRegistry.h"
 #include "../../D2Ptrs.h"
 #include "../../D2Strings.h"
 #include "../../BH.h"
@@ -103,7 +104,7 @@ void Item::OnLoad() {
 		Toggles["Show Rune Numbers"].state || Toggles["Alt Item Style"].state || Toggles["Shorten Item Names"].state || Toggles["Advanced Item Display"].state)
 		itemNamePatch->Install();
 
-	DrawSettings();
+	RegisterSettings();
 }
 
 void ResetCaches() {
@@ -114,7 +115,15 @@ void ResetCaches() {
 	ignore_cache.ResetCache();
 }
 
+void Item::OnSettingsChanged(const vector<string>& keys) {
+	ResetPatches();
+	ResetCaches();
+	if (Toggles["Advanced Item Display"].state)
+		ItemDisplay::InitializeItemRules();
+}
+
 void Item::OnGameJoin() {
+
 	// reset the item name cache upon joining games
 	// (GUIDs not unique across games)
 	ResetCaches();
@@ -198,129 +207,70 @@ void Item::ResetPatches() {
 
 // Whichever of the input box and the config value changed last wins, so the box follows a
 // config reload. Non-numeric text is ignored, leaving a half-typed box harmless.
-void Item::SyncScrollVisibilityThreshold() {
-	if (!scrollThresholdInput)
-		return;
+void Item::RegisterSettings() {
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Show Ethereal", "Show Ethereal",
+		&Toggles["Show Ethereal"], "Shows ethereal in the items name.");
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Show Sockets", "Show Sockets",
+		&Toggles["Show Sockets"], "Shows sockets in the items name.");
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Show ILvl", "Show iLvl",
+		&Toggles["Show iLvl"], "Shows the item level in the description.");
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Show Rune Numbers", "Show Rune #",
+		&Toggles["Show Rune Numbers"],
+		"Shows the rune number next to the name.");
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Alt Item Style", "Alt Style",
+		&Toggles["Alt Item Style"], "Draws item names in the alternative style.");
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Color Mod", "Color Mod",
+		&Toggles["Color Mod"], "Colours item names by what is on them.");
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Shorten Item Names", "Shorten Names",
+		&Toggles["Shorten Item Names"],
+		"Abbreviates the longer item names.");
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Always Show Items", "Always Show Items",
+		&Toggles["Always Show Items"],
+		"Keeps item names on screen without having to hold the show items key.");
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Always Show Item Stat Ranges",
+		"Always Show Item Stat Ranges", &Toggles["Always Show Item Stat Ranges"],
+		"Shows the range each variable stat could have rolled.");
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Suppress Invalid Stats", "Suppress Invalid Stats",
+		&Toggles["Suppress Invalid Stats"],
+		"Hides stat lines the game cannot describe rather than showing them raw.");
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Advanced Item Display", "Advanced Item Display",
+		&Toggles["Advanced Item Display"],
+		"Applies the item display rules from BH.cfg.");
 
-	static unsigned int lastValue = scrollVisibilityThreshold;
-	static string lastText = to_string<unsigned int>(scrollVisibilityThreshold);
+	Settings::AddHeading(GetName(), Settings::Category::Items, "Notifications");
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Item Drop Notifications", "Item Drop Notifications",
+		&Toggles["Item Drop Notifications"], "Says in chat when an item drops.");
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Item Close Notifications", "Item Close Notifications",
+		&Toggles["Item Close Notifications"], "Says in chat when an item is nearby.");
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Item Detailed Notifications",
+		"Item Detailed Notifications", &Toggles["Item Detailed Notifications"],
+		"Includes what is on the item rather than only its name.");
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Verbose Notifications", "Verbose Notifications",
+		&Toggles["Verbose Notifications"],
+		"Says whether a notification was from an item dropping or coming into range.");
 
-	string text = scrollThresholdInput->GetText();
-	if (text != lastText) {
-		lastText = text;
-		if (!text.empty() && text.find_first_not_of("0123456789") == string::npos) {
-			unsigned int value = 0;
-			from_string<unsigned int>(value, text, std::dec);
-			if (value > MAX_SCROLL_VISIBILITY_THRESHOLD)
-				value = MAX_SCROLL_VISIBILITY_THRESHOLD;
-			scrollVisibilityThreshold = value;
-			lastValue = value;
-		}
-	} else if (scrollVisibilityThreshold != lastValue) {
-		lastValue = scrollVisibilityThreshold;
-		lastText = to_string<unsigned int>(scrollVisibilityThreshold);
-		scrollThresholdInput->SetText(lastText);
-	}
-}
+	Settings::AddEnum(GetName(), Settings::Category::Filter, "Filter Level", "Filter Level",
+		&filterLevelSetting,
+		{ "0 - None", "1 - Minimal", "2 - Moderate", "3 - Aggressive" },
+		"How much of what drops is hidden, defined in the filter file BH.cfg.");
+	Settings::AddEnum(GetName(), Settings::Category::Filter, "Ping Level", "Ping Tiers <=",
+		&pingLevelSetting, { "0", "1", "2", "3", "4", "5", "6" },
+		"The highest tier that is still pinged.");
+	// No hotkey: this changes how BH.cfg is read, which is not something to flip
+	// mid game.
+	Settings::AddBool(GetName(), Settings::Category::Filter, "Ordered Item Filtering", "Ordered Item Filtering",
+		&OrderedFiltering,
+		"Applies the rules in BH.cfg strictly in the order they are written, rather than whitelist before hidelist.");
+	Settings::AddToggle(GetName(), Settings::Category::Filter, "Hide Redundant Scrolls", "Hide Redundant Scrolls",
+		&Toggles["Hide Redundant Scrolls"],
+		"Hides scrolls on the ground once you are carrying enough of them.");
+	Settings::AddNumber(GetName(), Settings::Category::Filter, "Scroll Visibility Threshold", "Hidden scroll threshold",
+		&scrollVisibilityThreshold, MAX_SCROLL_VISIBILITY_THRESHOLD,
+		"How many scrolls you have to be carrying before the rest are hidden.",
+		"Hide Redundant Scrolls");
 
-void Item::DrawSettings() {
-	settingsTab = new UITab("Item", BH::settingsUI);
-	int y = 10;
-	int keyhook_x = 230;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Show Ethereal"].state, "Show Ethereal");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Show Ethereal"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Show Sockets"].state, "Show Sockets");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Show Sockets"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Show iLvl"].state, "Show iLvl");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Show iLvl"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Show Rune Numbers"].state, "Show Rune #");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Show Rune Numbers"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Alt Item Style"].state, "Alt Style");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Alt Item Style"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Color Mod"].state, "Color Mod");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Color Mod"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Shorten Item Names"].state, "Shorten Names");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Shorten Item Names"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Always Show Items"].state, "Always Show Items");
-	new Keyhook(settingsTab, keyhook_x, y + 2, &Toggles["Always Show Items"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Always Show Item Stat Ranges"].state, "Always Show Item Stat Ranges");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Always Show Item Stat Ranges"].toggle, "");
-	y += 15;
-	
-	new Checkhook(settingsTab, 4, y, &Toggles["Advanced Item Display"].state, "Advanced Item Display");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Advanced Item Display"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Item Drop Notifications"].state, "Item Drop Notifications");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Item Drop Notifications"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Item Close Notifications"].state, "Item Close Notifications");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Item Close Notifications"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Item Detailed Notifications"].state, "Item Detailed Notifications");
-	new Keyhook(settingsTab, keyhook_x, y + 2, &Toggles["Item Detailed Notifications"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Verbose Notifications"].state, "Verbose Notifications");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Verbose Notifications"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Suppress Invalid Stats"].state, "Suppress Invalid Stats");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Suppress Invalid Stats"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Hide Redundant Scrolls"].state, "Hide Redundant Scrolls");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Hide Redundant Scrolls"].toggle, "");
-	new Texthook(settingsTab, 288, y, "Show <=");
-	scrollThresholdInput = new Inputhook(settingsTab, 336, y - INPUT_PADDING_TOP, 34, to_string<unsigned int>(scrollVisibilityThreshold));
-	y += 15;
-
-	// no Keyhook: this changes how BH.cfg is interpreted, so it isn't hotkey-toggleable
-	new Checkhook(settingsTab, 4, y, &OrderedFiltering, "Ordered Item Filtering");
-	y += 15;
-
-	new Keyhook(settingsTab, 4, y+2, &showPlayer, "Show Player's Gear:   ");
-	y += 15;
-
-	new Texthook(settingsTab, 4, y, "Filter Level:");
-
-	vector<string> options;
-	options.push_back("0 - None");
-	options.push_back("1 - Minimal");
-	options.push_back("2 - Moderate");
-	options.push_back("3 - Aggressive");
-	new Combohook(settingsTab, 85, y, 120, &filterLevelSetting, options);
-
-	new Texthook(settingsTab, 234, y, "Ping Tiers <=:");
-
-	vector<string> ping_options;
-	ping_options.push_back("0");
-	ping_options.push_back("1");
-	ping_options.push_back("2");
-	ping_options.push_back("3");
-	ping_options.push_back("4");
-	ping_options.push_back("5");
-	ping_options.push_back("6");
-	new Combohook(settingsTab, 330, y, 40, &pingLevelSetting, ping_options);
+	Settings::AddKey(GetName(), Settings::Category::Input, "Show Players Gear", "Show Player's Gear",
+		&showPlayer, "Shows the gear of the player your cursor is over.");
 }
 
 void Item::OnUnload() {
@@ -340,25 +290,8 @@ void Item::OnUnload() {
 }
 
 void Item::OnLoop() {
-	ResetPatches();
-	SyncScrollVisibilityThreshold();
-	static unsigned int localFilterLevel = 0;
-	static unsigned int localPingLevel = 0;
-	// This is a bit of a hack to reset the cache when the user changes the item filter level
-	if (localFilterLevel != filterLevelSetting) {
-		ResetCaches();
-		localFilterLevel = filterLevelSetting;
-	}
-	if (localPingLevel != pingLevelSetting) {
-		ResetCaches();
-		localPingLevel = pingLevelSetting;
-	}
 	if (!D2CLIENT_GetUIState(0x01))
 		viewingUnit = NULL;
-	
-	if (Toggles["Advanced Item Display"].state) {
-		ItemDisplay::InitializeItemRules();
-	}
 
 	if (viewingUnit && viewingUnit->dwUnitId) {
 		if (!viewingUnit->pInventory){

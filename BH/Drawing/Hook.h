@@ -18,6 +18,10 @@ namespace Drawing {
 			virtual bool IsActive() = 0;
 	};
 
+	// What a control draws itself in while it is switched off. One value, so that
+	// a panel full of controls disabled together looks disabled together.
+	#define DISABLED_TEXT_COLOR	Grey
+
 	enum HookVisibility {InGame,OutOfGame,Automap,Perm,Group};
 	enum BoxTrans {BTThreeFourths, BTOneHalf, BTOneFourth, BTWhite, BTBlack, BTNormal, BTScreen, BTHighlight, BTFull};
 	enum {None=0, Center=1, Right=2, Top=4};
@@ -34,6 +38,10 @@ namespace Drawing {
 			unsigned int x, y, z;//Hooks screen coordinates and the z-order.
 			CRITICAL_SECTION crit;//Critical Section so we don't have race conditions.
 			bool active;//Boolean to hold if we should draw the hook or not.
+
+			//Whether the hook will answer input. Separate from active, which is
+			//whether it is drawn at all
+			bool enabled;
 			int alignment;//Holds what type of alignment(if any) we should use.
 			HookGroup* group;//Holds the group this hook is associated with.
 			OnClick left;//Click callback handler for left clicking
@@ -44,7 +52,10 @@ namespace Drawing {
 			//Two Hook Initializations; one for basic hooks, one for grouped hooks.
 			Hook(HookVisibility visibility, unsigned int x, unsigned int y);
 			Hook(HookGroup* group, unsigned int x, unsigned int y);
-			//~Hook();
+			//Unregisters the hook from the dispatch list and from its group, so a
+			//hook can be destroyed while the game is running. Without this a
+			//deleted hook stayed in Hooks and was still drawn and offered input.
+			virtual ~Hook();
 
 			//Critical Section Helpers.
 			void Lock();
@@ -97,6 +108,14 @@ namespace Drawing {
 			void SetActive(bool newActive);
 
 
+			//Returns whether the hook answers input. A disabled hook is still
+			//drawn, and draws itself dimmed to say so.
+			bool IsEnabled();
+
+			//Sets whether the hook answers input.
+			void SetEnabled(bool newEnabled);
+
+
 			//Returns how we are going to align the hook.
 			int GetAlignment();
 
@@ -133,6 +152,13 @@ namespace Drawing {
 			bool InRange(unsigned int x, unsigned int y);
 
 			//This is the function in super-class we actually draw the function.
+			//How far below the hook's top its text is drawn. Everything on a row of
+			//a settings panel sits on one line, and boxes cannot be centred against
+			//each other to achieve that: a checkbox draws its label two pixels down
+			//and a text box draws its text five, so lining the boxes up leaves the
+			//text stepped. Only the hook knows where its own text goes.
+			virtual unsigned int GetTextInset() { return 0; };
+
 			virtual void OnDraw() = 0;
 
 			//Function gets called when someone clicks, return true to block the click.

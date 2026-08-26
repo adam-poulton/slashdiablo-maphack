@@ -1,4 +1,5 @@
 /**
+#include <algorithm>
 *
 * Common.cpp
 * BH: Copyright 2011 (C) McGod
@@ -103,6 +104,12 @@ std::string Trim(std::string source) {
 	source = source.erase(0, source.find_first_not_of("\t"));
 	source = source.erase(source.find_last_not_of("\t") + 1);
 	return source;
+}
+
+std::string ToLower(const std::string& text) {
+	std::string result(text);
+	std::transform(result.begin(), result.end(), result.begin(), ::tolower);
+	return result;
 }
 
 bool IsTrue(const char *str) {

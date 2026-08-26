@@ -63,15 +63,12 @@ class Item : public Module {
 		static unordered_set<string> no_ilvl_codes;
 		unsigned int showPlayer{};
 		static UnitAny* viewingUnit;
-		Drawing::UITab* settingsTab{};
 		static unsigned int filterLevelSetting;
 		static unsigned int pingLevelSetting;
 		static unsigned int trackerPingLevelSetting;
 		static int statRangeColor;
 		static unsigned int scrollVisibilityThreshold;
-		Drawing::Inputhook* scrollThresholdInput{};
 
-		void SyncScrollVisibilityThreshold();
 
 		void ResetPatches();
 	public:
@@ -83,8 +80,9 @@ class Item : public Module {
 
 		void LoadConfig();
 		void LoadNoIlvlCodes();
-		void DrawSettings();
+		void RegisterSettings();
 
+		void OnSettingsChanged(const vector<string>& keys);
 		void OnGameJoin();
 
 		void OnLoop();

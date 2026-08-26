@@ -2,6 +2,11 @@
 #include "../Module.h"
 #include <regex>
 
+// Ceiling on the join wait, in milliseconds. A minute is far longer than any
+// game takes to open; it is here to keep a mistyped value from leaving the client
+// waiting on a game that is never coming.
+#define MAX_FAIL_TO_JOIN 4000
+
 struct Control;
 
 class Bnet : public Module {
@@ -27,6 +32,7 @@ class Bnet : public Module {
 		void OnLoad();
 		void OnUnload();
 		void LoadConfig();
+		void OnSettingsChanged(const vector<string>& keys);
 
 		void OnGameJoin();
 		void OnGameExit();

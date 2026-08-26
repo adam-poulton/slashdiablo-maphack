@@ -15,11 +15,6 @@ using namespace InfoText;
 
 // Margins and the gaps between the three bands. Widths and the list height are
 // measured from the tab by ApplyLayout().
-#define RC_MARGIN			6	// down either side, and below the status line
-#define RC_SEARCH_Y			3
-#define RC_SEARCH_GAP		7	// between the search box and the list
-#define RC_FOOTER_GAP		6	// between the list and the status line
-#define RC_FOOTER_HEIGHT	8	// the status line itself
 
 // Separate what a recipe makes and what it is made from
 #define RC_SEPARATOR		": "
@@ -383,18 +378,14 @@ static std::string RecipeGroup(const CubeToken& output, const CubeToken& named,
 		RC_GROUP_REROLLING : RC_GROUP_QUEST;
 }
 
-RecipeTab::RecipeTab(UI* ui) : InfoTab("Recipes", ui),
+RecipeTab::RecipeTab(UI* ui) : UIPanel("Recipes", ui),
 	shownGroups(0),
 	foldOnPush(true),
 	shownSummary(-1),
 	recipesLoaded(false),
 	needsRefresh(true) {
 
-	searchBox = new Inputhook(tab, RC_MARGIN, RC_SEARCH_Y, 0, "");
-	searchBox->SetPlaceholder("Search by what a recipe makes or what it takes");
-	searchBox->SetClearOnFocus(true);
-
-	list = new Listhook(tab, RC_MARGIN, 0, 0, 0);
+	list = new Listhook(tab, UI_CONTENT_MARGIN, 0, 0, 0);
 	// One line in two colours: what the recipe makes, in the colour of the item
 	// it makes, and then what it is made from flowing straight on from it.
 	//
@@ -407,9 +398,6 @@ RecipeTab::RecipeTab(UI* ui) : InfoTab("Recipes", ui),
 	list->SetColumns(columns);
 	list->SetGroupColor(Gold);
 
-	statusText = new Texthook(tab, RC_MARGIN, 0, "");
-	statusText->SetColor(Grey);
-
 	// Placed and switched on by UpdateSummary().
 	summary = new Tooltiphook(InGame, 0, 0);
 	summary->SetActive(false);
@@ -417,25 +405,19 @@ RecipeTab::RecipeTab(UI* ui) : InfoTab("Recipes", ui),
 	ApplyLayout();
 }
 
-// The list takes whatever height is left between the search box and the status
-// line, so a resize needs nothing but this.
+// The list takes whatever height the window leaves it, so a resize needs
+// nothing but this.
 void RecipeTab::ApplyLayout() {
 	laidOutWidth = tab->GetXSize();
 	laidOutHeight = tab->GetYSize();
 
-	unsigned int contentWidth = (laidOutWidth > 2 * RC_MARGIN) ?
-		(laidOutWidth - (2 * RC_MARGIN)) : 0;
+	unsigned int contentWidth = (laidOutWidth > 2 * UI_CONTENT_MARGIN) ?
+		(laidOutWidth - (2 * UI_CONTENT_MARGIN)) : 0;
 
-	// Measured off the box rather than guessed, since its height follows its font.
-	unsigned int listY = RC_SEARCH_Y + searchBox->GetYSize() + RC_SEARCH_GAP;
-	unsigned int footerBand = RC_FOOTER_GAP + RC_FOOTER_HEIGHT + RC_MARGIN;
-	unsigned int listHeight = (laidOutHeight > listY + footerBand) ?
-		(laidOutHeight - listY - footerBand) : 0;
-
-	searchBox->SetXSize(contentWidth);
-	list->SetBaseY(listY);
-	list->SetSize(contentWidth, listHeight);
-	statusText->SetBaseY(listY + listHeight + RC_FOOTER_GAP);
+	// The window has already taken its search box and its footer out of the
+	// height, so the list has all of what is left.
+	list->SetBaseY(0);
+	list->SetSize(contentWidth, laidOutHeight);
 	summary->SetMaxWidth(contentWidth);
 }
 
@@ -761,19 +743,6 @@ void RecipeTab::PushRows() {
 		foldOnPush = false;
 	}
 	shownSummary = -1;
-	UpdateStatus();
-}
-
-void RecipeTab::UpdateStatus() {
-	if (!recipesLoaded) {
-		statusText->SetText("Waiting for game data to finish loading...");
-	} else if (matches.empty()) {
-		statusText->SetText("No recipes match \"%s\"", query.c_str());
-	} else {
-		statusText->SetText("%u recipes in %u group%s",
-			(unsigned int)matches.size(), shownGroups,
-			(shownGroups == 1) ? "" : "s");
-	}
 }
 
 // ItemDescription orders and spaces the panel the way the game describes a
@@ -819,30 +788,43 @@ void RecipeTab::UpdateSummary() {
 }
 
 void RecipeTab::Search(const std::string& text) {
-	std::string trimmed = Trim(text);
-	query = ToLower(trimmed);
-	searchBox->SetText("%s", trimmed.c_str());
-	searchBox->SetTextPos(0);
-	searchBox->ResetSelection();
-	searchBox->SetCursorPosition(searchBox->GetText().length());
-	lastBoxText = searchBox->GetText();
+	query = ToLower(Trim(text));
 	list->SetScrollTop(0);
 	needsRefresh = true;
 }
 
-// The caret goes straight in the search box. A search that arrived with the
-// window, from the chat command, is left alone: the box only clears on a click.
-void RecipeTab::OnOpen() {
-	searchBox->SetCursorPosition(searchBox->GetText().length());
-	searchBox->SetFocused(true);
-}
-
 void RecipeTab::OnClose() {
-	searchBox->SetFocused(false);
 	summary->SetActive(false);
 	shownSummary = -1;
 	foldOnPush = true;
 	Search("");
+}
+
+// The hint the window's search box shows while this panel is in front.
+std::string RecipeTab::GetSearchPlaceholder() {
+	return "Search by what a recipe makes or what it takes";
+}
+
+std::string RecipeTab::GetStatus() {
+	if (!recipesLoaded)
+		return "Waiting for game data to finish loading...";
+	if (matches.empty())
+		return "No recipes match \"" + query + "\"";
+
+	char line[64];
+	sprintf_s(line, sizeof(line), "%u recipes in %u group%s",
+		(unsigned int)matches.size(), shownGroups, (shownGroups == 1) ? "" : "s");
+	return line;
+}
+
+// Row 0 is a heading, so enter takes the first row holding a recipe.
+void RecipeTab::OnSearchSubmitted() {
+	for (unsigned int i = 0; i < rowRecipes.size(); i++) {
+		if (rowRecipes[i]) {
+			list->SetSelectedRow((int)i);
+			break;
+		}
+	}
 }
 
 void RecipeTab::OnDraw() {
@@ -855,13 +837,6 @@ void RecipeTab::OnDraw() {
 		BuildRecipes();
 	}
 
-	if (searchBox->GetText() != lastBoxText) {
-		lastBoxText = searchBox->GetText();
-		query = ToLower(Trim(lastBoxText));
-		list->SetScrollTop(0);
-		needsRefresh = true;
-	}
-
 	if (needsRefresh) {
 		ApplyFilter();
 		// Suspended rather than cleared, so clearing the search restores the
@@ -869,16 +844,6 @@ void RecipeTab::OnDraw() {
 		list->SetFoldingSuspended(!query.empty());
 		PushRows();
 		needsRefresh = false;
-	}
-
-	// Row 0 is a heading, so enter takes the first row holding a recipe.
-	if (searchBox->TakeSubmitted()) {
-		for (unsigned int i = 0; i < rowRecipes.size(); i++) {
-			if (rowRecipes[i]) {
-				list->SetSelectedRow((int)i);
-				break;
-			}
-		}
 	}
 
 	// The mouse and the selection move on the input thread, so catch up here.

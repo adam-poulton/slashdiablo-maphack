@@ -5,12 +5,35 @@
 #include "../Basic/Texthook/Texthook.h"
 #include "../Basic/Framehook/Framehook.h"
 #include "../Basic/Boxhook/Boxhook.h"
+#include "../Advanced/Inputhook/Inputhook.h"
 
 using namespace Drawing;
 
 std::list<UI*> UI::UIs;
 
-UI::UI(std::string name, unsigned int xSize, unsigned int ySize) {
+// UIChrome sits on the window's content box: the full width less the margin down
+// either side, measured from the top of the window so that a band can be placed
+// by its distance from there.
+unsigned int UIChrome::GetX() { return ui->GetX() + UI_CONTENT_MARGIN; }
+unsigned int UIChrome::GetY() { return ui->GetY(); }
+
+unsigned int UIChrome::GetXSize() {
+	unsigned int width = ui->GetXSize();
+	return (width > 2 * UI_CONTENT_MARGIN) ? (width - (2 * UI_CONTENT_MARGIN)) : 0;
+}
+
+unsigned int UIChrome::GetYSize() { return ui->GetYSize(); }
+
+// Deliberately not the window's own IsActive(), which means "has focus". The
+// chrome has to keep taking input while the window is merely unfocused, and to
+// stop taking it while the window is collapsed or hidden.
+bool UIChrome::IsActive() { return ui->IsVisible() && !ui->IsMinimized(); }
+
+UI::UI(std::string name, unsigned int xSize, unsigned int ySize) :
+		UI(name, name, xSize, ySize) {
+}
+
+UI::UI(std::string name, std::string configKey, unsigned int xSize, unsigned int ySize) {
 	InitializeCriticalSection(&crit);
 	// Start from a known state; the setters below read these back and windows
 	// are constructed before the game has told us the screen size.
@@ -20,27 +43,40 @@ UI::UI(std::string name, unsigned int xSize, unsigned int ySize) {
 	dragX = dragY = startX = startY = 0;
 	resizable = resizing = false;
 	resizeGrabX = resizeGrabY = 0;
+	minXOverride = minYOverride = 0;
+	askedXSize = xSize;
+	askedYSize = ySize;
+	sizeResolved = false;
+	searchBox = NULL;
+	footerLeft = footerRight = footerAction = NULL;
+	chromeWidth = chromeHeight = 0;
+	chrome = new UIChrome(this);
 	SetName(name);
+	this->configKey = configKey;
 	string path = BH::path + "UI.ini";
-	// The size passed in is the default, which a window the user has resized
-	// overrides. Like the position, it is taken as given here and brought into
-	// range by EnsureInBounds() once there is a screen size to go by.
-	SetXSize(GetPrivateProfileInt(name.c_str(), "XSize", xSize, path.c_str()));
-	SetYSize(GetPrivateProfileInt(name.c_str(), "YSize", ySize, path.c_str()));
-	int x = GetPrivateProfileInt(name.c_str(), "X", 0, path.c_str());
+	// A remembered size overrides the one asked for. Read with a default of zero
+	// so that no remembered size can be told apart from one that happens to
+	// equal the default: with none, ResolveDefaultSize() works one out from the
+	// canvas once there is a canvas to work from.
+	unsigned int savedXSize = GetPrivateProfileInt(configKey.c_str(), "XSize", 0, path.c_str());
+	unsigned int savedYSize = GetPrivateProfileInt(configKey.c_str(), "YSize", 0, path.c_str());
+	sizeRemembered = (savedXSize > 0 && savedYSize > 0);
+	SetXSize(sizeRemembered ? savedXSize : xSize);
+	SetYSize(sizeRemembered ? savedYSize : ySize);
+	int x = GetPrivateProfileInt(configKey.c_str(), "X", 0, path.c_str());
 	SetX(x);
-	int y = GetPrivateProfileInt(name.c_str(), "Y", 0, path.c_str());
+	int y = GetPrivateProfileInt(configKey.c_str(), "Y", 0, path.c_str());
 	SetY(y);
-	int minX = GetPrivateProfileInt(name.c_str(), "minimizedX", MINIMIZED_X_POS, path.c_str());
+	int minX = GetPrivateProfileInt(configKey.c_str(), "minimizedX", MINIMIZED_X_POS, path.c_str());
 	SetMinimizedX(minX);
 	// Stack the default positions by creation order so windows that have never
 	// been moved don't sit on top of each other. Once saved to UI.ini the
 	// position is used as-is, so a collapsed window never moves on its own.
-	int minY = GetPrivateProfileInt(name.c_str(), "minimizedY",
+	int minY = GetPrivateProfileInt(configKey.c_str(), "minimizedY",
 		MINIMIZED_Y_POS - (int)(UIs.size() * (TITLE_BAR_HEIGHT + 4)), path.c_str());
 	SetMinimizedY(minY);
 	char activeStr[20];
-	GetPrivateProfileString(name.c_str(), "Minimized", "true", activeStr, 20, path.c_str());
+	GetPrivateProfileString(configKey.c_str(), "Minimized", "true", activeStr, 20, path.c_str());
 	// Set the initial state directly rather than through SetMinimized(), which
 	// would write the config back out before the modules have finished loading.
 	minimized = StringToBool(activeStr);
@@ -50,17 +86,27 @@ UI::UI(std::string name, unsigned int xSize, unsigned int ySize) {
 }
 UI::~UI() {
 	Lock();
-	WritePrivateProfileString(name.c_str(), "X", to_string<unsigned int>(GetX()).c_str(), string(BH::path + "UI.ini").c_str());
-	WritePrivateProfileString(name.c_str(), "Y", to_string<unsigned int>(GetY()).c_str(), string(BH::path + "UI.ini").c_str());
-	WritePrivateProfileString(name.c_str(), "XSize", to_string<unsigned int>(GetXSize()).c_str(), string(BH::path + "UI.ini").c_str());
-	WritePrivateProfileString(name.c_str(), "YSize", to_string<unsigned int>(GetYSize()).c_str(), string(BH::path + "UI.ini").c_str());
-	WritePrivateProfileString(name.c_str(), "Minimized", to_string<bool>(IsMinimized()).c_str(), string(BH::path + "UI.ini").c_str());
-	WritePrivateProfileString(name.c_str(), "minimizedX", to_string<unsigned int>(GetMinimizedX()).c_str(), string(BH::path + "UI.ini").c_str());
-	WritePrivateProfileString(name.c_str(), "minimizedY", to_string<unsigned int>(GetMinimizedY()).c_str(), string(BH::path + "UI.ini").c_str());
+	WritePrivateProfileString(configKey.c_str(), "X", to_string<unsigned int>(GetX()).c_str(), string(BH::path + "UI.ini").c_str());
+	WritePrivateProfileString(configKey.c_str(), "Y", to_string<unsigned int>(GetY()).c_str(), string(BH::path + "UI.ini").c_str());
+	WritePrivateProfileString(configKey.c_str(), "XSize", to_string<unsigned int>(GetXSize()).c_str(), string(BH::path + "UI.ini").c_str());
+	WritePrivateProfileString(configKey.c_str(), "YSize", to_string<unsigned int>(GetYSize()).c_str(), string(BH::path + "UI.ini").c_str());
+	WritePrivateProfileString(configKey.c_str(), "Minimized", to_string<bool>(IsMinimized()).c_str(), string(BH::path + "UI.ini").c_str());
+	WritePrivateProfileString(configKey.c_str(), "minimizedX", to_string<unsigned int>(GetMinimizedX()).c_str(), string(BH::path + "UI.ini").c_str());
+	WritePrivateProfileString(configKey.c_str(), "minimizedY", to_string<unsigned int>(GetMinimizedY()).c_str(), string(BH::path + "UI.ini").c_str());
 
 	while(Tabs.size() > 0) {
 		delete (*Tabs.begin());
 	}
+
+	// The bands the window drew for itself. Each hook takes itself back out of
+	// chrome->Hooks as it goes, so the list is walked from the front each time
+	// rather than iterated.
+	while (chrome->Hooks.size() > 0)
+		delete (*chrome->Hooks.begin());
+	searchBox = NULL;
+	footerLeft = footerRight = footerAction = NULL;
+	delete chrome;
+	chrome = NULL;
 		
 	UIs.remove(this);
 
@@ -119,28 +165,201 @@ void UI::SetMinimizedY(unsigned int newY) {
 	}
 }
 
+void UI::SetMinSize(unsigned int minX, unsigned int minY) {
+	Lock();
+	minXOverride = minX;
+	minYOverride = minY;
+	Unlock();
+}
+
 // Never larger than the screen, so a window saved on a big monitor can still be
 // resized back on a small one.
 unsigned int UI::GetMinXSize() {
+	unsigned int wanted = minXOverride ? minXOverride : UI_MIN_WIDTH;
 	unsigned int screenWidth = Hook::GetScreenWidth();
-	if (screenWidth > 0 && UI_MIN_WIDTH > screenWidth)
+	if (screenWidth > 0 && wanted > screenWidth)
 		return screenWidth;
-	return UI_MIN_WIDTH;
+	return wanted;
 }
 
+// Enough for the chrome the window actually draws plus a usable amount of panel
+// below it, rather than a fixed number: a window with a search band and a footer
+// needs more room before its panel has any height at all.
 unsigned int UI::GetMinYSize() {
+	unsigned int wanted = minYOverride ? minYOverride :
+		(GetChromeAboveHeight() + GetChromeBelowHeight() + UI_MIN_CONTENT_HEIGHT);
 	unsigned int screenHeight = Hook::GetScreenHeight();
-	if (screenHeight > 0 && UI_MIN_HEIGHT > screenHeight)
+	if (screenHeight > 0 && wanted > screenHeight)
 		return screenHeight;
-	return UI_MIN_HEIGHT;
+	return wanted;
+}
+
+// A window UI.ini had no size for takes a share of the canvas, the first time
+// there is a canvas to take a share of. Only ever larger than the size it asked
+// for, and only for a window that can be resized at all: a fixed window is the
+// size its contents were laid out for.
+void UI::ResolveDefaultSize() {
+	if (sizeResolved)
+		return;
+	unsigned int screenWidth = Hook::GetScreenWidth();
+	unsigned int screenHeight = Hook::GetScreenHeight();
+	if (screenWidth == 0 || screenHeight == 0)
+		return;
+
+	sizeResolved = true;
+	if (sizeRemembered || !IsResizable())
+		return;
+
+	unsigned int wide = (screenWidth * UI_DEFAULT_WIDTH_PCT) / 100;
+	unsigned int high = (screenHeight * UI_DEFAULT_HEIGHT_PCT) / 100;
+	if (wide < askedXSize)
+		wide = askedXSize;
+	if (high < askedYSize)
+		high = askedYSize;
+	SetXSize(wide);
+	SetYSize(high);
+}
+
+unsigned int UI::GetSearchBandHeight() {
+	if (!searchBox)
+		return 0;
+	return SEARCH_BAND_TOP + searchBox->GetYSize() + SEARCH_BAND_GAP;
+}
+
+unsigned int UI::GetFooterBandHeight() {
+	if (!footerLeft)
+		return 0;
+	return FOOTER_BAND_GAP + FOOTER_BAND_HEIGHT + UI_CONTENT_MARGIN;
+}
+
+void UI::EnableSearch(std::string placeholder) {
+	Lock();
+	if (!searchBox) {
+		searchBox = new Inputhook(chrome, 0,
+			TITLE_BAR_HEIGHT + TAB_HEIGHT + SEARCH_BAND_TOP, 0, "");
+		// Selecting rather than clearing, so coming back to the box leaves the
+		// previous query readable until it is typed over.
+		searchBox->SetSelectOnFocus(true);
+	}
+	searchBox->SetPlaceholder(placeholder);
+	chromeWidth = 0;	// so the next draw places it against the current size
+	Unlock();
+}
+
+void UI::SetSearchPlaceholder(std::string placeholder) {
+	if (searchBox)
+		searchBox->SetPlaceholder(placeholder);
+}
+
+void UI::EnableFooter() {
+	Lock();
+	if (!footerLeft) {
+		footerLeft = new Texthook(chrome, 0, 0, "");
+		footerLeft->SetColor(Grey);
+		footerRight = new Texthook(chrome, 0, 0, "");
+		footerRight->SetColor(Grey);
+		// Laid out from the far end of the content box, which the corrected
+		// grouped Right alignment puts on the margin rather than on the frame.
+		footerRight->SetAlignment(Right);
+		// Held clear of the corner, where the resize grip is drawn over anything
+		// that reaches it.
+		footerRight->SetBaseX(RESIZE_GRIP_SIZE);
+		chromeWidth = 0;
+	}
+	Unlock();
+}
+
+// Fired by the footer's clickable line. A plain function with the window as its
+// context, since the hook callbacks predate anything that could carry a closure.
+static bool FooterActionClicked(bool up, Hook* hook, void* context) {
+	if (up && context)
+		((UI*)context)->InvokeFooterAction();
+	return true;
+}
+
+void UI::SetFooterAction(std::string text, std::function<void()> onClick) {
+	// Nothing to put it in until there is a footer band.
+	if (!footerLeft)
+		return;
+
+	Lock();
+	onFooterAction = onClick;
+	if (!footerAction) {
+		footerAction = new Texthook(chrome, 0, 0, "");
+		footerAction->SetColor(Gold);
+		footerAction->SetHoverColor(Tan);
+		footerAction->SetLeftCallback(FooterActionClicked, this);
+		chromeWidth = 0;	// so the next draw places it
+	}
+
+	if (text.length() > 0) {
+		footerAction->SetText("%s", text.c_str());
+		footerAction->SetActive(true);
+	} else {
+		// Switched off rather than merely emptied, so it stops taking clicks too.
+		footerAction->SetText("");
+		footerAction->SetActive(false);
+	}
+	Unlock();
+}
+
+void UI::InvokeFooterAction() {
+	if (onFooterAction)
+		onFooterAction();
+}
+
+// The text is passed as an argument rather than as the format string: a footer
+// carries whatever a panel has to say, which may well contain a percent sign.
+void UI::SetFooterLeft(std::string text) {
+	if (footerLeft)
+		footerLeft->SetText("%s", text.c_str());
+}
+
+void UI::SetFooterRight(std::string text) {
+	if (footerRight)
+		footerRight->SetText("%s", text.c_str());
+}
+
+// Only when the window has changed size, since placing the bands measures text.
+void UI::LayoutChrome() {
+	if (!chrome)
+		return;
+	if (chromeWidth == GetXSize() && chromeHeight == GetYSize())
+		return;
+	chromeWidth = GetXSize();
+	chromeHeight = GetYSize();
+
+	if (searchBox)
+		searchBox->SetXSize(chrome->GetXSize());
+
+	if (footerLeft) {
+		unsigned int footerY = (chromeHeight > FOOTER_BAND_HEIGHT + UI_CONTENT_MARGIN) ?
+			(chromeHeight - FOOTER_BAND_HEIGHT - UI_CONTENT_MARGIN) : 0;
+		footerLeft->SetBaseY(footerY);
+		footerRight->SetBaseY(footerY);
+		if (footerAction) {
+			// After what the window says about itself, whose width does not change.
+			footerAction->SetBaseX(footerLeft->GetXSize() + FOOTER_ACTION_GAP);
+			footerAction->SetBaseY(footerY);
+		}
+	}
+}
+
+// Each hook checks for itself whether it should be drawn, as the hooks of a tab
+// do, so a band that is switched off costs nothing here.
+void UI::DrawChrome() {
+	if (!chrome)
+		return;
+	for (list<Hook*>::iterator it = chrome->Hooks.begin(); it != chrome->Hooks.end(); it++)
+		(*it)->OnDraw();
 }
 
 void UI::SetResizing(bool state, bool write_file) {
 	Lock();
 	resizing = state;
 	if (!state && write_file) {
-		WritePrivateProfileString(name.c_str(), "XSize", to_string<unsigned int>(GetXSize()).c_str(), string(BH::path + "UI.ini").c_str());
-		WritePrivateProfileString(name.c_str(), "YSize", to_string<unsigned int>(GetYSize()).c_str(), string(BH::path + "UI.ini").c_str());
+		WritePrivateProfileString(configKey.c_str(), "XSize", to_string<unsigned int>(GetXSize()).c_str(), string(BH::path + "UI.ini").c_str());
+		WritePrivateProfileString(configKey.c_str(), "YSize", to_string<unsigned int>(GetYSize()).c_str(), string(BH::path + "UI.ini").c_str());
 	}
 	Unlock();
 }
@@ -249,11 +468,13 @@ void UI::OnDraw() {
 		if (IsResizing())
 			DragResizeTo((*p_D2CLIENT_MouseX), (*p_D2CLIENT_MouseY));
 
+		LayoutChrome();
 		Framehook::Draw(GetX(), GetY(), GetXSize(), GetYSize(), 0, (IsActive()?BTNormal:BTOneHalf));
 		Framehook::Draw(GetX(), GetY(), GetXSize(), TITLE_BAR_HEIGHT, 0, BTNormal);
 		Texthook::Draw(GetX() + 4, GetY () + 3, false, 0, InTitle((*p_D2CLIENT_MouseX), (*p_D2CLIENT_MouseY))?Silver:White, GetName());
 		for (list<UITab*>::iterator it = Tabs.begin(); it != Tabs.end(); it++)
 			(*it)->OnDraw();
+		DrawChrome();
 		// Last, so it sits over whatever the tab drew into the corner.
 		DrawResizeGrip();
 	}
@@ -267,6 +488,10 @@ void UI::EnsureInBounds() {
 	// and guessing would move the window off its saved position.
 	if (screenWidth == 0 || screenHeight == 0)
 		return;
+
+	// There is a canvas to measure against now, so a window that had no
+	// remembered size can be given one.
+	ResolveDefaultSize();
 
 	if (IsMinimized()) {
 		// A collapsed window is only as wide as its title bar, so clamping it
@@ -308,10 +533,10 @@ void UI::SetDragged(bool state, bool write_file) {
 	Lock(); 
 	dragged = state; 
 	if (!state && write_file) {
-		WritePrivateProfileString(name.c_str(), "X", to_string<unsigned int>(GetX()).c_str(), string(BH::path + "UI.ini").c_str());
-		WritePrivateProfileString(name.c_str(), "Y", to_string<unsigned int>(GetY()).c_str(), string(BH::path + "UI.ini").c_str());
-		WritePrivateProfileString(name.c_str(), "minimizedX", to_string<unsigned int>(GetMinimizedX()).c_str(), string(BH::path + "UI.ini").c_str());
-		WritePrivateProfileString(name.c_str(), "minimizedY", to_string<unsigned int>(GetMinimizedY()).c_str(), string(BH::path + "UI.ini").c_str());
+		WritePrivateProfileString(configKey.c_str(), "X", to_string<unsigned int>(GetX()).c_str(), string(BH::path + "UI.ini").c_str());
+		WritePrivateProfileString(configKey.c_str(), "Y", to_string<unsigned int>(GetY()).c_str(), string(BH::path + "UI.ini").c_str());
+		WritePrivateProfileString(configKey.c_str(), "minimizedX", to_string<unsigned int>(GetMinimizedX()).c_str(), string(BH::path + "UI.ini").c_str());
+		WritePrivateProfileString(configKey.c_str(), "minimizedY", to_string<unsigned int>(GetMinimizedY()).c_str(), string(BH::path + "UI.ini").c_str());
 	}
 	Unlock(); 
 }
@@ -328,10 +553,13 @@ void UI::SetMinimized(bool newState) {
 	if (newState == minimized)
 		return;
 	Lock();
-	if (newState)
-		BH::config->Write();
+	// Whatever the owner wants done at this point, which for the window that owns
+	// the settings is writing them back out. A drawing class has no business
+	// knowing that.
+	if (newState && onMinimized)
+		onMinimized();
 	minimized = newState;
-	WritePrivateProfileString(name.c_str(), "Minimized", to_string<bool>(newState).c_str(), string(BH::path + "UI.ini").c_str());
+	WritePrivateProfileString(configKey.c_str(), "Minimized", to_string<bool>(newState).c_str(), string(BH::path + "UI.ini").c_str());
 	Unlock(); 
 };
 

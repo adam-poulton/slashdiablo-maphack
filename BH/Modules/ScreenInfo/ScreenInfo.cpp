@@ -1,4 +1,5 @@
 #include "Screeninfo.h"
+#include "../../About.h"
 #include "../../BH.h"
 #include "../../D2Ptrs.h"
 #include "../../D2Stubs.h"
@@ -30,7 +31,7 @@ void ScreenInfo::OnLoad() {
 	L"Might", L"Prayer", L"Resist Fire", L"Holy Fire", L"Thorns", L"Defiance", L"Resist Cold", L"Blessed Aim", L"Vigor", L"Resist Lightning", L"Concentration", L"Holy Freeze", L"Cleansing", L"Holy Shock", L"Sanctuary", L"Meditation", L"Fanaticism", L"Redemption", L"Conviction", L"Salvation", 
 	L"Amplify Damage", L"Weaken", L"Decrepify", L"Lower Resist", L"Poisoned", L"Frozen"	};
 	
-	bhText = new Texthook(OutOfGame, 795, 6, BH_VERSION " (planqi Resurgence/Slash branch)");
+	bhText = new Texthook(OutOfGame, 795, 6, "%s", About::Lines()[0].c_str());
 	bhText->SetAlignment(Right);
 	bhText->SetColor(Gold);
 

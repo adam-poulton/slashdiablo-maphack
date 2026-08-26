@@ -6,6 +6,7 @@
 #include "../../D2Stubs.h"
 #include "../../D2Intercepts.h"
 #include "Maphack.h"
+#include "../Settings/SettingsRegistry.h"
 #include "../../BH.h"
 #include "../../Drawing.h"
 #include "../Item/ItemDisplay.h"
@@ -89,10 +90,6 @@ void Maphack::ReadConfig() {
 	BH::config->ReadInt("Show Monster Resistance", monsterResistanceThreshold);
 	BH::config->ReadInt("LK Chest Lines", lkLinesColor);
 
-	BH::config->ReadKey("Reload Config", "VK_NUMPAD0", reloadConfig);
-	legacyReloadConfigHotkey = true;
-	BH::config->ReadBoolean("Ctrl+R Reload Config", legacyReloadConfigHotkey);
-	BH::config->ReadToggle("Show Settings", "VK_NUMPAD8", true, Toggles["Show Settings"]);
 
 	BH::config->ReadAssoc("Missile Color", missileColors);
 	BH::config->ReadAssoc("Monster Color", monsterColors);
@@ -319,101 +316,88 @@ void Maphack::OnLoad() {
 	ResetPatches();*/
 	diabloDeadMessage->Install();
 
-	settingsTab = new UITab("Maphack", BH::settingsUI);
+	// Said rather than drawn. Where these land, how wide they are and what happens
+	// when the window is resized is the settings window's business; this only says
+	// what the settings are and which of them depend on which.
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Reveal Map", "Auto reveal map",
+		&Toggles["Auto Reveal"],
+		"Reveals each area as you enter it, as far as the reveal mode allows.");
+	Settings::AddEnum(GetName(), Settings::Category::Map, "Reveal Mode", "Auto reveal mode", &revealType,
+		{ "Game", "Act", "Level" },
+		"How much of the game is revealed at once.");
 
-	new Texthook(settingsTab, 80, 3, "Toggles");
-	unsigned int Y = 0;
-	int keyhook_x = 150;
-	int col2_x = 250;
-	new Checkhook(settingsTab, 4, (Y += 15), &Toggles["Auto Reveal"].state, "Auto Reveal");
-	new Keyhook(settingsTab, keyhook_x, (Y + 2), &Toggles["Auto Reveal"].toggle, "");
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Monsters", "Show Monsters",
+		&Toggles["Show Monsters"], "Marks monsters on the automap.");
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Monster Enchantments", "Enchantments",
+		&Toggles["Monster Enchantments"],
+		"Names the enchantments a champion or boss is carrying.", "Show Monsters");
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Monster Curses", "Cursed",
+		&Toggles["Monster Curses"], "Shows monsters that are cursed, and may replace your shrine buff.",
+		"Show Monsters");
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Monster Resistances", "Resistances",
+		&Toggles["Monster Resistances"],
+		"Shows what a monster resists or is immune to.", "Show Monsters");
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Normal Monsters", "Normal Monsters",
+		&Toggles["Show Normal Monsters"],
+		"Marks ordinary monsters as well as the ones worth stopping for.",
+		"Show Monsters");
 
-	new Checkhook(settingsTab, 4, (Y += 15), &Toggles["Show Monsters"].state, "Show Monsters");
-	new Keyhook(settingsTab, keyhook_x, (Y + 2), &Toggles["Show Monsters"].toggle, "");
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Missiles", "Show Missiles",
+		&Toggles["Show Missiles"], "Marks missiles in flight on the automap.");
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Chests", "Show Chests",
+		&Toggles["Show Chests"], "Marks chests and other containers.");
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Display Level Names", "Level Names",
+		&Toggles["Display Level Names"], "Names each level on the automap.");
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Automap On Join", "Show Automap On Join",
+		&Toggles["Show Automap On Join"],
+		"Opens the automap as you enter a game rather than waiting to be asked.");
 
-	new Checkhook(settingsTab, 4, (Y += 15), &Toggles["Monster Enchantments"].state, "  Enchantments");
-	new Keyhook(settingsTab, keyhook_x, (Y + 2), &Toggles["Monster Enchantments"].toggle, "");
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Force Light Radius", "Light Radius",
+		&Toggles["Force Light Radius"],
+		"Lights the whole screen instead of only what your character can see.");
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Remove Weather", "Remove Weather",
+		&Toggles["Remove Weather"], "Stops rain and snow being drawn.");
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Infravision", "Infravision",
+		&Toggles["Infravision"], "Lights monsters up as infravision does.");
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Remove Shake", "Remove Shake",
+		&Toggles["Remove Shake"], "Stops the screen shaking.");
 
-	new Checkhook(settingsTab, 4, (Y += 15), &Toggles["Monster Curses"].state, "  Cursed");
-	new Keyhook(settingsTab, keyhook_x, (Y + 2), &Toggles["Monster Curses"].toggle, "");
+	Settings::AddHeading(GetName(), Settings::Category::Map, "Monster colours");
+	Settings::AddColor(GetName(), Settings::Category::Map, "Monster Color: Normal", "Normal",
+		&monsterColors["Normal"], "", "Show Monsters");
+	Settings::AddColor(GetName(), Settings::Category::Map, "Monster Color: Minion", "Minion",
+		&monsterColors["Minion"], "", "Show Monsters");
+	Settings::AddColor(GetName(), Settings::Category::Map, "Monster Color: Champion", "Champion",
+		&monsterColors["Champion"], "", "Show Monsters");
+	Settings::AddColor(GetName(), Settings::Category::Map, "Monster Color: Boss", "Boss",
+		&monsterColors["Boss"], "", "Show Monsters");
 
-	new Checkhook(settingsTab, 4, (Y += 15), &Toggles["Monster Resistances"].state, "  Resistances");
-	new Keyhook(settingsTab, keyhook_x, (Y + 2), &Toggles["Monster Resistances"].toggle, "");
-	
-	new Checkhook(settingsTab, 4, (Y += 15), &Toggles["Show Normal Monsters"].state, "  Normal Monsters");
-	new Keyhook(settingsTab, keyhook_x, (Y + 2), &Toggles["Show Normal Monsters"].toggle, "");
-	new Checkhook(settingsTab, 4, (Y += 15), &Toggles["Show Missiles"].state, "Show Missiles");
-	new Keyhook(settingsTab, keyhook_x, (Y + 2), &Toggles["Show Missiles"].toggle, "");
+	Settings::AddHeading(GetName(), Settings::Category::Map, "Missile colours");
+	Settings::AddColor(GetName(), Settings::Category::Map, "Missile Color: Player", "Player",
+		&missileColors["Player"], "", "Show Missiles");
+	Settings::AddColor(GetName(), Settings::Category::Map, "Missile Color: Neutral", "Neutral",
+		&missileColors["Neutral"], "", "Show Missiles");
+	Settings::AddColor(GetName(), Settings::Category::Map, "Missile Color: Party", "Party",
+		&missileColors["Party"], "", "Show Missiles");
+	Settings::AddColor(GetName(), Settings::Category::Map, "Missile Color: Hostile", "Hostile",
+		&missileColors["Hostile"], "", "Show Missiles");
 
-	new Checkhook(settingsTab, 4, (Y += 15), &Toggles["Show Chests"].state, "Show Chests");
-	new Keyhook(settingsTab, keyhook_x, (Y + 2), &Toggles["Show Chests"].toggle, "");
-
-	new Checkhook(settingsTab, 4, (Y += 15), &Toggles["Force Light Radius"].state, "Light Radius");
-	new Keyhook(settingsTab, keyhook_x, (Y + 2), &Toggles["Force Light Radius"].toggle, "");
-
-	new Checkhook(settingsTab, 4, (Y += 15), &Toggles["Remove Weather"].state, "Remove Weather");
-	new Keyhook(settingsTab, keyhook_x, (Y + 2), &Toggles["Remove Weather"].toggle, "");
-
-	new Checkhook(settingsTab, 4, (Y += 15), &Toggles["Infravision"].state, "Infravision");
-	new Keyhook(settingsTab, keyhook_x, (Y + 2), &Toggles["Infravision"].toggle, "");
-
-	new Checkhook(settingsTab, 4, (Y += 15), &Toggles["Remove Shake"].state, "Remove Shake");
-	new Keyhook(settingsTab, keyhook_x, (Y + 2), &Toggles["Remove Shake"].toggle, "");
-
-	new Checkhook(settingsTab, 4, (Y += 15), &Toggles["Display Level Names"].state, "Level Names");
-	new Keyhook(settingsTab, keyhook_x, (Y + 2), &Toggles["Display Level Names"].toggle, "");
-
-	//new Checkhook(settingsTab, 4, (Y += 15), &Toggles["Apply CPU Patch"].state, "CPU Patch");
-	//new Keyhook(settingsTab, keyhook_x, (Y + 2), &Toggles["Apply CPU Patch"].toggle, "");
-
-	//new Checkhook(settingsTab, 4, (Y += 15), &Toggles["Apply FPS Patch"].state, "FPS Patch (SP Only)");
-	//new Keyhook(settingsTab, keyhook_x, (Y + 2), &Toggles["Apply FPS Patch"].toggle, "");
-
-	new Checkhook(settingsTab, 4, (Y += 15), &Toggles["Show Automap On Join"].state, "Show Automap On Join");
-	new Keyhook(settingsTab, keyhook_x, (Y + 2), &Toggles["Show Automap On Join"].toggle, "");
-
-	new Checkhook(settingsTab, 4, (Y += 15), &Toggles["Skip NPC Quest Messages"].state, "Skip NPC Quest Messages");
-	new Keyhook(settingsTab, keyhook_x, (Y + 2), &Toggles["Skip NPC Quest Messages"].toggle, "");
-
-	new Texthook(settingsTab, col2_x + 5, 3, "Missile Colors");
-
-	new Colorhook(settingsTab, col2_x, 17, &missileColors["Player"], "Player");
-	new Colorhook(settingsTab, col2_x, 32, &missileColors["Neutral"], "Neutral");
-	new Colorhook(settingsTab, col2_x, 47, &missileColors["Party"], "Party");
-	new Colorhook(settingsTab, col2_x, 62, &missileColors["Hostile"], "Hostile");
-
-	new Texthook(settingsTab, col2_x + 5, 77, "Monster Colors");
-
-	new Colorhook(settingsTab, col2_x, 92, &monsterColors["Normal"], "Normal");
-	new Colorhook(settingsTab, col2_x, 107, &monsterColors["Minion"], "Minion");
-	new Colorhook(settingsTab, col2_x, 122, &monsterColors["Champion"], "Champion");
-	new Colorhook(settingsTab, col2_x, 137, &monsterColors["Boss"], "Boss");
-
-	new Texthook(settingsTab, 6, (Y += 15), "Reveal Type:");
-
-	vector<string> options;
-	options.push_back("Game");
-	options.push_back("Act");
-	options.push_back("Level");
-	new Combohook(settingsTab, 100, Y, 70, &revealType, options);
+	Settings::AddToggle(GetName(), Settings::Category::Input, "Skip NPC Quest Messages", "Skip NPC Quest Messages",
+		&Toggles["Skip NPC Quest Messages"],
+		"Skips the speeches an NPC gives when a quest turns over.");
 
 }
 
 void Maphack::OnKey(bool up, BYTE key, LPARAM lParam, bool* block) {
-	bool ctrlState = ((GetKeyState(VK_LCONTROL) & 0x80) || (GetKeyState(VK_RCONTROL) & 0x80));
-	if ((legacyReloadConfigHotkey && key == 0x52 && ctrlState) || key == reloadConfig) {
-		*block = true;
-		if (up)
-			BH::ReloadConfig();
-		return;
-	}
 	for (map<string,Toggle>::iterator it = Toggles.begin(); it != Toggles.end(); it++) {
 		if (key == (*it).second.toggle) {
 			*block = true;
-			if (up) {
+			// Only the flip. Reinstalling the patches is left to the settings
+			// poll on the game loop, which notices this the same way it notices
+			// the settings window: doing it here would install a patch from the
+			// input thread.
+			if (up)
 				(*it).second.state = !(*it).second.state;
-				ResetPatches();
-			}
 			return;
 		}
 	}
@@ -433,10 +417,6 @@ void Maphack::OnUnload() {
 }
 
 void Maphack::OnLoop() {
-	//// Remove or install patchs based on state.
-	ResetPatches();
-	BH::settingsUI->SetVisible(Toggles["Show Settings"].state);
-
 	// Get the player unit for area information.
 	UnitAny* unit = D2CLIENT_GetPlayerUnit();
 	if (!unit || !Toggles["Auto Reveal"].state)
@@ -797,6 +777,12 @@ void Maphack::OnAutomapDraw() {
 			}
 		}
 	});
+}
+
+// The patches follow the settings, so they are applied when a setting changes
+// rather than being reapplied every frame in case one had.
+void Maphack::OnSettingsChanged(const vector<string>& keys) {
+	ResetPatches();
 }
 
 void Maphack::OnGameJoin() {

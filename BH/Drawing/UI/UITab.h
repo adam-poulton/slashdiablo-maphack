@@ -11,10 +11,20 @@ namespace Drawing {
 			UITab(std::string name, UI* nui) : name(name), ui(nui) {ui->Tabs.push_back(this); if (ui->Tabs.size() == 1) { ui->SetCurrentTab(this); }};
 			~UITab();
 
+			const std::string& GetName() { return name; };
+
 			unsigned int GetX() { return ui->GetX(); };
-			unsigned int GetY() { return ui->GetY() + TITLE_BAR_HEIGHT + TAB_HEIGHT; };
+			unsigned int GetY() { return ui->GetY() + ui->GetChromeAboveHeight(); };
 			unsigned int GetXSize() { return ui->GetXSize(); };
-			unsigned int GetYSize() { return ui->GetYSize() - TITLE_BAR_HEIGHT - TAB_HEIGHT; };
+
+			// Whatever the window has not spent on its own chrome. Clamped rather
+			// than allowed to wrap: the window can be dragged smaller than its
+			// chrome only in the degenerate case where the screen itself is,
+			// and an unsigned subtraction there would come out enormous.
+			unsigned int GetYSize() {
+				unsigned int spent = ui->GetChromeAboveHeight() + ui->GetChromeBelowHeight();
+				return (ui->GetYSize() > spent) ? (ui->GetYSize() - spent) : 0;
+			};
 
 			unsigned int GetTabPos();
 			unsigned int GetTabSize() { return (ui->GetXSize() / ui->Tabs.size()); };

@@ -1,4 +1,5 @@
 #include "GambleRefresh.h"
+#include "../Settings/SettingsRegistry.h"
 #include "../../BH.h"
 #include "../../Common.h"
 #include "../../Constants.h"
@@ -20,16 +21,10 @@ bool GambleRefresh::Init() {
 void GambleRefresh::OnLoad() {
     LoadConfig();
 
-    // Create settings tab
-    settingsTab = new Drawing::UITab("Gamble", BH::settingsUI);
-
-    unsigned int x = 4;
-    unsigned int y = 10;
-    int keyhook_x = 230;
-
-    new Drawing::Checkhook(settingsTab, x, y, &Toggles["Gamble Refresh"].state, "Gamble Refresh");
-    new Drawing::Keyhook(settingsTab, keyhook_x, (y + 2), &Toggles["Gamble Refresh"].toggle, "");   
-
+    Settings::AddToggle(GetName(), Settings::Category::Input, "Gamble Refresh", "Gamble Refresh",
+        &Toggles["Gamble Refresh"],
+        "Closes and reopens the gambling window so it reloads, "
+        "without having to click the NPC dialog option.");
 }
 
 void GambleRefresh::LoadConfig() {

@@ -1,6 +1,7 @@
 #include "Keyhook.h"
 #include "../../../D2Ptrs.h"
 #include "../../../Common.h"
+#include "../../../Constants.h"
 
 using namespace std;
 using namespace Drawing;
@@ -44,6 +45,7 @@ void Keyhook::OnDraw() {
 	KeyCode keyCode = GetKeyCode(GetKey());
 	string prefix = "";
 	bool IsInRange = InRange(*p_D2CLIENT_MouseX, *p_D2CLIENT_MouseY);
+	unsigned int textColor = IsEnabled() ? (IsInRange ? Tan : Gold) : DISABLED_TEXT_COLOR;
 	if (name.length() > 0) {
 		if(IsInRange)
 			prefix = name + "\377c7 ";
@@ -62,7 +64,7 @@ void Keyhook::OnDraw() {
 	}
 	DWORD size = D2WIN_SetTextSize(0);
 	wchar_t* keyText = AnsiToUnicode(text.c_str());
-	D2WIN_DrawText(keyText, GetX(), GetY() + 10, IsInRange?7:4, 0);
+	D2WIN_DrawText(keyText, GetX(), GetY() + 10, textColor, 0);
 	delete[] keyText;
 	D2WIN_SetTextSize(size);
 }

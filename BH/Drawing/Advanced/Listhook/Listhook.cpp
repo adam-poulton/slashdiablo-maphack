@@ -1,4 +1,5 @@
 #include "Listhook.h"
+#include "../../Basic/Scrollbar/Scrollbar.h"
 #include "../../Basic/Boxhook/Boxhook.h"
 #include "../../../D2Ptrs.h"
 
@@ -27,19 +28,8 @@ using namespace Drawing;
 #define LIST_GROUP_FOLDED		"+"
 
 // The scrollbar sits in a gutter on the right, kept clear of the columns whether
-// or not there is anything to scroll. LIST_WHEEL_ROWS is how far one notch of
-// the wheel moves the view.
-#define LIST_SCROLLBAR_WIDTH	5
-#define LIST_SCROLLBAR_GAP		3
-#define LIST_WHEEL_ROWS			3
-
-// The rail is a shade of the panel behind it, so it reads as a groove rather than
-// as another object; the thumb is a solid fill on top of it, inset by a pixel so
-// a sliver of the rail shows either side of it. Palette indices are from the same
-// set the automap markers are drawn with.
-#define LIST_THUMB_COLOR		0xD0	// grey
-#define LIST_THUMB_COLOR_LIT	0x20	// white
-#define LIST_THUMB_INSET		1
+// or not there is anything to scroll. How it looks and where its thumb goes are
+// Scrollbar's, so the list and the scrolling box cannot come to differ.
 
 static unsigned int FontHeight(unsigned int font) {
 	unsigned int height[] = {10,11,18,24,10,13,7,13,10,12,8,8,7,12};
@@ -458,7 +448,7 @@ unsigned int Listhook::GetVisibleRows() {
 // Always reserved, so the columns keep the same widths whether or not there is
 // enough to scroll and the rows don't shuffle sideways as the list is filtered.
 unsigned int Listhook::GetGutterWidth() {
-	return LIST_SCROLLBAR_WIDTH + LIST_SCROLLBAR_GAP;
+	return Scrollbar::GutterWidth();
 }
 
 unsigned int Listhook::GetContentWidth() {
@@ -541,29 +531,20 @@ int Listhook::GetHoveredRow() {
 // Kept at least a row tall so there is always something to grab, however long
 // the list gets.
 unsigned int Listhook::ScrollThumbHeight() {
-	unsigned int track = ScrollTrackHeight(), visible = GetVisibleRows();
-	if (shown.empty() || visible == 0)
-		return track;
-	unsigned int height = (track * visible) / (unsigned int)shown.size();
-	unsigned int minimum = GetRowHeight();
-	return (height < minimum) ? minimum : height;
+	return Scrollbar::ThumbHeight(ScrollTrackHeight(), GetVisibleRows(),
+		(unsigned int)shown.size(), GetRowHeight());
 }
 
 unsigned int Listhook::ScrollThumbTop() {
-	unsigned int max = GetMaxScrollTop();
-	if (max == 0)
-		return ScrollTrackTop();
-	unsigned int travel = ScrollTrackHeight() - ScrollThumbHeight();
-	return ScrollTrackTop() + ((travel * scrollTop) / max);
+	return Scrollbar::ThumbTop(ScrollTrackTop(), ScrollTrackHeight(),
+		ScrollThumbHeight(), scrollTop, GetMaxScrollTop());
 }
 
 bool Listhook::InScrollbar(unsigned int x, unsigned int y) {
 	if (GetMaxScrollTop() == 0)
 		return false;
-	unsigned int left = GetX() + xSize - LIST_SCROLLBAR_WIDTH;
-	unsigned int top = ScrollTrackTop();
-	return x >= left && x <= left + LIST_SCROLLBAR_WIDTH &&
-		y >= top && y <= top + ScrollTrackHeight();
+	return Scrollbar::InBar(x, y, GetX() + xSize - Scrollbar::Width(),
+		ScrollTrackTop(), ScrollTrackHeight());
 }
 
 // Turns a thumb position back into a top row. Works in whole pixels of travel,
@@ -575,15 +556,7 @@ void Listhook::DragThumbTo(unsigned int mouseY) {
 		return;
 
 	int top = (int)mouseY - thumbGrabOffset - (int)ScrollTrackTop();
-	if (top <= 0) {
-		scrollTop = 0;
-	} else if ((unsigned int)top >= travel) {
-		scrollTop = max;
-	} else {
-		// Rounded, so the halfway point of a row's worth of travel is where the
-		// list actually turns over.
-		scrollTop = (((unsigned int)top * max) + (travel / 2)) / travel;
-	}
+	scrollTop = Scrollbar::ScrollForThumbTop(top, travel, max);
 }
 
 // Selects the row that was clicked, lets go of it if it was already selected, and
@@ -666,7 +639,7 @@ bool Listhook::OnMouseWheel(int notches, unsigned int x, unsigned int y) {
 	if (x < GetX() || x > GetX() + xSize || y < GetY() || y > GetY() + ySize)
 		return false;
 
-	Scroll(-notches * LIST_WHEEL_ROWS);
+	Scroll(-notches * (int)Scrollbar::WheelRows());
 	return true;
 }
 
@@ -788,16 +761,9 @@ void Listhook::OnDraw() {
 	// we are. Only drawn when there is something to scroll, so a short list is
 	// left clean.
 	if (GetMaxScrollTop() > 0) {
-		unsigned int trackX = GetX() + xSize - LIST_SCROLLBAR_WIDTH;
-		// Whiter while it is being used, so it reads as something you hold
-		// rather than a marker that happens to be under the cursor.
 		bool lit = draggingThumb || InScrollbar((*p_D2CLIENT_MouseX), (*p_D2CLIENT_MouseY));
-
-		Boxhook::Draw(trackX, ScrollTrackTop(), LIST_SCROLLBAR_WIDTH,
-			ScrollTrackHeight(), 0, BTOneHalf);
-		Boxhook::Draw(trackX + LIST_THUMB_INSET, ScrollThumbTop(),
-			LIST_SCROLLBAR_WIDTH - (2 * LIST_THUMB_INSET), ScrollThumbHeight(),
-			lit ? LIST_THUMB_COLOR_LIT : LIST_THUMB_COLOR, BTNormal);
+		Scrollbar::Draw(GetX() + xSize - Scrollbar::Width(), ScrollTrackTop(),
+			ScrollTrackHeight(), ScrollThumbTop(), ScrollThumbHeight(), lit);
 	}
 	Unlock();
 }

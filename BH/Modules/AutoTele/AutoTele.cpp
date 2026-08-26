@@ -1,4 +1,5 @@
 #include "AutoTele.h"
+#include "../Settings/SettingsRegistry.h"
 #include "../../BH.h"
 #include "ATIncludes\CMapIncludes.h"
 #include "ATIncludes\Vectors.h"
@@ -15,51 +16,27 @@ using namespace Drawing;
 void AutoTele::OnLoad() {
 	LoadConfig();
 
-	std::map<string, bool>* bnetBools (BH::BnetBools);
-	std::map<string, bool>* gamefilterBools(BH::GamefilterBools);
 
-	settingsTab = new UITab("Misc", BH::settingsUI);
-	unsigned int Y = 12;
-	unsigned int col = 40;
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Draw Destination", "Draw Paths",
+		&Toggles["Draw Destination"],
+		"Draws paths from your character to destinations on the map.");
+	Settings::AddHeading(GetName(), Settings::Category::Map, "Path colours");
+	Settings::AddColor(GetName(), Settings::Category::Map, "Path Color", "Path", &Colors[0],
+		"", "Draw Destination");
+	Settings::AddColor(GetName(), Settings::Category::Map, "Next Color", "Next", &Colors[1],
+		"", "Draw Destination");
+	Settings::AddColor(GetName(), Settings::Category::Map, "Other Color", "Other", &Colors[2],
+		"", "Draw Destination");
+	Settings::AddColor(GetName(), Settings::Category::Map, "WP Color", "Waypoint", &Colors[3],
+		"", "Draw Destination");
+	Settings::AddColor(GetName(), Settings::Category::Map, "Prev Color", "Previous", &Colors[4],
+		"", "Draw Destination");
+	Settings::AddColor(GetName(), Settings::Category::Map, "Other Extra Color", "Other Extra",
+		&Colors[5], "", "Draw Destination");
 
-	new Texthook(settingsTab, col+20, Y, "Toggles");
-
-	new Checkhook(settingsTab, col, (Y += 15),
-			&Toggles["Draw Destination"].state, "Draw Paths");
-
-	new Checkhook(settingsTab, col, (Y += 15),
-			&Toggles["Quest Drop Warning"].state, "Quest Drop Warning");
-
-	new Texthook(settingsTab, col+20, (Y += 22), "Game creation");
-	new Checkhook(settingsTab, col, (Y += 15),
-			&(*bnetBools)["Autofill Last Game"], "Autofill Last Game");
-	new Checkhook(settingsTab, col, (Y += 15),
-			&(*bnetBools)["Autofill Next Game"], "Autofill Next Game");
-	new Checkhook(settingsTab, col, (Y += 15),
-			&(*bnetBools)["Autofill Last Password"], "Autofill Last Password");
-	new Checkhook(settingsTab, col, (Y += 15),
-			&(*bnetBools)["Autofill Description"], "Autofill Description");
-	new Checkhook(settingsTab, col, (Y += 15),
-			&(*gamefilterBools)["Show Difficulty"], "Show Difficulty");
-	new Checkhook(settingsTab, col, (Y += 15),
-			&(*gamefilterBools)["Show Gameserver"], "Show Gameserver");
-
-	//this doesn't change the path.  I can't figure out how to make it work either.
-	//new Checkhook(settingsTab, 40, 42, &Toggles["CP to cave"].state, "CP to cave");
-
-	new Texthook(settingsTab, 250, 12, "Map Colors");
-
-	new Colorhook(settingsTab, 250, 27, &Colors[0], "Path");
-
-	new Colorhook(settingsTab, 250, 42, &Colors[1], "Next");
-
-	new Colorhook(settingsTab, 250, 57, &Colors[2], "Other");
-
-	new Colorhook(settingsTab, 250, 72, &Colors[3], "WP");
-
-	new Colorhook(settingsTab, 250, 87, &Colors[4], "Prev");
-
-	new Colorhook(settingsTab, 250, 102, &Colors[5], "Other Extra");
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Quest Drop Warning", "Quest Drop Warning",
+		&Toggles["Quest Drop Warning"],
+		"Warns you when the current act boss quest drop is active.");
 }
 
 void AutoTele::LoadConfig() {
@@ -79,6 +56,7 @@ void AutoTele::LoadConfig() {
 	BH::config->ReadInt("Other Color", Colors[2]);
 	BH::config->ReadInt("WP Color", Colors[3]);
 	BH::config->ReadInt("Prev Color", Colors[4]);
+	BH::config->ReadInt("Other Extra Color", Colors[5]);
 }
 
 void AutoTele::OnAutomapDraw() {

@@ -14,11 +14,6 @@ using namespace InfoText;
 
 // Margins and the gaps between the three bands. Widths and the list height are
 // measured from the tab by ApplyLayout().
-#define BT_MARGIN			6	// down either side, and below the status line
-#define BT_SEARCH_Y			3
-#define BT_SEARCH_GAP		7	// between the search box and the list
-#define BT_FOOTER_GAP		6	// between the list and the status line
-#define BT_FOOTER_HEIGHT	8	// the status line itself
 
 // The name takes the larger share; the tier beside it is one short word.
 #define BT_COL_NAME_WEIGHT	3
@@ -35,26 +30,19 @@ static std::string TierName(ItemDescription::Tier tier) {
 	}
 }
 
-BaseTab::BaseTab(UI* ui) : InfoTab("Bases", ui),
+BaseTab::BaseTab(UI* ui) : UIPanel("Bases", ui),
 	shownTypes(0),
 	foldOnPush(true),
 	shownSummary(-1),
 	basesLoaded(false),
 	needsRefresh(true) {
 
-	searchBox = new Inputhook(tab, BT_MARGIN, BT_SEARCH_Y, 0, "");
-	searchBox->SetPlaceholder("Search by base item name, item type or tier");
-	searchBox->SetClearOnFocus(true);
-
-	list = new Listhook(tab, BT_MARGIN, 0, 0, 0);
+	list = new Listhook(tab, UI_CONTENT_MARGIN, 0, 0, 0);
 	std::vector<ListColumn> columns;
 	columns.push_back(ListColumn("", 0, BT_COL_NAME_WEIGHT, 0, White, White));
 	columns.push_back(ListColumn("", 0, BT_COL_TIER_WEIGHT, BT_COL_GAP, Grey, White));
 	list->SetColumns(columns);
 	list->SetGroupColor(Gold);
-
-	statusText = new Texthook(tab, BT_MARGIN, 0, "");
-	statusText->SetColor(Grey);
 
 	// Placed and switched on by UpdateSummary().
 	summary = new Tooltiphook(InGame, 0, 0);
@@ -63,25 +51,19 @@ BaseTab::BaseTab(UI* ui) : InfoTab("Bases", ui),
 	ApplyLayout();
 }
 
-// The list takes whatever height is left between the search box and the status
-// line, so a resize needs nothing but this.
+// The list takes whatever height the window leaves it, so a resize needs
+// nothing but this.
 void BaseTab::ApplyLayout() {
 	laidOutWidth = tab->GetXSize();
 	laidOutHeight = tab->GetYSize();
 
-	unsigned int contentWidth = (laidOutWidth > 2 * BT_MARGIN) ?
-		(laidOutWidth - (2 * BT_MARGIN)) : 0;
+	unsigned int contentWidth = (laidOutWidth > 2 * UI_CONTENT_MARGIN) ?
+		(laidOutWidth - (2 * UI_CONTENT_MARGIN)) : 0;
 
-	// Measured off the box rather than guessed, since its height follows its font.
-	unsigned int listY = BT_SEARCH_Y + searchBox->GetYSize() + BT_SEARCH_GAP;
-	unsigned int footerBand = BT_FOOTER_GAP + BT_FOOTER_HEIGHT + BT_MARGIN;
-	unsigned int listHeight = (laidOutHeight > listY + footerBand) ?
-		(laidOutHeight - listY - footerBand) : 0;
-
-	searchBox->SetXSize(contentWidth);
-	list->SetBaseY(listY);
-	list->SetSize(contentWidth, listHeight);
-	statusText->SetBaseY(listY + listHeight + BT_FOOTER_GAP);
+	// The window has already taken its search box and its footer out of the
+	// height, so the list has all of what is left.
+	list->SetBaseY(0);
+	list->SetSize(contentWidth, laidOutHeight);
 	summary->SetMaxWidth(contentWidth);
 }
 
@@ -191,21 +173,6 @@ void BaseTab::PushRows() {
 		foldOnPush = false;
 	}
 	shownSummary = -1;
-	UpdateStatus();
-}
-
-// Counted in items and types rather than rows: the list interleaves headings
-// with items, so a range of row numbers would be one the user cannot check.
-void BaseTab::UpdateStatus() {
-	if (!basesLoaded) {
-		statusText->SetText("Waiting for game data to finish loading...");
-	} else if (matches.empty()) {
-		statusText->SetText("No base items match \"%s\"", query.c_str());
-	} else {
-		statusText->SetText("%u base items in %u type%s",
-			(unsigned int)matches.size(), shownTypes,
-			(shownTypes == 1) ? "" : "s");
-	}
 }
 
 // ItemDescription orders and spaces the panel the way the game describes an
@@ -245,30 +212,45 @@ void BaseTab::UpdateSummary() {
 }
 
 void BaseTab::Search(const std::string& text) {
-	std::string trimmed = Trim(text);
-	query = ToLower(trimmed);
-	searchBox->SetText("%s", trimmed.c_str());
-	searchBox->SetTextPos(0);
-	searchBox->ResetSelection();
-	searchBox->SetCursorPosition(searchBox->GetText().length());
-	lastBoxText = searchBox->GetText();
+	query = ToLower(Trim(text));
 	list->SetScrollTop(0);
 	needsRefresh = true;
 }
 
-// The caret goes straight in the search box. A search that arrived with the
-// window, from the chat command, is left alone: the box only clears on a click.
-void BaseTab::OnOpen() {
-	searchBox->SetCursorPosition(searchBox->GetText().length());
-	searchBox->SetFocused(true);
-}
-
 void BaseTab::OnClose() {
-	searchBox->SetFocused(false);
 	summary->SetActive(false);
 	shownSummary = -1;
 	foldOnPush = true;
 	Search("");
+}
+
+// The hint the window's search box shows while this panel is in front.
+std::string BaseTab::GetSearchPlaceholder() {
+	return "Search by base item name, item type or tier";
+}
+
+// Counted in items and types rather than rows: the list interleaves headings
+// with items, so a range of row numbers would be one the user cannot check.
+std::string BaseTab::GetStatus() {
+	if (!basesLoaded)
+		return "Waiting for game data to finish loading...";
+	if (matches.empty())
+		return "No base items match \"" + query + "\"";
+
+	char line[64];
+	sprintf_s(line, sizeof(line), "%u base items in %u type%s",
+		(unsigned int)matches.size(), shownTypes, (shownTypes == 1) ? "" : "s");
+	return line;
+}
+
+// Row 0 is a heading, so enter takes the first row holding an item.
+void BaseTab::OnSearchSubmitted() {
+	for (unsigned int i = 0; i < rowItems.size(); i++) {
+		if (rowItems[i]) {
+			list->SetSelectedRow((int)i);
+			break;
+		}
+	}
 }
 
 void BaseTab::OnDraw() {
@@ -281,13 +263,6 @@ void BaseTab::OnDraw() {
 		BuildItems();
 	}
 
-	if (searchBox->GetText() != lastBoxText) {
-		lastBoxText = searchBox->GetText();
-		query = ToLower(Trim(lastBoxText));
-		list->SetScrollTop(0);
-		needsRefresh = true;
-	}
-
 	if (needsRefresh) {
 		ApplyFilter();
 		// Suspended rather than cleared, so clearing the search restores the
@@ -295,16 +270,6 @@ void BaseTab::OnDraw() {
 		list->SetFoldingSuspended(!query.empty());
 		PushRows();
 		needsRefresh = false;
-	}
-
-	// Row 0 is a heading, so enter takes the first row holding an item.
-	if (searchBox->TakeSubmitted()) {
-		for (unsigned int i = 0; i < rowItems.size(); i++) {
-			if (rowItems[i]) {
-				list->SetSelectedRow((int)i);
-				break;
-			}
-		}
 	}
 
 	// The mouse and the selection move on the input thread, so catch up here.

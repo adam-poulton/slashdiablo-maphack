@@ -126,6 +126,36 @@ void Tooltiphook::PlaceBeside(unsigned int x, unsigned int y,
 	Unlock();
 }
 
+void Tooltiphook::PlaceAbove(unsigned int x, unsigned int y,
+		unsigned int width, unsigned int height) {
+	unsigned int screenWidth = Hook::GetScreenWidth();
+	unsigned int screenHeight = Hook::GetScreenHeight();
+
+	Lock();
+	// Over it by preference, under it when there is no room over, and against the
+	// top edge when there is room for neither.
+	unsigned int top;
+	if (y > ySize + TIP_GAP + TIP_SCREEN_EDGE) {
+		top = y - ySize - TIP_GAP;
+	} else {
+		top = y + height + TIP_GAP;
+		if (top + ySize + TIP_SCREEN_EDGE > screenHeight)
+			top = TIP_SCREEN_EDGE;
+	}
+
+	// Lined up with the left edge of what it describes, so it reads as belonging
+	// to it, and pulled back on screen where it would hang off the right.
+	unsigned int left = x;
+	if (left + xSize + TIP_SCREEN_EDGE > screenWidth) {
+		left = (screenWidth > xSize + TIP_SCREEN_EDGE) ?
+			(screenWidth - xSize - TIP_SCREEN_EDGE) : TIP_SCREEN_EDGE;
+	}
+
+	SetBaseX(left);
+	SetBaseY(top);
+	Unlock();
+}
+
 void Tooltiphook::OnDraw() {
 	if (!IsActive() || wrapped.empty())
 		return;

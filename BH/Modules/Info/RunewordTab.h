@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 #include "../../ItemDescription.h"
-#include "InfoTab.h"
+#include "../Window/UIPanel.h"
 
 // A property entry as it appears in the game's tables.
 struct RunewordProperty {
@@ -32,11 +32,9 @@ struct RunewordRecipe {
 	bool statsLoaded;
 };
 
-class RunewordTab : public InfoTab {
+class RunewordTab : public UIPanel {
 	private:
-		Drawing::Inputhook* searchBox;
 		Drawing::Listhook* list;
-		Drawing::Texthook* statusText;
 
 		// Sits beside the window rather than inside the tab, which is why it is a
 		// bare Tooltiphook rather than one of the tab's hooks.
@@ -45,7 +43,6 @@ class RunewordTab : public InfoTab {
 		std::vector<RunewordRecipe> recipes;
 		std::vector<const RunewordRecipe*> matches;
 		std::string query;			// active filter, always lowercase
-		std::string lastBoxText;	// last text seen in the search box
 		int shownSummary;			// row the summary was built for, or -1
 		bool recipesLoaded;
 		bool needsRefresh;
@@ -61,7 +58,6 @@ class RunewordTab : public InfoTab {
 		void LoadStats(RunewordRecipe* recipe);
 		void ApplyFilter();
 		void PushRows();
-		void UpdateStatus();
 
 		std::vector<Drawing::TooltipLine> BuildSummaryLines(RunewordRecipe* recipe);
 		void UpdateSummary();
@@ -73,9 +69,11 @@ class RunewordTab : public InfoTab {
 		std::vector<ChatCommand> GetCommands();
 		void OnDraw();
 		bool OnKey(bool up, BYTE key);
-		void OnOpen();
 		void OnClose();
 		void Search(const std::string& text);
+		void OnSearchSubmitted();
+		std::string GetSearchPlaceholder();
+		std::string GetStatus();
 
 		unsigned int GetRecipeCount() { return recipes.size(); };
 };

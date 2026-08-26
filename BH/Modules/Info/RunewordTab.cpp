@@ -13,11 +13,6 @@ using namespace InfoText;
 
 // Margins and the gaps between the three bands. Widths and the list height are
 // measured from the tab by ApplyLayout().
-#define RW_MARGIN			6	// down either side, and below the status line
-#define RW_SEARCH_Y			3
-#define RW_SEARCH_GAP		7	// between the search box and the list
-#define RW_FOOTER_GAP		6	// between the list and the status line
-#define RW_FOOTER_HEIGHT	8	// the status line itself
 
 // The name column is fixed at the longest runeword name and the runes take the
 // rest, since "Jah + Mal + Jah + Sur + Jah + Ber" is what needs the room.
@@ -109,25 +104,18 @@ static const char* BaseSlot(const std::string& code) {
 	return kSlotWeapon;
 }
 
-RunewordTab::RunewordTab(UI* ui) : InfoTab("Runewords", ui),
+RunewordTab::RunewordTab(UI* ui) : UIPanel("Runewords", ui),
 	shownSummary(-1),
 	recipesLoaded(false),
 	needsRefresh(true) {
 
-	searchBox = new Inputhook(tab, RW_MARGIN, RW_SEARCH_Y, 0, "");
-	searchBox->SetPlaceholder("Search by runeword name, rune or item type");
-	searchBox->SetClearOnFocus(true);
-
-	list = new Listhook(tab, RW_MARGIN, 0, 0, 0);
+	list = new Listhook(tab, UI_CONTENT_MARGIN, 0, 0, 0);
 	// The name as the item it makes, the runes in the colour a rune is given.
 	std::vector<ListColumn> columns;
 	columns.push_back(ListColumn("", RW_COL_NAME_W, 0, 0,
 		RarityColor(RarityRuneword), White));
 	columns.push_back(ListColumn("", 0, 1, RW_COL_GAP, RarityColor(RarityRune)));
 	list->SetColumns(columns);
-
-	statusText = new Texthook(tab, RW_MARGIN, 0, "");
-	statusText->SetColor(Grey);
 
 	// Placed and switched on by UpdateSummary().
 	summary = new Tooltiphook(InGame, 0, 0);
@@ -136,25 +124,19 @@ RunewordTab::RunewordTab(UI* ui) : InfoTab("Runewords", ui),
 	ApplyLayout();
 }
 
-// The list takes whatever height is left between the search box and the status
-// line, so a resize needs nothing but this.
+// The list takes whatever height the window leaves it, so a resize needs
+// nothing but this.
 void RunewordTab::ApplyLayout() {
 	laidOutWidth = tab->GetXSize();
 	laidOutHeight = tab->GetYSize();
 
-	unsigned int contentWidth = (laidOutWidth > 2 * RW_MARGIN) ?
-		(laidOutWidth - (2 * RW_MARGIN)) : 0;
+	unsigned int contentWidth = (laidOutWidth > 2 * UI_CONTENT_MARGIN) ?
+		(laidOutWidth - (2 * UI_CONTENT_MARGIN)) : 0;
 
-	// Measured off the box rather than guessed, since its height follows its font.
-	unsigned int listY = RW_SEARCH_Y + searchBox->GetYSize() + RW_SEARCH_GAP;
-	unsigned int footerBand = RW_FOOTER_GAP + RW_FOOTER_HEIGHT + RW_MARGIN;
-	unsigned int listHeight = (laidOutHeight > listY + footerBand) ?
-		(laidOutHeight - listY - footerBand) : 0;
-
-	searchBox->SetXSize(contentWidth);
-	list->SetBaseY(listY);
-	list->SetSize(contentWidth, listHeight);
-	statusText->SetBaseY(listY + listHeight + RW_FOOTER_GAP);
+	// The window has already taken its search box and its footer out of the
+	// height, so the list has all of what is left.
+	list->SetBaseY(0);
+	list->SetSize(contentWidth, laidOutHeight);
 	summary->SetMaxWidth(contentWidth);
 }
 
@@ -388,23 +370,6 @@ void RunewordTab::PushRows() {
 	}
 	list->SetRows(rows);	// also clears the selection
 	shownSummary = -1;
-	UpdateStatus();
-}
-
-// Follows the scroll position as well as the rows, so it is refreshed per frame.
-void RunewordTab::UpdateStatus() {
-	if (!recipesLoaded) {
-		statusText->SetText("Waiting for game data to finish loading...");
-	} else if (matches.empty()) {
-		statusText->SetText("No runewords match \"%s\"", query.c_str());
-	} else if (list->GetMaxScrollTop() > 0) {
-		statusText->SetText("%u - %u of %u runewords",
-			list->GetFirstVisibleRow() + 1,
-			list->GetLastVisibleRow(),
-			(unsigned int)matches.size());
-	} else {
-		statusText->SetText("%u runewords", (unsigned int)matches.size());
-	}
 }
 
 // ItemDescription orders and spaces the panel the way the game describes a
@@ -449,29 +414,44 @@ void RunewordTab::UpdateSummary() {
 }
 
 void RunewordTab::Search(const std::string& text) {
-	std::string trimmed = Trim(text);
-	query = ToLower(trimmed);
-	searchBox->SetText("%s", trimmed.c_str());
-	searchBox->SetTextPos(0);
-	searchBox->ResetSelection();
-	searchBox->SetCursorPosition(searchBox->GetText().length());
-	lastBoxText = searchBox->GetText();
+	query = ToLower(Trim(text));
 	list->SetScrollTop(0);
 	needsRefresh = true;
 }
 
-// The caret goes straight in the search box. A search that arrived with the
-// window, from the chat command, is left alone: the box only clears on a click.
-void RunewordTab::OnOpen() {
-	searchBox->SetCursorPosition(searchBox->GetText().length());
-	searchBox->SetFocused(true);
-}
-
 void RunewordTab::OnClose() {
-	searchBox->SetFocused(false);
 	summary->SetActive(false);
 	shownSummary = -1;
 	Search("");
+}
+
+// The hint the window's search box shows while this panel is in front.
+std::string RunewordTab::GetSearchPlaceholder() {
+	return "Search by runeword name, rune or item type";
+}
+
+// Follows the scroll position as well as the rows, so it is read per frame.
+std::string RunewordTab::GetStatus() {
+	if (!recipesLoaded)
+		return "Waiting for game data to finish loading...";
+	if (matches.empty())
+		return "No runewords match \"" + query + "\"";
+
+	char line[64];
+	if (list->GetMaxScrollTop() > 0) {
+		sprintf_s(line, sizeof(line), "%u - %u of %u runewords",
+			list->GetFirstVisibleRow() + 1, list->GetLastVisibleRow(),
+			(unsigned int)matches.size());
+	} else {
+		sprintf_s(line, sizeof(line), "%u runewords", (unsigned int)matches.size());
+	}
+	return line;
+}
+
+// Enter picks the first match rather than typing a newline.
+void RunewordTab::OnSearchSubmitted() {
+	if (!matches.empty())
+		list->SetSelectedRow(0);
 }
 
 void RunewordTab::OnDraw() {
@@ -484,25 +464,13 @@ void RunewordTab::OnDraw() {
 		BuildRecipes();
 	}
 
-	if (searchBox->GetText() != lastBoxText) {
-		lastBoxText = searchBox->GetText();
-		query = ToLower(Trim(lastBoxText));
-		list->SetScrollTop(0);
-		needsRefresh = true;
-	}
-
 	if (needsRefresh) {
 		ApplyFilter();
 		PushRows();
 		needsRefresh = false;
 	}
 
-	// Enter picks the first match rather than typing a newline.
-	if (searchBox->TakeSubmitted() && !matches.empty())
-		list->SetSelectedRow(0);
-
 	// The mouse and the scroll position move on the input thread, so catch up here.
-	UpdateStatus();
 	UpdateSummary();
 }
 

@@ -35,13 +35,10 @@ namespace BH {
 	extern ModuleManager* moduleManager;
 	extern Config* config;
 	extern Config* itemConfig;
-	extern Drawing::UI* settingsUI;
 	extern Drawing::StatsDisplay* statsDisplay;
 	extern WNDPROC OldWNDPROC;
 	extern map<string, Toggle>* MiscToggles;
 	extern map<string, Toggle>* MiscToggles2;
-	extern map<string, bool>* BnetBools;
-	extern map<string, bool>* GamefilterBools;
 	extern map<size_t, string> drops;
 	extern bool cGuardLoaded;
 	extern bool initialized;
