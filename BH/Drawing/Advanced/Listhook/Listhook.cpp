@@ -597,13 +597,15 @@ bool Listhook::OnLeftClick(bool up, unsigned int x, unsigned int y) {
 		return true;
 	}
 
-	if (!up)
-		return false;
-
 	unsigned int top = GetY() + GetHeaderHeight();
 	unsigned int rowHeight = GetRowHeight();
 	if (x < GetX() || x > GetX() + xSize || y < top || y > GetY() + ySize)
 		return false;
+
+	// Take the press so that the release is paired back to this list; which row
+	// was clicked is worked out on the release, as it is for every other control.
+	if (!up)
+		return true;
 
 	unsigned int offset = (y - top) / rowHeight;
 	unsigned int position = GetFirstVisibleRow() + offset;

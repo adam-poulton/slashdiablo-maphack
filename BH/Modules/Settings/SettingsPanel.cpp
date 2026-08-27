@@ -147,11 +147,10 @@ SettingsHeadingBar::SettingsHeadingBar(HookGroup* group, SettingsPanel* panel,
 	Boxhook(group, 0, 0, 0, 0), panel(panel), row(row) {
 }
 
-// On the release, as every other control in the panel acts, and for a reason of
-// its own besides: folding moves every row below the heading, so a fold on the
-// press would put a different row under the cursor before the button came back up
-// and that row would take the release. A toggle two lines above the heading would
-// flip itself as the section shut.
+// On the release, as every other control in the panel acts. Folding relays the
+// rows below the heading out, but that no longer costs anything: the gesture is
+// paired to the hook that took the press, so nothing that moves under the cursor
+// can take the release.
 bool SettingsHeadingBar::OnLeftClick(bool up, unsigned int x, unsigned int y) {
 	if (!InRange(x, y))
 		return false;

@@ -7,6 +7,7 @@ using namespace Drawing;
 using namespace std;
 
 std::list<Hook*> Hook::Hooks;
+Hook* Hook::pressedHook = NULL;
 
 /* Basic Hook Initializer
  *		Used for just drawing basic things on screen.
@@ -36,6 +37,10 @@ visibility(Group), x(x), y(y), z(1), active(true), enabled(true), alignment(None
  *	thread that walks these lists.
  */
 Hook::~Hook() {
+	//A hook can be deleted between the press and the release - relaying out a
+	//panel throws its rows away - and the release must not reach the dead hook.
+	if (pressedHook == this)
+		pressedHook = NULL;
 	Hooks.remove(this);
 	if (GetVisibility() == Group && group)
 		group->Hooks.remove(this);
@@ -373,19 +378,58 @@ void Hook::Draw(HookVisibility type) {
 }
 
 /* Hook::LeftClick(bool up, unsigned int x, unsigned int y)
- *	Calls the Left Click handlers and blocks click if needed.
+ *	Offers the press to the hooks, remembers which one took it, and gives that
+ *	same hook the release. A click activates a control only when both ends of the
+ *	gesture landed on it: releasing anywhere else cancels. Without the pairing the
+ *	release went to whatever the cursor was over, so pressing one control and
+ *	releasing over another worked the second one, and a control that moved under
+ *	the cursor mid-gesture - a settings section folding, a list scrolling - could
+ *	take a click that was never aimed at it.
  */
 bool Hook::LeftClick(bool up, unsigned int x, unsigned int y) {
 	Hooks.sort(ZSort);
-	bool block = false;
 	if (Colorhook::current) {
+		// The open picker takes the whole gesture, so there is nothing to pair.
+		pressedHook = NULL;
 		Colorhook::current->OnLeftClick(up, x, y);
 		return true;
 	}
-	for (list<Hook*>::iterator it = Hooks.begin(); it!=Hooks.end(); ++it)
-		if ((*it)->IsActive() && (*it)->IsEnabled())
-			if ((*it)->OnLeftClick(up, x, y))
-				block = true;
+
+	if (up) {
+		Hook* pressed = pressedHook;
+		pressedHook = NULL;
+		if (!pressed)
+			return false;
+		// Switched off or hidden while the button was held: no longer answering
+		// input, so it doesn't act on the release either.
+		if (pressed->IsActive() && pressed->IsEnabled())
+			pressed->OnLeftClick(true, x, y);
+		// The game never saw the press, so it must not see the release, whether
+		// or not the release came back down on the hook that took the press.
+		return true;
+	}
+
+	pressedHook = NULL;
+	bool block = false;
+	// An open dropdown hangs over the hooks laid out below it, and has to be
+	// offered the press ahead of them for the same reason it is drawn over them.
+	Hook* front = Combohook::current;
+	if (front && front->IsActive() && front->IsEnabled() &&
+			front->OnLeftClick(false, x, y)) {
+		pressedHook = front;
+		block = true;
+	}
+	// Every hook hears the press - it is how an input box loses the caret and how
+	// an open dropdown shuts - but only the first to claim it holds the gesture.
+	for (HookIterator it = Hooks.begin(); it != Hooks.end(); ++it) {
+		if ((*it) == front || !(*it)->IsActive() || !(*it)->IsEnabled())
+			continue;
+		if ((*it)->OnLeftClick(false, x, y)) {
+			if (!pressedHook)
+				pressedHook = *it;
+			block = true;
+		}
+	}
 	return block;
 }
 

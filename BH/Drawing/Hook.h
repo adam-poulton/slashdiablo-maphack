@@ -34,6 +34,12 @@ namespace Drawing {
 	class Hook {
 		private:
 			static HookList Hooks;//Holds a list of every basic hook used.
+
+			//The hook that took the left button down, until it comes back up. A
+			//click belongs to one control for the length of the gesture, so the
+			//capture is held here rather than in each hook: it is a property of
+			//the gesture and not of any one control.
+			static Hook* pressedHook;
 			HookVisibility visibility;//When we should show the hook.
 			unsigned int x, y, z;//Hooks screen coordinates and the z-order.
 			CRITICAL_SECTION crit;//Critical Section so we don't have race conditions.
