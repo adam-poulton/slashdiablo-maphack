@@ -10,6 +10,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BH.Injector", "BH.Injector\
 		{E549AF63-EF8D-4054-A95B-9C4AE6F51029} = {E549AF63-EF8D-4054-A95B-9C4AE6F51029}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BHTests", "BHTests\BHTests.vcxproj", "{7F3D1C2A-5B44-4E91-9D6E-2A8C4F0B7E13}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -27,6 +29,12 @@ Global
 		{0C10FFDA-E6F8-4180-BF7D-8A423A171748}.Packaging|Win32.ActiveCfg = Packaging|Win32
 		{0C10FFDA-E6F8-4180-BF7D-8A423A171748}.Packaging|Win32.Build.0 = Packaging|Win32
 		{0C10FFDA-E6F8-4180-BF7D-8A423A171748}.Release|Win32.ActiveCfg = Release|Win32
+		{7F3D1C2A-5B44-4E91-9D6E-2A8C4F0B7E13}.Debug|Win32.ActiveCfg = Debug|Win32
+		{7F3D1C2A-5B44-4E91-9D6E-2A8C4F0B7E13}.Debug|Win32.Build.0 = Debug|Win32
+		{7F3D1C2A-5B44-4E91-9D6E-2A8C4F0B7E13}.Packaging|Win32.ActiveCfg = Release|Win32
+		{7F3D1C2A-5B44-4E91-9D6E-2A8C4F0B7E13}.Packaging|Win32.Build.0 = Release|Win32
+		{7F3D1C2A-5B44-4E91-9D6E-2A8C4F0B7E13}.Release|Win32.ActiveCfg = Release|Win32
+		{7F3D1C2A-5B44-4E91-9D6E-2A8C4F0B7E13}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

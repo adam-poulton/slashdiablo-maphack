@@ -11,6 +11,10 @@ jobs:
     - name: Setup MSBuild.exe
       uses: microsoft/setup-msbuild@v1.0.2
     - uses: actions/checkout@master
+    - name: Build tests
+      run: msbuild /t:BHTests:Rebuild /p:Configuration=Release BH.sln
+    - name: Run tests
+      run: .\Tests\Release\BHTests.exe
     - name: MSBuild
       run: |
         $sha = $env:GITHUB_SHA.substring(0,7)
