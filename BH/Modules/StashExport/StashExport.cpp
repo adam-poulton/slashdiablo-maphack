@@ -1,4 +1,5 @@
 #include "StashExport.h"
+#include "../Settings/SettingsRegistry.h"
 #include "../../D2Ptrs.h"
 #include "../../BH.h"
 #include "../../D2Stubs.h"
@@ -20,13 +21,15 @@ using namespace Drawing;
 void StashExport::OnLoad() {
 	LoadConfig();
 
-	settingsTab = new UITab("StashExport", BH::settingsUI);
-
-	int y = 15;
-	new Checkhook(settingsTab, 4, y, &Toggles["Include Equipment"].state, "Include Equipment");
-	new Checkhook(settingsTab, 4, (y+=15), &Toggles["Include Fixed Stats"].state, "Include Fixed Stats");
-	new Checkhook(settingsTab, 4, (y += 15), &Toggles["Condense Stats"].state, "Condense Stats");
-	new Checkhook(settingsTab, 4, (y += 15), &Toggles["Export On Menu"].state, "Export On Menu");
+	Settings::AddHeading(GetName(), Settings::Category::Input, "Stash export");
+	Settings::AddToggle(GetName(), Settings::Category::Input, "Include Equipment", "Include equipment",
+		&Toggles["Include Equipment"]);
+	Settings::AddToggle(GetName(), Settings::Category::Input, "Include Fixed Stats", "Include fixed stats",
+		&Toggles["Include Fixed Stats"]);
+	Settings::AddToggle(GetName(), Settings::Category::Input, "Condense Stats", "Condense stats",
+		&Toggles["Condense Stats"]);
+	Settings::AddToggle(GetName(), Settings::Category::Input, "Export On Menu", "Export on menu",
+		&Toggles["Export On Menu"]);
 
 	// the MustacheTemplates will not be reloaded
 	options.clear();
@@ -48,7 +51,8 @@ void StashExport::OnLoad() {
 		}
 	}
 
-	new Combohook(settingsTab, 4, (y += 15), 150, &exportType, options);
+	Settings::AddEnum(GetName(), Settings::Category::Input, "Mustache Default", "Export format",
+		&exportType, options);
 }
 
 void StashExport::LoadConfig() {

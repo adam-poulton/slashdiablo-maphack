@@ -71,6 +71,8 @@ int StringToNumber(std::string str);
 
 std::string Trim(std::string source);
 
+std::string ToLower(const std::string& text);
+
 void PrintText(DWORD Color, char *szText, ...);
 
 struct KeyCode {

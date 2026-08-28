@@ -14,6 +14,7 @@ Hook(visibility, x, y) {
 	SetFont(0);
 	SetColor(White);
 	SetHoverColor(Disabled);
+	SetDisabledColor(DISABLED_TEXT_COLOR);
 	char buffer[4096];
 	va_list arg;
 	va_start(arg, formatString);
@@ -31,6 +32,7 @@ Hook(group, x, y) {
 	SetFont(0);
 	SetColor(White);
 	SetHoverColor(Disabled);
+	SetDisabledColor(DISABLED_TEXT_COLOR);
 	char buffer[4096];
 	va_list arg;
 	va_start(arg, formatString);
@@ -87,6 +89,22 @@ void Texthook::SetHoverColor(TextColor newHoverColor) {
 	Unlock();
 }
 
+/* GetDisabledColor()
+ *	Return what color the text will be while switched off.
+ */
+TextColor Texthook::GetDisabledColor() {
+	return disabledColor;
+}
+
+/* SetDisabledColor()
+ *	Sets what color to draw while switched off.
+ */
+void Texthook::SetDisabledColor(TextColor newDisabledColor) {
+	Lock();
+	disabledColor = newDisabledColor;
+	Unlock();
+}
+
 /* GetText()
  *	Returns what text will be drawn.
  */
@@ -138,7 +156,9 @@ void Texthook::OnDraw() {
 	wchar_t* wString = AnsiToUnicode(text.c_str());
 
 	unsigned int drawColor = color;
-	if (InRange(*p_D2CLIENT_MouseX, *p_D2CLIENT_MouseY) && GetHoverColor() != Disabled)
+	if (!IsEnabled())
+		drawColor = disabledColor;
+	else if (InRange(*p_D2CLIENT_MouseX, *p_D2CLIENT_MouseY) && GetHoverColor() != Disabled)
 		drawColor = hoverColor;
 
 	DWORD oldFont = D2WIN_SetTextSize(font);

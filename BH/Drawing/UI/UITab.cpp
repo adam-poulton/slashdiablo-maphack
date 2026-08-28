@@ -7,12 +7,11 @@ using namespace Drawing;
 
 UITab::~UITab() {
 	ui->Lock();
-	// Remove all hooks associated to the tab.
-	for (auto it = Hooks.begin(); it != Hooks.end(); it++){
-		Hook* h = *it;
-		delete h;
-	}
-	Hooks.clear();
+	// Remove all hooks associated to the tab. Each one takes itself back out of
+	// this list as it goes, so it is walked from the front rather than iterated:
+	// an iterator would be invalidated by the very element it is standing on.
+	while (Hooks.size() > 0)
+		delete (*Hooks.begin());
 	
 	// Remove tab from list.
 	ui->Tabs.remove(this);

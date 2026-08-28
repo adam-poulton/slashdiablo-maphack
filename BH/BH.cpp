@@ -10,21 +10,19 @@
 #include "MPQInit.h"
 #include "TableReader.h"
 #include "Task.h"
+#include "Modules/Settings/SettingsRegistry.h"
 
 string BH::path;
 HINSTANCE BH::instance;
 ModuleManager* BH::moduleManager;
 Config* BH::config;
 Config* BH::itemConfig;
-Drawing::UI* BH::settingsUI;
 Drawing::StatsDisplay* BH::statsDisplay;
 bool BH::initialized;
 bool BH::cGuardLoaded;
 WNDPROC BH::OldWNDPROC;
 map<string, Toggle>* BH::MiscToggles;
 map<string, Toggle>* BH::MiscToggles2;
-map<string, bool>* BH::BnetBools;
-map<string, bool>* BH::GamefilterBools;
 map<size_t, string> BH::drops;
 
 Patch* patches[] = {
@@ -98,8 +96,6 @@ void BH::Initialize()
 		SetWindowLong(D2GFX_GetHwnd(), GWL_WNDPROC, (LONG)GameWindowEvent);
 	});
 
-	settingsUI = new Drawing::UI(BH_VERSION, 400, 330);
-
 	Task::InitializeThreadPool(2);
 
 	// Read the MPQ Data asynchronously
@@ -123,9 +119,7 @@ void BH::Initialize()
 	new ChatColor();
 	new GambleRefresh();
 	new InfoWindow();
-
-	BnetBools = ((Bnet*)moduleManager->Get("bnet"))->GetBools();
-	GamefilterBools = ((Gamefilter*)moduleManager->Get("gamefilter"))->GetBools();
+	new SettingsWindow();
 
 	moduleManager->LoadModules();
 
@@ -159,7 +153,6 @@ bool BH::Shutdown() {
 		moduleManager->UnloadModules();
 
 		delete moduleManager;
-		delete settingsUI;
 		delete statsDisplay;
 
 		SetWindowLong(D2GFX_GetHwnd(), GWL_WNDPROC, (LONG)BH::OldWNDPROC);
@@ -185,6 +178,11 @@ bool BH::ReloadConfig() {
 		itemConfig->Parse();
 		moduleManager->ReloadConfig();
 		statsDisplay->LoadConfig();
+		// The file is what was just read, so nothing is unsaved; but every module
+		// has to be told, since a reload changes values under them exactly as the
+		// settings window does, and the window has to redraw what it shows.
+		Settings::Rebaseline();
+		Settings::MarkAllChanged();
 	}
 	return true;
 }

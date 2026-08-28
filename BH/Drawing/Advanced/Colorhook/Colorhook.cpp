@@ -8,6 +8,17 @@
 
 using namespace Drawing;
 
+// The swatch, and where the label starts after it. As with the checkbox, the
+// reported width was the label's alone, so the hook answered for a box sitting to
+// the left of everything it draws.
+//
+// The swatch is a diamond drawn about a centre, so it is placed half its width in
+// from the hook's left edge.
+#define COLOR_SWATCH_HALF_WIDTH		8
+#define COLOR_SWATCH_HALF_HEIGHT	4
+#define COLOR_SWATCH_GAP			5
+#define COLOR_SWATCH_WIDTH	((2 * COLOR_SWATCH_HALF_WIDTH) + COLOR_SWATCH_GAP)
+
 Colorhook* Colorhook::current;
 
 /* Basic Hook Initializer
@@ -17,6 +28,9 @@ Colorhook::Colorhook(HookVisibility visibility, unsigned int x, unsigned int y, 
 Hook(visibility, x, y) {
 	//Correctly format the string from the given arguments.
 	currentColor = color;
+	textColor = Gold;
+	hoverColor = Tan;
+	disabledColor = DISABLED_TEXT_COLOR;
 	char buffer[4096];
 	va_list arg;
 	va_start(arg, formatString);
@@ -32,6 +46,9 @@ Colorhook::Colorhook(HookGroup *group, unsigned int x, unsigned int y, unsigned 
 Hook(group, x, y) {
 	//Correctly format the string from the given arguments.
 	currentColor = color;
+	textColor = Gold;
+	hoverColor = Tan;
+	disabledColor = DISABLED_TEXT_COLOR;
 	char buffer[4096];
 	va_list arg;
 	va_start(arg, formatString);
@@ -51,12 +68,35 @@ void Colorhook::SetText(std::string newText) {
 	Unlock();
 }
 
+void Colorhook::SetTextColor(TextColor newColor) {
+	Lock();
+	textColor = newColor;
+	Unlock();
+}
+
+void Colorhook::SetHoverColor(TextColor newColor) {
+	Lock();
+	hoverColor = newColor;
+	Unlock();
+}
+
+void Colorhook::SetDisabledColor(TextColor newColor) {
+	Lock();
+	disabledColor = newColor;
+	Unlock();
+}
+
 void Colorhook::SetColor(unsigned int newColor) {
 	if (newColor < 0 || newColor > 255)
 		return;
 	Lock();
 	*currentColor = newColor;
 	Unlock();
+}
+
+Colorhook::~Colorhook() {
+	if (Colorhook::current == this)
+		Colorhook::current = NULL;
 }
 
 bool Colorhook::OnLeftClick(bool up, unsigned int x, unsigned int y) {
@@ -90,7 +130,7 @@ unsigned int Colorhook::GetXSize() {
 	D2WIN_GetTextWidthFileNo(wString, &width, &fileNo);
 	D2WIN_SetTextSize(oldFont);
 	delete[] wString;
-	return width; 
+	return width + COLOR_SWATCH_WIDTH; 
 }
 
 /* GetYSize()
@@ -138,10 +178,17 @@ void Colorhook::OnDraw() {
 	} else {
 		DWORD size = D2WIN_SetTextSize(0);
 		wchar_t* wText = AnsiToUnicode(GetText().c_str());
-		D2WIN_DrawText(wText, GetX() + 13, GetY() + 10, InRange(*p_D2CLIENT_MouseX, *p_D2CLIENT_MouseY)?7:4, 0);
+		unsigned int drawColor = IsEnabled() ?
+			(InRange(*p_D2CLIENT_MouseX, *p_D2CLIENT_MouseY) ?
+				hoverColor : textColor) :
+			disabledColor;
+		D2WIN_DrawText(wText, GetX() + COLOR_SWATCH_WIDTH, GetY() + GetYSize(),
+			drawColor, 0);
 		delete[] wText;
 		D2WIN_SetTextSize(size);
-		Crosshook::Draw(GetX(), GetY() + 4, GetColor());
+		// Centred on the bottom of the line: the glyphs beside it sit on their baseline
+		Crosshook::Draw(GetX() + COLOR_SWATCH_HALF_WIDTH,
+			GetY() + GetYSize() - COLOR_SWATCH_HALF_HEIGHT, GetColor());
 	}
 	Unlock();
 }

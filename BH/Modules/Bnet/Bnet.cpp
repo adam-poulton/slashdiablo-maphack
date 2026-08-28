@@ -1,4 +1,5 @@
 #include "Bnet.h"
+#include "../Settings/SettingsRegistry.h"
 #include "../../D2Ptrs.h"
 #include "../../BH.h"
 
@@ -31,6 +32,36 @@ Patch* ftjPatch = new Patch(Call, D2CLIENT, { 0x4363E, 0x443FE }, (int)FailToJoi
 Patch* removePass = new Patch(Call, D2MULTI, { 0x1250, 0x1AD0 }, (int)RemovePass_Interception, 5);
 
 void Bnet::OnLoad() {
+	// Its own settings, said by itself. They used to be drawn by AutoTele's tab,
+	// which reached them through a pointer BH published for the purpose.
+	Settings::AddBool(GetName(), Settings::Category::Lobby, "Autofill Last Game", "Autofill last game",
+		&bools["Autofill Last Game"],
+		"Puts the last game name back in the box when you go to make a game.");
+	Settings::AddBool(GetName(), Settings::Category::Lobby, "Autofill Next Game", "Autofill next game",
+		&bools["Autofill Next Game"],
+		"Fills in the next name in the sequence rather than the last one used.");
+	Settings::AddBool(GetName(), Settings::Category::Lobby, "Autofill Last Password", "Autofill last password",
+		&bools["Autofill Last Password"], "Puts the last password back in the box.");
+	Settings::AddBool(GetName(), Settings::Category::Lobby, "Autofill Description", "Autofill description",
+		&bools["Autofill Description"], "Keeps the game description between games.");
+
+	// What the boxes are filled with when there is no previous game to fall back
+	// on. The name and the password are capped at what the game accepts; the
+	// description is left uncapped.
+	Settings::AddText(GetName(), Settings::Category::Lobby, "Default Game Name", "Default game name",
+		&defaultName, 15,
+		"Filled into the game name box when there is no last game to put back.");
+	Settings::AddText(GetName(), Settings::Category::Lobby, "Default Password", "Default password",
+		&defaultPass, 15,
+		"Filled into the password box when there is no last game to put back.");
+	Settings::AddText(GetName(), Settings::Category::Lobby, "Default Description", "Default description",
+		&defaultDesc, 0,
+		"Filled into the description box when there is no last one to put back.");
+
+	Settings::AddNumber(GetName(), Settings::Category::Lobby, "Fail To Join", "Fail to join (ms)",
+		&failToJoin, MAX_FAIL_TO_JOIN,
+		"How long to wait for a game to open before the client says it failed to join. 0 leaves the game's own wait alone.");
+
 	showLastGame = &bools["Autofill Last Game"];
 	*showLastGame = true;
 	
@@ -62,6 +93,21 @@ void Bnet::LoadConfig() {
 	defaultPass = Trim(defaultPass);
 	defaultDesc = Trim(defaultDesc);
 
+	InstallPatches();
+}
+
+// Which patches are installed depends on the settings, including on whether the
+// defaults are blank, so they are worked out again when a setting changes rather
+// than only when a game is left. Never while in a game: the lobby patches are
+// removed on joining one, and OnGameExit puts them back.
+void Bnet::OnSettingsChanged(const vector<string>& keys) {
+	defaultName = Trim(defaultName);
+	defaultPass = Trim(defaultPass);
+	defaultDesc = Trim(defaultDesc);
+
+	if (D2CLIENT_GetPlayerUnit())
+		return;
+	RemovePatches();
 	InstallPatches();
 }
 

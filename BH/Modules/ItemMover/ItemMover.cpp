@@ -1,4 +1,5 @@
 #include "ItemMover.h"
+#include "../Settings/SettingsRegistry.h"
 #include "../Item/Item.h"
 #include "../../BH.h"
 #include "../../D2Ptrs.h"
@@ -415,37 +416,24 @@ void ItemMover::LoadConfig() {
 
 void ItemMover::OnLoad() {
 	LoadConfig();
-	Drawing::Texthook* colored_text;
 
-	settingsTab = new Drawing::UITab("Interaction", BH::settingsUI);
+	Settings::AddKey(GetName(), Settings::Category::Input, "Use TP Tome", "Quick town portal", &TpKey,
+		"Opens a town portal from the tome in your inventory.");
+	Settings::AddKey(GetName(), Settings::Category::Input, "Use Healing Potion", "Use healing potion",
+		&HealKey, "Drinks the smallest healing potion you are carrying.");
+	Settings::AddKey(GetName(), Settings::Category::Input, "Use Mana Potion", "Use mana potion",
+		&ManaKey, "Drinks the smallest mana potion you are carrying.");
+	Settings::AddKey(GetName(), Settings::Category::Input, "Use Rejuv Potion", "Use rejuv potion",
+		&JuvKey, "Drinks the smallest rejuvenation potion you are carrying.");
 
-	unsigned int x = 8;
-	unsigned int y = 7;
-	new Drawing::Texthook(settingsTab, x, y, "Keys (esc to clear)");
-	new Drawing::Keyhook(settingsTab, x, (y += 15), &TpKey ,  "Quick Town Portal:     ");
-	new Drawing::Keyhook(settingsTab, x, (y += 15), &HealKey, "Use Healing Potion:    ");
-	new Drawing::Keyhook(settingsTab, x, (y += 15), &ManaKey, "Use Mana Potion:       ");
-	new Drawing::Keyhook(settingsTab, x, (y += 15), &JuvKey,  "Use Rejuv Potion:      ");
-
-	y += 7;
-
-	new Drawing::Texthook(settingsTab, x, (y += 15), "QoL features");
-	colored_text = new Drawing::Texthook(settingsTab, x, (y += 15),
-			"Shift-leftclick IDs an item if an ID tome is in inventory");
-	colored_text->SetColor(Gold);
-	colored_text = new Drawing::Texthook(settingsTab, x, (y += 15),
-			"Shift-rightclick moves between stash/open cube and inventory");
-	colored_text->SetColor(Gold);
-	colored_text = new Drawing::Texthook(settingsTab, x, (y += 15),
-			"Ctrl-rightclick moves item to ground");
-	colored_text->SetColor(Gold);
-	colored_text = new Drawing::Texthook(settingsTab, x, (y += 15),
-			"Ctrl-shift-rightclick moves item into closed cube");
-	colored_text->SetColor(Gold);
-
-	colored_text = new Drawing::Texthook(settingsTab, x, (y += 15),
-			"");
-	colored_text->SetColor(Gold);
+	Settings::AddHeading(GetName(), Settings::Category::Input, "QOL hotkeys");
+	Settings::AddNote(GetName(), Settings::Category::Input,
+		"- Shift-leftclick identifies an item if there is an ID tome in your inventory.");
+	Settings::AddNote(GetName(), Settings::Category::Input,
+		"- Shift-rightclick moves an item between the stash or an open cube and your inventory.");
+	Settings::AddNote(GetName(), Settings::Category::Input, "- Ctrl-rightclick moves an item to the ground.");
+	Settings::AddNote(GetName(), Settings::Category::Input,
+		"- Ctrl-shift-rightclick moves an item into the cube without opening it.");
 
 }
 

@@ -15,7 +15,6 @@ enum RefreshState {
 class GambleRefresh : public Module {
 private:
     CRITICAL_SECTION crit;
-    Drawing::UITab* settingsTab;
     NPCMenu** pNPCMenu;
     DWORD* pNPCMenuAmount;
     RefreshState refreshState;

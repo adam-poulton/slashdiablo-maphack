@@ -8,7 +8,7 @@ namespace Drawing {
 		private:
 			std::string text;//Text to be drawn.
 			unsigned int font;//Determines which built-in diablo font to use.
-			TextColor color, hoverColor;//Determines which color to use.
+			TextColor color, hoverColor, disabledColor;//Determines which color to use.
 		public:
 			//Two Hook Initializations; one for basic hooks, one for grouped hooks.
 			Texthook(HookVisibility visibility, unsigned int x, unsigned int y, std::string formatString, ...);
@@ -33,6 +33,15 @@ namespace Drawing {
 
 			//Set what D2 Color we should draw with when hovered.
 			void SetHoverColor(TextColor newHoverColor);
+
+
+			//Returns what D2 Color we draw with while switched off.
+			TextColor GetDisabledColor();
+
+			//Sets what D2 Color to draw with while switched off. Settable because
+			//one colour for every disabled hook leaves a disabled hook unable to
+			//say anything else about itself.
+			void SetDisabledColor(TextColor newDisabledColor);
 
 
 			//Returns what text we are drawing

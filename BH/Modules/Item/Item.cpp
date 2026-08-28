@@ -44,6 +44,7 @@
  */
 
 #include "Item.h"
+#include "../Settings/SettingsRegistry.h"
 #include "../../D2Ptrs.h"
 #include "../../D2Strings.h"
 #include "../../BH.h"
@@ -99,11 +100,10 @@ void Item::OnLoad() {
 	itemPropertyStringDamagePatch->Install();
 	itemPropertyStringPatch->Install();
 
-	if (Toggles["Show Ethereal"].state || Toggles["Show Sockets"].state || Toggles["Show iLvl"].state || Toggles["Color Mod"].state ||
-		Toggles["Show Rune Numbers"].state || Toggles["Alt Item Style"].state || Toggles["Shorten Item Names"].state || Toggles["Advanced Item Display"].state)
-		itemNamePatch->Install();
+	// itemNamePatch is left to ResetPatches, which the first settings poll runs
+	// before any item name is drawn.
 
-	DrawSettings();
+	RegisterSettings();
 }
 
 void ResetCaches() {
@@ -114,7 +114,15 @@ void ResetCaches() {
 	ignore_cache.ResetCache();
 }
 
+void Item::OnSettingsChanged(const vector<string>& keys) {
+	ResetPatches();
+	ResetCaches();
+	if (Toggles["Advanced Item Display"].state)
+		ItemDisplay::InitializeItemRules();
+}
+
 void Item::OnGameJoin() {
+
 	// reset the item name cache upon joining games
 	// (GUIDs not unique across games)
 	ResetCaches();
@@ -125,13 +133,7 @@ void Item::OnGameJoin() {
 }
 
 void Item::LoadConfig() {
-	BH::config->ReadToggle("Show Ethereal", "None", true, Toggles["Show Ethereal"]);
-	BH::config->ReadToggle("Show Sockets", "None", true, Toggles["Show Sockets"]);
 	BH::config->ReadToggle("Show ILvl", "None", true, Toggles["Show iLvl"]);
-	BH::config->ReadToggle("Show Rune Numbers", "None", true, Toggles["Show Rune Numbers"]);
-	BH::config->ReadToggle("Alt Item Style", "None", true, Toggles["Alt Item Style"]);
-	BH::config->ReadToggle("Color Mod", "None", false, Toggles["Color Mod"]);
-	BH::config->ReadToggle("Shorten Item Names", "None", false, Toggles["Shorten Item Names"]);
 	BH::config->ReadToggle("Always Show Items", "None", false, Toggles["Always Show Items"]);
 	BH::config->ReadToggle("Advanced Item Display", "None", false, Toggles["Advanced Item Display"]);
 	BH::config->ReadToggle("Item Drop Notifications", "None", false, Toggles["Item Drop Notifications"]);
@@ -194,133 +196,69 @@ void Item::ResetPatches() {
 		permShowItems4->Remove();
 		permShowItems5->Remove();
 	}
+
+	// Nothing else customises item names, so the hook is only worth having while
+	// the display rules are on.
+	if (Toggles["Advanced Item Display"].state) {
+		itemNamePatch->Install();
+	} else {
+		itemNamePatch->Remove();
+	}
 }
 
 // Whichever of the input box and the config value changed last wins, so the box follows a
 // config reload. Non-numeric text is ignored, leaving a half-typed box harmless.
-void Item::SyncScrollVisibilityThreshold() {
-	if (!scrollThresholdInput)
-		return;
+void Item::RegisterSettings() {
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Always Show Items",
+		"Always show ground items", &Toggles["Always Show Items"],
+		"Keeps ground item names on screen without having to hold the show items key.");
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Advanced Item Display",
+		"Advanced item display", &Toggles["Advanced Item Display"],
+		"Applies the item display rules from BH.cfg.");
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Show ILvl", "Show iLvl",
+		&Toggles["Show iLvl"], "Shows the item level in the description.",
+		"Advanced Item Display");
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Always Show Item Stat Ranges",
+		"Show item stat ranges", &Toggles["Always Show Item Stat Ranges"],
+		"Shows the range each variable stat could have rolled.");
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Suppress Invalid Stats", "Suppress invalid stats",
+		&Toggles["Suppress Invalid Stats"],
+		"Hides stat lines the game cannot describe rather than showing them raw.");
 
-	static unsigned int lastValue = scrollVisibilityThreshold;
-	static string lastText = to_string<unsigned int>(scrollVisibilityThreshold);
+	Settings::AddHeading(GetName(), Settings::Category::Items, "Notifications");
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Item Drop Notifications", "Item drop notifications",
+		&Toggles["Item Drop Notifications"], "Says in chat when an item drops.");
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Item Close Notifications", "Item close notifications",
+		&Toggles["Item Close Notifications"], "Says in chat when an item is nearby.");
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Item Detailed Notifications",
+		"Item detailed notifications", &Toggles["Item Detailed Notifications"],
+		"Includes what is on the item rather than only its name.");
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Verbose Notifications", "Verbose notifications",
+		&Toggles["Verbose Notifications"],
+		"Says whether a notification was from an item dropping or coming into range.");
 
-	string text = scrollThresholdInput->GetText();
-	if (text != lastText) {
-		lastText = text;
-		if (!text.empty() && text.find_first_not_of("0123456789") == string::npos) {
-			unsigned int value = 0;
-			from_string<unsigned int>(value, text, std::dec);
-			if (value > MAX_SCROLL_VISIBILITY_THRESHOLD)
-				value = MAX_SCROLL_VISIBILITY_THRESHOLD;
-			scrollVisibilityThreshold = value;
-			lastValue = value;
-		}
-	} else if (scrollVisibilityThreshold != lastValue) {
-		lastValue = scrollVisibilityThreshold;
-		lastText = to_string<unsigned int>(scrollVisibilityThreshold);
-		scrollThresholdInput->SetText(lastText);
-	}
-}
+	Settings::AddEnum(GetName(), Settings::Category::Filter, "Filter Level", "Filter level",
+		&filterLevelSetting,
+		{ "0 - None", "1 - Minimal", "2 - Moderate", "3 - Aggressive" },
+		"How much of what drops is hidden, defined in the filter file BH.cfg.");
+	Settings::AddEnum(GetName(), Settings::Category::Filter, "Ping Level", "Ping tiers <=",
+		&pingLevelSetting, { "0", "1", "2", "3", "4", "5", "6" },
+		"The highest tier that is still pinged.");
+	// No hotkey: this changes how BH.cfg is read, which is not something to flip
+	// mid game.
+	Settings::AddBool(GetName(), Settings::Category::Filter, "Ordered Item Filtering", "Ordered item filtering",
+		&OrderedFiltering,
+		"Applies the rules in BH.cfg strictly in the order they are written, rather than whitelist before hidelist.");
+	Settings::AddToggle(GetName(), Settings::Category::Filter, "Hide Redundant Scrolls", "Hide redundant scrolls",
+		&Toggles["Hide Redundant Scrolls"],
+		"Hides scrolls on the ground once you are carrying enough of them.");
+	Settings::AddNumber(GetName(), Settings::Category::Filter, "Scroll Visibility Threshold", "Hidden scroll threshold",
+		&scrollVisibilityThreshold, MAX_SCROLL_VISIBILITY_THRESHOLD,
+		"How many scrolls you have to be carrying before the rest are hidden.",
+		"Hide Redundant Scrolls");
 
-void Item::DrawSettings() {
-	settingsTab = new UITab("Item", BH::settingsUI);
-	int y = 10;
-	int keyhook_x = 230;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Show Ethereal"].state, "Show Ethereal");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Show Ethereal"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Show Sockets"].state, "Show Sockets");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Show Sockets"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Show iLvl"].state, "Show iLvl");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Show iLvl"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Show Rune Numbers"].state, "Show Rune #");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Show Rune Numbers"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Alt Item Style"].state, "Alt Style");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Alt Item Style"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Color Mod"].state, "Color Mod");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Color Mod"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Shorten Item Names"].state, "Shorten Names");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Shorten Item Names"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Always Show Items"].state, "Always Show Items");
-	new Keyhook(settingsTab, keyhook_x, y + 2, &Toggles["Always Show Items"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Always Show Item Stat Ranges"].state, "Always Show Item Stat Ranges");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Always Show Item Stat Ranges"].toggle, "");
-	y += 15;
-	
-	new Checkhook(settingsTab, 4, y, &Toggles["Advanced Item Display"].state, "Advanced Item Display");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Advanced Item Display"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Item Drop Notifications"].state, "Item Drop Notifications");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Item Drop Notifications"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Item Close Notifications"].state, "Item Close Notifications");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Item Close Notifications"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Item Detailed Notifications"].state, "Item Detailed Notifications");
-	new Keyhook(settingsTab, keyhook_x, y + 2, &Toggles["Item Detailed Notifications"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Verbose Notifications"].state, "Verbose Notifications");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Verbose Notifications"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Suppress Invalid Stats"].state, "Suppress Invalid Stats");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Suppress Invalid Stats"].toggle, "");
-	y += 15;
-
-	new Checkhook(settingsTab, 4, y, &Toggles["Hide Redundant Scrolls"].state, "Hide Redundant Scrolls");
-	new Keyhook(settingsTab, keyhook_x, y+2, &Toggles["Hide Redundant Scrolls"].toggle, "");
-	new Texthook(settingsTab, 288, y, "Show <=");
-	scrollThresholdInput = new Inputhook(settingsTab, 336, y - INPUT_PADDING_TOP, 34, to_string<unsigned int>(scrollVisibilityThreshold));
-	y += 15;
-
-	// no Keyhook: this changes how BH.cfg is interpreted, so it isn't hotkey-toggleable
-	new Checkhook(settingsTab, 4, y, &OrderedFiltering, "Ordered Item Filtering");
-	y += 15;
-
-	new Keyhook(settingsTab, 4, y+2, &showPlayer, "Show Player's Gear:   ");
-	y += 15;
-
-	new Texthook(settingsTab, 4, y, "Filter Level:");
-
-	vector<string> options;
-	options.push_back("0 - None");
-	options.push_back("1 - Minimal");
-	options.push_back("2 - Moderate");
-	options.push_back("3 - Aggressive");
-	new Combohook(settingsTab, 85, y, 120, &filterLevelSetting, options);
-
-	new Texthook(settingsTab, 234, y, "Ping Tiers <=:");
-
-	vector<string> ping_options;
-	ping_options.push_back("0");
-	ping_options.push_back("1");
-	ping_options.push_back("2");
-	ping_options.push_back("3");
-	ping_options.push_back("4");
-	ping_options.push_back("5");
-	ping_options.push_back("6");
-	new Combohook(settingsTab, 330, y, 40, &pingLevelSetting, ping_options);
+	Settings::AddKey(GetName(), Settings::Category::Input, "Show Players Gear", "Show player's gear",
+		&showPlayer, "Shows the gear of the player your cursor is over.");
 }
 
 void Item::OnUnload() {
@@ -340,25 +278,8 @@ void Item::OnUnload() {
 }
 
 void Item::OnLoop() {
-	ResetPatches();
-	SyncScrollVisibilityThreshold();
-	static unsigned int localFilterLevel = 0;
-	static unsigned int localPingLevel = 0;
-	// This is a bit of a hack to reset the cache when the user changes the item filter level
-	if (localFilterLevel != filterLevelSetting) {
-		ResetCaches();
-		localFilterLevel = filterLevelSetting;
-	}
-	if (localPingLevel != pingLevelSetting) {
-		ResetCaches();
-		localPingLevel = pingLevelSetting;
-	}
 	if (!D2CLIENT_GetUIState(0x01))
 		viewingUnit = NULL;
-	
-	if (Toggles["Advanced Item Display"].state) {
-		ItemDisplay::InitializeItemRules();
-	}
 
 	if (viewingUnit && viewingUnit->dwUnitId) {
 		if (!viewingUnit->pInventory){
@@ -420,19 +341,19 @@ int CreateUnitItemInfo(UnitItemInfo *uInfo, UnitAny *item) {
 
 void __fastcall Item::ItemNamePatch(wchar_t *name, UnitAny *item)
 {
+	// The hook is only installed while the display rules are on, but the state is
+	// still what decides whether the rules have been read.
+	if (!Toggles["Advanced Item Display"].state)
+		return;
+
 	char* szName = UnicodeToAnsi(name);
 	string itemName = szName;
-	char* code = D2COMMON_GetItemText(item->dwTxtFileNo)->szCode;
 
-	if (Toggles["Advanced Item Display"].state) {
-		UnitItemInfo uInfo;
-		if (!CreateUnitItemInfo(&uInfo, item)) {
-			GetItemName(&uInfo, itemName);
-		} else {
-			HandleUnknownItemCode(uInfo.itemCode, "name");
-		}
+	UnitItemInfo uInfo;
+	if (!CreateUnitItemInfo(&uInfo, item)) {
+		GetItemName(&uInfo, itemName);
 	} else {
-		OrigGetItemName(item, itemName, code);
+		HandleUnknownItemCode(uInfo.itemCode, "name");
 	}
 
 	// Some common color codes for text strings (see TextColor enum):
@@ -455,283 +376,6 @@ void __fastcall Item::ItemNamePatch(wchar_t *name, UnitAny *item)
 	MultiByteToWideChar(CODE_PAGE, MB_PRECOMPOSED, itemName.c_str(), itemName.length(), name, itemName.length());
 	name[itemName.length()] = 0;  // null-terminate the string since MultiByteToWideChar doesn't
 	delete[] szName;
-}
-
-void Item::OrigGetItemName(UnitAny *item, string &itemName, char *code)
-{
-	bool displayItemLevel = Toggles["Show iLvl"].state;
-	if (Toggles["Shorten Item Names"].state)
-	{
-		// We will also strip ilvls from these items
-		if (code[0] == 't' && code[1] == 's' && code[2] == 'c')  // town portal scroll
-		{
-			itemName = "\xFF" "c2**\xFF" "c0TP";
-			displayItemLevel = false;
-		}
-		else if (code[0] == 'i' && code[1] == 's' && code[2] == 'c')  // identify scroll
-		{
-			itemName = "\xFF" "c2**\xFF" "c0ID";
-			displayItemLevel = false;
-		}
-		else if (code[0] == 'v' && code[1] == 'p' && code[2] == 's')  // stamina potion
-		{
-			itemName = "Stam";
-			displayItemLevel = false;
-		}
-		else if (code[0] == 'y' && code[1] == 'p' && code[2] == 's')  // antidote potion
-		{
-			itemName = "Anti";
-			displayItemLevel = false;
-		}
-		else if (code[0] == 'w' && code[1] == 'm' && code[2] == 's')  // thawing potion
-		{
-			itemName = "Thaw";
-			displayItemLevel = false;
-		}
-		else if (code[0] == 'g' && code[1] == 'p' && code[2] == 's')  // rancid gas potion
-		{
-			itemName = "Ranc";
-			displayItemLevel = false;
-		}
-		else if (code[0] == 'o' && code[1] == 'p' && code[2] == 's')  // oil potion
-		{
-			itemName = "Oil";
-			displayItemLevel = false;
-		}
-		else if (code[0] == 'g' && code[1] == 'p' && code[2] == 'm')  // choking gas potion
-		{
-			itemName = "Chok";
-			displayItemLevel = false;
-		}
-		else if (code[0] == 'o' && code[1] == 'p' && code[2] == 'm')  // exploding potion
-		{
-			itemName = "Expl";
-			displayItemLevel = false;
-		}
-		else if (code[0] == 'g' && code[1] == 'p' && code[2] == 'l')  // strangling gas potion
-		{
-			itemName = "Stra";
-			displayItemLevel = false;
-		}
-		else if (code[0] == 'o' && code[1] == 'p' && code[2] == 'l')  // fulminating potion
-		{
-			itemName = "Fulm";
-			displayItemLevel = false;
-		}
-		else if (code[0] == 'h' && code[1] == 'p')  // healing potions
-		{
-			if (code[2] == '1')
-			{
-				itemName = "\xFF" "c1**\xFF" "c0Min Heal";
-				displayItemLevel = false;
-			}
-			else if (code[2] == '2')
-			{
-				itemName = "\xFF" "c1**\xFF" "c0Lt Heal";
-				displayItemLevel = false;
-			}
-			else if (code[2] == '3')
-			{
-				itemName = "\xFF" "c1**\xFF" "c0Heal";
-				displayItemLevel = false;
-			}
-			else if (code[2] == '4')
-			{
-				itemName = "\xFF" "c1**\xFF" "c0Gt Heal";
-				displayItemLevel = false;
-			}
-			else if (code[2] == '5')
-			{
-				itemName = "\xFF" "c1**\xFF" "c0Sup Heal";
-				displayItemLevel = false;
-			}
-		}
-		else if (code[0] == 'm' && code[1] == 'p')  // mana potions
-		{
-			if (code[2] == '1')
-			{
-				itemName = "\xFF" "c3**\xFF" "c0Min Mana";
-				displayItemLevel = false;
-			}
-			else if (code[2] == '2')
-			{
-				itemName = "\xFF" "c3**\xFF" "c0Lt Mana";
-				displayItemLevel = false;
-			}
-			else if (code[2] == '3')
-			{
-				itemName = "\xFF" "c3**\xFF" "c0Mana";
-				displayItemLevel = false;
-			}
-			else if (code[2] == '4')
-			{
-				itemName = "\xFF" "c3**\xFF" "c0Gt Mana";
-				displayItemLevel = false;
-			}
-			else if (code[2] == '5')
-			{
-				itemName = "\xFF" "c3**\xFF" "c0Sup Mana";
-				displayItemLevel = false;
-			}
-		}
-		else if (code[0] == 'r' && code[1] == 'v')  // rejuv potions
-		{
-			if (code[2] == 's')
-			{
-				itemName = "\xFF" "c;**\xFF" "c0Rejuv";
-				displayItemLevel = false;
-			}
-			else if (code[2] == 'l')
-			{
-				itemName = "\xFF" "c;**\xFF" "c0Full";
-				displayItemLevel = false;
-			}
-		}
-		else if (code[1] == 'q' && code[2] == 'v')
-		{
-			if (code[0] == 'a')  // arrows
-			{
-				displayItemLevel = false;
-			}
-			else if (code[0] == 'c')  // bolts
-			{
-				displayItemLevel = false;
-			}
-		}
-		else if (code[0] == 'k' && code[1] == 'e' && code[2] == 'y')  // key
-		{
-			displayItemLevel = false;
-		}
-	}
-
-	/*Suffix Color Mod*/
-	if( Toggles["Color Mod"].state )
-	{
-		/*Essences*/
-		if( code[0] == 't' && code[1] == 'e' && code[2] == 's' )
-		{
-			itemName = itemName + " (Andariel/Duriel)";
-		}
-		if( code[0] == 'c' && code[1] == 'e' && code[2] == 'h' )
-		{
-			itemName = itemName + " (Mephtisto)";
-		}
-		if( code[0] == 'b' && code[1] == 'e' && code[2] == 't' )
-		{
-			itemName = itemName + " (Diablo)";
-		}
-		if( code[0] == 'f' && code[1] == 'e' && code[2] == 'd' )
-		{
-			itemName = itemName + " (Baal)";
-		}
-	}
-
-	if( Toggles["Alt Item Style"].state )
-	{
-		if (Toggles["Show Rune Numbers"].state && D2COMMON_GetItemText(item->dwTxtFileNo)->nType == 74)
-		{
-			itemName = to_string(item->dwTxtFileNo - 609) + " - " + itemName;
-		}
-		else
-		{
-			if (Toggles["Show Sockets"].state)
-			{
-				int sockets = D2COMMON_GetUnitStat(item, STAT_SOCKETS, 0);
-				if (sockets > 0)
-				{
-					itemName += "(" + to_string(sockets) + ")";
-				}
-			}
-
-			if (Toggles["Show Ethereal"].state && item->pItemData->dwFlags & ITEM_ETHEREAL)
-			{
-				itemName = "Eth " + itemName;
-			}
-	
-			/*show iLvl unless it is equal to 1*/
-			if (displayItemLevel && item->pItemData->dwItemLevel != 1)
-			{
-				itemName += " L" + to_string(item->pItemData->dwItemLevel);
-			}
-		}
-	}
-	else
-	{
-		if (Toggles["Show Sockets"].state) {
-			int sockets = D2COMMON_GetUnitStat(item, STAT_SOCKETS, 0);
-			if (sockets > 0)
-				itemName += "(" + to_string(sockets) + ")";
-		}
-		if (Toggles["Show Ethereal"].state && item->pItemData->dwFlags & ITEM_ETHEREAL)
-			itemName += "(Eth)";
-
-		if (displayItemLevel)
-			itemName += "(L" + to_string(item->pItemData->dwItemLevel) + ")";
-
-		if (Toggles["Show Rune Numbers"].state && D2COMMON_GetItemText(item->dwTxtFileNo)->nType == 74)
-			itemName = "[" + to_string(item->dwTxtFileNo - 609) + "]" + itemName;
-	}
-
-	/*Affix (Colors) Color Mod*/
-	if( Toggles["Color Mod"].state )
-	{
-		///*Flawless Gems*/
-		//if( (code[0] == 'g' && code[1] == 'l'					) ||
-		//	(code[0] == 's' && code[1] == 'k' && code[2] == 'l' ) )
-		//{
-		//	itemName = "\xFF" "c:" + itemName;
-		//}
-		///*Perfect Gems*/
-		//if( (code[0] == 'g' && code[1] == 'p'                   ) ||
-		//	(code[0] == 's' && code[1] == 'k' && code[2] == 'p' ) )
-		//{
-		//	itemName = "\xFF" "c<" + itemName;
-		//}
-		/*Ethereal*/
-		if( item->pItemData->dwFlags & 0x400000 )
-		{
-			/*Turn ethereal elite armors (and paladin shields) purple*/
-			if( (code[0] == 'u'                                    ) ||
-				(code[0] == 'p' && code[1] == 'a' && code[2] >= 'b') )
-			{
-				itemName = "\xFF" "c;" + itemName;
-			}
-		}
-		/*Runes*/
-		if( code[0] == 'r' )
-		{
-			if( code[1] == '0' )
-			{
-				itemName = "\xFF" "c0" + itemName;
-			}
-			else if( code[1] == '1' )
-			{
-				if( code[2] <= '6')
-				{
-					itemName = "\xFF" "c4" + itemName;
-				}
-				else
-				{
-					itemName = "\xFF" "c8" + itemName;
-				}
-			}
-			else if( code[1] == '2' )
-			{
-				if( code[2] <= '2' )
-				{
-					itemName = "\xFF" "c8" + itemName;
-				}
-				else
-				{
-					itemName = "\xFF" "c1" + itemName;
-				}
-			}
-			else if( code[1] == '3' )
-			{
-				itemName = "\xFF" "c1" + itemName;
-			}
-		}
-	}
 }
 
 static ItemsTxt* GetArmorText(UnitAny* pItem) {

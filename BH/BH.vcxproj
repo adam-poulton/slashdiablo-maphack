@@ -140,6 +140,7 @@ if defined D2Path (
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AsyncDrawBuffer.cpp" />
+    <ClCompile Include="About.cpp" />
     <ClCompile Include="BH.cpp" />
     <ClCompile Include="BitReader.cpp" />
     <ClCompile Include="Common.cpp" />
@@ -178,6 +179,12 @@ if defined D2Path (
     <ClCompile Include="Modules\ItemMover\ItemMover.cpp" />
     <ClCompile Include="Modules\Maphack\Maphack.cpp" />
     <ClCompile Include="Modules\Module.cpp" />
+    <ClCompile Include="Modules\Window\WindowModule.cpp" />
+    <ClCompile Include="Modules\Settings\SettingsRegistry.cpp" />
+    <ClCompile Include="Modules\Settings\SettingsPanel.cpp" />
+    <ClCompile Include="Modules\Settings\SettingsWindow.cpp" />
+    <ClCompile Include="Drawing\Basic\Scrollbar\Scrollbar.cpp" />
+    <ClCompile Include="Drawing\Advanced\Scrollhook\Scrollhook.cpp" />
     <ClCompile Include="Modules\ModuleManager.cpp" />
     <ClCompile Include="Modules\Party\Party.cpp" />
     <ClCompile Include="Modules\Info\InfoText.cpp" />
@@ -200,6 +207,7 @@ if defined D2Path (
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AsyncDrawBuffer.h" />
+    <ClInclude Include="About.h" />
     <ClInclude Include="BH.h" />
     <ClInclude Include="BitReader.h" />
     <ClInclude Include="Common.h" />
@@ -252,11 +260,17 @@ if defined D2Path (
     <ClInclude Include="Modules\ItemMover\ItemMover.h" />
     <ClInclude Include="Modules\Maphack\Maphack.h" />
     <ClInclude Include="Modules\Module.h" />
+    <ClInclude Include="Modules\Window\WindowModule.h" />
+    <ClInclude Include="Modules\Settings\SettingsRegistry.h" />
+    <ClInclude Include="Modules\Settings\SettingsPanel.h" />
+    <ClInclude Include="Modules\Settings\SettingsWindow.h" />
+    <ClInclude Include="Drawing\Basic\Scrollbar\Scrollbar.h" />
+    <ClInclude Include="Drawing\Advanced\Scrollhook\Scrollhook.h" />
+    <ClInclude Include="Modules\Window\UIPanel.h" />
     <ClInclude Include="Modules\ModuleManager.h" />
     <ClInclude Include="Modules\Party\Party.h" />
     <ClInclude Include="Modules\Info\InfoText.h" />
     <ClInclude Include="Modules\Info\InfoWindow.h" />
-    <ClInclude Include="Modules\Info\InfoTab.h" />
     <ClInclude Include="Modules\Info\BaseTab.h" />
     <ClInclude Include="Modules\Info\RecipeTab.h" />
     <ClInclude Include="Modules\Info\RunewordTab.h" />

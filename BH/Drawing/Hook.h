@@ -18,6 +18,10 @@ namespace Drawing {
 			virtual bool IsActive() = 0;
 	};
 
+	// What a control draws itself in while it is switched off. One value, so that
+	// a panel full of controls disabled together looks disabled together.
+	#define DISABLED_TEXT_COLOR	Grey
+
 	enum HookVisibility {InGame,OutOfGame,Automap,Perm,Group};
 	enum BoxTrans {BTThreeFourths, BTOneHalf, BTOneFourth, BTWhite, BTBlack, BTNormal, BTScreen, BTHighlight, BTFull};
 	enum {None=0, Center=1, Right=2, Top=4};
@@ -30,10 +34,20 @@ namespace Drawing {
 	class Hook {
 		private:
 			static HookList Hooks;//Holds a list of every basic hook used.
+
+			//The hook that took the left button down, until it comes back up. A
+			//click belongs to one control for the length of the gesture, so the
+			//capture is held here rather than in each hook: it is a property of
+			//the gesture and not of any one control.
+			static Hook* pressedHook;
 			HookVisibility visibility;//When we should show the hook.
 			unsigned int x, y, z;//Hooks screen coordinates and the z-order.
 			CRITICAL_SECTION crit;//Critical Section so we don't have race conditions.
 			bool active;//Boolean to hold if we should draw the hook or not.
+
+			//Whether the hook will answer input. Separate from active, which is
+			//whether it is drawn at all
+			bool enabled;
 			int alignment;//Holds what type of alignment(if any) we should use.
 			HookGroup* group;//Holds the group this hook is associated with.
 			OnClick left;//Click callback handler for left clicking
@@ -44,7 +58,9 @@ namespace Drawing {
 			//Two Hook Initializations; one for basic hooks, one for grouped hooks.
 			Hook(HookVisibility visibility, unsigned int x, unsigned int y);
 			Hook(HookGroup* group, unsigned int x, unsigned int y);
-			//~Hook();
+			//Unregisters the hook from the dispatch list and from its group, so a
+			//hook can be destroyed while the game is running.
+			virtual ~Hook();
 
 			//Critical Section Helpers.
 			void Lock();
@@ -97,6 +113,14 @@ namespace Drawing {
 			void SetActive(bool newActive);
 
 
+			//Returns whether the hook answers input. A disabled hook is still
+			//drawn, and draws itself dimmed to say so.
+			bool IsEnabled();
+
+			//Sets whether the hook answers input.
+			void SetEnabled(bool newEnabled);
+
+
 			//Returns how we are going to align the hook.
 			int GetAlignment();
 
@@ -131,6 +155,11 @@ namespace Drawing {
 
 			//Determine if the given x/y set is within the hooks drawing area.
 			bool InRange(unsigned int x, unsigned int y);
+
+
+			// How far below the hook's top its text is drawn.
+			// Only the hook knows where its own text goes.
+			virtual unsigned int GetTextInset() { return 0; };
 
 			//This is the function in super-class we actually draw the function.
 			virtual void OnDraw() = 0;

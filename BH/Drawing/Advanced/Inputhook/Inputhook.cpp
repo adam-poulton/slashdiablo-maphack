@@ -28,15 +28,19 @@ static std::string FitToWidth(const std::string& text, unsigned int font, unsign
 	return "";
 }
 
+Inputhook* Inputhook::current;
+
 Inputhook::Inputhook(HookVisibility visibility, unsigned int x, unsigned int y, unsigned int xSize, std::string formatString, ...) :
  Hook(visibility, x, y) {
 	SetXSize(xSize);
+	SetCompact(false);
 	SetFont(0);
 	SetColor(Grey);
 	SetFocusedColor(White);
 	SetFocused(false);
 	submitted = false;
 	clearOnFocus = false;
+	selectOnFocus = false;
 	SetCursorState(true);
 	ResetCursorTick();
 	ResetSelection();
@@ -53,12 +57,14 @@ Inputhook::Inputhook(HookVisibility visibility, unsigned int x, unsigned int y, 
 Inputhook::Inputhook(HookGroup* group, unsigned int x, unsigned int y, unsigned int xSize, std::string formatString, ...) :
  Hook(group, x, y) {
 	SetXSize(xSize);
+	SetCompact(false);
 	SetFont(0);
 	SetColor(Grey);
 	SetFocusedColor(White);
 	SetFocused(false);
 	submitted = false;
 	clearOnFocus = false;
+	selectOnFocus = false;
 	SetCursorState(true);
 	ResetCursorTick();
 	ResetSelection();
@@ -70,6 +76,20 @@ Inputhook::Inputhook(HookGroup* group, unsigned int x, unsigned int y, unsigned 
 	va_end(arg);
 	text = buffer;
 	SetCursorPosition(text.length());
+ }
+
+ void Inputhook::SelectAll() {
+	 Lock();
+	 if (text.length() > 0) {
+		 SetSelectionPosition(0);
+		 SetSelectionLength(text.length());
+		 //At the end rather than the start: Backspace() treats a cursor at
+		 //position zero as nothing to erase.
+		 SetCursorPosition(text.length());
+	 } else {
+		 ResetSelection();
+	 }
+	 Unlock();
  }
 
  void Inputhook::Clear() {
@@ -178,7 +198,8 @@ unsigned int Inputhook::GetCharacterLimit() {
 	 //glance whether typing will go into the box.
 	 bool focused = IsFocused();
 	 unsigned int boxHeight = GetYSize();
-	 TextColor textColor = focused ? GetFocusedColor() : GetColor();
+	 TextColor textColor = !IsEnabled() ? (TextColor)DISABLED_TEXT_COLOR :
+		 (focused ? GetFocusedColor() : GetColor());
 
 	 //Current text width
 	 POINT textSize = Texthook::GetTextSize(GetText().substr(textPos, GetCursorPosition() - textPos), GetFont());
@@ -194,7 +215,7 @@ unsigned int Inputhook::GetCharacterLimit() {
 		 wchar_t* wHint = AnsiToUnicode(FitToWidth(placeholder, GetFont(),
 			 GetXSize() - (2 * INPUT_PADDING_X)).c_str());
 		 D2WIN_DrawText(wHint, GetX() + INPUT_PADDING_X,
-			 GetY() + INPUT_PADDING_TOP + height[GetFont()], Grey, 0);
+			 GetY() + paddingTop + height[GetFont()], Grey, 0);
 		 delete[] wHint;
 		 D2WIN_SetTextSize(placeholderFont);
 	 }
@@ -219,7 +240,7 @@ unsigned int Inputhook::GetCharacterLimit() {
 	 DWORD oldFont = D2WIN_SetTextSize(GetFont());
 	 wchar_t* wText = AnsiToUnicode(drawnText.c_str());
 	 D2WIN_DrawText(wText, GetX() + INPUT_PADDING_X,
-		 GetY() + INPUT_PADDING_TOP + height[GetFont()], textColor, 0);
+		 GetY() + paddingTop + height[GetFont()], textColor, 0);
 	 delete[] wText;
 	 D2WIN_SetTextSize(oldFont);
 
@@ -232,7 +253,7 @@ unsigned int Inputhook::GetCharacterLimit() {
 		 wchar_t caret[] = { L'|', 0 };
 		 D2WIN_DrawText(caret,
 			 GetX() + INPUT_PADDING_X + textSize.x - INPUT_CARET_NUDGE,
-			 GetY() + INPUT_PADDING_TOP + height[GetFont()], textColor, 0);
+			 GetY() + paddingTop + height[GetFont()], textColor, 0);
 		 D2WIN_SetTextSize(cursorFont);
 	 }
 
@@ -393,14 +414,58 @@ unsigned int Inputhook::GetCharacterLimit() {
 	 return true;
  }
 
+ void Inputhook::SetCompact(bool compact) {
+	 Lock();
+	 paddingTop = compact ? INPUT_COMPACT_PADDING_TOP : INPUT_PADDING_TOP;
+	 paddingBottom = compact ? INPUT_COMPACT_PADDING_BOTTOM : INPUT_PADDING_BOTTOM;
+	 Unlock();
+ }
+
+ Inputhook::~Inputhook() {
+	 if (Inputhook::current == this)
+		 Inputhook::current = NULL;
+ }
+
+ void Inputhook::SetFocused(bool isFocused) {
+	 if (isFocused) {
+		 if (Inputhook::current && Inputhook::current != this)
+			 Inputhook::current->SetFocused(false);
+		 Lock();
+		 focused = true;
+		 Unlock();
+		 Inputhook::current = this;
+		 return;
+	 }
+
+	 Lock();
+	 focused = false;
+	 //The selection goes with the focus. A highlighted run left behind in a box
+	 //nobody is typing in reads as text still being edited, and the next click
+	 //into the box would type over it.
+	 ResetSelection();
+	 Unlock();
+	 if (Inputhook::current == this)
+		 Inputhook::current = NULL;
+ }
+
  bool Inputhook::OnLeftClick(bool up, unsigned int x, unsigned int y) {
 	 if (InRange(x, y)) {
 		 //Take focus on the press, so the box responds the moment it is clicked.
 		 if (!up) {
+			 //Where two boxes overlap, the click lands on both: the hooks are
+			 //offered it front to back, so the one in front has already taken the
+			 //caret by the time this runs, and it keeps it.
+			 if (Inputhook::current && Inputhook::current != this &&
+					 Inputhook::current->InRange(x, y))
+				 return true;
 			 //Only on the click that takes focus, so clicking a box you are
 			 //already typing in doesn't throw the text away.
-			 if (clearOnFocus && !IsFocused())
-				 Clear();
+			 if (!IsFocused()) {
+				 if (clearOnFocus)
+					 Clear();
+				 else if (selectOnFocus)
+					 SelectAll();
+			 }
 			 SetFocused(true);
 		 }
 		 if (GetLeftClickHandler())
@@ -436,13 +501,15 @@ unsigned int Inputhook::GetCharacterLimit() {
  }
 
  void Inputhook::Backspace() {
-	 if (GetCursorPosition() == 0)
-		 return;
 	 Lock();
 	 if (IsSelected()) {
 		 Erase(GetSelectionPosition(), GetSelectionLength());
 		 ResetSelection();
 	 } else {
+		 if (GetCursorPosition() == 0) {
+			 Unlock();
+			 return;
+		 }
 		 text.erase(GetCursorPosition() - 1, 1);
 		 DecreaseCursorPosition(1);
 		 if (textPos > 0)

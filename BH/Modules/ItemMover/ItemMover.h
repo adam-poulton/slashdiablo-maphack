@@ -52,7 +52,6 @@ private:
 	unsigned int JuvKey;
 	ItemPacketData ActivePacket;
 	CRITICAL_SECTION crit;
-	Drawing::UITab* settingsTab;
 public:
 	ItemMover() : Module("Item Mover"),
 		ActivePacket(),

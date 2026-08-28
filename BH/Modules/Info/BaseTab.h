@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 #include "../../ItemDescription.h"
-#include "InfoTab.h"
+#include "../Window/UIPanel.h"
 
 // One base item, pre-formatted for display. Everything a row shows is here;
 // what the summary panel shows is read back out of the tables by the code.
@@ -22,11 +22,9 @@ struct BaseItemRecord {
 
 // The base items panel: every item the game can drop before anything is made of
 // it, under its item type. Laid out and driven the same way as the sets panel.
-class BaseTab : public InfoTab {
+class BaseTab : public UIPanel {
 	private:
-		Drawing::Inputhook* searchBox;
 		Drawing::Listhook* list;
-		Drawing::Texthook* statusText;
 
 		// Sits beside the window rather than inside the tab, which is why it is a
 		// bare Tooltiphook rather than one of the tab's hooks.
@@ -43,7 +41,6 @@ class BaseTab : public InfoTab {
 		bool foldOnPush;			// fold the types on the next rows pushed
 
 		std::string query;			// active filter, always lowercase
-		std::string lastBoxText;	// last text seen in the search box
 		int shownSummary;			// row the summary was built for, or -1
 		bool basesLoaded;
 		bool needsRefresh;
@@ -58,7 +55,6 @@ class BaseTab : public InfoTab {
 		void BuildItems();
 		void ApplyFilter();
 		void PushRows();
-		void UpdateStatus();
 
 		std::vector<Drawing::TooltipLine> BuildSummaryLines(const BaseItemRecord* item);
 		void UpdateSummary();
@@ -70,9 +66,11 @@ class BaseTab : public InfoTab {
 		std::vector<ChatCommand> GetCommands();
 		void OnDraw();
 		bool OnKey(bool up, BYTE key);
-		void OnOpen();
 		void OnClose();
 		void Search(const std::string& text);
+		void OnSearchSubmitted();
+		std::string GetSearchPlaceholder();
+		std::string GetStatus();
 
 		unsigned int GetItemCount() { return items.size(); };
 };

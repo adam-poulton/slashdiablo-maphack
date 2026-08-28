@@ -28,8 +28,6 @@ class Maphack : public Module {
 		bool automapOriginPatched;
 		unsigned int revealType;
 		unsigned int maxGhostSelection;
-		unsigned int reloadConfig;
-		bool legacyReloadConfigHotkey;
 		bool revealedGame, revealedAct[6], revealedLevel[255];
 		std::map<string, string> MonsterColors;
 		std::map<string, string> SuperUniqueColors;
@@ -46,7 +44,6 @@ class Maphack : public Module {
 		std::list<int> automapHiddenMonsters;
 		std::list<LevelList*> automapLevels;
 		map<std::string, Toggle> Toggles;
-		Drawing::UITab* settingsTab;
 		std::map<DWORD, std::vector<BaseSkill>> Skills;
 
 	public:
@@ -57,6 +54,7 @@ class Maphack : public Module {
 	void OnUnload();
 
 	void LoadConfig();
+	void OnSettingsChanged(const vector<string>& keys);
 
 	void OnLoop();
 	void OnDraw();

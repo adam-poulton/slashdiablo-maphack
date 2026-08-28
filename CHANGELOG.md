@@ -18,6 +18,22 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
 * Add `Scroll Visibility Threshold` option (`BH_settings.cfg`, default `19`) so ground
   scrolls can stay hidden until a tome drops to a chosen quantity, instead of only while
   every tome is completely full. Editable from the Item tab of the settings UI.
+* Remove the legacy item name options `Alt Item Style`, `Color Mod`,
+  `Shorten Item Names`, `Show Ethereal`, `Show Sockets` and `Show Rune Numbers`.
+  Item names are now customised only through
+  [Advanced Item Display](docs/Advanced-Item-Display.md); with it off, items are
+  named as the game names them. Configs that set these keys need no change - the
+  keys are ignored. The docs show the display rules that reproduce short scroll
+  and potion names, socket counts, ethereality and rune numbers.
+* `Advanced Item Display` now takes effect as soon as it is toggled rather than
+  needing a restart, and `Show iLvl` is shown beneath it in the settings UI since
+  it does nothing on its own.
+* Relabel `Always Show Items` as "Always show items on the ground" and
+  `Always Show Item Stat Ranges` as "Show item stat ranges" in the settings UI.
+  The config keys are unchanged.
+* Use sentence case for every label and section heading in the settings UI,
+  matching the headings that already read that way. Labels only: no config key
+  changes, and searching still finds a setting by either its label or its key.
 * Rename the `Smart Scrolls` option to `Hide Redundant Scrolls`. Configs that set
   `Smart Scrolls` need updating; the old key is ignored and the option reverts to its
   default of off.

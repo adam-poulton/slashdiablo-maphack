@@ -63,15 +63,12 @@ class Item : public Module {
 		static unordered_set<string> no_ilvl_codes;
 		unsigned int showPlayer{};
 		static UnitAny* viewingUnit;
-		Drawing::UITab* settingsTab{};
 		static unsigned int filterLevelSetting;
 		static unsigned int pingLevelSetting;
 		static unsigned int trackerPingLevelSetting;
 		static int statRangeColor;
 		static unsigned int scrollVisibilityThreshold;
-		Drawing::Inputhook* scrollThresholdInput{};
 
-		void SyncScrollVisibilityThreshold();
 
 		void ResetPatches();
 	public:
@@ -83,8 +80,9 @@ class Item : public Module {
 
 		void LoadConfig();
 		void LoadNoIlvlCodes();
-		void DrawSettings();
+		void RegisterSettings();
 
+		void OnSettingsChanged(const vector<string>& keys);
 		void OnGameJoin();
 
 		void OnLoop();
@@ -93,7 +91,6 @@ class Item : public Module {
 		std::map<string, Toggle>* GetToggles() { return &Toggles; }
 
 		static void __fastcall ItemNamePatch(wchar_t *name, UnitAny *item);
-		static void OrigGetItemName(UnitAny *item, string &itemName, char *code);
 		static void __stdcall OnProperties(wchar_t *wTxt);
 		static BOOL __stdcall OnDamagePropertyBuild(UnitAny* pItem, DamageStats* pDmgStats, int nStat, wchar_t* wOut);
 		static void __stdcall OnPropertyBuild(wchar_t* wOut, int nStat, UnitAny* pItem, int nStatParam);

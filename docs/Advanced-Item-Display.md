@@ -1,12 +1,6 @@
-By enabling the "Advanced Item Display" configuration parameter, you can customize exactly how items are displayed. When this parameter is enabled, it will supersede these other parameters:
+By enabling the "Advanced Item Display" configuration parameter, you can customize exactly how items are displayed. It is the only mechanism for customizing item names: with it disabled, items are named exactly as the game names them.
 
-- Show Ethereal
-- Show Sockets
-- Show iLvl
-- Show Rune Numbers
-- Alt Item Style
-- Color Mod
-- Shorten Item Names
+One other parameter works alongside it rather than being superseded by it. "Show iLvl" adds the item level and affix level to an item's properties, and needs "Advanced Item Display" enabled to do so.
 
 To use Advanced Item Display, you will configure one or more rules in BH.cfg. Each rule looks like this:
 
@@ -74,7 +68,7 @@ These are the colors you can use:
 - %YELLOW%
 - %PURPLE%
 
-If you ever had the "Shorten Item Names" parameter enabled, you can use these rules to replicate exactly what it does:
+Short names for scrolls, potions and quivers are a common starting point. These rules abbreviate every one of them, colored by what it is:
 
     ItemDisplay[tsc]: %GREEN%**%WHITE%TP
     ItemDisplay[isc]: %GREEN%**%WHITE%ID
@@ -102,6 +96,14 @@ If you ever had the "Shorten Item Names" parameter enabled, you can use these ru
     ItemDisplay[aqv]: Arrows
     ItemDisplay[cqv]: Bolts
     ItemDisplay[key]: Key
+
+Socket counts, ethereality and rune numbers are shown only where a rule asks for them. These three add to a name rather than replacing it, so they stack with each other:
+
+    ItemDisplay[ETH]: Eth %NAME%%CONTINUE%
+    ItemDisplay[SOCK>0]: %NAME% (%SOCKETS%)%CONTINUE%
+    ItemDisplay[RUNE>0]: [%RUNENUM%]%NAME%%CONTINUE%
+
+`%CONTINUE%` is what makes them stack: without it, the first rule to match an item is the only one applied and the rest are skipped, which is also why these three belong below the abbreviation rules rather than above them.
 
 ## Adding to Existing Names
 
