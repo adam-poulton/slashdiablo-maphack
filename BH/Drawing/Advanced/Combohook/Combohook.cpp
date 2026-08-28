@@ -83,9 +83,7 @@ void Combohook::OnDraw() {
 void Combohook::DrawOpenList() {
 	if (!active)
 		return;
-	// Scrolled out of view, or its window closed, while the list was open. It
-	// takes no clicks in that state, so it would never be closed by one and
-	// would come back open the next time it was shown.
+	// Scrolled out of view, or its window closed, while the list was open.
 	if (!IsActive()) {
 		SetOpen(false);
 		return;

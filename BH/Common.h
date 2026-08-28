@@ -71,9 +71,6 @@ int StringToNumber(std::string str);
 
 std::string Trim(std::string source);
 
-// Case folded, for comparing what someone typed against what the game
-// calls things. Beside Trim because it is the same kind of helper: it was
-// in the Info window until the settings window wanted it too.
 std::string ToLower(const std::string& text);
 
 void PrintText(DWORD Color, char *szText, ...);

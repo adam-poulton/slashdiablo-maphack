@@ -35,8 +35,8 @@ namespace Drawing {
 	// resolution, which a resolution mod raises and a glide wrapper merely
 	// upscales, so there is no one sensible pixel default. Never smaller than the
 	// size the window asked for.
-	#define UI_DEFAULT_WIDTH_PCT	70
-	#define UI_DEFAULT_HEIGHT_PCT	80
+	#define UI_DEFAULT_WIDTH_PCT	25
+	#define UI_DEFAULT_HEIGHT_PCT	40
 
 	// The grip in the bottom right corner that resizes the window, and how small
 	// a window may be dragged. The minimum has to leave room below the chrome for
@@ -44,7 +44,7 @@ namespace Drawing {
 	// window. A window may raise its own: one minimum for every window is how two
 	// windows with different contents come to disagree about it.
 	#define RESIZE_GRIP_SIZE		12
-	#define UI_MIN_WIDTH			200
+	#define UI_MIN_WIDTH			350
 	#define UI_MIN_CONTENT_HEIGHT	60
 
 	// The bands a window draws around its panels. A group of their own rather

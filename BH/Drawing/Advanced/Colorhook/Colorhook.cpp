@@ -13,9 +13,7 @@ using namespace Drawing;
 // the left of everything it draws.
 //
 // The swatch is a diamond drawn about a centre, so it is placed half its width in
-// from the hook's left edge. It used to be drawn about the edge itself, which put
-// half of it outside the hook: that half could not be clicked, and it hung out
-// into the margin past everything else on its row.
+// from the hook's left edge.
 #define COLOR_SWATCH_HALF_WIDTH		8
 #define COLOR_SWATCH_HALF_HEIGHT	4
 #define COLOR_SWATCH_GAP			5
@@ -188,9 +186,7 @@ void Colorhook::OnDraw() {
 			drawColor, 0);
 		delete[] wText;
 		D2WIN_SetTextSize(size);
-		// Centred on the bottom of the line rather than the middle of it: the
-		// glyphs beside it sit on their baseline, and reach nowhere near the top of
-		// the room the font is given.
+		// Centred on the bottom of the line: the glyphs beside it sit on their baseline
 		Crosshook::Draw(GetX() + COLOR_SWATCH_HALF_WIDTH,
 			GetY() + GetYSize() - COLOR_SWATCH_HALF_HEIGHT, GetColor());
 	}

@@ -133,10 +133,7 @@ unsigned int Checkhook::GetXSize() {
 	D2WIN_GetTextWidthFileNo(wString, &width, &fileNo);
 	D2WIN_SetTextSize(oldFont);
 	delete[] wString;
-	// Exactly the box, the gap and the label, which is what is drawn. There used
-	// to be a further twenty pixels here, a rough allowance for the box from
-	// before the box was measured; kept alongside the exact figure it left every
-	// checkbox claiming to be wider than it looked.
+	// Exactly the box, the gap and the label, which is what is drawn.
 	return width + CHECK_BOX_SIZE + CHECK_LABEL_GAP;
 }
 

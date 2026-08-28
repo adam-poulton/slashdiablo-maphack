@@ -12,9 +12,6 @@
 using namespace Drawing;
 using namespace InfoText;
 
-// Margins and the gaps between the three bands. Widths and the list height are
-// measured from the tab by ApplyLayout().
-
 // The name takes the larger share; the tier beside it is one short word.
 #define BT_COL_NAME_WEIGHT	3
 #define BT_COL_TIER_WEIGHT	1

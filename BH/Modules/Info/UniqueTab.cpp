@@ -11,9 +11,6 @@
 using namespace Drawing;
 using namespace InfoText;
 
-// Margins and the gaps between the three bands. Widths and the list height are
-// measured from the tab by ApplyLayout().
-
 // The unique's own name takes the larger share, being the longer of the two
 // ("Bul-Kathos' Tribal Guardian" against "Ceremonial Javelin").
 #define UQ_COL_NAME_WEIGHT	3

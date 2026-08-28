@@ -6,7 +6,6 @@
 #include "Drawing\Basic\Framehook\Framehook.h"
 #include "Drawing\Basic\Linehook\Linehook.h"
 #include "Drawing\Basic\Scrollbar\Scrollbar.h"
-#include "Drawing\Basic\Scrollbar\Scrollbar.h"
 
 #include "Drawing\Advanced\Checkhook\Checkhook.h"
 #include "Drawing\Advanced\Colorhook\Colorhook.h"
@@ -14,7 +13,6 @@
 #include "Drawing\Advanced\Inputhook\Inputhook.h"
 #include "Drawing\Advanced\Keyhook\Keyhook.h"
 #include "Drawing\Advanced\Listhook\Listhook.h"
-#include "Drawing\Advanced\Scrollhook\Scrollhook.h"
 #include "Drawing\Advanced\Scrollhook\Scrollhook.h"
 #include "Drawing\Advanced\Tooltiphook\Tooltiphook.h"
 

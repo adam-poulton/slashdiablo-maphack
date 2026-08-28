@@ -380,11 +380,7 @@ void Hook::Draw(HookVisibility type) {
 /* Hook::LeftClick(bool up, unsigned int x, unsigned int y)
  *	Offers the press to the hooks, remembers which one took it, and gives that
  *	same hook the release. A click activates a control only when both ends of the
- *	gesture landed on it: releasing anywhere else cancels. Without the pairing the
- *	release went to whatever the cursor was over, so pressing one control and
- *	releasing over another worked the second one, and a control that moved under
- *	the cursor mid-gesture - a settings section folding, a list scrolling - could
- *	take a click that was never aimed at it.
+ *	gesture landed on it: releasing anywhere else cancels.
  */
 bool Hook::LeftClick(bool up, unsigned int x, unsigned int y) {
 	Hooks.sort(ZSort);

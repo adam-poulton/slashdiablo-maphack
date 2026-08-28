@@ -56,11 +56,7 @@ namespace Drawing {
 			unsigned int GetXSize() { return xSize; };
 			void SetXSize(unsigned int size) { Lock(); xSize = size; Unlock(); };
 
-			//The frame as drawn, not just the text in it. It used to report the text
-			//alone, four pixels short of what it drew: everything that had to know
-			//how big the box really was added those four back by hand, and anything
-			//laying the box out beside something else placed it as though it were
-			//the height of a bare line of text.
+			//The frame as drawn, not just the text in it.
 			unsigned int GetYSize() { unsigned int height[] = {10,11,18,24,10,13,7,13,10,12,8,8,7,12}; return height[GetFont()] + COMBO_PADDING_TOP + COMBO_PADDING_BOTTOM; };
 
 			unsigned int GetTextInset() { return COMBO_PADDING_TOP; };

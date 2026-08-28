@@ -10,10 +10,8 @@
 
 #define INFO_TOGGLE_NAME	"Info Window"
 
-// Which panels the Info window has, and the commands that reach them. Everything
-// about owning a window - the hotkey, the shared search box and footer, cycling
-// between panels, what escape does - belongs to WindowModule, which the settings
-// window shares.
+// Which panels the Info window has, and the commands that reach them.
+// Everything about owning a window belongs to WindowModule
 class InfoWindow : public WindowModule {
 	protected:
 		std::vector<ChatCommand> GetOwnCommands();

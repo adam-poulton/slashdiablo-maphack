@@ -59,8 +59,7 @@ namespace Drawing {
 			Hook(HookVisibility visibility, unsigned int x, unsigned int y);
 			Hook(HookGroup* group, unsigned int x, unsigned int y);
 			//Unregisters the hook from the dispatch list and from its group, so a
-			//hook can be destroyed while the game is running. Without this a
-			//deleted hook stayed in Hooks and was still drawn and offered input.
+			//hook can be destroyed while the game is running.
 			virtual ~Hook();
 
 			//Critical Section Helpers.
@@ -157,14 +156,12 @@ namespace Drawing {
 			//Determine if the given x/y set is within the hooks drawing area.
 			bool InRange(unsigned int x, unsigned int y);
 
-			//This is the function in super-class we actually draw the function.
-			//How far below the hook's top its text is drawn. Everything on a row of
-			//a settings panel sits on one line, and boxes cannot be centred against
-			//each other to achieve that: a checkbox draws its label two pixels down
-			//and a text box draws its text five, so lining the boxes up leaves the
-			//text stepped. Only the hook knows where its own text goes.
+
+			// How far below the hook's top its text is drawn.
+			// Only the hook knows where its own text goes.
 			virtual unsigned int GetTextInset() { return 0; };
 
+			//This is the function in super-class we actually draw the function.
 			virtual void OnDraw() = 0;
 
 			//Function gets called when someone clicks, return true to block the click.
