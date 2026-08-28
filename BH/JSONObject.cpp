@@ -34,11 +34,6 @@ std::string Json_Escape(const std::string &input){
 	return ss.str();
 }
 
-std::string Json_Unescape(const std::string &input){
-	// TODO
-	return input;
-}
-
 bool Json_ParseString(std::string &raw){
 	if (raw.length() > 1){
 		char quoteChar = raw[0];
@@ -78,20 +73,20 @@ bool Json_ParseString(std::string &raw){
 }
 
 void JSONWriter::writeStartArray(){
-	if (_options == SER_OPT_FORMATTED && typeStack.top() == JSON_ARRAY){
+	if (isFormatted() && typeStack.top() == JSON_ARRAY){
 		writeIndented("[");
 	}
 	else{
 		writeRaw("[");
 	}
-	if (_options == SER_OPT_FORMATTED){
+	if (isFormatted()){
 		indent++;
 	}
 	typeStack.push(JSON_ARRAY);
 }
 
 void JSONWriter::writeEndArray(){
-	if (_options == SER_OPT_FORMATTED){
+	if (isFormatted()){
 		indent--;
 		writeNewlyIndented("]");
 	}
@@ -103,20 +98,20 @@ void JSONWriter::writeEndArray(){
 }
 
 void JSONWriter::writeStartObject(){
-	if (_options == SER_OPT_FORMATTED && typeStack.top() == JSON_ARRAY){
+	if (isFormatted() && typeStack.top() == JSON_ARRAY){
 		writeIndented("{");
 	}
 	else{
 		writeRaw("{");
 	}
-	if (_options == SER_OPT_FORMATTED){
+	if (isFormatted()){
 		indent++;
 	}
 	typeStack.push(JSON_OBJECT);
 }
 
 void JSONWriter::writeEndObject(){
-	if (_options == SER_OPT_FORMATTED){
+	if (isFormatted()){
 		indent--;
 		writeNewlyIndented("}");
 	}
@@ -128,7 +123,7 @@ void JSONWriter::writeEndObject(){
 }
 
 void JSONWriter::writeKey(std::string key){
-	if (_options == SER_OPT_FORMATTED){
+	if (isFormatted()){
 		writeIndented("\"" + key + "\"");
 	}
 	else{
@@ -137,7 +132,7 @@ void JSONWriter::writeKey(std::string key){
 }
 
 void JSONWriter::writeValue(std::string value){
-	if (_options == SER_OPT_FORMATTED && typeStack.top() == JSON_ARRAY){
+	if (isFormatted() && typeStack.top() == JSON_ARRAY){
 		writeNewlyIndented(value);
 	}
 	else{
@@ -162,7 +157,7 @@ void JSONWriter::writeNewlyIndented(std::string raw){
 }
 
 void JSONWriter::writeNext(){
-	if (_options == SER_OPT_FORMATTED){
+	if (isFormatted()){
 		writeRaw("\n");
 	}
 }
@@ -197,44 +192,36 @@ JSONBool::JSONBool(bool value) :
 }
 
 bool JSONBool::serialize(JSONWriter &writer){
-	if (_value){
-		writer.writeValue(_value ? "true" : "false");
-		return true;
+	if (!_value && writer.omitsEmpty()){
+		return false;
 	}
-	return false;
+	writer.writeValue(_value ? "true" : "false");
+	return true;
 }
 
-JSONNumber::JSONNumber(float value) : _fvalue(value), _ivalue(0){
+JSONNumber::JSONNumber(float value) : _fvalue(value), _ivalue(0), _isFloat(true){
 	type = JSON_NUMBER;
 }
 
-JSONNumber::JSONNumber(int value) : _ivalue(value), _fvalue(0){
+JSONNumber::JSONNumber(int value) : _fvalue(0), _ivalue(value), _isFloat(false){
 	type = JSON_NUMBER;
 }
 
 bool JSONNumber::serialize(JSONWriter &writer){
-	if (_ivalue){
-		std::string v;
-		string_AppendFormat(v, "%d", _ivalue);
-		writer.writeValue(v);
-		return true;
+	if (!hasValue() && writer.omitsEmpty()){
+		return false;
 	}
-	else if (_fvalue){
-		std::string v;
-		string_AppendFormat(v, "%f", _fvalue);
-		writer.writeValue(v);
-		return true;
-	}
-	return false;
+	writer.writeValue(toString());
+	return true;
 }
 
 std::string JSONNumber::toString() const{
 	std::string buf;
-	if (_ivalue){
-		string_AppendFormat(buf, "%d", _ivalue);
+	if (_isFloat){
+		string_AppendFormat(buf, "%f", _fvalue);
 	}
 	else{
-		string_AppendFormat(buf, "%f", _fvalue);
+		string_AppendFormat(buf, "%d", _ivalue);
 	}
 	return buf;
 }
@@ -244,13 +231,11 @@ JSONString::JSONString(std::string value) : _value(value){
 }
 
 bool JSONString::serialize(JSONWriter &writer){
-	if (_value.length() > 0){
-		std::string v;
-		string_AppendFormat(v, "\"%s\"", Json_Escape(_value).c_str());
-		writer.writeValue(v);
-		return true;
+	if (_value.length() == 0 && writer.omitsEmpty()){
+		return false;
 	}
-	return false;
+	writer.writeValue("\"" + Json_Escape(_value) + "\"");
+	return true;
 }
 
 bool JSONString::toBool() const{
@@ -297,25 +282,27 @@ void JSONObject::set(std::string key, JSONArray* value){
 }
 
 bool JSONObject::serialize(JSONWriter &writer){
-	if (_properties.size() > 0){
-		writer.writeStartObject();
-		bool wroteOne = false;
-		for (auto iter = _properties.begin(); iter != _properties.end(); iter++){
-			if (iter->second && (*(iter->second)).hasValue()){
-				if (wroteOne){
-					writer.writeRaw(",");
-				}
-				writer.writeNext();
-				writer.writeKey(iter->first);
-				writer.writeRaw(": ");
-				(*(iter->second)).serialize(writer);
-				wroteOne = true;
-			}
-		}
-		writer.writeEndObject();
-		return true;
+	if (_properties.size() == 0 && writer.omitsEmpty()){
+		return false;
 	}
-	return false;
+
+	writer.writeStartObject();
+	bool wroteOne = false;
+	for (auto iter = _properties.begin(); iter != _properties.end(); iter++){
+		if (!iter->second || (writer.omitsEmpty() && !iter->second->hasValue())){
+			continue;
+		}
+		if (wroteOne){
+			writer.writeRaw(",");
+		}
+		writer.writeNext();
+		writer.writeKey(iter->first);
+		writer.writeRaw(": ");
+		iter->second->serialize(writer);
+		wroteOne = true;
+	}
+	writer.writeEndObject();
+	return true;
 }
 
 std::string JSONObject::getString(std::string key) const{
@@ -433,23 +420,25 @@ JSONArray::~JSONArray(){
 }
 
 bool JSONArray::serialize(JSONWriter &writer){
-	if (_elements.size() > 0){
-		writer.writeStartArray();
-		bool wroteOne = false;
-		for (auto iter = _elements.begin(); iter != _elements.end(); iter++){
-			if (*iter && (*iter)->hasValue()){
-				if (wroteOne){
-					writer.writeRaw(",");
-				}
-				writer.writeNext();
-				(*iter)->serialize(writer);
-				wroteOne = true;
-			}
-		}
-		writer.writeEndArray();
-		return true;
+	if (_elements.size() == 0 && writer.omitsEmpty()){
+		return false;
 	}
-	return false; 
+
+	writer.writeStartArray();
+	bool wroteOne = false;
+	for (auto iter = _elements.begin(); iter != _elements.end(); iter++){
+		if (!*iter || (writer.omitsEmpty() && !(*iter)->hasValue())){
+			continue;
+		}
+		if (wroteOne){
+			writer.writeRaw(",");
+		}
+		writer.writeNext();
+		(*iter)->serialize(writer);
+		wroteOne = true;
+	}
+	writer.writeEndArray();
+	return true;
 }
 
 void JSONArray::addEntry(JSONElement* value){
