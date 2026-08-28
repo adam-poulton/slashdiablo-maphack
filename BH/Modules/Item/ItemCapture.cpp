@@ -31,8 +31,15 @@ bool headerPending = true;
 std::map<std::string, std::string> capturedClassSkills;
 std::map<std::string, std::string> capturedTabSkills;
 
-// True when a rule reads something a capture cannot reproduce: character stats
-// as they stood, or a price only the game can be asked for an item that exists.
+/*
+ * True when a rule reads something a capture cannot reproduce.
+ *
+ * Not everything a rule reads of the character is beyond recording. DIFF, CLASS,
+ * PLAYERTYPE and FILTLVL are all in the header, and CLVL and CRAFTALVL read the
+ * character's level, which is there too. What remains is CHARSTAT, which may ask
+ * for any stat at all, and PRICE, which asks the game a question it will only
+ * answer about an item that already exists as a unit.
+ */
 bool RulesReadLiveState() {
 	for (auto it = rules.cbegin(); it != rules.cend(); ++it) {
 		// Condition keys are matched case sensitively when parsed, so the rule
@@ -71,7 +78,9 @@ void AppendHeader() {
 
 	Record header("header");
 	header.Add("bhVersion", std::string(BH_VERSION));
-	header.Add("d2Version", (long long)D2Version::versionID);
+	// The game's own version, which is what the data tables a capture is
+	// replayed against belong to.
+	header.Add("d2Version", D2Version::GetGameVersionString());
 	header.Add("contextSensitive", RulesReadLiveState());
 	header.Add("filterLevel", (long long)Item::GetFilterLevel());
 	header.Add("pingLevel", (long long)Item::GetPingLevel());
@@ -82,6 +91,10 @@ void AppendHeader() {
 	if (player) {
 		header.Add("charClass", (long long)player->dwTxtFileNo);
 		header.Add("difficulty", (long long)D2CLIENT_GetDifficulty());
+		// CLVL compares against this, and CRAFTALVL works an affix level out
+		// of it, so without it neither can be replayed.
+		header.Add("charLevel",
+			(long long)D2COMMON_GetUnitStat(player, STAT_LEVEL, 0));
 	}
 	if (p_D2LAUNCH_BnData && *p_D2LAUNCH_BnData)
 		header.Add("charFlags", (long long)(*p_D2LAUNCH_BnData)->nCharFlags);
