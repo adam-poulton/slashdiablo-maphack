@@ -210,46 +210,46 @@ void Item::ResetPatches() {
 // config reload. Non-numeric text is ignored, leaving a half-typed box harmless.
 void Item::RegisterSettings() {
 	Settings::AddToggle(GetName(), Settings::Category::Items, "Always Show Items",
-		"Always Show Items on the Ground", &Toggles["Always Show Items"],
-		"Keeps item names on screen without having to hold the show items key.");
+		"Always show ground items", &Toggles["Always Show Items"],
+		"Keeps ground item names on screen without having to hold the show items key.");
 	Settings::AddToggle(GetName(), Settings::Category::Items, "Advanced Item Display",
-		"Advanced Item Display", &Toggles["Advanced Item Display"],
+		"Advanced item display", &Toggles["Advanced Item Display"],
 		"Applies the item display rules from BH.cfg.");
 	Settings::AddToggle(GetName(), Settings::Category::Items, "Show ILvl", "Show iLvl",
 		&Toggles["Show iLvl"], "Shows the item level in the description.",
 		"Advanced Item Display");
 	Settings::AddToggle(GetName(), Settings::Category::Items, "Always Show Item Stat Ranges",
-		"Show Item Stat Ranges", &Toggles["Always Show Item Stat Ranges"],
+		"Show item stat ranges", &Toggles["Always Show Item Stat Ranges"],
 		"Shows the range each variable stat could have rolled.");
-	Settings::AddToggle(GetName(), Settings::Category::Items, "Suppress Invalid Stats", "Suppress Invalid Stats",
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Suppress Invalid Stats", "Suppress invalid stats",
 		&Toggles["Suppress Invalid Stats"],
 		"Hides stat lines the game cannot describe rather than showing them raw.");
 
 	Settings::AddHeading(GetName(), Settings::Category::Items, "Notifications");
-	Settings::AddToggle(GetName(), Settings::Category::Items, "Item Drop Notifications", "Item Drop Notifications",
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Item Drop Notifications", "Item drop notifications",
 		&Toggles["Item Drop Notifications"], "Says in chat when an item drops.");
-	Settings::AddToggle(GetName(), Settings::Category::Items, "Item Close Notifications", "Item Close Notifications",
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Item Close Notifications", "Item close notifications",
 		&Toggles["Item Close Notifications"], "Says in chat when an item is nearby.");
 	Settings::AddToggle(GetName(), Settings::Category::Items, "Item Detailed Notifications",
-		"Item Detailed Notifications", &Toggles["Item Detailed Notifications"],
+		"Item detailed notifications", &Toggles["Item Detailed Notifications"],
 		"Includes what is on the item rather than only its name.");
-	Settings::AddToggle(GetName(), Settings::Category::Items, "Verbose Notifications", "Verbose Notifications",
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Verbose Notifications", "Verbose notifications",
 		&Toggles["Verbose Notifications"],
 		"Says whether a notification was from an item dropping or coming into range.");
 
-	Settings::AddEnum(GetName(), Settings::Category::Filter, "Filter Level", "Filter Level",
+	Settings::AddEnum(GetName(), Settings::Category::Filter, "Filter Level", "Filter level",
 		&filterLevelSetting,
 		{ "0 - None", "1 - Minimal", "2 - Moderate", "3 - Aggressive" },
 		"How much of what drops is hidden, defined in the filter file BH.cfg.");
-	Settings::AddEnum(GetName(), Settings::Category::Filter, "Ping Level", "Ping Tiers <=",
+	Settings::AddEnum(GetName(), Settings::Category::Filter, "Ping Level", "Ping tiers <=",
 		&pingLevelSetting, { "0", "1", "2", "3", "4", "5", "6" },
 		"The highest tier that is still pinged.");
 	// No hotkey: this changes how BH.cfg is read, which is not something to flip
 	// mid game.
-	Settings::AddBool(GetName(), Settings::Category::Filter, "Ordered Item Filtering", "Ordered Item Filtering",
+	Settings::AddBool(GetName(), Settings::Category::Filter, "Ordered Item Filtering", "Ordered item filtering",
 		&OrderedFiltering,
 		"Applies the rules in BH.cfg strictly in the order they are written, rather than whitelist before hidelist.");
-	Settings::AddToggle(GetName(), Settings::Category::Filter, "Hide Redundant Scrolls", "Hide Redundant Scrolls",
+	Settings::AddToggle(GetName(), Settings::Category::Filter, "Hide Redundant Scrolls", "Hide redundant scrolls",
 		&Toggles["Hide Redundant Scrolls"],
 		"Hides scrolls on the ground once you are carrying enough of them.");
 	Settings::AddNumber(GetName(), Settings::Category::Filter, "Scroll Visibility Threshold", "Hidden scroll threshold",
@@ -257,7 +257,7 @@ void Item::RegisterSettings() {
 		"How many scrolls you have to be carrying before the rest are hidden.",
 		"Hide Redundant Scrolls");
 
-	Settings::AddKey(GetName(), Settings::Category::Input, "Show Players Gear", "Show Player's Gear",
+	Settings::AddKey(GetName(), Settings::Category::Input, "Show Players Gear", "Show player's gear",
 		&showPlayer, "Shows the gear of the player your cursor is over.");
 }
 

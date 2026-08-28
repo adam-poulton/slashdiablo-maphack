@@ -28,9 +28,12 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
 * `Advanced Item Display` now takes effect as soon as it is toggled rather than
   needing a restart, and `Show iLvl` is shown beneath it in the settings UI since
   it does nothing on its own.
-* Relabel `Always Show Items` as "Always Show Items on the Ground" and
-  `Always Show Item Stat Ranges` as "Show Item Stat Ranges" in the settings UI.
+* Relabel `Always Show Items` as "Always show items on the ground" and
+  `Always Show Item Stat Ranges` as "Show item stat ranges" in the settings UI.
   The config keys are unchanged.
+* Use sentence case for every label and section heading in the settings UI,
+  matching the headings that already read that way. Labels only: no config key
+  changes, and searching still finds a setting by either its label or its key.
 * Rename the `Smart Scrolls` option to `Hide Redundant Scrolls`. Configs that set
   `Smart Scrolls` need updating; the old key is ignored and the option reverts to its
   default of off.

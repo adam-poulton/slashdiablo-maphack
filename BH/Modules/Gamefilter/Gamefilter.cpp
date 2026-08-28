@@ -20,10 +20,10 @@ Patch* destoryGameList = new Patch(Call, D2MULTI, { 0x11DC3, 0x8413 }, (int)Game
 Patch* listRefresh = new Patch(Call, D2MULTI, { 0xDF4E, 0x121EE }, (int)D2MULTI_GameListRefresh_Interception, 5);
 
 void Gamefilter::OnLoad() {
-	Settings::AddBool(GetName(), Settings::Category::Lobby, "Show Difficulty", "Show Difficulty",
+	Settings::AddBool(GetName(), Settings::Category::Lobby, "Show Difficulty", "Show difficulty",
 		&bools["Show Difficulty"],
 		"Shows each game's difficulty in the game list.");
-	Settings::AddBool(GetName(), Settings::Category::Lobby, "Show Gameserver", "Show Gameserver",
+	Settings::AddBool(GetName(), Settings::Category::Lobby, "Show Gameserver", "Show gameserver",
 		&bools["Show Gameserver"], "Shows which server a game is on in the game list.");
 
 	if (!D2CLIENT_GetPlayerUnit()) {

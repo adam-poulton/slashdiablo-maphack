@@ -417,16 +417,16 @@ void ItemMover::LoadConfig() {
 void ItemMover::OnLoad() {
 	LoadConfig();
 
-	Settings::AddKey(GetName(), Settings::Category::Input, "Use TP Tome", "Quick Town Portal", &TpKey,
+	Settings::AddKey(GetName(), Settings::Category::Input, "Use TP Tome", "Quick town portal", &TpKey,
 		"Opens a town portal from the tome in your inventory.");
-	Settings::AddKey(GetName(), Settings::Category::Input, "Use Healing Potion", "Use Healing Potion",
+	Settings::AddKey(GetName(), Settings::Category::Input, "Use Healing Potion", "Use healing potion",
 		&HealKey, "Drinks the smallest healing potion you are carrying.");
-	Settings::AddKey(GetName(), Settings::Category::Input, "Use Mana Potion", "Use Mana Potion",
+	Settings::AddKey(GetName(), Settings::Category::Input, "Use Mana Potion", "Use mana potion",
 		&ManaKey, "Drinks the smallest mana potion you are carrying.");
-	Settings::AddKey(GetName(), Settings::Category::Input, "Use Rejuv Potion", "Use Rejuv Potion",
+	Settings::AddKey(GetName(), Settings::Category::Input, "Use Rejuv Potion", "Use rejuv potion",
 		&JuvKey, "Drinks the smallest rejuvenation potion you are carrying.");
 
-	Settings::AddHeading(GetName(), Settings::Category::Input, "QOL Hotkeys");
+	Settings::AddHeading(GetName(), Settings::Category::Input, "QOL hotkeys");
 	Settings::AddNote(GetName(), Settings::Category::Input,
 		"- Shift-leftclick identifies an item if there is an ID tome in your inventory.");
 	Settings::AddNote(GetName(), Settings::Category::Input,

@@ -17,7 +17,7 @@ void AutoTele::OnLoad() {
 	LoadConfig();
 
 
-	Settings::AddToggle(GetName(), Settings::Category::Map, "Draw Destination", "Draw Paths",
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Draw Destination", "Draw paths",
 		&Toggles["Draw Destination"],
 		"Draws paths from your character to destinations on the map.");
 	Settings::AddHeading(GetName(), Settings::Category::Map, "Path colours");
@@ -31,10 +31,10 @@ void AutoTele::OnLoad() {
 		"", "Draw Destination");
 	Settings::AddColor(GetName(), Settings::Category::Map, "Prev Color", "Previous", &Colors[4],
 		"", "Draw Destination");
-	Settings::AddColor(GetName(), Settings::Category::Map, "Other Extra Color", "Other Extra",
+	Settings::AddColor(GetName(), Settings::Category::Map, "Other Extra Color", "Other extra",
 		&Colors[5], "", "Draw Destination");
 
-	Settings::AddToggle(GetName(), Settings::Category::Items, "Quest Drop Warning", "Quest Drop Warning",
+	Settings::AddToggle(GetName(), Settings::Category::Items, "Quest Drop Warning", "Quest drop warning",
 		&Toggles["Quest Drop Warning"],
 		"Warns you when the current act boss quest drop is active.");
 }

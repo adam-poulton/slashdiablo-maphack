@@ -22,13 +22,13 @@ void StashExport::OnLoad() {
 	LoadConfig();
 
 	Settings::AddHeading(GetName(), Settings::Category::Input, "Stash export");
-	Settings::AddToggle(GetName(), Settings::Category::Input, "Include Equipment", "Include Equipment",
+	Settings::AddToggle(GetName(), Settings::Category::Input, "Include Equipment", "Include equipment",
 		&Toggles["Include Equipment"]);
-	Settings::AddToggle(GetName(), Settings::Category::Input, "Include Fixed Stats", "Include Fixed Stats",
+	Settings::AddToggle(GetName(), Settings::Category::Input, "Include Fixed Stats", "Include fixed stats",
 		&Toggles["Include Fixed Stats"]);
-	Settings::AddToggle(GetName(), Settings::Category::Input, "Condense Stats", "Condense Stats",
+	Settings::AddToggle(GetName(), Settings::Category::Input, "Condense Stats", "Condense stats",
 		&Toggles["Condense Stats"]);
-	Settings::AddToggle(GetName(), Settings::Category::Input, "Export On Menu", "Export On Menu",
+	Settings::AddToggle(GetName(), Settings::Category::Input, "Export On Menu", "Export on menu",
 		&Toggles["Export On Menu"]);
 
 	// the MustacheTemplates will not be reloaded

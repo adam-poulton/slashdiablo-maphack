@@ -326,7 +326,7 @@ void Maphack::OnLoad() {
 		{ "Game", "Act", "Level" },
 		"How much of the game is revealed at once.");
 
-	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Monsters", "Show Monsters",
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Monsters", "Show monsters",
 		&Toggles["Show Monsters"], "Marks monsters on the automap.");
 	Settings::AddToggle(GetName(), Settings::Category::Map, "Monster Enchantments", "Enchantments",
 		&Toggles["Monster Enchantments"],
@@ -337,29 +337,29 @@ void Maphack::OnLoad() {
 	Settings::AddToggle(GetName(), Settings::Category::Map, "Monster Resistances", "Resistances",
 		&Toggles["Monster Resistances"],
 		"Shows what a monster resists or is immune to.", "Show Monsters");
-	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Normal Monsters", "Normal Monsters",
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Normal Monsters", "Normal monsters",
 		&Toggles["Show Normal Monsters"],
 		"Marks ordinary monsters as well as the ones worth stopping for.",
 		"Show Monsters");
 
-	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Missiles", "Show Missiles",
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Missiles", "Show missiles",
 		&Toggles["Show Missiles"], "Marks missiles in flight on the automap.");
-	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Chests", "Show Chests",
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Chests", "Show chests",
 		&Toggles["Show Chests"], "Marks chests and other containers.");
-	Settings::AddToggle(GetName(), Settings::Category::Map, "Display Level Names", "Level Names",
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Display Level Names", "Level names",
 		&Toggles["Display Level Names"], "Names each level on the automap.");
-	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Automap On Join", "Show Automap On Join",
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Automap On Join", "Show automap on join",
 		&Toggles["Show Automap On Join"],
 		"Opens the automap as you enter a game rather than waiting to be asked.");
 
-	Settings::AddToggle(GetName(), Settings::Category::Map, "Force Light Radius", "Light Radius",
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Force Light Radius", "Light radius",
 		&Toggles["Force Light Radius"],
 		"Lights the whole screen instead of only what your character can see.");
-	Settings::AddToggle(GetName(), Settings::Category::Map, "Remove Weather", "Remove Weather",
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Remove Weather", "Remove weather",
 		&Toggles["Remove Weather"], "Stops rain and snow being drawn.");
 	Settings::AddToggle(GetName(), Settings::Category::Map, "Infravision", "Infravision",
 		&Toggles["Infravision"], "Lights monsters up as infravision does.");
-	Settings::AddToggle(GetName(), Settings::Category::Map, "Remove Shake", "Remove Shake",
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Remove Shake", "Remove shake",
 		&Toggles["Remove Shake"], "Stops the screen shaking.");
 
 	Settings::AddHeading(GetName(), Settings::Category::Map, "Monster colours");
@@ -382,7 +382,7 @@ void Maphack::OnLoad() {
 	Settings::AddColor(GetName(), Settings::Category::Map, "Missile Color: Hostile", "Hostile",
 		&missileColors["Hostile"], "", "Show Missiles");
 
-	Settings::AddToggle(GetName(), Settings::Category::Input, "Skip NPC Quest Messages", "Skip NPC Quest Messages",
+	Settings::AddToggle(GetName(), Settings::Category::Input, "Skip NPC Quest Messages", "Skip NPC quest messages",
 		&Toggles["Skip NPC Quest Messages"],
 		"Skips the speeches an NPC gives when a quest turns over.");
 

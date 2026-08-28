@@ -21,7 +21,7 @@ bool GambleRefresh::Init() {
 void GambleRefresh::OnLoad() {
     LoadConfig();
 
-    Settings::AddToggle(GetName(), Settings::Category::Input, "Gamble Refresh", "Gamble Refresh",
+    Settings::AddToggle(GetName(), Settings::Category::Input, "Gamble Refresh", "Gamble refresh",
         &Toggles["Gamble Refresh"],
         "Closes and reopens the gambling window so it reloads, "
         "without having to click the NPC dialog option.");
