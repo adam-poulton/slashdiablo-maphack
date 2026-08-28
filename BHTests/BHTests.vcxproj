@@ -43,7 +43,7 @@
   <PropertyGroup>
     <OutDir>$(SolutionDir)Tests\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)Tests\obj\$(Configuration)\</IntDir>
-    <IncludePath>$(IncludePath);..\ThirdParty\doctest;..\BH</IncludePath>
+    <IncludePath>$(IncludePath);..\ThirdParty\doctest;..\BH;..\BH\Modules\Item</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -78,10 +78,12 @@
   <ItemGroup>
     <ClCompile Include="TestMain.cpp" />
     <ClCompile Include="BitReaderTests.cpp" />
+    <ClCompile Include="CaptureFormatTests.cpp" />
     <!-- Sources under test. Only translation units that reference no D2 symbols
          can be linked here: the D2 function pointers are naked inline-asm thunks
          that need the game process to mean anything. -->
     <ClCompile Include="..\BH\BitReader.cpp" />
+    <ClCompile Include="..\BH\Modules\Item\CaptureFormat.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

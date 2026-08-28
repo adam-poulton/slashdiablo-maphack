@@ -1,6 +1,7 @@
 #include "ItemMover.h"
 #include "../Settings/SettingsRegistry.h"
 #include "../Item/Item.h"
+#include "../Item/ItemCapture.h"
 #include "../../BH.h"
 #include "../../D2Ptrs.h"
 #include "../../D2Stubs.h"
@@ -603,6 +604,17 @@ void ItemMover::OnGamePacketRecv(BYTE* packet, bool* block) {
 						}
 					}
 					bool blocked = IsItemBlocked(ignoreIndex, keepIndex);
+					if (ItemCapture::IsEnabled()) {
+						ItemCapture::Outcome outcome = {};
+						outcome.keepIndex = keepIndex;
+						outcome.ignoreIndex = ignoreIndex;
+						outcome.blocked = blocked;
+						outcome.showOnMap = showOnMap;
+						outcome.noTracking = noTracking;
+						outcome.color = color;
+						outcome.pingLevel = pingLevel;
+						ItemCapture::RecordDrop((const unsigned char*)packet, item, outcome);
+					}
 					if (blocked) {
 						*block = true;
 						//PrintText(1, "Blocking item: %s, %s, %d", item.name.c_str(), item.code, item.amount);

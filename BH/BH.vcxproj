@@ -175,6 +175,8 @@ if defined D2Path (
     <ClCompile Include="Modules\GambleRefresh\GambleRefresh.cpp" />
     <ClCompile Include="Modules\Gamefilter\Gamefilter.cpp" />
     <ClCompile Include="Modules\Item\Item.cpp" />
+    <ClCompile Include="Modules\Item\CaptureFormat.cpp" />
+    <ClCompile Include="Modules\Item\ItemCapture.cpp" />
     <ClCompile Include="Modules\Item\ItemDisplay.cpp" />
     <ClCompile Include="Modules\ItemMover\ItemMover.cpp" />
     <ClCompile Include="Modules\Maphack\Maphack.cpp" />
@@ -256,6 +258,8 @@ if defined D2Path (
     <ClInclude Include="Modules\GambleRefresh\GambleRefresh.h" />
     <ClInclude Include="Modules\Gamefilter\Gamefilter.h" />
     <ClInclude Include="Modules\Item\Item.h" />
+    <ClInclude Include="Modules\Item\CaptureFormat.h" />
+    <ClInclude Include="Modules\Item\ItemCapture.h" />
     <ClInclude Include="Modules\Item\ItemDisplay.h" />
     <ClInclude Include="Modules\ItemMover\ItemMover.h" />
     <ClInclude Include="Modules\Maphack\Maphack.h" />

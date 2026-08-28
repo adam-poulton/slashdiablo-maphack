@@ -50,6 +50,7 @@
 #include "../../BH.h"
 #include "../../D2Stubs.h"
 #include "ItemDisplay.h"
+#include "ItemCapture.h"
 #include "../../MPQInit.h"
 #include "lrucache.hpp"
 
@@ -117,6 +118,7 @@ void ResetCaches() {
 void Item::OnSettingsChanged(const vector<string>& keys) {
 	ResetPatches();
 	ResetCaches();
+	ItemCapture::SettingsChanged();
 	if (Toggles["Advanced Item Display"].state)
 		ItemDisplay::InitializeItemRules();
 }
@@ -152,6 +154,7 @@ void Item::LoadConfig() {
 	if (scrollVisibilityThreshold > MAX_SCROLL_VISIBILITY_THRESHOLD)
 		scrollVisibilityThreshold = MAX_SCROLL_VISIBILITY_THRESHOLD;
 	BH::config->ReadBoolean("Ordered Item Filtering", OrderedFiltering);
+	ItemCapture::LoadConfig();
 
 	LoadNoIlvlCodes();
 
