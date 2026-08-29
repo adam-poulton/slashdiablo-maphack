@@ -1,4 +1,4 @@
-/**
+﻿/**
 *
 * Item.h
 * BH: Copyright 2011 (C) McGod
@@ -122,7 +122,6 @@ void PermShowItemsPatch3_ASM();
 void PermShowItemsPatch4_ASM();
 
 struct UnitItemInfo;
-int CreateUnitItemInfo(UnitItemInfo *uInfo, UnitAny *item);
 
 // reset all rule lookup caches
 void ResetCaches();

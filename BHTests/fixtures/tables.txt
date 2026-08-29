@@ -1,0 +1,803 @@
+statwidths	at=0	name=strength	saveBits=8	saveParamBits=0	saveAdd=32	op=0	sendParamBits=0
+statwidths	at=1	name=energy	saveBits=7	saveParamBits=0	saveAdd=32	op=8	sendParamBits=0
+statwidths	at=2	name=dexterity	saveBits=7	saveParamBits=0	saveAdd=32	op=0	sendParamBits=0
+statwidths	at=3	name=vitality	saveBits=7	saveParamBits=0	saveAdd=32	op=9	sendParamBits=0
+statwidths	at=4	name=statpts	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=5	name=newskills	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=6	name=hitpoints	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=7	name=maxhp	saveBits=9	saveParamBits=0	saveAdd=32	op=0	sendParamBits=0
+statwidths	at=8	name=mana	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=9	name=maxmana	saveBits=8	saveParamBits=0	saveAdd=32	op=0	sendParamBits=0
+statwidths	at=10	name=stamina	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=11	name=maxstamina	saveBits=8	saveParamBits=0	saveAdd=32	op=0	sendParamBits=0
+statwidths	at=12	name=level	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=13	name=experience	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=14	name=gold	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=15	name=goldbank	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=16	name=item_armor_percent	saveBits=9	saveParamBits=0	saveAdd=0	op=13	sendParamBits=0
+statwidths	at=17	name=item_maxdamage_percent	saveBits=9	saveParamBits=0	saveAdd=0	op=13	sendParamBits=0
+statwidths	at=18	name=item_mindamage_percent	saveBits=9	saveParamBits=0	saveAdd=0	op=13	sendParamBits=0
+statwidths	at=19	name=tohit	saveBits=10	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=20	name=toblock	saveBits=6	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=21	name=mindamage	saveBits=6	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=22	name=maxdamage	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=23	name=secondary_mindamage	saveBits=6	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=24	name=secondary_maxdamage	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=25	name=damagepercent	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=26	name=manarecovery	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=27	name=manarecoverybonus	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=28	name=staminarecoverybonus	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=29	name=lastexp	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=30	name=nextexp	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=31	name=armorclass	saveBits=11	saveParamBits=0	saveAdd=10	op=0	sendParamBits=0
+statwidths	at=32	name=armorclass_vs_missile	saveBits=9	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=33	name=armorclass_vs_hth	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=34	name=normal_damage_reduction	saveBits=6	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=35	name=magic_damage_reduction	saveBits=6	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=36	name=damageresist	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=37	name=magicresist	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=38	name=maxmagicresist	saveBits=5	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=39	name=fireresist	saveBits=8	saveParamBits=0	saveAdd=50	op=0	sendParamBits=0
+statwidths	at=40	name=maxfireresist	saveBits=5	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=41	name=lightresist	saveBits=8	saveParamBits=0	saveAdd=50	op=0	sendParamBits=0
+statwidths	at=42	name=maxlightresist	saveBits=5	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=43	name=coldresist	saveBits=8	saveParamBits=0	saveAdd=50	op=0	sendParamBits=0
+statwidths	at=44	name=maxcoldresist	saveBits=5	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=45	name=poisonresist	saveBits=8	saveParamBits=0	saveAdd=50	op=0	sendParamBits=0
+statwidths	at=46	name=maxpoisonresist	saveBits=5	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=47	name=damageaura	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=48	name=firemindam	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=49	name=firemaxdam	saveBits=9	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=50	name=lightmindam	saveBits=6	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=51	name=lightmaxdam	saveBits=10	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=52	name=magicmindam	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=53	name=magicmaxdam	saveBits=9	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=54	name=coldmindam	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=55	name=coldmaxdam	saveBits=9	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=56	name=coldlength	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=57	name=poisonmindam	saveBits=10	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=58	name=poisonmaxdam	saveBits=10	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=59	name=poisonlength	saveBits=9	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=60	name=lifedrainmindam	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=61	name=lifedrainmaxdam	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=62	name=manadrainmindam	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=63	name=manadrainmaxdam	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=64	name=stamdrainmindam	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=65	name=stamdrainmaxdam	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=66	name=stunlength	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=67	name=velocitypercent	saveBits=7	saveParamBits=0	saveAdd=30	op=0	sendParamBits=0
+statwidths	at=68	name=attackrate	saveBits=7	saveParamBits=0	saveAdd=30	op=0	sendParamBits=0
+statwidths	at=69	name=other_animrate	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=70	name=quantity	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=71	name=value	saveBits=8	saveParamBits=0	saveAdd=100	op=0	sendParamBits=0
+statwidths	at=72	name=durability	saveBits=9	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=73	name=maxdurability	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=74	name=hpregen	saveBits=6	saveParamBits=0	saveAdd=30	op=0	sendParamBits=0
+statwidths	at=75	name=item_maxdurability_percent	saveBits=7	saveParamBits=0	saveAdd=20	op=13	sendParamBits=0
+statwidths	at=76	name=item_maxhp_percent	saveBits=6	saveParamBits=0	saveAdd=10	op=11	sendParamBits=0
+statwidths	at=77	name=item_maxmana_percent	saveBits=6	saveParamBits=0	saveAdd=10	op=11	sendParamBits=0
+statwidths	at=78	name=item_attackertakesdamage	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=79	name=item_goldbonus	saveBits=9	saveParamBits=0	saveAdd=100	op=0	sendParamBits=0
+statwidths	at=80	name=item_magicbonus	saveBits=8	saveParamBits=0	saveAdd=100	op=0	sendParamBits=0
+statwidths	at=81	name=item_knockback	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=82	name=item_timeduration	saveBits=9	saveParamBits=0	saveAdd=20	op=0	sendParamBits=0
+statwidths	at=83	name=item_addclassskills	saveBits=3	saveParamBits=3	saveAdd=0	op=0	sendParamBits=3
+statwidths	at=84	name=unsentparam1	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=85	name=item_addexperience	saveBits=9	saveParamBits=0	saveAdd=50	op=0	sendParamBits=0
+statwidths	at=86	name=item_healafterkill	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=87	name=item_reducedprices	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=88	name=item_doubleherbduration	saveBits=1	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=89	name=item_lightradius	saveBits=4	saveParamBits=0	saveAdd=4	op=0	sendParamBits=0
+statwidths	at=90	name=item_lightcolor	saveBits=24	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=91	name=item_req_percent	saveBits=8	saveParamBits=0	saveAdd=100	op=0	sendParamBits=0
+statwidths	at=92	name=item_levelreq	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=93	name=item_fasterattackrate	saveBits=7	saveParamBits=0	saveAdd=20	op=0	sendParamBits=0
+statwidths	at=94	name=item_levelreqpct	saveBits=7	saveParamBits=0	saveAdd=64	op=13	sendParamBits=0
+statwidths	at=95	name=lastblockframe	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=96	name=item_fastermovevelocity	saveBits=7	saveParamBits=0	saveAdd=20	op=0	sendParamBits=0
+statwidths	at=97	name=item_nonclassskill	saveBits=6	saveParamBits=9	saveAdd=0	op=0	sendParamBits=9
+statwidths	at=98	name=state	saveBits=1	saveParamBits=8	saveAdd=0	op=0	sendParamBits=8
+statwidths	at=99	name=item_fastergethitrate	saveBits=7	saveParamBits=0	saveAdd=20	op=0	sendParamBits=0
+statwidths	at=100	name=monster_playercount	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=101	name=skill_poison_override_length	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=102	name=item_fasterblockrate	saveBits=7	saveParamBits=0	saveAdd=20	op=0	sendParamBits=0
+statwidths	at=103	name=skill_bypass_undead	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=104	name=skill_bypass_demons	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=105	name=item_fastercastrate	saveBits=7	saveParamBits=0	saveAdd=20	op=0	sendParamBits=0
+statwidths	at=106	name=skill_bypass_beasts	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=107	name=item_singleskill	saveBits=3	saveParamBits=9	saveAdd=0	op=0	sendParamBits=9
+statwidths	at=108	name=item_restinpeace	saveBits=1	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=109	name=curse_resistance	saveBits=9	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=110	name=item_poisonlengthresist	saveBits=8	saveParamBits=0	saveAdd=20	op=0	sendParamBits=0
+statwidths	at=111	name=item_normaldamage	saveBits=9	saveParamBits=0	saveAdd=20	op=0	sendParamBits=0
+statwidths	at=112	name=item_howl	saveBits=7	saveParamBits=0	saveAdd=255	op=0	sendParamBits=0
+statwidths	at=113	name=item_stupidity	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=114	name=item_damagetomana	saveBits=6	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=115	name=item_ignoretargetac	saveBits=1	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=116	name=item_fractionaltargetac	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=117	name=item_preventheal	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=118	name=item_halffreezeduration	saveBits=1	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=119	name=item_tohit_percent	saveBits=9	saveParamBits=0	saveAdd=20	op=0	sendParamBits=0
+statwidths	at=120	name=item_damagetargetac	saveBits=7	saveParamBits=0	saveAdd=128	op=0	sendParamBits=0
+statwidths	at=121	name=item_demondamage_percent	saveBits=9	saveParamBits=0	saveAdd=20	op=0	sendParamBits=0
+statwidths	at=122	name=item_undeaddamage_percent	saveBits=9	saveParamBits=0	saveAdd=20	op=0	sendParamBits=0
+statwidths	at=123	name=item_demon_tohit	saveBits=10	saveParamBits=0	saveAdd=128	op=0	sendParamBits=0
+statwidths	at=124	name=item_undead_tohit	saveBits=10	saveParamBits=0	saveAdd=128	op=0	sendParamBits=0
+statwidths	at=125	name=item_throwable	saveBits=1	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=126	name=item_elemskill	saveBits=3	saveParamBits=3	saveAdd=0	op=0	sendParamBits=3
+statwidths	at=127	name=item_allskills	saveBits=3	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=128	name=item_attackertakeslightdamage	saveBits=5	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=129	name=ironmaiden_level	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=130	name=lifetap_level	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=131	name=thorns_percent	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=132	name=bonearmor	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=133	name=bonearmormax	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=134	name=item_freeze	saveBits=5	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=135	name=item_openwounds	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=136	name=item_crushingblow	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=137	name=item_kickdamage	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=138	name=item_manaafterkill	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=139	name=item_healafterdemonkill	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=140	name=item_extrablood	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=141	name=item_deadlystrike	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=142	name=item_absorbfire_percent	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=143	name=item_absorbfire	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=144	name=item_absorblight_percent	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=145	name=item_absorblight	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=146	name=item_absorbmagic_percent	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=147	name=item_absorbmagic	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=148	name=item_absorbcold_percent	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=149	name=item_absorbcold	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=150	name=item_slow	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=151	name=item_aura	saveBits=5	saveParamBits=9	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=152	name=item_indesctructible	saveBits=1	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=153	name=item_cannotbefrozen	saveBits=1	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=154	name=item_staminadrainpct	saveBits=7	saveParamBits=0	saveAdd=20	op=0	sendParamBits=0
+statwidths	at=155	name=item_reanimate	saveBits=7	saveParamBits=10	saveAdd=0	op=0	sendParamBits=10
+statwidths	at=156	name=item_pierce	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=157	name=item_magicarrow	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=158	name=item_explosivearrow	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=159	name=item_throw_mindamage	saveBits=6	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=160	name=item_throw_maxdamage	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=161	name=skill_handofathena	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=162	name=skill_staminapercent	saveBits=0	saveParamBits=0	saveAdd=0	op=1	sendParamBits=0
+statwidths	at=163	name=skill_passive_staminapercent	saveBits=0	saveParamBits=0	saveAdd=0	op=1	sendParamBits=0
+statwidths	at=164	name=skill_concentration	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=165	name=skill_enchant	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=166	name=skill_pierce	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=167	name=skill_conviction	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=168	name=skill_chillingarmor	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=169	name=skill_frenzy	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=170	name=skill_decrepify	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=171	name=skill_armor_percent	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=172	name=alignment	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=173	name=target0	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=174	name=target1	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=175	name=goldlost	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=176	name=conversion_level	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=177	name=conversion_maxhp	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=178	name=unit_dooverlay	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=179	name=attack_vs_montype	saveBits=9	saveParamBits=10	saveAdd=0	op=0	sendParamBits=10
+statwidths	at=180	name=damage_vs_montype	saveBits=9	saveParamBits=10	saveAdd=0	op=0	sendParamBits=10
+statwidths	at=181	name=fade	saveBits=3	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=182	name=armor_override_percent	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=183	name=unused183	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=184	name=unused184	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=185	name=unused185	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=186	name=unused186	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=187	name=unused187	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=188	name=item_addskill_tab	saveBits=3	saveParamBits=16	saveAdd=0	op=0	sendParamBits=6
+statwidths	at=189	name=unused189	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=190	name=unused190	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=191	name=unused191	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=192	name=unused192	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=193	name=unused193	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=194	name=item_numsockets	saveBits=4	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=195	name=item_skillonattack	saveBits=7	saveParamBits=16	saveAdd=0	op=0	sendParamBits=16
+statwidths	at=196	name=item_skillonkill	saveBits=7	saveParamBits=16	saveAdd=0	op=0	sendParamBits=16
+statwidths	at=197	name=item_skillondeath	saveBits=7	saveParamBits=16	saveAdd=0	op=0	sendParamBits=16
+statwidths	at=198	name=item_skillonhit	saveBits=7	saveParamBits=16	saveAdd=0	op=0	sendParamBits=16
+statwidths	at=199	name=item_skillonlevelup	saveBits=7	saveParamBits=16	saveAdd=0	op=0	sendParamBits=16
+statwidths	at=200	name=unused200	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=201	name=item_skillongethit	saveBits=7	saveParamBits=16	saveAdd=0	op=0	sendParamBits=16
+statwidths	at=202	name=unused202	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=203	name=unused203	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=204	name=item_charged_skill	saveBits=16	saveParamBits=16	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=205	name=unused204	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=206	name=unused205	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=207	name=unused206	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=208	name=unused207	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=209	name=unused208	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=210	name=unused209	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=211	name=unused210	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=212	name=unused211	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=213	name=unused212	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=214	name=item_armor_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=4	sendParamBits=0
+statwidths	at=215	name=item_armorpercent_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=5	sendParamBits=0
+statwidths	at=216	name=item_hp_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=217	name=item_mana_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=218	name=item_maxdamage_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=4	sendParamBits=0
+statwidths	at=219	name=item_maxdamage_percent_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=5	sendParamBits=0
+statwidths	at=220	name=item_strength_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=221	name=item_dexterity_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=222	name=item_energy_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=223	name=item_vitality_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=224	name=item_tohit_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=225	name=item_tohitpercent_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=226	name=item_cold_damagemax_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=227	name=item_fire_damagemax_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=228	name=item_ltng_damagemax_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=229	name=item_pois_damagemax_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=230	name=item_resist_cold_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=231	name=item_resist_fire_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=232	name=item_resist_ltng_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=233	name=item_resist_pois_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=234	name=item_absorb_cold_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=235	name=item_absorb_fire_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=236	name=item_absorb_ltng_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=237	name=item_absorb_pois_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=238	name=item_thorns_perlevel	saveBits=5	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=239	name=item_find_gold_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=240	name=item_find_magic_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=241	name=item_regenstamina_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=242	name=item_stamina_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=243	name=item_damage_demon_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=244	name=item_damage_undead_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=245	name=item_tohit_demon_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=246	name=item_tohit_undead_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=247	name=item_crushingblow_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=248	name=item_openwounds_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=249	name=item_kick_damage_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=250	name=item_deadlystrike_perlevel	saveBits=6	saveParamBits=0	saveAdd=0	op=2	sendParamBits=0
+statwidths	at=251	name=item_find_gems_perlevel	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=252	name=item_replenish_durability	saveBits=6	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=253	name=item_replenish_quantity	saveBits=6	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=254	name=item_extra_stack	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=255	name=item_find_item	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=256	name=item_slash_damage	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=257	name=item_slash_damage_percent	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=258	name=item_crush_damage	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=259	name=item_crush_damage_percent	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=260	name=item_thrust_damage	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=261	name=item_thrust_damage_percent	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=262	name=item_absorb_slash	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=263	name=item_absorb_crush	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=264	name=item_absorb_thrust	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=265	name=item_absorb_slash_percent	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=266	name=item_absorb_crush_percent	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=267	name=item_absorb_thrust_percent	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=268	name=item_armor_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=269	name=item_armorpercent_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=7	sendParamBits=0
+statwidths	at=270	name=item_hp_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=271	name=item_mana_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=272	name=item_maxdamage_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=273	name=item_maxdamage_percent_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=7	sendParamBits=0
+statwidths	at=274	name=item_strength_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=275	name=item_dexterity_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=276	name=item_energy_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=277	name=item_vitality_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=278	name=item_tohit_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=279	name=item_tohitpercent_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=280	name=item_cold_damagemax_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=281	name=item_fire_damagemax_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=282	name=item_ltng_damagemax_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=283	name=item_pois_damagemax_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=284	name=item_resist_cold_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=285	name=item_resist_fire_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=286	name=item_resist_ltng_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=287	name=item_resist_pois_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=288	name=item_absorb_cold_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=289	name=item_absorb_fire_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=290	name=item_absorb_ltng_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=291	name=item_absorb_pois_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=292	name=item_find_gold_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=293	name=item_find_magic_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=294	name=item_regenstamina_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=295	name=item_stamina_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=296	name=item_damage_demon_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=297	name=item_damage_undead_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=298	name=item_tohit_demon_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=299	name=item_tohit_undead_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=300	name=item_crushingblow_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=301	name=item_openwounds_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=302	name=item_kick_damage_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=303	name=item_deadlystrike_bytime	saveBits=22	saveParamBits=0	saveAdd=0	op=6	sendParamBits=0
+statwidths	at=304	name=item_find_gems_bytime	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=305	name=item_pierce_cold	saveBits=8	saveParamBits=0	saveAdd=50	op=0	sendParamBits=0
+statwidths	at=306	name=item_pierce_fire	saveBits=8	saveParamBits=0	saveAdd=50	op=0	sendParamBits=0
+statwidths	at=307	name=item_pierce_ltng	saveBits=8	saveParamBits=0	saveAdd=50	op=0	sendParamBits=0
+statwidths	at=308	name=item_pierce_pois	saveBits=8	saveParamBits=0	saveAdd=50	op=0	sendParamBits=0
+statwidths	at=309	name=item_damage_vs_monster	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=310	name=item_damage_percent_vs_monster	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=311	name=item_tohit_vs_monster	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=312	name=item_tohit_percent_vs_monster	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=313	name=item_ac_vs_monster	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=314	name=item_ac_percent_vs_monster	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=315	name=firelength	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=316	name=burningmin	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=317	name=burningmax	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=318	name=progressive_damage	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=319	name=progressive_steal	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=320	name=progressive_other	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=321	name=progressive_fire	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=322	name=progressive_cold	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=323	name=progressive_lightning	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=324	name=item_extra_charges	saveBits=6	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=325	name=progressive_tohit	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=326	name=poison_count	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=327	name=damage_framerate	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=328	name=pierce_idx	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=329	name=passive_fire_mastery	saveBits=9	saveParamBits=0	saveAdd=50	op=0	sendParamBits=0
+statwidths	at=330	name=passive_ltng_mastery	saveBits=9	saveParamBits=0	saveAdd=50	op=0	sendParamBits=0
+statwidths	at=331	name=passive_cold_mastery	saveBits=9	saveParamBits=0	saveAdd=50	op=0	sendParamBits=0
+statwidths	at=332	name=passive_pois_mastery	saveBits=9	saveParamBits=0	saveAdd=50	op=0	sendParamBits=0
+statwidths	at=333	name=passive_fire_pierce	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=334	name=passive_ltng_pierce	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=335	name=passive_cold_pierce	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=336	name=passive_pois_pierce	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=337	name=passive_critical_strike	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=338	name=passive_dodge	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=339	name=passive_avoid	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=340	name=passive_evade	saveBits=7	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=341	name=passive_warmth	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=342	name=passive_mastery_melee_th	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=8
+statwidths	at=343	name=passive_mastery_melee_dmg	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=8
+statwidths	at=344	name=passive_mastery_melee_crit	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=8
+statwidths	at=345	name=passive_mastery_throw_th	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=8
+statwidths	at=346	name=passive_mastery_throw_dmg	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=8
+statwidths	at=347	name=passive_mastery_throw_crit	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=8
+statwidths	at=348	name=passive_weaponblock	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=8
+statwidths	at=349	name=passive_summon_resist	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=350	name=modifierlist_skill	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=351	name=modifierlist_level	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=352	name=last_sent_hp_pct	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=353	name=source_unit_type	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=354	name=source_unit_id	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=355	name=shortparam1	saveBits=0	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=356	name=questitemdifficulty	saveBits=2	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+statwidths	at=357	name=passive_mag_mastery	saveBits=9	saveParamBits=0	saveAdd=50	op=0	sendParamBits=0
+statwidths	at=358	name=passive_mag_pierce	saveBits=8	saveParamBits=0	saveAdd=0	op=0	sendParamBits=0
+itemattrs	code=2ax	name=Double Axe	category=axe	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140851712	flags2=0	qualityLevel=13	magicLevel=0
+itemattrs	code=2hs	name=Two-Handed Sword	category=swor	width=1	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140854784	flags2=0	qualityLevel=10	magicLevel=0
+itemattrs	code=6cb	name=Great Bow	category=bow	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342439424	flags2=0	qualityLevel=68	magicLevel=0
+itemattrs	code=6cs	name=Elder Staff	category=staf	width=1	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1343225856	flags2=0	qualityLevel=74	magicLevel=1
+itemattrs	code=6hb	name=Blade Bow	category=bow	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342439424	flags2=0	qualityLevel=60	magicLevel=0
+itemattrs	code=6hx	name=Colossus Crossbow	category=xbow	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342701568	flags2=0	qualityLevel=75	magicLevel=0
+itemattrs	code=6lb	name=Shadow Bow	category=bow	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342439424	flags2=0	qualityLevel=63	magicLevel=0
+itemattrs	code=6ls	name=Stalagmite	category=staf	width=1	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1343225856	flags2=0	qualityLevel=66	magicLevel=1
+itemattrs	code=6lx	name=Pellet Bow	category=xbow	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342701568	flags2=0	qualityLevel=57	magicLevel=0
+itemattrs	code=6mx	name=Gorgon Crossbow	category=xbow	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342701568	flags2=0	qualityLevel=67	magicLevel=0
+itemattrs	code=6s7	name=Diamond Bow	category=bow	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342439424	flags2=0	qualityLevel=72	magicLevel=0
+itemattrs	code=6sb	name=Spider Bow	category=bow	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342439424	flags2=0	qualityLevel=55	magicLevel=0
+itemattrs	code=6sw	name=Ward Bow	category=bow	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342439424	flags2=0	qualityLevel=80	magicLevel=0
+itemattrs	code=72a	name=Ettin Axe	category=axe	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342178304	flags2=0	qualityLevel=70	magicLevel=0
+itemattrs	code=72h	name=Legend Sword	category=swor	width=1	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342181376	flags2=0	qualityLevel=59	magicLevel=0
+itemattrs	code=7ar	name=Suwayyah	category=h2h2	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1350565888	flags2=0	qualityLevel=59	magicLevel=0
+itemattrs	code=7ax	name=Small Crescent	category=axe	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342178304	flags2=0	qualityLevel=61	magicLevel=0
+itemattrs	code=7b7	name=Champion Sword	category=swor	width=1	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342181376	flags2=0	qualityLevel=77	magicLevel=0
+itemattrs	code=7b8	name=Winged Axe	category=taxe	width=2	height=3	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1342194688	flags2=0	qualityLevel=80	magicLevel=0
+itemattrs	code=7ba	name=Silver Edged Axe	category=axe	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342178304	flags2=0	qualityLevel=65	magicLevel=0
+itemattrs	code=7bl	name=Legend Spike	category=knif	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342185472	flags2=0	qualityLevel=85	magicLevel=0
+itemattrs	code=7br	name=Mancatcher	category=spea	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342242816	flags2=0	qualityLevel=74	magicLevel=0
+itemattrs	code=7bt	name=Decapitator	category=axe	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342178304	flags2=0	qualityLevel=73	magicLevel=0
+itemattrs	code=7bw	name=Lich Wand	category=wand	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1344274432	flags2=0	qualityLevel=75	magicLevel=0
+itemattrs	code=7cl	name=Truncheon	category=club	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342179328	flags2=0	qualityLevel=52	magicLevel=0
+itemattrs	code=7cr	name=Phase Blade	category=swor	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342181376	flags2=0	qualityLevel=73	magicLevel=0
+itemattrs	code=7cs	name=Battle Cestus	category=h2h2	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1350565888	flags2=0	qualityLevel=73	magicLevel=0
+itemattrs	code=7dg	name=Bone Knife	category=knif	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342185472	flags2=0	qualityLevel=58	magicLevel=0
+itemattrs	code=7di	name=Mithral Point	category=knif	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342185472	flags2=0	qualityLevel=70	magicLevel=0
+itemattrs	code=7fb	name=Colossal Sword	category=swor	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342181376	flags2=0	qualityLevel=80	magicLevel=0
+itemattrs	code=7fc	name=Hydra Edge	category=swor	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342181376	flags2=0	qualityLevel=69	magicLevel=0
+itemattrs	code=7gl	name=Ghost Glaive	category=jave	width=1	height=4	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1342259200	flags2=0	qualityLevel=79	magicLevel=0
+itemattrs	code=7gs	name=Balrog Blade	category=swor	width=1	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342181376	flags2=0	qualityLevel=71	magicLevel=0
+itemattrs	code=7gw	name=Unearthed Wand	category=wand	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1344274432	flags2=0	qualityLevel=86	magicLevel=0
+itemattrs	code=7ja	name=Hyperion Javelin	category=jave	width=1	height=3	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1342259200	flags2=0	qualityLevel=54	magicLevel=0
+itemattrs	code=7la	name=Feral Axe	category=axe	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342178304	flags2=0	qualityLevel=57	magicLevel=0
+itemattrs	code=7ls	name=Cryptic Sword	category=swor	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342181376	flags2=0	qualityLevel=82	magicLevel=0
+itemattrs	code=7m7	name=Ogre Maul	category=hamm	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342179328	flags2=0	qualityLevel=69	magicLevel=0
+itemattrs	code=7ma	name=Reinforced Mace	category=mace	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342179328	flags2=0	qualityLevel=63	magicLevel=0
+itemattrs	code=7mp	name=War Spike	category=axe	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342178304	flags2=0	qualityLevel=79	magicLevel=0
+itemattrs	code=7mt	name=Devil Star	category=mace	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342179328	flags2=0	qualityLevel=70	magicLevel=0
+itemattrs	code=7o7	name=Ogre Axe	category=pole	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342308352	flags2=0	qualityLevel=60	magicLevel=0
+itemattrs	code=7pa	name=Cryptic Axe	category=pole	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342308352	flags2=0	qualityLevel=79	magicLevel=0
+itemattrs	code=7pi	name=Stygian Pilum	category=jave	width=1	height=3	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1342259200	flags2=0	qualityLevel=62	magicLevel=0
+itemattrs	code=7s7	name=Balrog Spear	category=jave	width=1	height=3	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1342259200	flags2=0	qualityLevel=71	magicLevel=0
+itemattrs	code=7s8	name=Thresher	category=pole	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342308352	flags2=0	qualityLevel=71	magicLevel=0
+itemattrs	code=7sb	name=Elegant Blade	category=swor	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342181376	flags2=0	qualityLevel=63	magicLevel=0
+itemattrs	code=7sc	name=Mighty Scepter	category=scep	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1346371584	flags2=0	qualityLevel=62	magicLevel=0
+itemattrs	code=7sm	name=Ataghan	category=swor	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342181376	flags2=0	qualityLevel=61	magicLevel=0
+itemattrs	code=7sp	name=Tyrant Club	category=club	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342179328	flags2=0	qualityLevel=57	magicLevel=0
+itemattrs	code=7sr	name=Hyperion Spear	category=spea	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342242816	flags2=0	qualityLevel=58	magicLevel=0
+itemattrs	code=7ss	name=Falcata	category=swor	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342181376	flags2=0	qualityLevel=56	magicLevel=0
+itemattrs	code=7st	name=Ghost Spear	category=spea	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342242816	flags2=0	qualityLevel=83	magicLevel=0
+itemattrs	code=7ta	name=Flying Axe	category=taxe	width=1	height=2	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1342194688	flags2=0	qualityLevel=56	magicLevel=0
+itemattrs	code=7tk	name=Flying Knife	category=tkni	width=1	height=2	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1342201856	flags2=0	qualityLevel=64	magicLevel=0
+itemattrs	code=7tr	name=Stygian Pike	category=spea	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342242816	flags2=0	qualityLevel=66	magicLevel=0
+itemattrs	code=7ts	name=Winged Harpoon	category=jave	width=1	height=4	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1342259200	flags2=0	qualityLevel=85	magicLevel=0
+itemattrs	code=7vo	name=Colossus Voulge	category=pole	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342308352	flags2=0	qualityLevel=64	magicLevel=0
+itemattrs	code=7wb	name=Wrist Sword	category=h2h2	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1350565888	flags2=0	qualityLevel=62	magicLevel=0
+itemattrs	code=7wc	name=Giant Thresher	category=pole	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342308352	flags2=0	qualityLevel=85	magicLevel=0
+itemattrs	code=7wh	name=Legendary Mallet	category=hamm	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1342179328	flags2=0	qualityLevel=82	magicLevel=0
+itemattrs	code=7ws	name=Caduceus	category=scep	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1346371584	flags2=0	qualityLevel=85	magicLevel=0
+itemattrs	code=7yw	name=Ghost Wand	category=wand	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1344274432	flags2=0	qualityLevel=65	magicLevel=0
+itemattrs	code=8cb	name=Double Bow	category=bow	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1208221696	flags2=0	qualityLevel=39	magicLevel=0
+itemattrs	code=8hb	name=Razor Bow	category=bow	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1208221696	flags2=0	qualityLevel=33	magicLevel=0
+itemattrs	code=8hx	name=Balista	category=xbow	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1208483840	flags2=0	qualityLevel=47	magicLevel=0
+itemattrs	code=8l8	name=Long Siege Bow	category=bow	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1208221696	flags2=0	qualityLevel=46	magicLevel=0
+itemattrs	code=8lb	name=Cedar Bow	category=bow	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1208221696	flags2=0	qualityLevel=35	magicLevel=0
+itemattrs	code=8ls	name=Quarterstaff	category=staf	width=1	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1209008128	flags2=0	qualityLevel=35	magicLevel=1
+itemattrs	code=8lw	name=Gothic Bow	category=bow	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1208221696	flags2=0	qualityLevel=52	magicLevel=0
+itemattrs	code=8lx	name=Arbalest	category=xbow	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1208483840	flags2=0	qualityLevel=34	magicLevel=0
+itemattrs	code=8mx	name=Siege Crossbow	category=xbow	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1208483840	flags2=0	qualityLevel=40	magicLevel=0
+itemattrs	code=8rx	name=Chu-Ko-Nu	category=xbow	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1208483840	flags2=0	qualityLevel=54	magicLevel=0
+itemattrs	code=8s8	name=Short Siege Bow	category=bow	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1208221696	flags2=0	qualityLevel=43	magicLevel=0
+itemattrs	code=8sb	name=Edge Bow	category=bow	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1208221696	flags2=0	qualityLevel=30	magicLevel=0
+itemattrs	code=8sw	name=Rune Bow	category=bow	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1208221696	flags2=0	qualityLevel=49	magicLevel=0
+itemattrs	code=8ws	name=Rune Staff	category=staf	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1209008128	flags2=0	qualityLevel=47	magicLevel=1
+itemattrs	code=92a	name=Twin Axe	category=axe	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207960576	flags2=0	qualityLevel=39	magicLevel=0
+itemattrs	code=92h	name=Espadon	category=swor	width=1	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207963648	flags2=0	qualityLevel=37	magicLevel=0
+itemattrs	code=9ar	name=Quhab	category=h2h	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1216348160	flags2=0	qualityLevel=28	magicLevel=0
+itemattrs	code=9b7	name=Lochaber Axe	category=pole	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1208090624	flags2=0	qualityLevel=33	magicLevel=0
+itemattrs	code=9b8	name=Hurlbat	category=taxe	width=2	height=3	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1207976960	flags2=0	qualityLevel=41	magicLevel=0
+itemattrs	code=9b9	name=Gothic Sword	category=swor	width=1	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207963648	flags2=0	qualityLevel=48	magicLevel=0
+itemattrs	code=9bk	name=War Dart	category=tkni	width=1	height=2	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1207984128	flags2=0	qualityLevel=39	magicLevel=0
+itemattrs	code=9bs	name=Battle Sword	category=swor	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207963648	flags2=0	qualityLevel=40	magicLevel=0
+itemattrs	code=9bt	name=Tabar	category=axe	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207960576	flags2=0	qualityLevel=42	magicLevel=0
+itemattrs	code=9cl	name=Cudgel	category=club	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207961600	flags2=0	qualityLevel=30	magicLevel=0
+itemattrs	code=9cm	name=Dacian Falx	category=swor	width=1	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207963648	flags2=0	qualityLevel=42	magicLevel=0
+itemattrs	code=9cs	name=Hand Scythe	category=h2h2	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1216348160	flags2=0	qualityLevel=41	magicLevel=0
+itemattrs	code=9dg	name=Poignard	category=knif	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207967744	flags2=0	qualityLevel=31	magicLevel=0
+itemattrs	code=9di	name=Rondel	category=knif	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207967744	flags2=0	qualityLevel=36	magicLevel=0
+itemattrs	code=9fb	name=Zweihander	category=swor	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207963648	flags2=0	qualityLevel=49	magicLevel=0
+itemattrs	code=9fc	name=Tulwar	category=swor	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207963648	flags2=0	qualityLevel=37	magicLevel=0
+itemattrs	code=9fl	name=Knout	category=mace	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207961600	flags2=0	qualityLevel=43	magicLevel=0
+itemattrs	code=9ga	name=Gothic Axe	category=axe	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207960576	flags2=0	qualityLevel=46	magicLevel=0
+itemattrs	code=9gd	name=Executioner Sword	category=swor	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207963648	flags2=0	qualityLevel=54	magicLevel=0
+itemattrs	code=9gi	name=Ancient Axe	category=axe	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207960576	flags2=0	qualityLevel=51	magicLevel=0
+itemattrs	code=9gl	name=Spiculum	category=jave	width=1	height=4	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1208041472	flags2=0	qualityLevel=46	magicLevel=0
+itemattrs	code=9gm	name=Martel de Fer	category=hamm	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207961600	flags2=0	qualityLevel=53	magicLevel=0
+itemattrs	code=9gs	name=Tusk Sword	category=swor	width=1	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207963648	flags2=0	qualityLevel=45	magicLevel=0
+itemattrs	code=9gw	name=Grave Wand	category=wand	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1210056704	flags2=0	qualityLevel=49	magicLevel=1
+itemattrs	code=9h9	name=Bec-de-Corbin	category=pole	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1208090624	flags2=0	qualityLevel=51	magicLevel=0
+itemattrs	code=9ha	name=Hatchet	category=axe	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207960576	flags2=0	qualityLevel=31	magicLevel=0
+itemattrs	code=9ja	name=War Javelin	category=jave	width=1	height=3	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1208041472	flags2=0	qualityLevel=30	magicLevel=0
+itemattrs	code=9la	name=Military Axe	category=axe	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207960576	flags2=0	qualityLevel=34	magicLevel=0
+itemattrs	code=9ls	name=Rune Sword	category=swor	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207963648	flags2=0	qualityLevel=44	magicLevel=0
+itemattrs	code=9lw	name=Greater Claws	category=h2h2	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1216348160	flags2=0	qualityLevel=45	magicLevel=0
+itemattrs	code=9m9	name=War Club	category=hamm	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207961600	flags2=0	qualityLevel=45	magicLevel=0
+itemattrs	code=9ma	name=Flanged Mace	category=mace	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207961600	flags2=0	qualityLevel=35	magicLevel=0
+itemattrs	code=9mt	name=Jagged Star	category=mace	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207961600	flags2=0	qualityLevel=39	magicLevel=0
+itemattrs	code=9p9	name=Lance	category=spea	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1208025088	flags2=0	qualityLevel=47	magicLevel=0
+itemattrs	code=9pa	name=Partizan	category=pole	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1208090624	flags2=0	qualityLevel=35	magicLevel=0
+itemattrs	code=9pi	name=Great Pilum	category=jave	width=1	height=3	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1208041472	flags2=0	qualityLevel=37	magicLevel=0
+itemattrs	code=9qr	name=Scissors Quhab	category=h2h2	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1216348160	flags2=0	qualityLevel=54	magicLevel=0
+itemattrs	code=9qs	name=Holy Water Sprinkler	category=scep	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1212153856	flags2=0	qualityLevel=40	magicLevel=0
+itemattrs	code=9s8	name=Battle Scythe	category=pole	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1208090624	flags2=0	qualityLevel=40	magicLevel=0
+itemattrs	code=9s9	name=Simbilan	category=jave	width=1	height=3	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1208041472	flags2=0	qualityLevel=40	magicLevel=0
+itemattrs	code=9sb	name=Shamshir	category=swor	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207963648	flags2=0	qualityLevel=35	magicLevel=0
+itemattrs	code=9sc	name=Rune Scepter	category=scep	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1212153856	flags2=0	qualityLevel=31	magicLevel=0
+itemattrs	code=9sm	name=Cutlass	category=swor	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207963648	flags2=0	qualityLevel=43	magicLevel=0
+itemattrs	code=9sp	name=Barbed Club	category=club	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207961600	flags2=0	qualityLevel=32	magicLevel=0
+itemattrs	code=9sr	name=War Spear	category=spea	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1208025088	flags2=0	qualityLevel=33	magicLevel=0
+itemattrs	code=9ss	name=Gladius	category=swor	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207963648	flags2=0	qualityLevel=30	magicLevel=0
+itemattrs	code=9st	name=Yari	category=spea	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1208025088	flags2=0	qualityLevel=44	magicLevel=0
+itemattrs	code=9ta	name=Francisca	category=taxe	width=1	height=2	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1207976960	flags2=0	qualityLevel=34	magicLevel=0
+itemattrs	code=9tw	name=Greater Talons	category=h2h2	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1216348160	flags2=0	qualityLevel=50	magicLevel=0
+itemattrs	code=9vo	name=Bill	category=pole	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1208090624	flags2=0	qualityLevel=37	magicLevel=0
+itemattrs	code=9wb	name=Wrist Spike	category=h2h	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1216348160	flags2=0	qualityLevel=32	magicLevel=0
+itemattrs	code=9wc	name=Grim Scythe	category=pole	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1208090624	flags2=0	qualityLevel=55	magicLevel=0
+itemattrs	code=9wd	name=Ancient Sword	category=swor	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207963648	flags2=0	qualityLevel=49	magicLevel=0
+itemattrs	code=9wh	name=Battle Hammer	category=hamm	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1207961600	flags2=0	qualityLevel=48	magicLevel=0
+itemattrs	code=9xf	name=Fascia	category=h2h	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1216348160	flags2=0	qualityLevel=36	magicLevel=0
+itemattrs	code=am1	name=Stag Bow	category=abow	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1174667264	flags2=0	qualityLevel=18	magicLevel=0
+itemattrs	code=am2	name=Reflex Bow	category=abow	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1174667264	flags2=0	qualityLevel=27	magicLevel=0
+itemattrs	code=am3	name=Maiden Spear	category=aspe	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1174470656	flags2=0	qualityLevel=18	magicLevel=0
+itemattrs	code=am4	name=Maiden Pike	category=aspe	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1174470656	flags2=0	qualityLevel=27	magicLevel=0
+itemattrs	code=ama	name=Ceremonial Javelin	category=ajav	width=1	height=3	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1241595904	flags2=0	qualityLevel=35	magicLevel=0
+itemattrs	code=amb	name=Matriarchal Bow	category=abow	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1375993856	flags2=0	qualityLevel=53	magicLevel=0
+itemattrs	code=amd	name=Matriarchal Spear	category=aspe	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1375797248	flags2=0	qualityLevel=61	magicLevel=0
+itemattrs	code=amf	name=MatriarchalJavelin	category=ajav	width=1	height=3	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1375813632	flags2=0	qualityLevel=65	magicLevel=0
+itemattrs	code=amu	name=amulet	category=amul	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=1	magicLevel=0
+itemattrs	code=aqv	name=Arrows	category=bowq	width=1	height=3	stackable=1	useable=0	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=0	magicLevel=0
+itemattrs	code=axe	name=Axe	category=axe	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140851712	flags2=0	qualityLevel=7	magicLevel=0
+itemattrs	code=axf	name=Hatchet Hands	category=h2h	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1149239296	flags2=0	qualityLevel=12	magicLevel=0
+itemattrs	code=ba1	name=Jawbone Cap	category=phlm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979905	flags2=0	qualityLevel=4	magicLevel=0
+itemattrs	code=ba2	name=Fanged Helm	category=phlm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979905	flags2=0	qualityLevel=8	magicLevel=0
+itemattrs	code=ba3	name=Horned Helm	category=phlm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979905	flags2=0	qualityLevel=16	magicLevel=0
+itemattrs	code=ba4	name=Assault Helmet	category=phlm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979905	flags2=0	qualityLevel=20	magicLevel=0
+itemattrs	code=ba5	name=Avenger Guard	category=phlm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979905	flags2=0	qualityLevel=24	magicLevel=0
+itemattrs	code=ba6	name=Jawbone Visor	category=phlm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088769	flags2=0	qualityLevel=33	magicLevel=0
+itemattrs	code=ba8	name=Rage Mask	category=phlm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088769	flags2=0	qualityLevel=44	magicLevel=0
+itemattrs	code=bab	name=Carnage Helm	category=phlm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306497	flags2=0	qualityLevel=60	magicLevel=0
+itemattrs	code=bac	name=Fury Visor	category=phlm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306497	flags2=0	qualityLevel=66	magicLevel=0
+itemattrs	code=baf	name=Guardian Crown	category=phlm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306497	flags2=0	qualityLevel=85	magicLevel=0
+itemattrs	code=bal	name=Balanced Axe	category=taxe	width=2	height=3	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1140868096	flags2=0	qualityLevel=16	magicLevel=0
+itemattrs	code=bar	name=Bardiche	category=pole	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140981760	flags2=0	qualityLevel=5	magicLevel=0
+itemattrs	code=bax	name=Broad Axe 	category=axe	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140851712	flags2=0	qualityLevel=12	magicLevel=0
+itemattrs	code=bet	name=Burning Essence of Terror	category=ques	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=0	magicLevel=0
+itemattrs	code=bhm	name=Bone Helm	category=helm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979777	flags2=0	qualityLevel=22	magicLevel=0
+itemattrs	code=bkf	name=Balanced Knife	category=tkni	width=1	height=2	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1140875264	flags2=0	qualityLevel=13	magicLevel=0
+itemattrs	code=bld	name=Blade	category=knif	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140858880	flags2=0	qualityLevel=23	magicLevel=0
+itemattrs	code=brn	name=Brandistock	category=spea	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140916224	flags2=0	qualityLevel=16	magicLevel=0
+itemattrs	code=brs	name=Breast Plate	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979778	flags2=0	qualityLevel=18	magicLevel=0
+itemattrs	code=bsd	name=Broad Sword	category=swor	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140854784	flags2=0	qualityLevel=15	magicLevel=0
+itemattrs	code=bsh	name=Bone Shield	category=shie	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979780	flags2=0	qualityLevel=19	magicLevel=0
+itemattrs	code=bsw	name=Bastard Sword	category=swor	width=1	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140854784	flags2=0	qualityLevel=24	magicLevel=0
+itemattrs	code=btl	name=Blade Talons	category=h2h	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1149239296	flags2=0	qualityLevel=21	magicLevel=0
+itemattrs	code=btx	name=Battle Axe	category=axe	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140851712	flags2=0	qualityLevel=17	magicLevel=0
+itemattrs	code=bwn	name=Bone Wand	category=wand	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1142947840	flags2=0	qualityLevel=18	magicLevel=1
+itemattrs	code=cap	name=Cap/hat	category=helm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979777	flags2=0	qualityLevel=1	magicLevel=0
+itemattrs	code=cbw	name=Composite Bow	category=bow	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1141112832	flags2=0	qualityLevel=12	magicLevel=0
+itemattrs	code=ces	name=Cestus	category=h2h	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1149239296	flags2=0	qualityLevel=15	magicLevel=0
+itemattrs	code=chn	name=Chain Mail	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979778	flags2=0	qualityLevel=15	magicLevel=0
+itemattrs	code=ci0	name=Circlet	category=circ	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=2751463424	flags2=0	qualityLevel=24	magicLevel=3
+itemattrs	code=ci2	name=Tiara	category=circ	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=2818572288	flags2=0	qualityLevel=70	magicLevel=13
+itemattrs	code=ci3	name=Diadem	category=circ	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=2952790016	flags2=0	qualityLevel=85	magicLevel=18
+itemattrs	code=clb	name=Club	category=club	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140852736	flags2=0	qualityLevel=1	magicLevel=0
+itemattrs	code=clm	name=Claymore	category=swor	width=1	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140854784	flags2=0	qualityLevel=17	magicLevel=0
+itemattrs	code=clw	name=Claws	category=h2h	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1149239296	flags2=0	qualityLevel=18	magicLevel=0
+itemattrs	code=cm1	name=Charm Small	category=scha	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=28	magicLevel=0
+itemattrs	code=cm2	name=Charm Medium	category=mcha	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=14	magicLevel=0
+itemattrs	code=cm3	name=Charm Large	category=lcha	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=1	magicLevel=0
+itemattrs	code=cqv	name=Bolts	category=xboq	width=1	height=3	stackable=1	useable=0	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=0	magicLevel=0
+itemattrs	code=crn	name=Crown	category=helm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979777	flags2=0	qualityLevel=29	magicLevel=0
+itemattrs	code=crs	name=Crystal Sword	category=swor	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140854784	flags2=0	qualityLevel=11	magicLevel=0
+itemattrs	code=cst	name=Gnarled Staff	category=staf	width=1	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1141899264	flags2=0	qualityLevel=12	magicLevel=1
+itemattrs	code=dgr	name=Dagger	category=knif	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140858880	flags2=0	qualityLevel=3	magicLevel=0
+itemattrs	code=dir	name=Dirk	category=knif	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140858880	flags2=0	qualityLevel=9	magicLevel=0
+itemattrs	code=dr1	name=Wolf Head	category=pelt	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979841	flags2=0	qualityLevel=4	magicLevel=0
+itemattrs	code=dr3	name=Antlers	category=pelt	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979841	flags2=0	qualityLevel=16	magicLevel=0
+itemattrs	code=dr4	name=Falcon Mask	category=pelt	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979841	flags2=0	qualityLevel=20	magicLevel=0
+itemattrs	code=dr6	name=Alpha Helm	category=pelt	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088705	flags2=0	qualityLevel=35	magicLevel=0
+itemattrs	code=dr8	name=Hunter's Guise	category=pelt	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088705	flags2=0	qualityLevel=46	magicLevel=0
+itemattrs	code=dr9	name=Sacred Feathers	category=pelt	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088705	flags2=0	qualityLevel=50	magicLevel=0
+itemattrs	code=drb	name=Blood Spirt	category=pelt	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306433	flags2=0	qualityLevel=62	magicLevel=0
+itemattrs	code=fhl	name=Full Helm	category=helm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979777	flags2=0	qualityLevel=15	magicLevel=0
+itemattrs	code=fla	name=Flail	category=mace	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140852736	flags2=0	qualityLevel=19	magicLevel=0
+itemattrs	code=flb	name=Flamberge	category=swor	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140854784	flags2=0	qualityLevel=27	magicLevel=0
+itemattrs	code=flc	name=Falchion	category=swor	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140854784	flags2=0	qualityLevel=11	magicLevel=0
+itemattrs	code=fld	name=Field Plate	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979778	flags2=0	qualityLevel=28	magicLevel=0
+itemattrs	code=ful	name=Full Plate Mail	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979778	flags2=0	qualityLevel=37	magicLevel=0
+itemattrs	code=gax	name=Great Axe	category=axe	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140851712	flags2=0	qualityLevel=23	magicLevel=0
+itemattrs	code=gcg	name=Chipped Emerald	category=geme	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=129	qualityLevel=0	magicLevel=0
+itemattrs	code=gcr	name=Chipped Ruby	category=gemr	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=257	qualityLevel=0	magicLevel=0
+itemattrs	code=gcv	name=Chipped Amethyst	category=gema	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=33	qualityLevel=0	magicLevel=0
+itemattrs	code=gcw	name=Chipped Diamond	category=gemd	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=65	qualityLevel=0	magicLevel=0
+itemattrs	code=gcy	name=Chipped Topaz	category=gemt	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=1025	qualityLevel=0	magicLevel=0
+itemattrs	code=gfg	name=Flawed Emerald	category=geme	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=130	qualityLevel=0	magicLevel=0
+itemattrs	code=gfr	name=Flawed Ruby	category=gemr	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=258	qualityLevel=0	magicLevel=0
+itemattrs	code=gfw	name=Flawed Diamond	category=gemd	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=66	qualityLevel=0	magicLevel=0
+itemattrs	code=gfy	name=Flawed Topaz	category=gemt	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=1026	qualityLevel=0	magicLevel=0
+itemattrs	code=ghm	name=Great Helm	category=helm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979777	flags2=0	qualityLevel=23	magicLevel=0
+itemattrs	code=gis	name=Giant Sword	category=swor	width=1	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140854784	flags2=0	qualityLevel=21	magicLevel=0
+itemattrs	code=gix	name=Giant Axe	category=axe	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140851712	flags2=0	qualityLevel=27	magicLevel=0
+itemattrs	code=glb	name=Flawless Saphire	category=gems	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=520	qualityLevel=0	magicLevel=0
+itemattrs	code=gld	name=gold	category=gold	width=1	height=1	stackable=1	useable=0	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=0	magicLevel=0
+itemattrs	code=glg	name=Flawless Emerald	category=geme	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=136	qualityLevel=0	magicLevel=0
+itemattrs	code=glr	name=Flawless Ruby	category=gemr	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=264	qualityLevel=0	magicLevel=0
+itemattrs	code=glv	name=Glaive	category=jave	width=1	height=4	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1140932608	flags2=0	qualityLevel=23	magicLevel=0
+itemattrs	code=glw	name=Flawless Diamond	category=gemd	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=72	qualityLevel=0	magicLevel=0
+itemattrs	code=gly	name=Flawless Topaz	category=gemt	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=1032	qualityLevel=0	magicLevel=0
+itemattrs	code=gma	name=Great Maul	category=hamm	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140852736	flags2=0	qualityLevel=32	magicLevel=0
+itemattrs	code=gpl	name=Strangling Gas Potion	category=tpot	width=1	height=1	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1140867072	flags2=0	qualityLevel=8	magicLevel=0
+itemattrs	code=gpm	name=Choking Gas Potion	category=tpot	width=1	height=1	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1140867072	flags2=0	qualityLevel=20	magicLevel=0
+itemattrs	code=gps	name=Rancid Gas Potion	category=tpot	width=1	height=1	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1140867072	flags2=0	qualityLevel=32	magicLevel=0
+itemattrs	code=gsb	name=Saphire	category=gems	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=516	qualityLevel=0	magicLevel=0
+itemattrs	code=gsc	name=Grand Scepter	category=scep	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1145044992	flags2=0	qualityLevel=15	magicLevel=0
+itemattrs	code=gsg	name=Emerald	category=geme	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=132	qualityLevel=0	magicLevel=0
+itemattrs	code=gsr	name=Ruby	category=gemr	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=260	qualityLevel=0	magicLevel=0
+itemattrs	code=gsv	name=Amethyst	category=gema	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=36	qualityLevel=0	magicLevel=0
+itemattrs	code=gsw	name=Diamond	category=gemd	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=68	qualityLevel=0	magicLevel=0
+itemattrs	code=gsy	name=Topaz	category=gemt	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=1028	qualityLevel=0	magicLevel=0
+itemattrs	code=gth	name=Gothic Plate	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979778	flags2=0	qualityLevel=32	magicLevel=0
+itemattrs	code=gts	name=Gothic Shield	category=shie	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979780	flags2=0	qualityLevel=30	magicLevel=0
+itemattrs	code=gwn	name=Grim Wand	category=wand	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1142947840	flags2=0	qualityLevel=26	magicLevel=1
+itemattrs	code=gzv	name=Flawless Amethyst	category=gema	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=40	qualityLevel=0	magicLevel=0
+itemattrs	code=hal	name=Halberd	category=pole	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140981760	flags2=0	qualityLevel=29	magicLevel=0
+itemattrs	code=hax	name=Hand Axe	category=axe	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140851712	flags2=0	qualityLevel=3	magicLevel=0
+itemattrs	code=hbl	name=Girdle(H)	category=belt	width=2	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979808	flags2=0	qualityLevel=27	magicLevel=0
+itemattrs	code=hbt	name=Plate Boots	category=boot	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979792	flags2=0	qualityLevel=27	magicLevel=0
+itemattrs	code=hbw	name=Hunter's Bow	category=bow	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1141112832	flags2=0	qualityLevel=5	magicLevel=0
+itemattrs	code=hgl	name=Gaunlets(H)	category=glov	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979784	flags2=0	qualityLevel=27	magicLevel=0
+itemattrs	code=hla	name=Hard Leather Armor	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979778	flags2=0	qualityLevel=5	magicLevel=0
+itemattrs	code=hlm	name=Helm	category=helm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979777	flags2=0	qualityLevel=11	magicLevel=0
+itemattrs	code=hp1	name=Lesser Healing Potion	category=hpot	width=1	height=1	stackable=0	useable=1	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=0	magicLevel=0
+itemattrs	code=hp2	name=Light Healing Potion	category=hpot	width=1	height=1	stackable=0	useable=1	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=0	magicLevel=0
+itemattrs	code=hp3	name=Healing Potion	category=hpot	width=1	height=1	stackable=0	useable=1	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=0	magicLevel=0
+itemattrs	code=hp4	name=Strong Healing Potion	category=hpot	width=1	height=1	stackable=0	useable=1	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=0	magicLevel=0
+itemattrs	code=hp5	name=Greater Healing Potion	category=hpot	width=1	height=1	stackable=0	useable=1	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=0	magicLevel=0
+itemattrs	code=hxb	name=Heavy Crossbow	category=xbow	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1141374976	flags2=0	qualityLevel=24	magicLevel=0
+itemattrs	code=isc	name=Identify Scroll	category=scro	width=1	height=1	stackable=0	useable=1	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=0	magicLevel=0
+itemattrs	code=jav	name=Javelin	category=jave	width=1	height=3	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1140932608	flags2=0	qualityLevel=1	magicLevel=0
+itemattrs	code=jew	name=Jewel	category=jewl	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=1	magicLevel=0
+itemattrs	code=key	name=Skeleton Key	category=key	width=1	height=1	stackable=1	useable=0	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=0	magicLevel=0
+itemattrs	code=kit	name=Kite Shield	category=shie	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979780	flags2=0	qualityLevel=15	magicLevel=0
+itemattrs	code=kri	name=Kriss	category=knif	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140858880	flags2=0	qualityLevel=17	magicLevel=0
+itemattrs	code=ktr	name=Katar	category=h2h	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1149239296	flags2=0	qualityLevel=1	magicLevel=0
+itemattrs	code=lax	name=Large Axe	category=axe	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140851712	flags2=0	qualityLevel=6	magicLevel=0
+itemattrs	code=lbb	name=Long Battle Bow	category=bow	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1141112832	flags2=0	qualityLevel=23	magicLevel=0
+itemattrs	code=lbl	name=Sash(L)	category=belt	width=2	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979808	flags2=0	qualityLevel=3	magicLevel=0
+itemattrs	code=lbt	name=Leather Boots	category=boot	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979792	flags2=0	qualityLevel=3	magicLevel=0
+itemattrs	code=lbw	name=Long Bow	category=bow	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1141112832	flags2=0	qualityLevel=8	magicLevel=0
+itemattrs	code=lea	name=Leather Armor	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979778	flags2=0	qualityLevel=3	magicLevel=0
+itemattrs	code=lgl	name=Gloves(L)	category=glov	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979784	flags2=0	qualityLevel=3	magicLevel=0
+itemattrs	code=lrg	name=Large Shield	category=shie	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979780	flags2=0	qualityLevel=11	magicLevel=0
+itemattrs	code=lsd	name=Long Sword 	category=swor	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140854784	flags2=0	qualityLevel=20	magicLevel=0
+itemattrs	code=lst	name=Long Staff	category=staf	width=1	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1141899264	flags2=0	qualityLevel=8	magicLevel=1
+itemattrs	code=ltp	name=Light Plate	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979778	flags2=0	qualityLevel=35	magicLevel=0
+itemattrs	code=lwb	name=Long War Bow	category=bow	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1141112832	flags2=0	qualityLevel=31	magicLevel=0
+itemattrs	code=lxb	name=Light Crossbow	category=xbow	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1141374976	flags2=0	qualityLevel=6	magicLevel=0
+itemattrs	code=mac	name=Mace	category=mace	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140852736	flags2=0	qualityLevel=8	magicLevel=0
+itemattrs	code=mau	name=Maul	category=hamm	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140852736	flags2=0	qualityLevel=21	magicLevel=0
+itemattrs	code=mbl	name=Belt(M)	category=belt	width=2	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979808	flags2=0	qualityLevel=12	magicLevel=0
+itemattrs	code=mbt	name=Chain Boots	category=boot	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979792	flags2=0	qualityLevel=12	magicLevel=0
+itemattrs	code=mgl	name=Bracers(M)	category=glov	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979784	flags2=0	qualityLevel=12	magicLevel=0
+itemattrs	code=mp1	name=Lesser Mana Potion	category=mpot	width=1	height=1	stackable=0	useable=1	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=0	magicLevel=0
+itemattrs	code=mp2	name=Light Mana Potion	category=mpot	width=1	height=1	stackable=0	useable=1	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=0	magicLevel=0
+itemattrs	code=mp3	name=Mana Potion	category=mpot	width=1	height=1	stackable=0	useable=1	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=0	magicLevel=0
+itemattrs	code=mp4	name=Strong Mana Potion	category=mpot	width=1	height=1	stackable=0	useable=1	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=0	magicLevel=0
+itemattrs	code=mp5	name=Greater Mana Potion	category=mpot	width=1	height=1	stackable=0	useable=1	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=0	magicLevel=0
+itemattrs	code=mpi	name=Military Pick	category=axe	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140851712	flags2=0	qualityLevel=19	magicLevel=0
+itemattrs	code=msk	name=Mask	category=helm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979777	flags2=0	qualityLevel=19	magicLevel=0
+itemattrs	code=mst	name=Morning Star	category=mace	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140852736	flags2=0	qualityLevel=13	magicLevel=0
+itemattrs	code=mxb	name=Crossbow	category=xbow	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1141374976	flags2=0	qualityLevel=15	magicLevel=0
+itemattrs	code=ne1	name=Preserved Head	category=head	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603980292	flags2=0	qualityLevel=4	magicLevel=0
+itemattrs	code=ne2	name=Zombie Head	category=head	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603980292	flags2=0	qualityLevel=8	magicLevel=0
+itemattrs	code=ne3	name=Unraveller Head	category=head	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603980292	flags2=0	qualityLevel=16	magicLevel=0
+itemattrs	code=ne4	name=Gargoyle Head	category=head	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603980292	flags2=0	qualityLevel=20	magicLevel=0
+itemattrs	code=ne5	name=Demon Head	category=head	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603980292	flags2=0	qualityLevel=24	magicLevel=0
+itemattrs	code=ne6	name=Mummified Trophy	category=head	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671089156	flags2=0	qualityLevel=33	magicLevel=0
+itemattrs	code=neb	name=Minion Skull	category=head	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306884	flags2=0	qualityLevel=59	magicLevel=0
+itemattrs	code=ob1	name=Eagle Orb	category=orb	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1157627904	flags2=0	qualityLevel=1	magicLevel=1
+itemattrs	code=ob2	name=Sacred Globe	category=orb	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1157627904	flags2=0	qualityLevel=8	magicLevel=1
+itemattrs	code=ob3	name=Smoked Sphere	category=orb	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1157627904	flags2=0	qualityLevel=12	magicLevel=1
+itemattrs	code=ob4	name=Clasped Orb	category=orb	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1157627904	flags2=0	qualityLevel=17	magicLevel=1
+itemattrs	code=ob5	name=Dragon Stone	category=orb	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1157627904	flags2=0	qualityLevel=24	magicLevel=1
+itemattrs	code=ob6	name=Glowing Orb	category=orb	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1224736768	flags2=0	qualityLevel=32	magicLevel=1
+itemattrs	code=ob9	name=Sparkling Ball	category=orb	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1224736768	flags2=0	qualityLevel=46	magicLevel=1
+itemattrs	code=oba	name=Swirling Crystal	category=orb	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1224736768	flags2=0	qualityLevel=50	magicLevel=1
+itemattrs	code=obb	name=Heavenly Stone	category=orb	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1358954496	flags2=0	qualityLevel=59	magicLevel=1
+itemattrs	code=obc	name=Eldritch Orb	category=orb	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1358954496	flags2=0	qualityLevel=67	magicLevel=1
+itemattrs	code=obd	name=Demon Heart	category=orb	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1358954496	flags2=0	qualityLevel=75	magicLevel=1
+itemattrs	code=obe	name=Vortex Orb	category=orb	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1358954496	flags2=0	qualityLevel=84	magicLevel=1
+itemattrs	code=opl	name=Fulminating Potion	category=tpot	width=1	height=1	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1140867072	flags2=0	qualityLevel=4	magicLevel=0
+itemattrs	code=opm	name=Exploding Potion	category=tpot	width=1	height=1	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1140867072	flags2=0	qualityLevel=16	magicLevel=0
+itemattrs	code=ops	name=Oil Potion	category=tpot	width=1	height=1	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1140867072	flags2=0	qualityLevel=28	magicLevel=0
+itemattrs	code=pa2	name=Rondache	category=ashd	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603980036	flags2=0	qualityLevel=8	magicLevel=0
+itemattrs	code=pa3	name=Heraldic Shield	category=ashd	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603980036	flags2=0	qualityLevel=16	magicLevel=0
+itemattrs	code=pa4	name=Aerin Shield	category=ashd	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603980036	flags2=0	qualityLevel=20	magicLevel=0
+itemattrs	code=pa5	name=Crown Shield	category=ashd	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603980036	flags2=0	qualityLevel=24	magicLevel=0
+itemattrs	code=pa7	name=Akaran Rondache	category=ashd	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088900	flags2=0	qualityLevel=40	magicLevel=0
+itemattrs	code=pa8	name=Protector Shield	category=ashd	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088900	flags2=0	qualityLevel=46	magicLevel=0
+itemattrs	code=paa	name=Royal Shield	category=ashd	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088900	flags2=0	qualityLevel=55	magicLevel=0
+itemattrs	code=pad	name=Ancient Shield	category=ashd	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306628	flags2=0	qualityLevel=74	magicLevel=0
+itemattrs	code=pax	name=Poleaxe	category=pole	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140981760	flags2=0	qualityLevel=21	magicLevel=0
+itemattrs	code=pik	name=Pike	category=spea	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140916224	flags2=0	qualityLevel=24	magicLevel=0
+itemattrs	code=pil	name=Pilum	category=jave	width=1	height=3	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1140932608	flags2=0	qualityLevel=10	magicLevel=0
+itemattrs	code=plt	name=Plate Mail	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979778	flags2=0	qualityLevel=24	magicLevel=0
+itemattrs	code=qui	name=Quilted Armor	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979778	flags2=0	qualityLevel=1	magicLevel=0
+itemattrs	code=r01	name=El Rune	category=rune	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=4096	qualityLevel=11	magicLevel=0
+itemattrs	code=r03	name=Tir Rune	category=rune	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=4096	qualityLevel=13	magicLevel=0
+itemattrs	code=r04	name=Nef Rune	category=rune	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=4096	qualityLevel=13	magicLevel=0
+itemattrs	code=r05	name=Eth Rune	category=rune	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=4096	qualityLevel=15	magicLevel=0
+itemattrs	code=r07	name=Tal Rune	category=rune	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=4096	qualityLevel=17	magicLevel=0
+itemattrs	code=r10	name=Thul Rune	category=rune	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=4096	qualityLevel=23	magicLevel=0
+itemattrs	code=r11	name=Amn Rune	category=rune	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=4096	qualityLevel=25	magicLevel=0
+itemattrs	code=r13	name=Shael Rune	category=rune	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=4096	qualityLevel=29	magicLevel=0
+itemattrs	code=r14	name=Dol Rune	category=rune	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=4096	qualityLevel=31	magicLevel=0
+itemattrs	code=r15	name=Hel Rune	category=rune	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=4096	qualityLevel=33	magicLevel=0
+itemattrs	code=r20	name=Lem Rune	category=rune	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=4096	qualityLevel=43	magicLevel=0
+itemattrs	code=r21	name=Pul Rune	category=rune	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=4096	qualityLevel=45	magicLevel=0
+itemattrs	code=r24	name=Ist Rune	category=rune	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=4096	qualityLevel=51	magicLevel=0
+itemattrs	code=r27	name=Ohm Rune	category=rune	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=4096	qualityLevel=57	magicLevel=0
+itemattrs	code=r31	name=Jah Rune	category=rune	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=4096	qualityLevel=65	magicLevel=0
+itemattrs	code=rin	name=ring	category=ring	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=1	magicLevel=0
+itemattrs	code=rng	name=Ring Mail	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979778	flags2=0	qualityLevel=11	magicLevel=0
+itemattrs	code=rvl	name=Full Rejuv Potion	category=rpot	width=1	height=1	stackable=0	useable=1	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=0	magicLevel=0
+itemattrs	code=rvs	name=Rejuv Potion	category=rpot	width=1	height=1	stackable=0	useable=1	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=0	magicLevel=0
+itemattrs	code=rxb	name=Repeating Crossbow	category=xbow	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1141374976	flags2=0	qualityLevel=33	magicLevel=0
+itemattrs	code=sbb	name=Short Battle Bow	category=bow	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1141112832	flags2=0	qualityLevel=18	magicLevel=0
+itemattrs	code=sbr	name=Saber	category=swor	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140854784	flags2=0	qualityLevel=8	magicLevel=0
+itemattrs	code=sbw	name=Short Bow	category=bow	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1141112832	flags2=0	qualityLevel=1	magicLevel=0
+itemattrs	code=scl	name=Scale Mail	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979778	flags2=0	qualityLevel=13	magicLevel=0
+itemattrs	code=scm	name=Scimitar	category=swor	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140854784	flags2=0	qualityLevel=5	magicLevel=0
+itemattrs	code=scy	name=Scythe	category=pole	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140981760	flags2=0	qualityLevel=15	magicLevel=0
+itemattrs	code=skc	name=Chipped Skull	category=gemz	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=2049	qualityLevel=0	magicLevel=0
+itemattrs	code=skl	name=Flawless Skull	category=gemz	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=2056	qualityLevel=0	magicLevel=0
+itemattrs	code=skp	name=Skull Cap	category=helm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979777	flags2=0	qualityLevel=5	magicLevel=0
+itemattrs	code=skr	name=Scissors Katar	category=h2h	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1149239296	flags2=0	qualityLevel=24	magicLevel=0
+itemattrs	code=sku	name=Skull	category=gemz	width=1	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=0	flags2=2052	qualityLevel=0	magicLevel=0
+itemattrs	code=sml	name=Small Shield	category=shie	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979780	flags2=0	qualityLevel=5	magicLevel=0
+itemattrs	code=spc	name=Spiked Club	category=club	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140852736	flags2=0	qualityLevel=4	magicLevel=0
+itemattrs	code=spl	name=Splint Mail	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979778	flags2=0	qualityLevel=20	magicLevel=0
+itemattrs	code=spr	name=Spear	category=spea	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140916224	flags2=0	qualityLevel=5	magicLevel=0
+itemattrs	code=spt	name=Spetum	category=spea	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140916224	flags2=0	qualityLevel=20	magicLevel=0
+itemattrs	code=ssd	name=Short Sword	category=swor	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140854784	flags2=0	qualityLevel=1	magicLevel=0
+itemattrs	code=ssp	name=Short Spear	category=jave	width=1	height=3	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1140932608	flags2=0	qualityLevel=15	magicLevel=0
+itemattrs	code=stu	name=Studded Leather 	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979778	flags2=0	qualityLevel=8	magicLevel=0
+itemattrs	code=swb	name=Short War Bow	category=bow	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1141112832	flags2=0	qualityLevel=27	magicLevel=0
+itemattrs	code=tax	name=Throwing Axe	category=taxe	width=1	height=2	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1140868096	flags2=0	qualityLevel=7	magicLevel=0
+itemattrs	code=tbl	name=Heavy Belt	category=belt	width=2	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979808	flags2=0	qualityLevel=20	magicLevel=0
+itemattrs	code=tgl	name=Light Gauntlets	category=glov	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979784	flags2=0	qualityLevel=20	magicLevel=0
+itemattrs	code=tkf	name=Throwing Knife	category=tkni	width=1	height=2	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1140875264	flags2=0	qualityLevel=2	magicLevel=0
+itemattrs	code=tow	name=Tower Shield	category=shie	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979780	flags2=0	qualityLevel=22	magicLevel=0
+itemattrs	code=tri	name=Trident	category=spea	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140916224	flags2=0	qualityLevel=9	magicLevel=0
+itemattrs	code=tsc	name=Town Portal Scroll	category=scro	width=1	height=1	stackable=0	useable=1	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=0	magicLevel=0
+itemattrs	code=tsp	name=Throwing Spear	category=jave	width=1	height=4	stackable=1	useable=0	throwable=0	itemLevel=0	flags=1140932608	flags2=0	qualityLevel=29	magicLevel=0
+itemattrs	code=uap	name=Shako	category=helm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306369	flags2=0	qualityLevel=58	magicLevel=0
+itemattrs	code=uar	name=Sacred Armor	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306370	flags2=0	qualityLevel=85	magicLevel=0
+itemattrs	code=ucl	name=Loricated Mail	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306370	flags2=0	qualityLevel=73	magicLevel=0
+itemattrs	code=uea	name=Wyrmhide	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306370	flags2=0	qualityLevel=67	magicLevel=0
+itemattrs	code=uh9	name=Bone Visage	category=helm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306369	flags2=0	qualityLevel=84	magicLevel=0
+itemattrs	code=uhb	name=Myrmidon Greaves	category=boot	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306384	flags2=0	qualityLevel=85	magicLevel=0
+itemattrs	code=uhg	name=Ogre Gauntlets	category=glov	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306376	flags2=0	qualityLevel=85	magicLevel=0
+itemattrs	code=uhl	name=Giant Conch	category=helm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306369	flags2=0	qualityLevel=54	magicLevel=0
+itemattrs	code=uhm	name=Spired Helm	category=helm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306369	flags2=0	qualityLevel=79	magicLevel=0
+itemattrs	code=uhn	name=Boneweave	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306370	flags2=0	qualityLevel=62	magicLevel=0
+itemattrs	code=uit	name=Monarch	category=shie	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306372	flags2=0	qualityLevel=72	magicLevel=0
+itemattrs	code=ukp	name=Hydraskull	category=helm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306369	flags2=0	qualityLevel=63	magicLevel=0
+itemattrs	code=ula	name=Scarab Husk	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306370	flags2=0	qualityLevel=68	magicLevel=0
+itemattrs	code=ulb	name=Wyrmhide Boots	category=boot	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306384	flags2=0	qualityLevel=60	magicLevel=0
+itemattrs	code=ulc	name=Spiderweb Sash	category=belt	width=2	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306400	flags2=0	qualityLevel=61	magicLevel=0
+itemattrs	code=ulg	name=Bramble Mitts	category=glov	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306376	flags2=0	qualityLevel=57	magicLevel=0
+itemattrs	code=ulm	name=Armet	category=helm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306369	flags2=0	qualityLevel=68	magicLevel=0
+itemattrs	code=uml	name=Luna	category=shie	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306372	flags2=0	qualityLevel=61	magicLevel=0
+itemattrs	code=upk	name=Blade Barrier	category=shie	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306372	flags2=0	qualityLevel=68	magicLevel=0
+itemattrs	code=urg	name=Hyperion	category=shie	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306372	flags2=0	qualityLevel=64	magicLevel=0
+itemattrs	code=urs	name=Great Hauberk	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306370	flags2=0	qualityLevel=75	magicLevel=0
+itemattrs	code=usk	name=Demonhead	category=helm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306369	flags2=0	qualityLevel=74	magicLevel=0
+itemattrs	code=utb	name=Mirrored Boots	category=boot	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306384	flags2=0	qualityLevel=81	magicLevel=0
+itemattrs	code=utc	name=Troll Belt	category=belt	width=2	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306400	flags2=0	qualityLevel=82	magicLevel=0
+itemattrs	code=utu	name=Wire Fleece	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306370	flags2=0	qualityLevel=70	magicLevel=0
+itemattrs	code=uuc	name=Heater	category=shie	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306372	flags2=0	qualityLevel=58	magicLevel=0
+itemattrs	code=uui	name=Dusk Shroud	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306370	flags2=0	qualityLevel=65	magicLevel=0
+itemattrs	code=uvb	name=Scarabshell Boots	category=boot	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306384	flags2=0	qualityLevel=66	magicLevel=0
+itemattrs	code=uvc	name=Vampirefang Belt	category=belt	width=2	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=805306400	flags2=0	qualityLevel=68	magicLevel=0
+itemattrs	code=vbl	name=Light Belt	category=belt	width=2	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979808	flags2=0	qualityLevel=7	magicLevel=0
+itemattrs	code=vbt	name=Heavy Boots	category=boot	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979792	flags2=0	qualityLevel=7	magicLevel=0
+itemattrs	code=vgl	name=Heavy Gloves	category=glov	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=603979784	flags2=0	qualityLevel=7	magicLevel=0
+itemattrs	code=vou	name=Voulge	category=pole	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140981760	flags2=0	qualityLevel=11	magicLevel=0
+itemattrs	code=vps	name=Stamina Potion	category=spot	width=1	height=1	stackable=0	useable=1	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=0	magicLevel=0
+itemattrs	code=wax	name=War Axe	category=axe	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140851712	flags2=0	qualityLevel=25	magicLevel=0
+itemattrs	code=whm	name=War Hammer	category=hamm	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140852736	flags2=0	qualityLevel=25	magicLevel=0
+itemattrs	code=wms	name=Thawing Potion	category=wpot	width=1	height=1	stackable=0	useable=1	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=0	magicLevel=0
+itemattrs	code=wnd	name=Wand	category=wand	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1142947840	flags2=0	qualityLevel=2	magicLevel=1
+itemattrs	code=wrb	name=Wrist Blade	category=h2h	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1149239296	flags2=0	qualityLevel=9	magicLevel=0
+itemattrs	code=wsc	name=War Scythe	category=pole	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140981760	flags2=0	qualityLevel=34	magicLevel=0
+itemattrs	code=wsd	name=War Sword	category=swor	width=1	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1140854784	flags2=0	qualityLevel=27	magicLevel=0
+itemattrs	code=wsp	name=War Scepter	category=scep	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1145044992	flags2=0	qualityLevel=21	magicLevel=0
+itemattrs	code=wst	name=War Staff	category=staf	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1141899264	flags2=0	qualityLevel=24	magicLevel=1
+itemattrs	code=xap	name=War Hat	category=helm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088641	flags2=0	qualityLevel=34	magicLevel=0
+itemattrs	code=xcl	name=Tigulated Mail	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088642	flags2=0	qualityLevel=43	magicLevel=0
+itemattrs	code=xea	name=Serpentskin Armor	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088642	flags2=0	qualityLevel=36	magicLevel=0
+itemattrs	code=xh9	name=Grim Helm	category=helm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088641	flags2=0	qualityLevel=50	magicLevel=0
+itemattrs	code=xhb	name=War Boots	category=boot	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088656	flags2=0	qualityLevel=54	magicLevel=0
+itemattrs	code=xhm	name=Winged Helm	category=helm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088641	flags2=0	qualityLevel=51	magicLevel=0
+itemattrs	code=xhn	name=Mesh Armor	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088642	flags2=0	qualityLevel=45	magicLevel=0
+itemattrs	code=xkp	name=Sallet	category=helm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088641	flags2=0	qualityLevel=37	magicLevel=0
+itemattrs	code=xlb	name=Demonhide Boots	category=boot	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088656	flags2=0	qualityLevel=36	magicLevel=0
+itemattrs	code=xld	name=Sharktooth Armor	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088642	flags2=0	qualityLevel=55	magicLevel=0
+itemattrs	code=xlg	name=Demonhide Gloves	category=glov	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088648	flags2=0	qualityLevel=33	magicLevel=0
+itemattrs	code=xlt	name=Templar Coat	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088642	flags2=0	qualityLevel=52	magicLevel=0
+itemattrs	code=xmg	name=Heavy Bracers	category=glov	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088648	flags2=0	qualityLevel=43	magicLevel=0
+itemattrs	code=xml	name=Round Shield	category=shie	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088644	flags2=0	qualityLevel=37	magicLevel=0
+itemattrs	code=xng	name=Linked Mail	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088642	flags2=0	qualityLevel=42	magicLevel=0
+itemattrs	code=xow	name=Pavise	category=shie	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088644	flags2=0	qualityLevel=50	magicLevel=0
+itemattrs	code=xpk	name=Barbed Shield	category=shie	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088644	flags2=0	qualityLevel=42	magicLevel=0
+itemattrs	code=xrn	name=Grand Crown	category=helm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088641	flags2=0	qualityLevel=55	magicLevel=0
+itemattrs	code=xsh	name=Grim Shield	category=shie	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088644	flags2=0	qualityLevel=48	magicLevel=0
+itemattrs	code=xsk	name=Death Mask	category=helm	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088641	flags2=0	qualityLevel=48	magicLevel=0
+itemattrs	code=xtb	name=Battle Boots	category=boot	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088656	flags2=0	qualityLevel=49	magicLevel=0
+itemattrs	code=xtg	name=Battle Gauntlets	category=glov	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088648	flags2=0	qualityLevel=49	magicLevel=0
+itemattrs	code=xth	name=Embossed Plate	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088642	flags2=0	qualityLevel=58	magicLevel=0
+itemattrs	code=xtp	name=Mage Plate	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088642	flags2=0	qualityLevel=60	magicLevel=0
+itemattrs	code=xts	name=Ancient Shield	category=shie	width=2	height=4	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088644	flags2=0	qualityLevel=56	magicLevel=0
+itemattrs	code=xtu	name=Trellised Armor	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088642	flags2=0	qualityLevel=40	magicLevel=0
+itemattrs	code=xuc	name=Defender	category=shie	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088644	flags2=0	qualityLevel=34	magicLevel=0
+itemattrs	code=xui	name=Ghost Armor	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088642	flags2=0	qualityLevel=34	magicLevel=0
+itemattrs	code=xul	name=Chaos Armor	category=tors	width=2	height=3	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088642	flags2=0	qualityLevel=61	magicLevel=0
+itemattrs	code=xvg	name=Sharkskin Gloves	category=glov	width=2	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088648	flags2=0	qualityLevel=39	magicLevel=0
+itemattrs	code=yps	name=Antidote Potion	category=apot	width=1	height=1	stackable=0	useable=1	throwable=0	itemLevel=0	flags=0	flags2=0	qualityLevel=0	magicLevel=0
+itemattrs	code=ywn	name=Yew Wand	category=wand	width=1	height=2	stackable=0	useable=0	throwable=0	itemLevel=0	flags=1142947840	flags2=0	qualityLevel=12	magicLevel=1
+itemattrs	code=zlb	name=Demonhide Sash	category=belt	width=2	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088672	flags2=0	qualityLevel=36	magicLevel=0
+itemattrs	code=zvb	name=Sharkskin Belt	category=belt	width=2	height=1	stackable=0	useable=0	throwable=0	itemLevel=0	flags=671088672	flags2=0	qualityLevel=39	magicLevel=0

@@ -1,4 +1,4 @@
-/**
+﻿/**
  *
  * Item.cpp
  * BH: Copyright 2011 (C) McGod
@@ -50,6 +50,8 @@
 #include "../../BH.h"
 #include "../../D2Stubs.h"
 #include "ItemDisplay.h"
+#include "ItemCapture.h"
+#include "ItemFactsLive.h"
 #include "../../MPQInit.h"
 #include "lrucache.hpp"
 
@@ -117,6 +119,7 @@ void ResetCaches() {
 void Item::OnSettingsChanged(const vector<string>& keys) {
 	ResetPatches();
 	ResetCaches();
+	ItemCapture::SettingsChanged();
 	if (Toggles["Advanced Item Display"].state)
 		ItemDisplay::InitializeItemRules();
 }
@@ -152,6 +155,7 @@ void Item::LoadConfig() {
 	if (scrollVisibilityThreshold > MAX_SCROLL_VISIBILITY_THRESHOLD)
 		scrollVisibilityThreshold = MAX_SCROLL_VISIBILITY_THRESHOLD;
 	BH::config->ReadBoolean("Ordered Item Filtering", OrderedFiltering);
+	ItemCapture::LoadConfig();
 
 	LoadNoIlvlCodes();
 
@@ -327,17 +331,6 @@ void Item::OnLeftClick(bool up, unsigned int x, unsigned int y, bool* block) {
 		*block = true;
 }
 
-int CreateUnitItemInfo(UnitItemInfo *uInfo, UnitAny *item) {
-	char* code = D2COMMON_GetItemText(item->dwTxtFileNo)->szCode;
-	uInfo->itemCode[0] = code[0]; uInfo->itemCode[1] = code[1]; uInfo->itemCode[2] = code[2]; uInfo->itemCode[3] = 0;
-	uInfo->item = item;
-	if (ItemAttributeMap.find(uInfo->itemCode) != ItemAttributeMap.end()) {
-		uInfo->attrs = ItemAttributeMap[uInfo->itemCode];
-		return 0;
-	} else {
-		return -1;
-	}
-}
 
 void __fastcall Item::ItemNamePatch(wchar_t *name, UnitAny *item)
 {
@@ -349,11 +342,11 @@ void __fastcall Item::ItemNamePatch(wchar_t *name, UnitAny *item)
 	char* szName = UnicodeToAnsi(name);
 	string itemName = szName;
 
-	UnitItemInfo uInfo;
-	if (!CreateUnitItemInfo(&uInfo, item)) {
-		GetItemName(&uInfo, itemName);
+	LiveItem live(item);
+	if (live.Known()) {
+		GetItemName(&live.Unit(), itemName);
 	} else {
-		HandleUnknownItemCode(uInfo.itemCode, "name");
+		HandleUnknownItemCode(live.Unit().itemCode, "name");
 	}
 
 	// Some common color codes for text strings (see TextColor enum):
@@ -395,10 +388,12 @@ void __stdcall Item::OnProperties(wchar_t * wTxt)
 	const int MAXLEN = 1024;
 	static wchar_t wDesc[128];// a buffer for converting the description
 	UnitAny* pItem = *p_D2CLIENT_SelectedInvItem;
-	UnitItemInfo uInfo;
-	if (!pItem || pItem->dwType != UNIT_ITEM || CreateUnitItemInfo(&uInfo, pItem)) {
+	if (!pItem || pItem->dwType != UNIT_ITEM)
+		return;
+	LiveItem live(pItem);
+	if (!live.Known())
 		return; // unknown item code
-	}
+	UnitItemInfo &uInfo = live.Unit();
 
 	// Add description
 	if (Toggles["Advanced Item Display"].state) {

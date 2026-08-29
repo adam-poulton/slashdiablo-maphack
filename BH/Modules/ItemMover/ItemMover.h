@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "../../D2Structs.h"
 #include "../../Drawing.h"
 #include "../Module.h"
@@ -110,5 +110,3 @@ public:
 };
 
 
-void ParseItem(const unsigned char *data, ItemInfo *ii, bool *success);
-bool ProcessStat(unsigned int statId, BitReader &reader, ItemProperty &itemProp);

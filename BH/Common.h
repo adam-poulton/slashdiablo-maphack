@@ -1,4 +1,4 @@
-/**
+﻿/**
 *
 * Common.h
 * BH: Copyright 2011 (C) McGod
@@ -48,6 +48,7 @@
 #include <vector>
 #include <sstream>
 #include "D2Ptrs.h"
+#include "StringUtil.h"
 
 void Tokenize(const std::string& str, std::vector<std::string>& tokens, const std::string& delimiters);
 wchar_t* AnsiToUnicode(const char* str);
@@ -65,13 +66,9 @@ bool from_string(T& t,
 template< class type> std::string to_string( const type & value)
 { std::stringstream ss; ss << value; return ss.str(); }
 
-bool IsTrue(const char *str);
-bool StringToBool(std::string str);
 int StringToNumber(std::string str);
 
-std::string Trim(std::string source);
 
-std::string ToLower(const std::string& text);
 
 void PrintText(DWORD Color, char *szText, ...);
 

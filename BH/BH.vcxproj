@@ -175,6 +175,11 @@ if defined D2Path (
     <ClCompile Include="Modules\GambleRefresh\GambleRefresh.cpp" />
     <ClCompile Include="Modules\Gamefilter\Gamefilter.cpp" />
     <ClCompile Include="Modules\Item\Item.cpp" />
+    <ClCompile Include="Modules\Item\CaptureFormat.cpp" />
+    <ClCompile Include="Modules\Item\ItemCapture.cpp" />
+    <ClCompile Include="Modules\Item\ItemFactsLive.cpp" />
+    <ClCompile Include="Modules\Item\ItemFactsPacket.cpp" />
+    <ClCompile Include="Modules\Item\ItemFilter.cpp" />
     <ClCompile Include="Modules\Item\ItemDisplay.cpp" />
     <ClCompile Include="Modules\ItemMover\ItemMover.cpp" />
     <ClCompile Include="Modules\Maphack\Maphack.cpp" />
@@ -199,6 +204,7 @@ if defined D2Path (
     <ClCompile Include="MPQReader.cpp" />
     <ClCompile Include="ItemDescription.cpp" />
     <ClCompile Include="StatDescriptions.cpp" />
+    <ClCompile Include="StringUtil.cpp" />
     <ClCompile Include="Mustache.cpp" />
     <ClCompile Include="Patch.cpp" />
     <ClCompile Include="Modules\StashExport\StashExport.cpp" />
@@ -256,6 +262,13 @@ if defined D2Path (
     <ClInclude Include="Modules\GambleRefresh\GambleRefresh.h" />
     <ClInclude Include="Modules\Gamefilter\Gamefilter.h" />
     <ClInclude Include="Modules\Item\Item.h" />
+    <ClInclude Include="Modules\Item\CaptureFormat.h" />
+    <ClInclude Include="Modules\Item\ItemCapture.h" />
+    <ClInclude Include="ItemTables.h" />
+    <ClInclude Include="Modules\Item\ItemFacts.h" />
+    <ClInclude Include="Modules\Item\ItemFactsLive.h" />
+    <ClInclude Include="Modules\Item\ItemFactsPacket.h" />
+    <ClInclude Include="Modules\Item\ItemFilter.h" />
     <ClInclude Include="Modules\Item\ItemDisplay.h" />
     <ClInclude Include="Modules\ItemMover\ItemMover.h" />
     <ClInclude Include="Modules\Maphack\Maphack.h" />
@@ -281,6 +294,7 @@ if defined D2Path (
     <ClInclude Include="MPQReader.h" />
     <ClInclude Include="ItemDescription.h" />
     <ClInclude Include="StatDescriptions.h" />
+    <ClInclude Include="StringUtil.h" />
     <ClInclude Include="Mustache.h" />
     <ClInclude Include="Patch.h" />
     <ClInclude Include="Modules\StashExport\StashExport.h" />

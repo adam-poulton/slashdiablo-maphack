@@ -1,6 +1,9 @@
-#include "ItemMover.h"
+﻿#include "ItemMover.h"
 #include "../Settings/SettingsRegistry.h"
 #include "../Item/Item.h"
+#include "../Item/ItemCapture.h"
+#include "../Item/ItemFactsLive.h"
+#include "../Item/ItemFactsPacket.h"
 #include "../../BH.h"
 #include "../../D2Ptrs.h"
 #include "../../D2Stubs.h"
@@ -56,12 +59,64 @@ static bool AllTomesAboveThreshold(UnitAny *unit, const char *tomeCode, unsigned
 	return foundTome;
 }
 
+namespace {
+
+// The tables a running client reads an item packet against: the game's own.
+class GameItemTables : public ItemFactsPacket::Tables {
+public:
+	ItemAttributes* Attributes(const char* code) const override {
+		std::map<std::string, ItemAttributes*>::const_iterator found =
+			ItemAttributeMap.find(code);
+		return (found == ItemAttributeMap.end()) ? NULL : found->second;
+	}
+
+	// The list is built with an entry for every stat id up to the highest the
+	// tables mention, gaps included, so a stat beyond its end is one the tables
+	// never described.
+	StatProperties* Stat(unsigned int stat) const override {
+		return (stat < AllStatList.size()) ? AllStatList[stat] : NULL;
+	}
+};
+
+// What a packet that did not read cleanly is worth saying in game.
+class GameDiagnostics : public ItemFactsPacket::Diagnostics {
+public:
+	void UnknownItemCode(const char* code) override {
+		HandleUnknownItemCode(const_cast<char*>(code), "from packet");
+	}
+
+	void UnreadableStat(unsigned int stat, const char* code) override {
+		if ((*BH::MiscToggles2)["Suppress Invalid Stats"].state)
+			return;
+		PrintText(1, "Invalid stat: %d, %c%c%c", stat, code[0], code[1], code[2]);
+	}
+
+	void Failed(const char* code, const std::string& reason) override {
+		PrintText(1, "Exception parsing item: %c%c%c, %s",
+			code[0], code[1], code[2], reason.c_str());
+	}
+};
+
+bool ReadItemPacket(const BYTE* packet, ItemFacts* item) {
+	GameItemTables tables;
+	GameDiagnostics diagnostics;
+	// "Suppress Invalid Stats" asks for a stat of unknown width to be kept and
+	// the rest of the packet read on, rather than the item being abandoned.
+	bool stopOnUnreadableStat =
+		!(*BH::MiscToggles2)["Suppress Invalid Stats"].state;
+	ItemFactsPacket::Reader reader(tables, diagnostics, stopOnUnreadableStat);
+	return reader.Read(packet, item);
+}
+
+}  // namespace
+
 // "Hide Redundant Scrolls": true for a town portal/identify scroll that lands while
 // every matching tome is still above the visibility threshold.
 static bool IsRedundantScroll(BYTE *packet) {
-	bool success = true;
-	ItemInfo item = {};
-	ParseItem((unsigned char*)packet, &item, &success);
+	ItemFacts item = {};
+	ItemFactsPacket::PacketStats stats(item);
+	item.stats = &stats;
+	bool success = ReadItemPacket(packet, &item);
 	if (!success || (item.action != ITEM_ACTION_NEW_GROUND && item.action != ITEM_ACTION_OLD_GROUND))
 		return false;
 
@@ -555,54 +610,36 @@ void ItemMover::OnGamePacketRecv(BYTE* packet, bool* block) {
 			}
 
 			if ((*BH::MiscToggles2)["Advanced Item Display"].state) {
-				bool success = true;
-				ItemInfo item = {};
-				ParseItem((unsigned char*)packet, &item, &success);
+				ItemFacts item = {};
+				ItemFactsPacket::PacketStats stats(item);
+				item.stats = &stats;
+				bool success = ReadItemPacket(packet, &item);
+				// The world the item landed in, read once for all the rules.
+				LiveContext context;
 				//PrintText(1, "Item packet: %s, %s, %X, %d, %d", item.name.c_str(), item.code, item.attrs->flags, item.sockets, GetDefense(&item));
 				if ((item.action == ITEM_ACTION_NEW_GROUND || item.action == ITEM_ACTION_OLD_GROUND) && success) {
-					bool showOnMap = false;
-					bool noTracking = false;
-					auto pingLevel = -1;
-					auto color = UNDEFINED_COLOR;
-					// config position of the earliest rule that wants this item kept, and of the
-					// earliest one that wants it hidden. Ordered filtering compares the two.
-					unsigned int keepIndex = NO_RULE_MATCH;
-					unsigned int ignoreIndex = NO_RULE_MATCH;
-
-					for (vector<Rule*>::iterator it = MapRuleList.begin(); it != MapRuleList.end(); it++) {
-						if ((*it)->Evaluate(NULL, &item)) {
-							if ((*it)->action.index < keepIndex) keepIndex = (*it)->action.index;
-							// skip map and notification if ping level requirement is not met
-							if ((*it)->action.pingLevel > Item::GetPingLevel()) continue;
-							auto action_color = (*it)->action.notifyColor;
-							// never overwrite color with an undefined color. never overwrite a defined color with dead color.
-							if (action_color != UNDEFINED_COLOR && (action_color != DEAD_COLOR || color == UNDEFINED_COLOR))
-								color = action_color;
-							showOnMap = true;
-							noTracking = (*it)->action.noTracking;
-							pingLevel = (*it)->action.pingLevel;
-							// break unless %CONTINUE% is used
-							if ((*it)->action.stopProcessing) break;
-						}
+					RuleLists lists = { &MapRuleList, &DoNotBlockRuleList,
+						&IgnoreRuleList };
+					RuleMatch match = MatchRules(lists, item, context.Context(),
+						Item::GetPingLevel(), OrderedFiltering);
+					bool showOnMap = match.showOnMap;
+					bool noTracking = match.noTracking;
+					auto pingLevel = match.pingLevel;
+					auto color = match.color;
+					unsigned int keepIndex = match.keepIndex;
+					unsigned int ignoreIndex = match.ignoreIndex;
+					bool blocked = match.blocked;
+					if (ItemCapture::IsEnabled()) {
+						ItemCapture::Outcome outcome = {};
+						outcome.keepIndex = keepIndex;
+						outcome.ignoreIndex = ignoreIndex;
+						outcome.blocked = blocked;
+						outcome.showOnMap = showOnMap;
+						outcome.noTracking = noTracking;
+						outcome.color = color;
+						outcome.pingLevel = pingLevel;
+						ItemCapture::RecordDrop((const unsigned char*)packet, item, outcome);
 					}
-					// Don't block items that have a white-listed name
-					for (vector<Rule*>::iterator it = DoNotBlockRuleList.begin(); it != DoNotBlockRuleList.end(); it++) {
-						if ((*it)->Evaluate(NULL, &item)) {
-							if ((*it)->action.index < keepIndex) keepIndex = (*it)->action.index;
-							break;
-						}
-					}
-					// With ordered filtering off this list only matters when nothing kept the item,
-					// so skip the scan entirely in that case to keep the old cost.
-					if (OrderedFiltering || keepIndex == NO_RULE_MATCH) {
-						for (vector<Rule*>::iterator it = IgnoreRuleList.begin(); it != IgnoreRuleList.end(); it++) {
-							if ((*it)->Evaluate(NULL, &item)) {
-								ignoreIndex = (*it)->action.index;
-								break;
-							}
-						}
-					}
-					bool blocked = IsItemBlocked(ignoreIndex, keepIndex);
 					if (blocked) {
 						*block = true;
 						//PrintText(1, "Blocking item: %s, %s, %d", item.name.c_str(), item.code, item.amount);
@@ -672,437 +709,3 @@ void ItemMover::OnGameExit() {
 }
 
 // Code for reading the 0x9c bitstream (borrowed from heroin_glands)
-void ParseItem(const unsigned char *data, ItemInfo *item, bool *success) {
-	*success = true;
-	try {
-		BitReader reader(data);
-		unsigned long packet = reader.read(8);
-		item->action = reader.read(8);
-		unsigned long messageSize = reader.read(8);
-		item->category = reader.read(8); // item type
-		item->id = reader.read(32);
-
-		if (packet == 0x9d) {
-			reader.read(32);
-			reader.read(8);
-		}
-
-		item->equipped = reader.readBool();
-		reader.readBool();
-		reader.readBool();
-		item->inSocket = reader.readBool();
-		item->identified = reader.readBool();
-		reader.readBool();
-		item->switchedIn = reader.readBool();
-		item->switchedOut = reader.readBool();
-
-		item->broken = reader.readBool();
-		reader.readBool();
-		item->potion = reader.readBool();
-		item->hasSockets = reader.readBool();
-		reader.readBool();
-		item->inStore = reader.readBool();
-		item->notInSocket = reader.readBool();
-		reader.readBool();
-
-		item->ear = reader.readBool();
-		item->startItem = reader.readBool();
-		reader.readBool();
-		reader.readBool();
-		reader.readBool();
-		item->simpleItem = reader.readBool();
-		item->ethereal = reader.readBool();
-		reader.readBool();
-
-		item->personalized = reader.readBool();
-		item->gambling = reader.readBool();
-		item->runeword = reader.readBool();
-		reader.read(5);
-
-		item->version = static_cast<unsigned int>(reader.read(8));
-
-		reader.read(2);
-		unsigned long destination = reader.read(3);
-
-		item->ground = (destination == 0x03);
-
-		if (item->ground) {
-			item->x = reader.read(16);
-			item->y = reader.read(16);
-		} else {
-			item->directory = reader.read(4);
-			item->x = reader.read(4);
-			item->y = reader.read(3);
-			item->container = static_cast<unsigned int>(reader.read(4));
-		}
-
-		item->unspecifiedDirectory = false;
-
-		if (item->action == ITEM_ACTION_TO_STORE || item->action == ITEM_ACTION_FROM_STORE) {
-			long container = static_cast<long>(item->container);
-			container |= 0x80;
-			if (container & 1) {
-				container--; //remove first bit
-				item->y += 8;
-			}
-			item->container = static_cast<unsigned int>(container);
-		} else if (item->container == CONTAINER_UNSPECIFIED) {
-			if (item->directory == EQUIP_NONE) {
-				if (item->inSocket) {
-					//y is ignored for this container type, x tells you the index
-					item->container = CONTAINER_ITEM;
-				} else if (item->action == ITEM_ACTION_PLACE_BELT || item->action == ITEM_ACTION_REMOVE_BELT) {
-					item->container = CONTAINER_BELT;
-					item->y = item->x / 4;
-					item->x %= 4;
-				}
-			} else {
-				item->unspecifiedDirectory = true;
-			}
-		}
-
-		if (item->ear) {
-			item->earClass = static_cast<BYTE>(reader.read(3));
-			item->earLevel = reader.read(7);
-			item->code[0] = 'e';
-			item->code[1] = 'a';
-			item->code[2] = 'r';
-			item->code[3] = 0;
-			for (std::size_t i = 0; i < 16; i++) {
-				char letter = static_cast<char>(reader.read(7));
-				if (letter == 0) {
-					break;
-				}
-				item->earName.push_back(letter);
-			}
-			item->attrs = ItemAttributeMap[item->code];
-			item->name = item->attrs->name;
-			item->width = item->attrs->width;
-			item->height = item->attrs->height;
-			//PrintText(1, "Ear packet: %s, %s, %d, %d", item->earName.c_str(), item->code, item->earClass, item->earLevel);
-			return;
-		}
-
-		for (std::size_t i = 0; i < 4; i++) {
-			item->code[i] = static_cast<char>(reader.read(8));
-		}
-		item->code[3] = 0;
-
-		if (ItemAttributeMap.find(item->code) == ItemAttributeMap.end()) {
-			HandleUnknownItemCode(item->code, "from packet");
-			*success = false;
-			return;
-		}
-		item->attrs = ItemAttributeMap[item->code];
-		item->name = item->attrs->name;
-		item->width = item->attrs->width;
-		item->height = item->attrs->height;
-
-		item->isGold = (item->code[0] == 'g' && item->code[1] == 'l' && item->code[2] == 'd');
-
-		if (item->isGold) {
-			bool big_pile = reader.readBool();
-			if (big_pile) {
-				item->amount = reader.read(32);
-			} else {
-				item->amount = reader.read(12);
-			}
-			return;
-		}
-
-		item->usedSockets = (BYTE)reader.read(3);
-
-		if (item->simpleItem || item->gambling) {
-			return;
-		}
-
-		item->level = (BYTE)reader.read(7);
-		item->quality = static_cast<unsigned int>(reader.read(4));
-
-		item->hasGraphic = reader.readBool();;
-		if (item->hasGraphic) {
-			item->graphic = reader.read(3);
-		}
-
-		item->hasColor = reader.readBool();
-		if (item->hasColor) {
-			item->color = reader.read(11);
-		}
-
-		if (item->identified) {
-			switch(item->quality) {
-			case ITEM_QUALITY_INFERIOR:
-				item->prefix = reader.read(3);
-				break;
-
-			case ITEM_QUALITY_SUPERIOR:
-				item->superiority = static_cast<unsigned int>(reader.read(3));
-				break;
-
-			case ITEM_QUALITY_MAGIC:
-				item->prefix = reader.read(11);
-				item->suffix = reader.read(11);
-				break;
-
-			case ITEM_QUALITY_CRAFT:
-			case ITEM_QUALITY_RARE:
-				item->prefix = reader.read(8) - 156;
-				item->suffix = reader.read(8) - 1;
-				break;
-
-			case ITEM_QUALITY_SET:
-				item->setCode = reader.read(12);
-				break;
-
-			case ITEM_QUALITY_UNIQUE:
-				if (item->code[0] != 's' || item->code[1] != 't' || item->code[2] != 'd') { //standard of heroes exception?
-					item->uniqueCode = reader.read(12);
-				}
-				break;
-			}
-		}
-
-		if (item->quality == ITEM_QUALITY_RARE || item->quality == ITEM_QUALITY_CRAFT) {
-			for (unsigned long i = 0; i < 3; i++) {
-				if (reader.readBool()) {
-					item->prefixes.push_back(reader.read(11));
-				}
-				if (reader.readBool()) {
-					item->suffixes.push_back(reader.read(11));
-				}
-			}
-		}
-
-		if (item->runeword) {
-			item->runewordId = reader.read(12);
-			item->runewordParameter = reader.read(4);
-		}
-
-		if (item->personalized) {
-			for (std::size_t i = 0; i < 16; i++) {
-				char letter = static_cast<char>(reader.read(7));
-				if (letter == 0) {
-					break;
-				}
-				item->personalizedName.push_back(letter);
-			}
-			//PrintText(1, "Personalized packet: %s, %s", item->personalizedName.c_str(), item->code);
-		}
-
-		item->isArmor = (item->attrs->flags & ITEM_GROUP_ALLARMOR) > 0;
-		item->isWeapon = (item->attrs->flags & ITEM_GROUP_ALLWEAPON) > 0;
-
-		if (item->isArmor) {
-			item->defense = reader.read(11) - 10;
-		}
-
-		/*if(entry.throwable)
-		{
-			reader.read(9);
-			reader.read(17);
-		} else */
-		//special case: indestructible phase blade
-		if (item->code[0] == '7' && item->code[1] == 'c' && item->code[2] == 'r') {
-			reader.read(8);
-		} else if (item->isArmor || item->isWeapon) {
-			item->maxDurability = reader.read(8);
-			item->indestructible = item->maxDurability == 0;
-			/*if (!item->indestructible) {
-				item->durability = reader.read(8);
-				reader.readBool();
-			}*/
-			//D2Hackit always reads it, hmmm. Appears to work.
-			item->durability = reader.read(8);
-			reader.readBool();
-		}
-
-		if (item->hasSockets) {
-			item->sockets = (BYTE)reader.read(4);
-		}
-
-		if (!item->identified) {
-			return;
-		}
-
-		if (item->attrs->stackable) {
-			if (item->attrs->useable) {
-				reader.read(5);
-			}
-			item->amount = reader.read(9);
-		}
-
-		if (item->quality == ITEM_QUALITY_SET) {
-			unsigned long set_mods = reader.read(5);
-		}
-
-		while (true) {
-			unsigned long stat_id = reader.read(9);
-			if (stat_id == 0x1ff) {
-				break;
-			}
-			ItemProperty prop = {};
-			if (!ProcessStat(stat_id, reader, prop) &&
-					!(*BH::MiscToggles2)["Suppress Invalid Stats"].state) {
-				PrintText(1, "Invalid stat: %d, %c%c%c", stat_id, item->code[0], item->code[1], item->code[2]);
-				*success = false;
-				break;
-			}
-			item->properties.push_back(prop);
-		}
-	} catch (int e) {
-		PrintText(1, "Int exception parsing item: %c%c%c, %d", item->code[0], item->code[1], item->code[2], e);
-	} catch (std::exception const & ex) {
-		PrintText(1, "Exception parsing item: %c%c%c, %s", item->code[0], item->code[1], item->code[2], ex.what());
-	} catch(...) {
-		PrintText(1, "Miscellaneous exception parsing item: %c%c%c", item->code[0], item->code[1], item->code[2]);
-		*success = false;
-	}
-	return;
-}
-
-bool ProcessStat(unsigned int stat, BitReader &reader, ItemProperty &itemProp) {
-	if (stat > STAT_MAX) {
-		return false;
-	}
-
-	StatProperties *bits = GetStatProperties(stat);
-	unsigned int saveBits = bits->saveBits;
-	unsigned int saveParamBits = bits->saveParamBits;
-	unsigned int saveAdd = bits->saveAdd;
-	itemProp.stat = stat;
-
-	if (saveParamBits > 0) {
-		switch (stat) {
-			case STAT_CLASSSKILLS:
-			{
-				itemProp.characterClass = reader.read(saveParamBits);
-				itemProp.value = reader.read(saveBits);
-				return true;
-			}
-			case STAT_NONCLASSSKILL:
-			case STAT_SINGLESKILL:
-			{
-				itemProp.skill = reader.read(saveParamBits);
-				itemProp.value = reader.read(saveBits);
-				return true;
-			}
-			case STAT_ELEMENTALSKILLS:
-			{
-				ulong element = reader.read(saveParamBits);
-				itemProp.value = reader.read(saveBits);
-				return true;
-			}
-			case STAT_AURA:
-			{
-				itemProp.skill = reader.read(saveParamBits);
-				itemProp.value = reader.read(saveBits);
-				return true;
-			}
-			case STAT_REANIMATE:
-			{
-				itemProp.monster = reader.read(saveParamBits);
-				itemProp.value = reader.read(saveBits);
-				return true;
-			}
-			case STAT_SKILLTAB:
-			{
-				itemProp.tab = reader.read(3);
-				itemProp.characterClass = reader.read(3);
-				ulong unknown = reader.read(10);
-				itemProp.value = reader.read(saveBits);
-				return true;
-			}
-			case STAT_SKILLONDEATH:
-			case STAT_SKILLONHIT:
-			case STAT_SKILLONKILL:
-			case STAT_SKILLONLEVELUP:
-			case STAT_SKILLONSTRIKING:
-			case STAT_SKILLWHENSTRUCK:
-			{
-				itemProp.level = reader.read(6);
-				itemProp.skill = reader.read(10);
-				itemProp.skillChance = reader.read(saveBits);
-				return true;
-			}
-			case STAT_CHARGED:
-			{
-				itemProp.level = reader.read(6);
-				itemProp.skill = reader.read(10);
-				itemProp.charges = reader.read(8);
-				itemProp.maximumCharges = reader.read(8);
-				return true;
-			}
-			case STAT_STATE:
-			case STAT_ATTCKRTNGVSMONSTERTYPE:
-			case STAT_DAMAGETOMONSTERTYPE:
-			{
-				// For some reason heroin_glands doesn't read these, even though
-				// they have saveParamBits; maybe they don't occur in practice?
-				itemProp.value = reader.read(saveBits) - saveAdd;
-				return true;
-			}
-			default:
-				reader.read(saveParamBits);
-				reader.read(saveBits);
-				return true;
-		}
-	}
-
-	if (bits->op >= 2 && bits->op <= 5) {
-		itemProp.perLevel = reader.read(saveBits);
-		return true;
-	}
-
-	switch (stat) {
-		case STAT_ENHANCEDMAXIMUMDAMAGE:
-		case STAT_ENHANCEDMINIMUMDAMAGE:
-		{
-			itemProp.minimum = reader.read(saveBits);
-			itemProp.maximum = reader.read(saveBits);
-			return true;
-		}
-		case STAT_MINIMUMFIREDAMAGE:
-		{
-			itemProp.minimum = reader.read(saveBits);
-			itemProp.maximum = reader.read(GetStatProperties(STAT_MAXIMUMFIREDAMAGE)->saveBits);
-			return true;
-		}
-		case STAT_MINIMUMLIGHTNINGDAMAGE:
-		{
-			itemProp.minimum = reader.read(saveBits);
-			itemProp.maximum = reader.read(GetStatProperties(STAT_MAXIMUMLIGHTNINGDAMAGE)->saveBits);
-			return true;
-		}
-		case STAT_MINIMUMMAGICALDAMAGE:
-		{
-			itemProp.minimum = reader.read(saveBits);
-			itemProp.maximum = reader.read(GetStatProperties(STAT_MAXIMUMMAGICALDAMAGE)->saveBits);
-			return true;
-		}
-		case STAT_MINIMUMCOLDDAMAGE:
-		{
-			itemProp.minimum = reader.read(saveBits);
-			itemProp.maximum = reader.read(GetStatProperties(STAT_MAXIMUMCOLDDAMAGE)->saveBits);
-			itemProp.length = reader.read(GetStatProperties(STAT_COLDDAMAGELENGTH)->saveBits);
-			return true;
-		}
-		case STAT_MINIMUMPOISONDAMAGE:
-		{
-			itemProp.minimum = reader.read(saveBits);
-			itemProp.maximum = reader.read(GetStatProperties(STAT_MAXIMUMPOISONDAMAGE)->saveBits);
-			itemProp.length = reader.read(GetStatProperties(STAT_POISONDAMAGELENGTH)->saveBits);
-			return true;
-		}
-		case STAT_REPAIRSDURABILITY:
-		case STAT_REPLENISHESQUANTITY:
-		{
-			itemProp.value = reader.read(saveBits);
-			return true;
-		}
-		default:
-		{
-			itemProp.value = reader.read(saveBits) - saveAdd;
-			return true;
-		}
-	}
-}
