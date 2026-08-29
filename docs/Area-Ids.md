@@ -17,6 +17,8 @@ ItemDisplay[AREALVL>83]: %NAME%
 ItemDisplay[AREAID=108]: %NAME%
 ```
 
+Area names are the names the game displays.
+
 Area levels are the expansion values; classic characters use the classic monster levels
 of the same area. Towns and other areas without monsters have an area level of 0.
 
@@ -60,7 +62,7 @@ of the same area. Towns and other areas without monsters have an area level of 0
 | 36 | 0x24 | 1 | Catacombs Level 3 | 12 | 43 | 73 |
 | 37 | 0x25 | 1 | Catacombs Level 4 | 12 | 43 | 73 |
 | 38 | 0x26 | 1 | Tristram | 6 | 39 | 76 |
-| 39 | 0x27 | 1 | Moo Moo Farm | 28 | 64 | 81 |
+| 39 | 0x27 | 1 | The Secret Cow Level | 28 | 64 | 81 |
 | 40 | 0x28 | 2 | Lut Gholein | 0 | 0 | 0 |
 | 41 | 0x29 | 2 | Rocky Waste | 14 | 43 | 75 |
 | 42 | 0x2A | 2 | Dry Hills | 15 | 44 | 76 |
@@ -94,9 +96,9 @@ of the same area. Towns and other areas without monsters have an area level of 0
 | 70 | 0x46 | 2 | Tal Rasha's Tomb | 17 | 49 | 80 |
 | 71 | 0x47 | 2 | Tal Rasha's Tomb | 17 | 49 | 80 |
 | 72 | 0x48 | 2 | Tal Rasha's Tomb | 17 | 49 | 80 |
-| 73 | 0x49 | 2 | Duriel's Lair | 17 | 49 | 80 |
+| 73 | 0x49 | 2 | Tal Rasha's Chamber | 17 | 49 | 80 |
 | 74 | 0x4A | 2 | Arcane Sanctuary | 14 | 48 | 79 |
-| 75 | 0x4B | 3 | Kurast Docktown | 0 | 0 | 0 |
+| 75 | 0x4B | 3 | Kurast Docks | 0 | 0 | 0 |
 | 76 | 0x4C | 3 | Spider Forest | 21 | 49 | 79 |
 | 77 | 0x4D | 3 | Great Marsh | 21 | 50 | 80 |
 | 78 | 0x4E | 3 | Flayer Jungle | 22 | 50 | 80 |
@@ -105,7 +107,7 @@ of the same area. Towns and other areas without monsters have an area level of 0
 | 81 | 0x51 | 3 | Upper Kurast | 23 | 52 | 81 |
 | 82 | 0x52 | 3 | Kurast Causeway | 24 | 53 | 81 |
 | 83 | 0x53 | 3 | Travincal | 24 | 54 | 82 |
-| 84 | 0x54 | 3 | Spider Cave | 21 | 50 | 79 |
+| 84 | 0x54 | 3 | Arachnid Lair | 21 | 50 | 79 |
 | 85 | 0x55 | 3 | Spider Cavern | 21 | 50 | 79 |
 | 86 | 0x56 | 3 | Swampy Pit Level 1 | 21 | 51 | 80 |
 | 87 | 0x57 | 3 | Swampy Pit Level 2 | 21 | 51 | 81 |
@@ -129,32 +131,32 @@ of the same area. Towns and other areas without monsters have an area level of 0
 | 105 | 0x69 | 4 | Plains of Despair | 26 | 56 | 83 |
 | 106 | 0x6A | 4 | City of the Damned | 27 | 57 | 84 |
 | 107 | 0x6B | 4 | River of Flame | 27 | 57 | 85 |
-| 108 | 0x6C | 4 | Chaos Sanctum | 28 | 58 | 85 |
+| 108 | 0x6C | 4 | The Chaos Sanctuary | 28 | 58 | 85 |
 | 109 | 0x6D | 5 | Harrogath | 0 | 0 | 0 |
 | 110 | 0x6E | 5 | Bloody Foothills | 24 | 58 | 80 |
-| 111 | 0x6F | 5 | Rigid Highlands | 25 | 59 | 81 |
+| 111 | 0x6F | 5 | Frigid Highlands | 25 | 59 | 81 |
 | 112 | 0x70 | 5 | Arreat Plateau | 26 | 60 | 81 |
-| 113 | 0x71 | 5 | Crystalized Cavern Level 1 | 29 | 61 | 82 |
-| 114 | 0x72 | 5 | Cellar of Pity | 29 | 61 | 83 |
-| 115 | 0x73 | 5 | Crystalized Cavern Level 2 | 29 | 61 | 83 |
-| 116 | 0x74 | 5 | Echo Chamber | 29 | 61 | 84 |
-| 117 | 0x75 | 5 | Tundra Wastelands | 27 | 60 | 81 |
-| 118 | 0x76 | 5 | Glacial Caves Level 1 | 29 | 62 | 82 |
-| 119 | 0x77 | 5 | Glacial Caves Level 2 | 29 | 62 | 83 |
-| 120 | 0x78 | 5 | Rocky Summit | 37 | 68 | 87 |
-| 121 | 0x79 | 5 | Nihlathaks Temple | 32 | 63 | 83 |
+| 113 | 0x71 | 5 | Crystalline Passage | 29 | 61 | 82 |
+| 114 | 0x72 | 5 | Frozen River | 29 | 61 | 83 |
+| 115 | 0x73 | 5 | Glacial Trail | 29 | 61 | 83 |
+| 116 | 0x74 | 5 | Drifter Cavern | 29 | 61 | 84 |
+| 117 | 0x75 | 5 | Frozen Tundra | 27 | 60 | 81 |
+| 118 | 0x76 | 5 | The Ancients' Way | 29 | 62 | 82 |
+| 119 | 0x77 | 5 | Icy Cellar | 29 | 62 | 83 |
+| 120 | 0x78 | 5 | Arreat Summit | 37 | 68 | 87 |
+| 121 | 0x79 | 5 | Nihlathak's Temple | 32 | 63 | 83 |
 | 122 | 0x7A | 5 | Halls of Anguish | 33 | 63 | 83 |
-| 123 | 0x7B | 5 | Halls of Death's Calling | 34 | 64 | 84 |
+| 123 | 0x7B | 5 | Halls of Pain | 34 | 64 | 84 |
 | 124 | 0x7C | 5 | Halls of Vaught | 36 | 64 | 84 |
-| 125 | 0x7D | 5 | Hell1 | 39 | 60 | 81 |
-| 126 | 0x7E | 5 | Hell2 | 39 | 61 | 82 |
-| 127 | 0x7F | 5 | Hell3 | 39 | 62 | 83 |
-| 128 | 0x80 | 5 | The Worldstone Keep Level 1 | 39 | 65 | 85 |
-| 129 | 0x81 | 5 | The Worldstone Keep Level 2 | 40 | 65 | 85 |
-| 130 | 0x82 | 5 | The Worldstone Keep Level 3 | 42 | 66 | 85 |
+| 125 | 0x7D | 5 | Abaddon | 39 | 60 | 81 |
+| 126 | 0x7E | 5 | Pit of Acheron | 39 | 61 | 82 |
+| 127 | 0x7F | 5 | Infernal Pit | 39 | 62 | 83 |
+| 128 | 0x80 | 5 | Worldstone Keep Level 1 | 39 | 65 | 85 |
+| 129 | 0x81 | 5 | Worldstone Keep Level 2 | 40 | 65 | 85 |
+| 130 | 0x82 | 5 | Worldstone Keep Level 3 | 42 | 66 | 85 |
 | 131 | 0x83 | 5 | Throne of Destruction | 43 | 66 | 85 |
 | 132 | 0x84 | 5 | The Worldstone Chamber | 43 | 66 | 85 |
-| 133 | 0x85 | 5 | Pandemonium Run 1 | 50 | 75 | 83 |
-| 134 | 0x86 | 5 | Pandemonium Run 2 | 50 | 75 | 83 |
-| 135 | 0x87 | 5 | Pandemonium Run 3 | 50 | 75 | 83 |
+| 133 | 0x85 | 5 | Matron's Den | 50 | 75 | 83 |
+| 134 | 0x86 | 5 | Forgotten Sands | 50 | 75 | 83 |
+| 135 | 0x87 | 5 | Furnace of Pain | 50 | 75 | 83 |
 | 136 | 0x88 | 5 | Tristram | 50 | 75 | 83 |
