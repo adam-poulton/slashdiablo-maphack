@@ -204,6 +204,7 @@ if defined D2Path (
     <ClCompile Include="MPQReader.cpp" />
     <ClCompile Include="ItemDescription.cpp" />
     <ClCompile Include="StatDescriptions.cpp" />
+    <ClCompile Include="StringUtil.cpp" />
     <ClCompile Include="Mustache.cpp" />
     <ClCompile Include="Patch.cpp" />
     <ClCompile Include="Modules\StashExport\StashExport.cpp" />
@@ -293,6 +294,7 @@ if defined D2Path (
     <ClInclude Include="MPQReader.h" />
     <ClInclude Include="ItemDescription.h" />
     <ClInclude Include="StatDescriptions.h" />
+    <ClInclude Include="StringUtil.h" />
     <ClInclude Include="Mustache.h" />
     <ClInclude Include="Patch.h" />
     <ClInclude Include="Modules\StashExport\StashExport.h" />

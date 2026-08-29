@@ -316,6 +316,17 @@ namespace ItemDisplay {
  * The maps are held across calls because Config keeps the address it is given
  * and writes through it when settings are saved.
  */
+// What reading a rule could not make sense of, said in game.
+class FilterDiagnostics : public ItemFilterDiagnostics {
+	void IgnoredToken(const std::string &token) override {
+		PrintText(1, "Ignored ItemDisplay token: %s", token.c_str());
+	}
+	void UnreadableValue(const std::string &token) override {
+		PrintText(1, "Error processing value for token: %s", token.c_str());
+	}
+};
+static FilterDiagnostics filterDiagnostics;
+
 static ItemFilterSettings ReadFilterSettings() {
 	static std::map<std::string, std::string> classSkills;
 	static std::map<std::string, std::string> tabSkills;
@@ -323,6 +334,10 @@ static ItemFilterSettings ReadFilterSettings() {
 	BH::itemConfig->ReadAssoc("TabSkillsList", tabSkills);
 
 	ItemFilterSettings settings;
+	// What the tables describe is what a rule is allowed to name.
+	settings.statMax = STAT_MAX;
+	settings.skillMax = SKILL_MAX;
+	settings.diagnostics = &filterDiagnostics;
 	for (auto it = classSkills.cbegin(); it != classSkills.cend(); ++it) {
 		if (StringToBool(it->second))
 			settings.goodClassSkills.push_back(stoi(it->first));
@@ -441,5 +456,21 @@ static ItemFilterSettings ReadFilterSettings() {
 		MapRuleList.clear();
 		DoNotBlockRuleList.clear();
 		IgnoreRuleList.clear();
+	}
+}
+
+void HandleUnknownItemCode(char *code, char *tag) {
+	// If the MPQ files arent loaded yet then this is expected
+	if (!IsInitialized()){
+		return;
+	}
+
+	// Avoid spamming endlessly
+	if (UnknownItemCodes.size() > 10 || (*BH::MiscToggles2)["Allow Unknown Items"].state) {
+		return;
+	}
+	if (UnknownItemCodes.find(code) == UnknownItemCodes.end()) {
+		PrintText(1, "Unknown item code %s: %c%c%c\n", tag, code[0], code[1], code[2]);
+		UnknownItemCodes[code] = 1;
 	}
 }

@@ -1,26 +1,24 @@
 #include "ItemFilter.h"
+#include "../../ItemTables.h"
 #include <regex>
 #include <sstream>
-#include "../../BH.h"
-#include "../../Common.h"
-#include "../../D2Helpers.h"
-#include "../../D2Ptrs.h"
-#include "../../MPQInit.h"
-#include "Item.h"
-#include "ItemDisplay.h"
-#include "ItemFactsLive.h"
+#include "../../StringUtil.h"
+
 #include "ItemFactsPacket.h"
 
+// The code moved here was written under a using directive it inherited from
+// what it used to include, and is left reading as it did.
+using namespace std;
+
 /*
- * A condition still reaches into the running game for anything the item itself
- * does not carry: the character's stats, the difficulty, the area, the price a
- * vendor would pay. That is why this reads the game's memory as freely as the
- * item display it came out of, and why it cannot yet be built without one.
+ * Judging an item, and reading the rules an item is judged by.
  *
- * The pair of bodies each condition carries is the same story from the other
- * side. What an item already in the world answers is read from the game as the
- * question is asked; what an item in a packet answers was read out of the
- * packet in advance. Neither is wrong, but nothing makes them agree.
+ * Nothing here reaches into the game. What a condition needs that is not in the
+ * rule's own text arrives as facts about the item and about the world, and the
+ * two questions that can only be put to an item that exists are asked through
+ * an interface the game answers behind. That is what lets a rule be read and an
+ * item be judged with no client running, which is what the recorded decisions
+ * in the fixtures are replayed against.
  */
 
 SkillReplace skills[] = {
@@ -160,6 +158,11 @@ bool IntegerCompare(unsigned int Lvalue, BYTE operation, unsigned int Rvalue) {
 	}
 }
 Rule::Rule(vector<Condition*> &inputConditions, string *str) {
+	needsLiveItem = false;
+	for (unsigned int i = 0; i < inputConditions.size(); i++) {
+		if (inputConditions[i]->NeedsLiveItem())
+			needsLiveItem = true;
+	}
 	Condition::ProcessConditions(inputConditions, conditions);
 	if (str != NULL) BuildAction(str, &action);
 	conditionStack.reserve(conditions.size()); // TODO: too large?
@@ -414,8 +417,11 @@ void Condition::BuildConditions(vector<Condition*> &conditions, string token,
 		if (valueStr.length() > 0) {
 			stringstream ss(valueStr);
 			if ((ss >> value).fail()) {
-				cout << "Error processing value for token: " << token << endl;
-				return;  // TODO: returning errors
+				// Reported rather than written to a console this has never
+				// had: the whole token is abandoned, as it always was.
+				if (settings.diagnostics)
+					settings.diagnostics->UnreadableValue(token);
+				return;
 			}
 		}
 	} else {
@@ -701,21 +707,21 @@ void Condition::BuildConditions(vector<Condition*> &conditions, string token,
 	} else if (key.compare(0, 2, "SK") == 0) {
 		int num = -1;
 		stringstream ss(key.substr(2));
-		if ((ss >> num).fail() || num < 0 || num > (int)SKILL_MAX) {
+		if ((ss >> num).fail() || num < 0 || num > (int)settings.skillMax) {
 			return;
 		}
 		Condition::AddOperand(conditions, new ItemStatCondition(STAT_SINGLESKILL, num, operation, value));
 	} else if (key.compare(0, 2, "OS") == 0) {
 		int num = -1;
 		stringstream ss(key.substr(2));
-		if ((ss >> num).fail() || num < 0 || num > (int)SKILL_MAX) {
+		if ((ss >> num).fail() || num < 0 || num > (int)settings.skillMax) {
 			return;
 		}
 		Condition::AddOperand(conditions, new ItemStatCondition(STAT_NONCLASSSKILL, num, operation, value));
 	} else if (key.compare(0, 4, "CHSK") == 0) { // skills granted by charges
 		int num = -1;
 		stringstream ss(key.substr(4));
-		if ((ss >> num).fail() || num < 0 || num > (int)SKILL_MAX) {
+		if ((ss >> num).fail() || num < 0 || num > (int)settings.skillMax) {
 			return;
 		}
 		Condition::AddOperand(conditions, new ChargedCondition(operation, num, value));
@@ -738,14 +744,14 @@ void Condition::BuildConditions(vector<Condition*> &conditions, string token,
 	} else if (key.compare(0, 4, "STAT") == 0) {
 		int num = -1;
 		stringstream ss(key.substr(4));
-		if ((ss >> num).fail() || num < 0 || num > (int)STAT_MAX) {
+		if ((ss >> num).fail() || num < 0 || num > (int)settings.statMax) {
 			return;
 		}
 		Condition::AddOperand(conditions, new ItemStatCondition(num, 0, operation, value));
 	} else if (key.compare(0, 8, "CHARSTAT") == 0) {
 		int num = -1;
 		stringstream ss(key.substr(8));
-		if ((ss >> num).fail() || num < 0 || num > (int)STAT_MAX) {
+		if ((ss >> num).fail() || num < 0 || num > (int)settings.statMax) {
 			return;
 		}
 		Condition::AddOperand(conditions, new CharStatCondition(num, 0, operation, value));
@@ -815,8 +821,8 @@ void Condition::BuildConditions(vector<Condition*> &conditions, string token,
 		//PrintText(1, "Created PartialCondition with min_conditions=%d and rules size=%d", min_conditions, tokens.size());
 		Condition::AddOperand(conditions, new PartialCondition(operation, min_conditions, tokens, settings));
 	} else if ( token.length() > 0 ){
-		PrintText(1, "Ignored ItemDisplay token: %s", token.c_str());
-		cout << "Ignored ItemDisplay token: " << token << endl;
+		if (settings.diagnostics)
+			settings.diagnostics->IgnoredToken(token);
 	}
 	for (vector<Condition*>::iterator it = endConditions.begin(); it != endConditions.end(); it++) {
 		Condition::AddNonOperand(conditions, (*it));
@@ -1122,115 +1128,6 @@ bool FilterLevelCondition::Match(const ItemFacts &facts, const FilterContext &co
 	return IntegerCompare(context.filterLevel, operation, filterLevel);
 }
 
-// Only an item lying in the world has an area to speak of, and for those the
-// character's area is the area the item is in.
-bool AreaLevelCondition::Match(const ItemFacts &facts, const FilterContext &context,
-		Condition *arg1, Condition *arg2) const {
-	return facts.ground && IntegerCompare(context.areaLevel, operation, areaLevel);
-}
-
-bool AreaIdCondition::Match(const ItemFacts &facts, const FilterContext &context,
-		Condition *arg1, Condition *arg2) const {
-	return facts.ground && IntegerCompare(context.areaId, operation, areaId);
-}
-
-// The affix level a craft rolled at, which is worked out from the item's level
-// and the character's together.
-bool CraftAffixLevelCondition::Match(const ItemFacts &facts, const FilterContext &context,
-		Condition *arg1, Condition *arg2) const {
-	unsigned int craftLevel = facts.level / 2 + context.charLevel / 2;
-	BYTE alvl = GetAffixLevel((BYTE)craftLevel, facts.attrs->qualityLevel,
-		facts.attrs->magicLevel);
-	return IntegerCompare(alvl, operation, affixLevel);
-}
-
-/*
- * A rule of rules: how many of them the item satisfies.
- */
-bool PartialCondition::Match(const ItemFacts &facts, const FilterContext &context,
-		Condition *arg1, Condition *arg2) const {
-	int matched = 0;
-	for (unsigned int i = 0; i < rules.size(); i++) {
-		if (const_cast<Rule&>(rules[i]).Evaluate(facts, context))
-			matched++;
-	}
-	return IntegerCompare(matched, operation, target_count);
-}
-
-/*
- * The two an item from a packet still cannot answer.
- *
- * Both need the item to exist as a game unit: one asks the game what a vendor
- * would pay, the other what level it takes to use, and neither question can be
- * put about an item that is still only a description of one. facts.unit is what
- * says which kind of item this is, and is temporary: ADR 0002 has these
- * becoming facts that may simply be absent, and an absent one stopping the rule
- * rather than being answered wrongly.
- */
-bool ItemPriceCondition::Match(const ItemFacts &facts, const FilterContext &context,
-		Condition *arg1, Condition *arg2) const {
-	if (!facts.unit)
-		return false;
-	return IntegerCompare(
-		D2COMMON_GetItemPrice(D2CLIENT_GetPlayerUnit(), facts.unit,
-			context.difficulty, (DWORD)D2CLIENT_GetQuestInfo(), 0x201, 1),
-		operation, targetStat);
-}
-
-bool RequiredLevelCondition::Match(const ItemFacts &facts, const FilterContext &context,
-		Condition *arg1, Condition *arg2) const {
-	// Answering true for an item that cannot be asked is what it has always
-	// done, and is wrong: it makes every item on the ground satisfy any
-	// comparison. Left as it was so that this change is a move and not a
-	// change of behaviour.
-	if (!facts.unit)
-		return true;
-	return IntegerCompare(GetRequiredLevel(facts.unit), operation, requiredLevel);
-}
-
-bool Condition::Evaluate(const ItemFacts &facts, const FilterContext &context,
-		Condition *arg1, Condition *arg2) {
-	return Match(facts, context, arg1, arg2);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Only an item lying in the world has an area to speak of, and for those the character's
-// area is the area the item dropped in.
-static bool IsOnGround(UnitAny *item) {
-	return item->dwMode == ITEM_MODE_ON_GROUND || item->dwMode == ITEM_MODE_BEING_DROPPED;
-}
 
 
 
@@ -1252,21 +1149,58 @@ void AddCondition::Init() {
 	}
 }
 
+// Only an item lying in the world has an area to speak of, and for those the
+// character's area is the area the item is in.
+bool AreaLevelCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
+	return facts.ground && IntegerCompare(context.areaLevel, operation, areaLevel);
+}
 
+bool AreaIdCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
+	return facts.ground && IntegerCompare(context.areaId, operation, areaId);
+}
 
+// The affix level a craft rolled at, worked out from the item's level and the
+// character's together.
+bool CraftAffixLevelCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
+	unsigned int craftLevel = facts.level / 2 + context.charLevel / 2;
+	BYTE alvl = GetAffixLevel((BYTE)craftLevel, facts.attrs->qualityLevel,
+		facts.attrs->magicLevel);
+	return IntegerCompare(alvl, operation, affixLevel);
+}
 
-void HandleUnknownItemCode(char *code, char *tag) {
-	// If the MPQ files arent loaded yet then this is expected
-	if (!IsInitialized()){
-		return;
+// A rule of rules: how many of them the item satisfies.
+bool PartialCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
+	int matched = 0;
+	for (unsigned int i = 0; i < rules.size(); i++) {
+		if (const_cast<Rule&>(rules[i]).Evaluate(facts, context))
+			matched++;
 	}
+	return IntegerCompare(matched, operation, target_count);
+}
 
-	// Avoid spamming endlessly
-	if (UnknownItemCodes.size() > 10 || (*BH::MiscToggles2)["Allow Unknown Items"].state) {
-		return;
-	}
-	if (UnknownItemCodes.find(code) == UnknownItemCodes.end()) {
-		PrintText(1, "Unknown item code %s: %c%c%c\n", tag, code[0], code[1], code[2]);
-		UnknownItemCodes[code] = 1;
-	}
+/*
+ * The two an item has to exist to be asked.
+ *
+ * Neither checks whether it can be. A rule holding either is abandoned before
+ * it is judged when the item cannot answer, which is ADR 0002, and is why these
+ * read as though the answer is always there.
+ */
+bool ItemPriceCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
+	return IntegerCompare(facts.liveOnly->Price(context.difficulty),
+		operation, targetStat);
+}
+
+bool RequiredLevelCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
+	return IntegerCompare(facts.liveOnly->RequiredLevel(), operation, requiredLevel);
+}
+
+bool Condition::Evaluate(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) {
+	return Match(facts, context, arg1, arg2);
 }

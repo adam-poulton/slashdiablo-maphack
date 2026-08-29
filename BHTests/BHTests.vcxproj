@@ -87,8 +87,10 @@
          can be linked here: the D2 function pointers are naked inline-asm thunks
          that need the game process to mean anything. -->
     <ClCompile Include="..\BH\BitReader.cpp" />
+    <ClCompile Include="..\BH\StringUtil.cpp" />
     <ClCompile Include="..\BH\Modules\Item\CaptureFormat.cpp" />
     <ClCompile Include="..\BH\Modules\Item\ItemFactsPacket.cpp" />
+    <ClCompile Include="..\BH\Modules\Item\ItemFilter.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

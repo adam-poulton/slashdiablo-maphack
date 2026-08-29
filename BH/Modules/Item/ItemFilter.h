@@ -110,6 +110,17 @@ extern BYTE LastConditionType;
 // Ordered filtering compares matched rule indices, so "no match" must sort last.
 #define NO_RULE_MATCH     0xffffffff
 
+// Where reading a rule reports what it could not make sense of.
+struct ItemFilterDiagnostics {
+	virtual ~ItemFilterDiagnostics() {}
+
+	// A token that means nothing here.
+	virtual void IgnoredToken(const std::string &token) {}
+
+	// A token whose comparison could not be read as a number.
+	virtual void UnreadableValue(const std::string &token) {}
+};
+
 /*
  * The parts of the configuration a rule is built from that are not in the
  * rule's own text.
@@ -123,6 +134,16 @@ struct ItemFilterSettings {
 	// Skill ids GOODSK counts, and class and tab pairs GOODTBSK counts.
 	std::vector<unsigned int> goodClassSkills;
 	std::vector<unsigned int> goodTabSkills;
+
+	// The highest stat and skill the game's tables describe, which is what
+	// bounds the numbers a rule is allowed to name.
+	unsigned int statMax;
+	unsigned int skillMax;
+
+	// Where a token that means nothing is reported, or null to say nothing.
+	ItemFilterDiagnostics *diagnostics;
+
+	ItemFilterSettings() : statMax(0), skillMax(0), diagnostics(NULL) {}
 };
 
 enum ConditionType {
@@ -151,6 +172,18 @@ public:
 			Condition *arg1, Condition *arg2);
 
 	BYTE conditionType{};
+
+	/*
+	 * Whether this can only be answered about an item that already exists.
+	 *
+	 * Asked once, when a rule is built, rather than each time one is judged.
+	 * A rule holding any such condition is not judged at all against an item
+	 * that cannot answer it, which is what ADR 0002 settles: an unknown fact
+	 * stops the whole rule rather than its own condition, so that negating it
+	 * does not turn not knowing into a match.
+	 */
+	virtual bool NeedsLiveItem() const { return false; }
+
 private:
 	/*
 	 * Whether an item satisfies this condition.
@@ -397,6 +430,8 @@ class RequiredLevelCondition : public Condition
 public:
 	RequiredLevelCondition(BYTE op, BYTE rlvl) : requiredLevel(rlvl), operation(op) { conditionType = CT_Operand; };
 private:
+	bool NeedsLiveItem() const override { return true; }
+
 	BYTE operation;
 	BYTE requiredLevel;
 	bool Match(const ItemFacts &facts, const FilterContext &context,
@@ -595,6 +630,8 @@ public:
 		conditionType = CT_Operand;
 	};
 private:
+	bool NeedsLiveItem() const override { return true; }
+
 	BYTE operation;
 	unsigned int targetStat;
 	bool Match(const ItemFacts &facts, const FilterContext &context,
@@ -686,11 +723,21 @@ struct Rule {
 	Action action;
 	std::vector<Condition*> conditionStack;
 
+	// Whether any condition here can only be answered about an item that
+	// exists. Worked out once, when the rule is built.
+	bool needsLiveItem;
+
 	Rule(std::vector<Condition*> &inputConditions, std::string *str);
 
 	// TODO: Should this really be defined in the header? This will force it to be inlined AFAIK. -ybd
 	// Evaluate conditions which are in Reverse Polish Notation
 	bool Evaluate(const ItemFacts &facts, const FilterContext &context) {
+		// An item that does not exist yet cannot answer what this rule asks,
+		// and a rule that cannot be judged does not match.
+		if (needsLiveItem && !facts.liveOnly) {
+			return false;
+		}
+
 		if (conditions.size() == 0) {
 			return true;  // a rule with no conditions always matches
 		}
@@ -761,4 +808,3 @@ bool IsRune(ItemAttributes *attrs);
 BYTE RuneNumberFromItemCode(char *code);
 
 
-void HandleUnknownItemCode(char *code, char *tag);

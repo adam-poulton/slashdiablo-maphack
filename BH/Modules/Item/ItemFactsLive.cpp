@@ -1,5 +1,6 @@
 #include "ItemFactsLive.h"
 #include "Item.h"
+#include "ItemDisplay.h"
 #include "../../D2Ptrs.h"
 #include "../../D2Structs.h"
 #include "../../Constants.h"
@@ -98,13 +99,23 @@ unsigned int GetUsedSockets(UnitAny *item) {
 	return used;
 }
 
-LiveItem::LiveItem(UnitAny* item) : stats(item), unit(), facts(), known(false) {
+unsigned int LiveOnly::Price(unsigned int difficulty) const {
+	return D2COMMON_GetItemPrice(D2CLIENT_GetPlayerUnit(), item, difficulty,
+		(DWORD)D2CLIENT_GetQuestInfo(), 0x201, 1);
+}
+
+unsigned int LiveOnly::RequiredLevel() const {
+	return GetRequiredLevel(item);
+}
+
+LiveItem::LiveItem(UnitAny* item)
+	: stats(item), liveOnly(item), unit(), facts(), known(false) {
 	unit.item = item;
 	unit.attrs = NULL;
 	unit.facts = &facts;
 	facts.attrs = NULL;
 	facts.stats = &stats;
-	facts.unit = item;
+	facts.liveOnly = &liveOnly;
 	// Only an item lying in the world has an area, which is what the area
 	// conditions test before they compare one.
 	facts.ground = item->dwMode == ITEM_MODE_ON_GROUND ||

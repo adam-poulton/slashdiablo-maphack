@@ -53,6 +53,24 @@ struct StatSource {
 	virtual const std::vector<StatEntry>& Stats() const = 0;
 };
 
+/*
+ * What an item has to exist to be asked.
+ *
+ * A packet describes an item; it does not create one. These two questions are
+ * put to the game about a thing that is already there, so an item still on its
+ * way cannot answer them at all. Rather than answering wrongly, it says so, and
+ * ADR 0002 has what happens then: the rule that wanted to know does not match.
+ */
+struct LiveOnlyFacts {
+	virtual ~LiveOnlyFacts() {}
+
+	// What a vendor would pay, which depends on the difficulty being played.
+	virtual unsigned int Price(unsigned int difficulty) const = 0;
+
+	// The lowest level any class needs to use the item.
+	virtual unsigned int RequiredLevel() const = 0;
+};
+
 // A property an item carries, as one is written into a packet.
 struct ItemProperty {
 	unsigned int stat;
@@ -160,13 +178,13 @@ struct ItemFacts {
 	const StatSource *stats;
 
 	/*
-	 * The game unit this item is, or null for an item a packet has only just
-	 * described.
+	 * What can only be asked of an item that exists, or null for an item a
+	 * packet has only just described.
 	 *
-	 * Two questions are still put to the game rather than answered from here:
-	 * what a vendor would pay for the item, and what level it takes to use. Both
-	 * need it to exist. ADR 0002 has these becoming facts that may be absent,
-	 * at which point this goes.
+	 * Asked for rather than worked out in advance because both are dear: a
+	 * price is a question put to the game, and the level an item takes to use
+	 * is found by asking about each character class in turn. Most items are
+	 * judged without either being wanted.
 	 */
-	UnitAny *unit;
+	const LiveOnlyFacts *liveOnly;
 };

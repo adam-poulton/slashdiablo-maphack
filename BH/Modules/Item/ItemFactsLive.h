@@ -71,6 +71,18 @@ unsigned int GetCurrentAreaLevel();
 // How many of an item's sockets are filled.
 unsigned int GetUsedSockets(UnitAny *item);
 
+// What the game will answer about an item that exists.
+class LiveOnly : public LiveOnlyFacts {
+public:
+	explicit LiveOnly(UnitAny* item) : item(item) {}
+
+	unsigned int Price(unsigned int difficulty) const override;
+	unsigned int RequiredLevel() const override;
+
+private:
+	UnitAny* item;
+};
+
 class LiveItem {
 public:
 	explicit LiveItem(UnitAny* item);
@@ -84,6 +96,7 @@ public:
 
 private:
 	LiveStats stats;
+	LiveOnly liveOnly;
 	UnitItemInfo unit;
 	ItemFacts facts;
 	bool known;

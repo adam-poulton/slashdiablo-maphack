@@ -19,6 +19,7 @@ set(SOURCE_FILES "AsyncDrawBuffer.cpp"
                  "Mustache.cpp"
                  "Patch.cpp"
                  "StatDescriptions.cpp"
+                 "StringUtil.cpp"
                  "TableReader.cpp"
                  "Task.cpp")
 
