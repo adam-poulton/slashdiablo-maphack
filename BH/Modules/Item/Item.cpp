@@ -109,11 +109,7 @@ void Item::OnLoad() {
 }
 
 void ResetCaches() {
-	item_desc_cache.ResetCache();
-	item_name_cache.ResetCache();
-	map_action_cache.ResetCache();
-	do_not_block_cache.ResetCache();
-	ignore_cache.ResetCache();
+	ResetItemVerdicts();
 }
 
 void Item::OnSettingsChanged(const vector<string>& keys) {
@@ -154,7 +150,6 @@ void Item::LoadConfig() {
 	BH::config->ReadInt("Scroll Visibility Threshold", scrollVisibilityThreshold);
 	if (scrollVisibilityThreshold > MAX_SCROLL_VISIBILITY_THRESHOLD)
 		scrollVisibilityThreshold = MAX_SCROLL_VISIBILITY_THRESHOLD;
-	BH::config->ReadBoolean("Ordered Item Filtering", OrderedFiltering);
 	ItemCapture::LoadConfig();
 
 	LoadNoIlvlCodes();
@@ -248,11 +243,6 @@ void Item::RegisterSettings() {
 	Settings::AddEnum(GetName(), Settings::Category::Filter, "Ping Level", "Ping tiers <=",
 		&pingLevelSetting, { "0", "1", "2", "3", "4", "5", "6" },
 		"The highest tier that is still pinged.");
-	// No hotkey: this changes how BH.cfg is read, which is not something to flip
-	// mid game.
-	Settings::AddBool(GetName(), Settings::Category::Filter, "Ordered Item Filtering", "Ordered item filtering",
-		&OrderedFiltering,
-		"Applies the rules in BH.cfg strictly in the order they are written, rather than whitelist before hidelist.");
 	Settings::AddToggle(GetName(), Settings::Category::Filter, "Hide Redundant Scrolls", "Hide redundant scrolls",
 		&Toggles["Hide Redundant Scrolls"],
 		"Hides scrolls on the ground once you are carrying enough of them.");
@@ -282,6 +272,8 @@ void Item::OnUnload() {
 }
 
 void Item::OnLoop() {
+	ForgetVerdictsIfWorldChanged();
+
 	if (!D2CLIENT_GetUIState(0x01))
 		viewingUnit = NULL;
 
@@ -398,7 +390,7 @@ void __stdcall Item::OnProperties(wchar_t * wTxt)
 	// Add description
 	if (Toggles["Advanced Item Display"].state) {
 		int aLen = wcslen(wTxt);
-		string desc = item_desc_cache.Get(&uInfo);
+		string desc = GetItemDescription(&uInfo);
 		if (desc != "") {
 			auto chars_written = MultiByteToWideChar(CODE_PAGE, MB_PRECOMPOSED, desc.c_str(), -1, wDesc, 128);
 			swprintf_s(wTxt + aLen, MAXLEN - aLen,

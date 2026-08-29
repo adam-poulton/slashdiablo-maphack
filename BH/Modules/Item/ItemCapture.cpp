@@ -141,7 +141,6 @@ void AppendHeader() {
 	header.Add("filterLevel", (long long)Item::GetFilterLevel());
 	header.Add("pingLevel", (long long)Item::GetPingLevel());
 	header.Add("trackerPingLevel", (long long)Item::GetTrackerPingLevel());
-	header.Add("orderedFiltering", OrderedFiltering);
 
 	Append(header.Line());
 

@@ -823,6 +823,20 @@ struct RuleMatch {
 	int color;
 	int pingLevel;
 
+	/*
+	 * The map actions the item matched, in the order they were written.
+	 *
+	 * The fields above are what an item arriving in a packet needs: one colour,
+	 * one tier, shown or not. What is drawn on the automap is not that, since
+	 * several rules may each contribute a box, a dot or a line to one item. So
+	 * the actions themselves are kept rather than only what was folded out of
+	 * them, and the walk that found them is not made twice.
+	 *
+	 * They point into the rules, which outlive any decision made from them:
+	 * reading a rule set again resets everything holding one of these.
+	 */
+	std::vector<const Action*> mapActions;
+
 	RuleMatch() : keepIndex(NO_RULE_MATCH), ignoreIndex(NO_RULE_MATCH),
 		blocked(false), showOnMap(false), noTracking(false),
 		color(UNDEFINED_COLOR), pingLevel(-1) {}
@@ -836,10 +850,44 @@ struct RuleLists {
 	const std::vector<Rule*> *ignore;
 };
 
-// Whether an item is hidden, given where the earliest rule wanting it kept and
-// the earliest wanting it hidden were written.
-bool IsItemBlocked(unsigned int ignoreIndex, unsigned int keepIndex,
-		bool orderedFiltering);
+/*
+ * Whether an item is hidden, given where the earliest rule wanting it kept and
+ * the earliest wanting it hidden were written.
+ *
+ * Whichever was written first. A rule that only decorates an item and passes it
+ * on is not one of these: saying nothing final about an item is not wanting it
+ * kept, which is what lets a rule hide a whole category that later rules go on
+ * to colour and name.
+ */
+bool IsItemBlocked(unsigned int ignoreIndex, unsigned int keepIndex);
+
+// A ping level no rule can exceed, for the lists where the setting has no say.
+// A rule's tier governs the map box and the notification; the name and the
+// description a rule gives an item are not tiered.
+#define PING_LEVEL_ALL    0xffffffff
+
+/*
+ * The actions of the rules in one list that an item matches.
+ *
+ * Every walk of a rule list stops the same way and few of them agreed about it,
+ * so the stopping is here and nothing else is. The actions come back in the
+ * order they were written, and what to do with each one is the caller's: the
+ * automap draws them, a name folds them together, the map walk reads a colour
+ * off them.
+ *
+ * Actions a rule asked to be shown above the ping level in force are still
+ * returned. They are what stops a rule that is too high a tier to be drawn from
+ * also hiding the item: whoever counts a rule as keeping an item counts those,
+ * and whoever shows one does not. Leaving them out here would make a tier
+ * setting hide items, which is what it is documented never to do.
+ *
+ * The walk ends after the first action that both sits at or below the ping
+ * level and asks to stop. A rule that asks to stop from above the ping level
+ * does not stop anything, since nothing it says is being listened to.
+ */
+std::vector<const Action*> MatchingActions(const std::vector<Rule*> &rules,
+		const ItemFacts &facts, const FilterContext &context,
+		unsigned int pingLevel);
 
 /*
  * What the rules make of one item.
@@ -850,8 +898,7 @@ bool IsItemBlocked(unsigned int ignoreIndex, unsigned int keepIndex,
  * it if it is the same walk that made the recording.
  */
 RuleMatch MatchRules(const RuleLists &lists, const ItemFacts &facts,
-		const FilterContext &context, unsigned int pingLevel,
-		bool orderedFiltering);
+		const FilterContext &context, unsigned int pingLevel);
 
 // A name or description that is only colour codes and spaces says nothing, so
 // what is left once those are taken out is what decides whether a rule has one.

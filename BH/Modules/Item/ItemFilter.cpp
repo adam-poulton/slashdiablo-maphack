@@ -1205,67 +1205,76 @@ bool Condition::Evaluate(const ItemFacts &facts, const FilterContext &context,
 	return Match(facts, context, arg1, arg2);
 }
 
-bool IsItemBlocked(unsigned int ignoreIndex, unsigned int keepIndex,
-		bool orderedFiltering) {
+bool IsItemBlocked(unsigned int ignoreIndex, unsigned int keepIndex) {
 	if (ignoreIndex == NO_RULE_MATCH)
 		return false;
-	if (orderedFiltering)
-		return ignoreIndex < keepIndex;
-	return keepIndex == NO_RULE_MATCH;
+	return ignoreIndex < keepIndex;
+}
+
+std::vector<const Action*> MatchingActions(const std::vector<Rule*> &rules,
+		const ItemFacts &facts, const FilterContext &context,
+		unsigned int pingLevel) {
+	std::vector<const Action*> actions;
+	for (unsigned int i = 0; i < rules.size(); i++) {
+		Rule *rule = rules[i];
+		if (!rule->Evaluate(facts, context))
+			continue;
+		actions.push_back(&rule->action);
+		if (rule->action.pingLevel > pingLevel)
+			continue;
+		if (rule->action.stopProcessing)
+			break;	// unless the rule said to carry on
+	}
+	return actions;
+}
+
+// The earliest rule in a list an item matches, for the two lists where nothing
+// past the first one has a say.
+static const Rule *FirstMatchingRule(const std::vector<Rule*> &rules,
+		const ItemFacts &facts, const FilterContext &context) {
+	for (unsigned int i = 0; i < rules.size(); i++) {
+		Rule *rule = rules[i];
+		if (rule->Evaluate(facts, context))
+			return rule;
+	}
+	return NULL;
 }
 
 RuleMatch MatchRules(const RuleLists &lists, const ItemFacts &facts,
-		const FilterContext &context, unsigned int pingLevel,
-		bool orderedFiltering) {
+		const FilterContext &context, unsigned int pingLevel) {
 	RuleMatch match;
 
-	for (unsigned int i = 0; i < lists.map->size(); i++) {
-		Rule *rule = (*lists.map)[i];
-		if (!rule->Evaluate(facts, context))
-			continue;
-		if (rule->action.index < match.keepIndex)
-			match.keepIndex = rule->action.index;
+	match.mapActions = MatchingActions(*lists.map, facts, context, pingLevel);
+	for (unsigned int i = 0; i < match.mapActions.size(); i++) {
+		const Action *action = match.mapActions[i];
+		if (action->index < match.keepIndex)
+			match.keepIndex = action->index;
 		// A rule kept the item even if its tier is above what is being pinged;
 		// it just has nothing to say about the map.
-		if (rule->action.pingLevel > pingLevel)
+		if (action->pingLevel > pingLevel)
 			continue;
-		int color = rule->action.notifyColor;
+		int color = action->notifyColor;
 		// Never overwrite a colour with no colour, nor a real one with the
 		// colour that means do not say anything.
 		if (color != UNDEFINED_COLOR &&
 				(color != DEAD_COLOR || match.color == UNDEFINED_COLOR))
 			match.color = color;
 		match.showOnMap = true;
-		match.noTracking = rule->action.noTracking;
-		match.pingLevel = rule->action.pingLevel;
-		if (rule->action.stopProcessing)
-			break;	// unless the rule said to carry on
+		match.noTracking = action->noTracking;
+		match.pingLevel = action->pingLevel;
 	}
 
 	// An item whose name a rule gave it is not hidden by a later one.
-	for (unsigned int i = 0; i < lists.doNotBlock->size(); i++) {
-		Rule *rule = (*lists.doNotBlock)[i];
-		if (!rule->Evaluate(facts, context))
-			continue;
-		if (rule->action.index < match.keepIndex)
-			match.keepIndex = rule->action.index;
-		break;
-	}
+	const Rule *keeper = FirstMatchingRule(*lists.doNotBlock, facts, context);
+	if (keeper && keeper->action.index < match.keepIndex)
+		match.keepIndex = keeper->action.index;
 
-	// With ordered filtering off this list only matters when nothing kept the
-	// item, so the scan is skipped entirely in that case.
-	if (orderedFiltering || match.keepIndex == NO_RULE_MATCH) {
-		for (unsigned int i = 0; i < lists.ignore->size(); i++) {
-			Rule *rule = (*lists.ignore)[i];
-			if (rule->Evaluate(facts, context)) {
-				match.ignoreIndex = rule->action.index;
-				break;
-			}
-		}
-	}
+	// Wanted whatever else matched, since which came first is what decides.
+	const Rule *hider = FirstMatchingRule(*lists.ignore, facts, context);
+	if (hider)
+		match.ignoreIndex = hider->action.index;
 
-	match.blocked = IsItemBlocked(match.ignoreIndex, match.keepIndex,
-		orderedFiltering);
+	match.blocked = IsItemBlocked(match.ignoreIndex, match.keepIndex);
 	return match;
 }
 
