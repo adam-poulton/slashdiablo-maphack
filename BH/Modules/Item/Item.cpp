@@ -278,6 +278,8 @@ void Item::OnUnload() {
 }
 
 void Item::OnLoop() {
+	ForgetVerdictsIfWorldChanged();
+
 	if (!D2CLIENT_GetUIState(0x01))
 		viewingUnit = NULL;
 

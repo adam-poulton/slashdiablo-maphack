@@ -95,6 +95,44 @@ void ResetItemVerdicts() {
 	item_verdicts.Clear();
 }
 
+/*
+ * Forgets what was worked out under a world that has since changed.
+ *
+ * A verdict is kept against the item it was reached about, and an item is not
+ * the only thing a rule reads. CLVL and CRAFTALVL ask how far the character has
+ * got and AREAID and AREALVL ask where they are standing, so an item judged
+ * before a level-up or in the last area was judged against something that is no
+ * longer true.
+ *
+ * Only those two are looked at because they are the only ones that can change
+ * while a game is being played. Which class is playing, the character flags and
+ * the difficulty are fixed for a game, and the filter level is a setting, which
+ * already forgets everything when it is changed.
+ *
+ * Once a frame rather than once an item: reading the world for every item would
+ * cost more than the walk this saves. A rule reading an arbitrary character
+ * stat through CHARSTAT is not covered, since watching every stat a rule might
+ * name would be reading the world constantly to catch a case no rule in the
+ * shipped config asks for.
+ */
+void ForgetVerdictsIfWorldChanged() {
+	static DWORD judgedAtLevel = 0;
+	static DWORD judgedInArea = 0;
+
+	UnitAny *player = D2CLIENT_GetPlayerUnit();
+	if (!player)
+		return;
+
+	DWORD level = D2COMMON_GetUnitStat(player, STAT_LEVEL, 0);
+	DWORD area = GetPlayerArea();
+	if (level == judgedAtLevel && area == judgedInArea)
+		return;
+
+	judgedAtLevel = level;
+	judgedInArea = area;
+	item_verdicts.Clear();
+}
+
 std::vector<const Action*> GetItemMapActions(UnitItemInfo *uInfo) {
 	World world;
 	return VerdictFor(uInfo, world).match.mapActions;

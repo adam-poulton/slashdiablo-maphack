@@ -40,6 +40,10 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
 * Fix an item display rule marked `%NOTIFY-dead%` still announcing the item in chat
   when a later rule also matched it. The rule that draws the item on the automap now
   also decides whether it is announced, as it already did for everything else it says.
+* Fix item display rules using `CLVL`, `CRAFTALVL`, `AREAID` or `AREALVL` keeping the
+  answer they gave before you levelled up or changed area. Items already seen were
+  judged again only on rejoining the game; they are now judged again when your level
+  or your area changes.
 
 # Release Notes for 1.9.11g (2026-08-19)
 * Add `Monster Curses` option (`BH_settings.cfg`, default `True, None`) to mark

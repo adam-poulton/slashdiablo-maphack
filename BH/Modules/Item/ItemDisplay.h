@@ -50,5 +50,9 @@ std::vector<const Action*> GetItemMapActions(UnitItemInfo *uInfo);
 // Forgets what was worked out about every item, for when the rules or the
 // settings they were worked out under have changed.
 void ResetItemVerdicts();
+
+// The same, for the parts of the world a rule reads that change while a game is
+// being played: how far the character has got and where they are standing.
+void ForgetVerdictsIfWorldChanged();
 void SubstituteNameVariables(UnitItemInfo *uInfo, string &name, const string &action_name);
 BYTE GetRequiredLevel(UnitAny* item);
