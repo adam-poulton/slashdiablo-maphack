@@ -1,4 +1,4 @@
-/* Maphack Module
+﻿/* Maphack Module
  *
  */
 #include "../../D2Ptrs.h"
@@ -10,6 +10,7 @@
 #include "../../BH.h"
 #include "../../Drawing.h"
 #include "../Item/ItemDisplay.h"
+#include "../Item/ItemFactsLive.h"
 #include "../Item/Item.h"
 #include "../../AsyncDrawBuffer.h"
 #include "../ScreenInfo/ScreenInfo.h"
@@ -470,14 +471,9 @@ void Maphack::OnDraw() {
 		for (UnitAny* unit = room1->pUnitFirst; unit; unit = unit->pListNext) {
 			if (unit->dwType == UNIT_ITEM && (unit->dwFlags & UNITFLAG_NO_EXPERIENCE) == 0x0) {
 				DWORD dwFlags = unit->pItemData->dwFlags;
-				UnitItemInfo uInfo{};
-				uInfo.item = unit;
-				uInfo.itemCode[0] = D2COMMON_GetItemText(unit->dwTxtFileNo)->szCode[0];
-				uInfo.itemCode[1] = D2COMMON_GetItemText(unit->dwTxtFileNo)->szCode[1];
-				uInfo.itemCode[2] = D2COMMON_GetItemText(unit->dwTxtFileNo)->szCode[2];
-				uInfo.itemCode[3] = 0;
-				if (ItemAttributeMap.find(uInfo.itemCode) != ItemAttributeMap.end()) {
-					uInfo.attrs = ItemAttributeMap[uInfo.itemCode];
+				LiveItem live(unit);
+				UnitItemInfo &uInfo = live.Unit();
+				if (live.Known()) {
 					vector<Action> actions = map_action_cache.Get(&uInfo);
 					for (auto &action : actions) {
 						if (action.colorOnMap != UNDEFINED_COLOR ||
@@ -690,14 +686,9 @@ void Maphack::OnAutomapDraw() {
 					});
 				}
 				else if (unit->dwType == UNIT_ITEM && (unit->dwFlags & UNITFLAG_REVEALED) == UNITFLAG_REVEALED) {
-					UnitItemInfo uInfo{};
-					uInfo.item = unit;
-					uInfo.itemCode[0] = D2COMMON_GetItemText(unit->dwTxtFileNo)->szCode[0];
-					uInfo.itemCode[1] = D2COMMON_GetItemText(unit->dwTxtFileNo)->szCode[1];
-					uInfo.itemCode[2] = D2COMMON_GetItemText(unit->dwTxtFileNo)->szCode[2];
-					uInfo.itemCode[3] = 0;
-					if (ItemAttributeMap.find(uInfo.itemCode) != ItemAttributeMap.end()) {
-						uInfo.attrs = ItemAttributeMap[uInfo.itemCode];
+					LiveItem live(unit);
+					UnitItemInfo &uInfo = live.Unit();
+					if (live.Known()) {
 						const vector<Action> actions = map_action_cache.Get(&uInfo);
 						for (auto &action : actions) {
 							// skip action if the ping level requirement isn't met
