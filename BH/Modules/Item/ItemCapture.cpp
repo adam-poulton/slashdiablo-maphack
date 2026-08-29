@@ -5,6 +5,7 @@
 #include "../../BH.h"
 #include "../../Config.h"
 #include "../../Constants.h"
+#include "../../D2Helpers.h"
 #include "../../D2Ptrs.h"
 #include "../../D2Version.h"
 #include "CaptureFormat.h"
@@ -34,10 +35,11 @@ std::map<std::string, std::string> capturedTabSkills;
 /*
  * True when a rule reads something a capture cannot reproduce.
  *
- * Not everything a rule reads of the character is beyond recording. DIFF, CLASS,
- * PLAYERTYPE and FILTLVL are all in the header, and CLVL and CRAFTALVL read the
- * character's level, which is there too. What remains is CHARSTAT, which may ask
- * for any stat at all, and PRICE, which asks the game a question it will only
+ * Not everything a rule reads beyond the item is past recording. FILTLVL is a
+ * setting and sits in the header; DIFF, CLASS and PLAYERTYPE, the character's
+ * level that CLVL and CRAFTALVL read, and the area AREAID and AREALVL read are
+ * all recorded against each item. What remains is CHARSTAT, which may ask for
+ * any stat at all, and PRICE, which asks the game a question it will only
  * answer about an item that already exists as a unit.
  */
 bool RulesReadLiveState() {
@@ -68,9 +70,9 @@ void AppendAssoc(const char* type, const std::map<std::string, std::string>& ent
 }
 
 /*
- * Everything other than the item that the filter's decision rested on. The
- * character's flags are recorded whole rather than unpacked, because that word
- * is what the filter's own PLAYERTYPE test reads bits out of.
+ * What the filter's decision rested on that only a change of configuration can
+ * alter. Anything that moves while playing is recorded against each item
+ * instead.
  */
 void AppendHeader() {
 	BH::itemConfig->ReadAssoc("ClassSkillsList", capturedClassSkills);
@@ -86,18 +88,6 @@ void AppendHeader() {
 	header.Add("pingLevel", (long long)Item::GetPingLevel());
 	header.Add("trackerPingLevel", (long long)Item::GetTrackerPingLevel());
 	header.Add("orderedFiltering", OrderedFiltering);
-
-	UnitAny* player = D2CLIENT_GetPlayerUnit();
-	if (player) {
-		header.Add("charClass", (long long)player->dwTxtFileNo);
-		header.Add("difficulty", (long long)D2CLIENT_GetDifficulty());
-		// CLVL compares against this, and CRAFTALVL works an affix level out
-		// of it, so without it neither can be replayed.
-		header.Add("charLevel",
-			(long long)D2COMMON_GetUnitStat(player, STAT_LEVEL, 0));
-	}
-	if (p_D2LAUNCH_BnData && *p_D2LAUNCH_BnData)
-		header.Add("charFlags", (long long)(*p_D2LAUNCH_BnData)->nCharFlags);
 
 	Append(header.Line());
 
@@ -151,6 +141,31 @@ void RecordDrop(const unsigned char* packet, const ItemInfo& item,
 	unsigned int size = packet[2];
 	drop.Add("packetSize", (long long)size);
 	drop.Add("packet", std::string((const char*)packet, size));
+
+	/*
+	 * The world as it stood when the item landed. All of this moves while
+	 * playing: the character walks between areas, gains levels, and a capture
+	 * may run across more than one game, so it belongs to the item rather than
+	 * to the header.
+	 *
+	 * The character's flags are recorded whole rather than unpacked, because
+	 * that word is what PLAYERTYPE reads a bit out of and what decides whether
+	 * an area's level is read from the expansion column.
+	 */
+	UnitAny* player = D2CLIENT_GetPlayerUnit();
+	if (player) {
+		drop.Add("charClass", (long long)player->dwTxtFileNo);
+		drop.Add("charLevel",
+			(long long)D2COMMON_GetUnitStat(player, STAT_LEVEL, 0));
+	}
+	drop.Add("difficulty", (long long)D2CLIENT_GetDifficulty());
+	if (p_D2LAUNCH_BnData && *p_D2LAUNCH_BnData)
+		drop.Add("charFlags", (long long)(*p_D2LAUNCH_BnData)->nCharFlags);
+	drop.Add("areaId", (long long)GetPlayerArea());
+	// Worked out from the area and the difficulty against the game's own level
+	// table, and recorded rather than the table, since it is the whole of what
+	// AREALVL asks for.
+	drop.Add("areaLevel", (long long)GetCurrentAreaLevel());
 
 	drop.Add("keepIndex", (long long)outcome.keepIndex);
 	drop.Add("ignoreIndex", (long long)outcome.ignoreIndex);

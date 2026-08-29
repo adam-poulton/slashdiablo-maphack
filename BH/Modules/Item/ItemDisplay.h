@@ -772,6 +772,10 @@ extern vector<Rule*> MapRuleList;
 extern vector<Rule*> DoNotBlockRuleList;
 extern vector<Rule*> IgnoreRuleList;
 extern vector<pair<string, string>> rules;
+
+// The monster level of the area the character is in, which is what AREALVL
+// compares against.
+unsigned int GetCurrentAreaLevel();
 extern ItemDescLookupCache item_desc_cache;
 extern ItemNameLookupCache item_name_cache;
 extern MapActionLookupCache map_action_cache;

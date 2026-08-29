@@ -14,11 +14,16 @@ struct ItemInfo;
  * behaving unexpectedly, and so the recorded decisions can be replayed against
  * the filter in the tests.
  *
- * Recording an item is preceded, once, by everything other than the item that
- * its decision rested on: a header of the settings in force, the rules, the
- * condition groups, and the character the items dropped for. That is written
- * again after the configuration is reloaded, so the items following a header
- * always belong to it.
+ * Recording an item is preceded, once, by a header of what its decision rested
+ * on that only a change of configuration can alter: the settings in force, the
+ * rules, the condition groups and the skill lists. That is written again after
+ * the configuration is reloaded, so the items following a header always belong
+ * to it.
+ *
+ * Everything that moves while playing is recorded against the item instead. The
+ * character walks between areas, gains levels, and a capture may run across more
+ * than one game, so the area, the character and the difficulty are part of what
+ * an item's line says rather than of the header's.
  *
  * A capture cannot pin the whole of what a rule may read. CHARSTAT reads
  * character stats as they are at the moment the item lands, and PRICE asks the

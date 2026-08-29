@@ -1754,7 +1754,7 @@ static bool IsOnGround(UnitAny *item) {
 	return item->dwMode == ITEM_MODE_ON_GROUND || item->dwMode == ITEM_MODE_BEING_DROPPED;
 }
 
-static unsigned int GetCurrentAreaLevel() {
+unsigned int GetCurrentAreaLevel() {
 	DWORD areaId = GetPlayerArea();
 	sgptDataTable* dataTable = *p_D2COMMON_sgptDataTable;
 	if (areaId == 0 || !dataTable || !dataTable->pLevelsTxt || areaId >= dataTable->dwLevelsRecs) {
