@@ -500,7 +500,9 @@ void Maphack::OnDraw() {
 								//PrintText(ItemColorFromQuality(unit->pItemData->dwQuality), "%s %x", itemName.c_str(), dwFlags);
 								break;
 							}
-
+							// The first rule that says to stop has the final say about
+							// the item, the same as it does when the automap is drawn.
+							if (action.stopProcessing) break;
 						}
 					}
 				}

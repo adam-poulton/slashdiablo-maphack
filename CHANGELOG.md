@@ -37,6 +37,9 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
 * Rename the `Smart Scrolls` option to `Hide Redundant Scrolls`. Configs that set
   `Smart Scrolls` need updating; the old key is ignored and the option reverts to its
   default of off.
+* Fix an item display rule marked `%NOTIFY-dead%` still announcing the item in chat
+  when a later rule also matched it. The rule that draws the item on the automap now
+  also decides whether it is announced, as it already did for everything else it says.
 
 # Release Notes for 1.9.11g (2026-08-19)
 * Add `Monster Curses` option (`BH_settings.cfg`, default `True, None`) to mark
