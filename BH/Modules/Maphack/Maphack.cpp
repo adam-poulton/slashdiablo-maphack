@@ -474,35 +474,28 @@ void Maphack::OnDraw() {
 				LiveItem live(unit);
 				UnitItemInfo &uInfo = live.Unit();
 				if (live.Known()) {
-					vector<Action> actions = map_action_cache.Get(&uInfo);
-					for (auto &action : actions) {
-						if (action.colorOnMap != UNDEFINED_COLOR ||
-								action.borderColor != UNDEFINED_COLOR ||
-								action.dotColor != UNDEFINED_COLOR ||
-								action.pxColor != UNDEFINED_COLOR ||
-								action.lineColor != UNDEFINED_COLOR) { // has map action
-							// Skip notification if ping level requirement not met
-							if (action.pingLevel > Item::GetPingLevel()) continue;
-							unit->dwFlags |= UNITFLAG_REVEALED;
-							if ((*BH::MiscToggles2)["Item Detailed Notifications"].state
-							  && ((*BH::MiscToggles2)["Item Close Notifications"].state || (dwFlags & ITEMFLAG_NEW))
-							  && action.notifyColor != DEAD_COLOR) {
-								std::string itemName = GetItemName(unit);
-								size_t start_pos = 0;
-								while ((start_pos = itemName.find('\n', start_pos)) != std::string::npos) {
-									itemName.replace(start_pos, 1, " - ");
-									start_pos += 3;
-								}
-								PrintText(ItemColorFromQuality(unit->pItemData->dwQuality), "%s", itemName.c_str());
-								if (!action.noTracking && !IsTown(GetPlayerArea()) && action.pingLevel <= Item::GetTrackerPingLevel()) {
-									ScreenInfo::AddDrop(unit);
-								}
-								//PrintText(ItemColorFromQuality(unit->pItemData->dwQuality), "%s %x", itemName.c_str(), dwFlags);
-								break;
+					// Every rule that has a say about the map has a colour to say
+					// it with, so there is nothing here to tell apart, and the
+					// list already ends at the rule that asked to stop.
+					for (const Action *action : GetItemMapActions(&uInfo)) {
+						// Skip notification if ping level requirement not met
+						if (action->pingLevel > Item::GetPingLevel()) continue;
+						unit->dwFlags |= UNITFLAG_REVEALED;
+						if ((*BH::MiscToggles2)["Item Detailed Notifications"].state
+						  && ((*BH::MiscToggles2)["Item Close Notifications"].state || (dwFlags & ITEMFLAG_NEW))
+						  && action->notifyColor != DEAD_COLOR) {
+							std::string itemName = GetItemName(unit);
+							size_t start_pos = 0;
+							while ((start_pos = itemName.find('\n', start_pos)) != std::string::npos) {
+								itemName.replace(start_pos, 1, " - ");
+								start_pos += 3;
 							}
-							// The first rule that says to stop has the final say about
-							// the item, the same as it does when the automap is drawn.
-							if (action.stopProcessing) break;
+							PrintText(ItemColorFromQuality(unit->pItemData->dwQuality), "%s", itemName.c_str());
+							if (!action->noTracking && !IsTown(GetPlayerArea()) && action->pingLevel <= Item::GetTrackerPingLevel()) {
+								ScreenInfo::AddDrop(unit);
+							}
+							//PrintText(ItemColorFromQuality(unit->pItemData->dwQuality), "%s %x", itemName.c_str(), dwFlags);
+							break;
 						}
 					}
 				}
@@ -691,15 +684,15 @@ void Maphack::OnAutomapDraw() {
 					LiveItem live(unit);
 					UnitItemInfo &uInfo = live.Unit();
 					if (live.Known()) {
-						const vector<Action> actions = map_action_cache.Get(&uInfo);
-						for (auto &action : actions) {
+						// The list already ends at the rule that asked to stop.
+						for (const Action *action : GetItemMapActions(&uInfo)) {
 							// skip action if the ping level requirement isn't met
-							if (action.pingLevel > Item::GetPingLevel()) continue;
-							auto color = action.colorOnMap;
-							auto borderColor = action.borderColor;
-							auto dotColor = action.dotColor;
-							auto pxColor = action.pxColor;
-							auto lineColor = action.lineColor;
+							if (action->pingLevel > Item::GetPingLevel()) continue;
+							auto color = action->colorOnMap;
+							auto borderColor = action->borderColor;
+							auto dotColor = action->dotColor;
+							auto pxColor = action->pxColor;
+							auto lineColor = action->lineColor;
 							xPos = unit->pItemPath->dwPosX;
 							yPos = unit->pItemPath->dwPosY;
 							automapBuffer.push_top_layer(
@@ -718,7 +711,6 @@ void Maphack::OnAutomapDraw() {
 									Drawing::Linehook::Draw(MyPos.x, MyPos.y, automapLoc.x, automapLoc.y, lineColor);
 								}
 							});
-							if (action.stopProcessing) break;
 						}
 					}
 					else {

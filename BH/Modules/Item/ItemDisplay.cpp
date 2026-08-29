@@ -2,6 +2,9 @@
 #include "ItemFactsLive.h"
 #include "Item.h"
 #include "../../D2Helpers.h"
+#include "../../StampedCache.h"
+#include <optional>
+#include <utility>
 
 
 
@@ -18,118 +21,123 @@ vector<Rule*> IgnoreRuleList;
 
 
 
-// Find the item description. This code is called only when there's a cache miss
-string ItemDescLookupCache::make_cached_T(UnitItemInfo *uInfo) {
-	LiveContext context;
-	string new_name;
-	for (vector<Rule*>::const_iterator it = this->RuleList.begin(); it != this->RuleList.end(); it++) {
-		if ((*it)->Evaluate(*uInfo->facts, context.Context())) {
-			SubstituteNameVariables(uInfo, new_name, (*it)->action.description);
-			if ((*it)->action.stopProcessing) {
-				break;
-			}
-		}
-	}
-	return new_name;
-}
+/*
+ * What the rules make of one item, worked out in the halves it is asked for.
+ *
+ * The map, do-not-block and ignore lists share a walk and are answered
+ * together. The name and the description are each held back until something
+ * asks, because working one out means going through the game for a price, a
+ * required level and a stat, and most of the items looked at here are only ever
+ * asked about the automap.
+ */
+struct ItemVerdict {
+	RuleMatch match;
 
-string ItemDescLookupCache::to_str(const string &name) {
-	size_t start_pos = 0;
-	std::string itemName(name);
-	while ((start_pos = itemName.find('\n', start_pos)) != std::string::npos) {
-		itemName.replace(start_pos, 1, " - ");
-		start_pos += 3;
-	}
-	return itemName;
-}
-
-// Find the item name. This code is called only when there's a cache miss
-string ItemNameLookupCache::make_cached_T(UnitItemInfo *uInfo, const string &name) {
-	LiveContext context;
-	string new_name(name);
-	for (vector<Rule*>::const_iterator it = this->RuleList.begin(); it != this->RuleList.end(); it++) {
-		if ((*it)->Evaluate(*uInfo->facts, context.Context())) {
-			SubstituteNameVariables(uInfo, new_name, (*it)->action.name);
-			if ((*it)->action.stopProcessing) {
-				break;
-			}
-		}
-	}
-	// if the item is on the ignore list and nothing outranks it, warn the user that this item is normally blocked
-	unsigned int ignore_index = ignore_cache.Get(uInfo);
-	if (ignore_index != NO_RULE_MATCH) {
-		unsigned int keep_index = do_not_block_cache.Get(uInfo);
-		// actions come back in config order, so the first one with a map action is the earliest
-		for (auto &action : map_action_cache.Get(uInfo)) {
-			if (action.colorOnMap != UNDEFINED_COLOR ||
-				action.borderColor != UNDEFINED_COLOR ||
-				action.dotColor != UNDEFINED_COLOR ||
-				action.pxColor != UNDEFINED_COLOR ||
-				action.lineColor != UNDEFINED_COLOR) {
-				if (action.index < keep_index)
-					keep_index = action.index;
-				break;
-			}
-
-		}
-		if (IsItemBlocked(ignore_index, keep_index, OrderedFiltering)) return new_name + " [blocked]";
-	}
-	return new_name;
-}
-
-string ItemNameLookupCache::to_str(const string &name) {
-	size_t start_pos = 0;
-	std::string itemName(name);
-	while ((start_pos = itemName.find('\n', start_pos)) != std::string::npos) {
-		itemName.replace(start_pos, 1, " - ");
-		start_pos += 3;
-	}
-	return itemName;
-}
-
-vector<Action> MapActionLookupCache::make_cached_T(UnitItemInfo *uInfo) {
-	LiveContext context;
-	vector<Action> actions;
-	for (vector<Rule*>::const_iterator it = this->RuleList.begin(); it != this->RuleList.end(); it++) {
-		if ((*it)->Evaluate(*uInfo->facts, context.Context())) {
-			actions.push_back((*it)->action);
-		}
-	}
-	return actions;
-}
-
-string MapActionLookupCache::to_str(const vector<Action> &actions) {
+	bool named;
 	string name;
-	for (auto &action : actions) {
-		name += action.name + " ";
+
+	bool described;
+	string description;
+
+	ItemVerdict() : named(false), described(false) {}
+};
+
+/*
+ * What is kept, for as many items as a busy room holds.
+ *
+ * Wide because two callers want different things at once: every item on the
+ * ground is named on every frame, while the automap asks about every item in
+ * every room. Sharing one cache between them means one has to be able to run
+ * over the other's items without emptying it.
+ */
+static StampedCache<ItemVerdict> item_verdicts(512);
+
+/*
+ * The world, read at most once however much of a verdict is worked out.
+ *
+ * Read from the running game rather than passed in, so it is only worth reading
+ * when something is actually going to be worked out. An item already judged is
+ * answered without the game being asked anything.
+ */
+namespace {
+class World {
+public:
+	const FilterContext &Now() {
+		if (!live)
+			live.emplace();
+		return live->Context();
 	}
-	return name;
+
+private:
+	std::optional<LiveContext> live;
+};
+}  // namespace
+
+// An item is the same item to the cache while its unit id and its flags are
+// what they were: identifying it, socketing it or making a runeword changes the
+// flags, and everything worked out about it is worked out again.
+static ItemVerdict &VerdictFor(UnitItemInfo *uInfo, World &world) {
+	DWORD id = uInfo->item->dwUnitId;
+	DWORD flags = uInfo->item->pItemData->dwFlags;
+
+	ItemVerdict *held = item_verdicts.Find(id, flags);
+	if (held)
+		return *held;
+
+	RuleLists lists = { &MapRuleList, &DoNotBlockRuleList, &IgnoreRuleList };
+	ItemVerdict verdict;
+	verdict.match = MatchRules(lists, *uInfo->facts, world.Now(),
+		Item::GetPingLevel(), OrderedFiltering);
+	return item_verdicts.Hold(id, flags, std::move(verdict));
 }
 
-unsigned int IgnoreLookupCache::make_cached_T(UnitItemInfo *uInfo) {
-	LiveContext context;
-	for (vector<Rule*>::const_iterator it = this->RuleList.begin(); it != this->RuleList.end(); it++) {
-		if ((*it)->Evaluate(*uInfo->facts, context.Context())) {
-			return (*it)->action.index;
-		}
-	}
-	return NO_RULE_MATCH;
+void ResetItemVerdicts() {
+	item_verdicts.Clear();
 }
 
-string IgnoreLookupCache::to_str(const unsigned int &index) {
-	return index == NO_RULE_MATCH ? "no match" : ("matched rule " + std::to_string(index));
+std::vector<const Action*> GetItemMapActions(UnitItemInfo *uInfo) {
+	World world;
+	return VerdictFor(uInfo, world).match.mapActions;
 }
-
-// least recently used cache for storing a limited number of item names
-ItemDescLookupCache item_desc_cache(DescRuleList);
-ItemNameLookupCache item_name_cache(NameRuleList);
-MapActionLookupCache map_action_cache(MapRuleList);
-IgnoreLookupCache do_not_block_cache(DoNotBlockRuleList);
-IgnoreLookupCache ignore_cache(IgnoreRuleList);
 
 void GetItemName(UnitItemInfo *uInfo, string &name) {
-	string new_name = item_name_cache.Get(uInfo, name);
-	name.assign(new_name);
+	World world;
+	ItemVerdict &verdict = VerdictFor(uInfo, world);
+	if (!verdict.named) {
+		// Each rule that has a say writes over what the ones before it made of
+		// the name, starting from the name the game gave the item.
+		string built(name);
+		std::vector<const Action*> actions = MatchingActions(NameRuleList,
+			*uInfo->facts, world.Now(), PING_LEVEL_ALL);
+		for (unsigned int i = 0; i < actions.size(); i++)
+			SubstituteNameVariables(uInfo, built, actions[i]->name);
+
+		// An item a rule would hide is still named while it is in the world,
+		// since only a packet can be stopped. Saying so is how a rule set that
+		// hides something can be seen to be doing it.
+		if (verdict.match.blocked)
+			built += " [blocked]";
+
+		verdict.name = built;
+		verdict.named = true;
+	}
+	name.assign(verdict.name);
+}
+
+std::string GetItemDescription(UnitItemInfo *uInfo) {
+	World world;
+	ItemVerdict &verdict = VerdictFor(uInfo, world);
+	if (!verdict.described) {
+		string built;
+		std::vector<const Action*> actions = MatchingActions(DescRuleList,
+			*uInfo->facts, world.Now(), PING_LEVEL_ALL);
+		for (unsigned int i = 0; i < actions.size(); i++)
+			SubstituteNameVariables(uInfo, built, actions[i]->description);
+
+		verdict.description = built;
+		verdict.described = true;
+	}
+	return verdict.description;
 }
 
 void SubstituteNameVariables(UnitItemInfo *uInfo, string &name, const string &action_name) {

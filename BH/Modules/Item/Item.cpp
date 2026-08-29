@@ -109,11 +109,7 @@ void Item::OnLoad() {
 }
 
 void ResetCaches() {
-	item_desc_cache.ResetCache();
-	item_name_cache.ResetCache();
-	map_action_cache.ResetCache();
-	do_not_block_cache.ResetCache();
-	ignore_cache.ResetCache();
+	ResetItemVerdicts();
 }
 
 void Item::OnSettingsChanged(const vector<string>& keys) {
@@ -398,7 +394,7 @@ void __stdcall Item::OnProperties(wchar_t * wTxt)
 	// Add description
 	if (Toggles["Advanced Item Display"].state) {
 		int aLen = wcslen(wTxt);
-		string desc = item_desc_cache.Get(&uInfo);
+		string desc = GetItemDescription(&uInfo);
 		if (desc != "") {
 			auto chars_written = MultiByteToWideChar(CODE_PAGE, MB_PRECOMPOSED, desc.c_str(), -1, wDesc, 128);
 			swprintf_s(wTxt + aLen, MAXLEN - aLen,

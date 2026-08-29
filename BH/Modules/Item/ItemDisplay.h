@@ -6,50 +6,11 @@
 #include "../../BH.h"
 #include <cstdlib>
 #include <regex>
-#include "../../RuleLookupCache.h"
 #include "ItemFacts.h"
 
 #include "ItemFilter.h"
 
 extern std::map<std::string, int> UnknownItemCodes;
-
-
-class ItemDescLookupCache : public RuleLookupCache<string> {
-	string make_cached_T(UnitItemInfo *uInfo) override;
-	string to_str(const string &name) override;
-
-		public:
-		ItemDescLookupCache(const std::vector<Rule*> &RuleList) :
-			RuleLookupCache<string>(RuleList) {}
-};
-
-class ItemNameLookupCache : public RuleLookupCache<string, const string &> {
-	string make_cached_T(UnitItemInfo *uInfo, const string &name) override;
-	string to_str(const string &name) override;
-
-		public:
-		ItemNameLookupCache(const std::vector<Rule*> &RuleList) :
-			RuleLookupCache<string, const string&>(RuleList) {}
-};
-
-class MapActionLookupCache : public RuleLookupCache<vector<Action>> {
-	vector<Action> make_cached_T(UnitItemInfo *uInfo) override;
-	string to_str(const vector<Action> &actions);
-
-		public:
-		MapActionLookupCache(const std::vector<Rule*> &RuleList) :
-			RuleLookupCache<vector<Action>>(RuleList) {}
-};
-
-// Returns the index of the first matching rule, or NO_RULE_MATCH if none matched.
-class IgnoreLookupCache : public RuleLookupCache<unsigned int> {
-	unsigned int make_cached_T(UnitItemInfo *uInfo) override;
-	string to_str(const unsigned int &index);
-
-		public:
-		IgnoreLookupCache(const std::vector<Rule*> &RuleList) :
-			RuleLookupCache<unsigned int>(RuleList) {}
-};
 
 extern vector<Rule*> RuleList;
 extern vector<Rule*> NameRuleList;
@@ -59,11 +20,6 @@ extern vector<Rule*> DoNotBlockRuleList;
 extern vector<Rule*> IgnoreRuleList;
 extern vector<pair<string, string>> rules;
 
-extern ItemDescLookupCache item_desc_cache;
-extern ItemNameLookupCache item_name_cache;
-extern MapActionLookupCache map_action_cache;
-extern IgnoreLookupCache do_not_block_cache;
-extern IgnoreLookupCache ignore_cache;
 extern map<string, string> condition_group;
 extern bool OrderedFiltering;
 
@@ -73,6 +29,26 @@ namespace ItemDisplay {
 	bool UntestedSettingsUsed();
 }
 void HandleUnknownItemCode(char *code, char *tag);
+
+/*
+ * What the rules make of an item in the world.
+ *
+ * Each is worked out once for an item and kept until the item changes. They are
+ * three questions rather than one because they are wanted in different places
+ * and at different rates: every item on the ground is named on every frame,
+ * every item in every room is asked about the automap on every frame, and a
+ * description is wanted only for the one item being looked at.
+ *
+ * The map actions come back as a copy of a short list of pointers rather than
+ * as a reference into what is kept, because naming an item goes back through
+ * the game and returns here, and what is kept may have moved by then.
+ */
 void GetItemName(UnitItemInfo *uInfo, string &name);
+std::string GetItemDescription(UnitItemInfo *uInfo);
+std::vector<const Action*> GetItemMapActions(UnitItemInfo *uInfo);
+
+// Forgets what was worked out about every item, for when the rules or the
+// settings they were worked out under have changed.
+void ResetItemVerdicts();
 void SubstituteNameVariables(UnitItemInfo *uInfo, string &name, const string &action_name);
 BYTE GetRequiredLevel(UnitAny* item);
