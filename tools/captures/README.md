@@ -55,5 +55,5 @@ first of every packet, item, outcome and area, everything long enough to hold a
 stat list, and a sample of the rest. Rules are kept whole, because leaving one
 out would renumber the others and change every decision that names one.
 
-Re-running replaces both files, so folding in a later capture means passing all
-of them at once.
+Re-running replaces all three files, so folding in a later capture means
+passing every capture at once.
