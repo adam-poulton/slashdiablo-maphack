@@ -120,11 +120,6 @@ string IgnoreLookupCache::to_str(const unsigned int &index) {
 	return index == NO_RULE_MATCH ? "no match" : ("matched rule " + std::to_string(index));
 }
 
-// Decide whether an item is hidden, given the index of the first rule that wants
-// it hidden and the index of the first rule that wants it kept (either a map
-// action or a whitelisted name). With ordered filtering off, any keeper wins
-// regardless of where it sits in the file; with it on, the earlier rule wins.
-
 // least recently used cache for storing a limited number of item names
 ItemDescLookupCache item_desc_cache(DescRuleList);
 ItemNameLookupCache item_name_cache(NameRuleList);
@@ -137,8 +132,6 @@ void GetItemName(UnitItemInfo *uInfo, string &name) {
 	name.assign(new_name);
 }
 
-// Number of sockets that are filled (gems, runes or jewels inserted into the item).
-// Socketed items are held in the parent item's own inventory.
 void SubstituteNameVariables(UnitItemInfo *uInfo, string &name, const string &action_name) {
 	char origName[128], sockets[4], usedsockets[4], code[4], ilvl[4], alvl[4], craft_alvl[4], runename[16] = "", runenum[4] = "0";
 	char gemtype[16] = "", gemlevel[16] = "", sellValue[16] = "", statVal[16] = "";
