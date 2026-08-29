@@ -1,6 +1,7 @@
 #include "ItemFactsLive.h"
 #include "../../D2Ptrs.h"
 #include "../../D2Structs.h"
+#include "../../MPQInit.h"
 
 int LiveStats::Stat(unsigned int stat, unsigned int sub) const {
 	if (!item)
@@ -37,4 +38,28 @@ const std::vector<StatEntry>& LiveStats::Stats() const {
 		entries.push_back(entry);
 	}
 	return entries;
+}
+
+LiveItem::LiveItem(UnitAny* item) : stats(item), unit(), facts(), known(false) {
+	unit.item = item;
+	unit.attrs = NULL;
+	unit.facts = &facts;
+	facts.attrs = NULL;
+	facts.stats = &stats;
+
+	const char* code = D2COMMON_GetItemText(item->dwTxtFileNo)->szCode;
+	for (int i = 0; i < 3; i++) {
+		unit.itemCode[i] = code[i];
+		facts.code[i] = code[i];
+	}
+	unit.itemCode[3] = 0;
+	facts.code[3] = 0;
+
+	std::map<std::string, ItemAttributes*>::const_iterator found =
+		ItemAttributeMap.find(unit.itemCode);
+	if (found == ItemAttributeMap.end())
+		return;
+	unit.attrs = found->second;
+	facts.attrs = found->second;
+	known = true;
 }

@@ -3,6 +3,7 @@
 #include <vector>
 
 struct ItemAttributes;
+struct ItemFacts;
 struct UnitAny;
 
 /*
@@ -81,6 +82,11 @@ struct UnitItemInfo {
 	UnitAny *item;
 	char itemCode[4];
 	ItemAttributes *attrs;
+
+	// The same item said the way an item from a packet says it. Conditions that
+	// have been collapsed onto one body read this and never the unit, which is
+	// how they came to have one body. Filled by whoever built this.
+	const ItemFacts *facts;
 };
 
 // An item as an incoming 0x9c packet described it.

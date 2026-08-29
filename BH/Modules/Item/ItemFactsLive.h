@@ -30,3 +30,33 @@ private:
 	mutable std::vector<StatEntry> entries;
 	mutable bool built;
 };
+
+/*
+ * An item in the world, offered both ways at once.
+ *
+ * A condition that has been collapsed onto one body reads the facts; one that
+ * has not yet reads the unit. Holding both here is what lets those be converted
+ * a few at a time rather than all at once, and when the last one is done the
+ * unit goes and this is simply how an item in the world becomes facts.
+ *
+ * Only what the collapsed conditions ask for is filled in. The rest of an item
+ * in the world is still read from the game as it is asked for, which is what
+ * the stats are for.
+ */
+class LiveItem {
+public:
+	explicit LiveItem(UnitAny* item);
+
+	// False when the item's code is not one the data tables describe. Nothing
+	// is filled in that case, which is the answer this replaced also gave.
+	bool Known() const { return known; }
+
+	UnitItemInfo& Unit() { return unit; }
+	const ItemFacts& Facts() const { return facts; }
+
+private:
+	LiveStats stats;
+	UnitItemInfo unit;
+	ItemFacts facts;
+	bool known;
+};

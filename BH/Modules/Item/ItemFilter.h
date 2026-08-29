@@ -420,8 +420,9 @@ public:
 private:
 	BYTE operation;
 	unsigned int targetED;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts) const;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
+	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
 	bool EvaluateED(unsigned int flags);
 };
 
@@ -432,8 +433,9 @@ public:
 private:
 	BYTE operation;
 	unsigned int targetDurability;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts) const;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
+	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
 };
 
 class ChargedCondition : public Condition
@@ -444,8 +446,9 @@ private:
 	BYTE operation;
 	unsigned int skill;
 	unsigned int targetLevel;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts) const;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
+	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
 };
 
 class FoolsCondition : public Condition
@@ -453,8 +456,9 @@ class FoolsCondition : public Condition
 public:
 	FoolsCondition() { conditionType = CT_Operand; };
 private:
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts) const;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
+	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
 };
 
 class SkillListCondition : public Condition
@@ -473,8 +477,9 @@ private:
 	unsigned int targetStat;
 	std::vector<unsigned int> goodClassSkills;
 	std::vector<unsigned int> goodTabSkills;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts) const;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
+	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
 };
 
 class CharStatCondition : public Condition
@@ -549,8 +554,9 @@ private:
 	unsigned int itemStat2;
 	BYTE operation;
 	unsigned int targetStat;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts) const;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
+	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
 };
 
 class PartialCondition : public Condition
@@ -597,8 +603,9 @@ public:
 private:
 	BYTE operation;
 	unsigned int targetStat;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts) const;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
+	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
 };
 
 class AddCondition : public Condition
@@ -615,8 +622,9 @@ private:
 	unsigned int targetStat;
 	std::string key;
 	void Init();
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts) const;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
+	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
 };
 
 extern TrueCondition *trueCondition;

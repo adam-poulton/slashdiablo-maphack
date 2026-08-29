@@ -113,6 +113,8 @@ bool ReadItemPacket(const BYTE* packet, ItemFacts* item) {
 // every matching tome is still above the visibility threshold.
 static bool IsRedundantScroll(BYTE *packet) {
 	ItemFacts item = {};
+	ItemFactsPacket::PacketStats stats(item);
+	item.stats = &stats;
 	bool success = ReadItemPacket(packet, &item);
 	if (!success || (item.action != ITEM_ACTION_NEW_GROUND && item.action != ITEM_ACTION_OLD_GROUND))
 		return false;
@@ -608,6 +610,8 @@ void ItemMover::OnGamePacketRecv(BYTE* packet, bool* block) {
 
 			if ((*BH::MiscToggles2)["Advanced Item Display"].state) {
 				ItemFacts item = {};
+				ItemFactsPacket::PacketStats stats(item);
+				item.stats = &stats;
 				bool success = ReadItemPacket(packet, &item);
 				//PrintText(1, "Item packet: %s, %s, %X, %d, %d", item.name.c_str(), item.code, item.attrs->flags, item.sockets, GetDefense(&item));
 				if ((item.action == ITEM_ACTION_NEW_GROUND || item.action == ITEM_ACTION_OLD_GROUND) && success) {
