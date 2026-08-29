@@ -1,7 +1,7 @@
-#pragma once
+﻿#pragma once
 #include <string>
 
-struct ItemInfo;
+struct ItemFacts;
 
 /*
  * Records ground items along with the decision the item filter reached for
@@ -61,6 +61,6 @@ namespace ItemCapture {
 
 	// Appends one item and the outcome it was given. Does nothing while
 	// capture is off.
-	void RecordDrop(const unsigned char* packet, const ItemInfo& item,
+	void RecordDrop(const unsigned char* packet, const ItemFacts& item,
 			const Outcome& outcome);
 }

@@ -1,4 +1,4 @@
-#include "ItemDisplay.h"
+﻿#include "ItemDisplay.h"
 #include "Item.h"
 #include "../../D2Helpers.h"
 
@@ -1294,7 +1294,7 @@ void Condition::AddNonOperand(vector<Condition*> &conditions, Condition *cond) {
 	LastConditionType = cond->conditionType;
 }
 
-bool Condition::Evaluate(UnitItemInfo *uInfo, ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool Condition::Evaluate(UnitItemInfo *uInfo, ItemFacts *info, Condition *arg1, Condition *arg2) {
 	// Arguments will vary based on where we're called from.
 	// We will have either *info set (if called on reception of packet 0c9c, in which case
 	// the normal item structures won't have been set up yet), or *uInfo otherwise.
@@ -1307,62 +1307,62 @@ bool Condition::Evaluate(UnitItemInfo *uInfo, ItemInfo *info, Condition *arg1, C
 bool TrueCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	return true;
 }
-bool TrueCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool TrueCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	return true;
 }
 
 bool FalseCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	return false;
 }
-bool FalseCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool FalseCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	return false;
 }
 
 bool NegationOperator::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	return !arg1->Evaluate(uInfo, NULL, arg1, arg2);
 }
-bool NegationOperator::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool NegationOperator::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	return !arg1->Evaluate(NULL, info, arg1, arg2);
 }
 
 bool LeftParen::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	return false;
 }
-bool LeftParen::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool LeftParen::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	return false;
 }
 
 bool RightParen::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	return false;
 }
-bool RightParen::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool RightParen::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	return false;
 }
 
 bool AndOperator::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	return arg1->Evaluate(uInfo, NULL, NULL, NULL) && arg2->Evaluate(uInfo, NULL, NULL, NULL);
 }
-bool AndOperator::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool AndOperator::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	return arg1->Evaluate(NULL, info, NULL, NULL) && arg2->Evaluate(NULL, info, NULL, NULL);
 }
 
 bool OrOperator::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	return arg1->Evaluate(uInfo, NULL, NULL, NULL) || arg2->Evaluate(uInfo, NULL, NULL, NULL);
 }
-bool OrOperator::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool OrOperator::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	return arg1->Evaluate(NULL, info, NULL, NULL) || arg2->Evaluate(NULL, info, NULL, NULL);
 }
 
 bool ItemCodeCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	return (targetCode[0] == uInfo->itemCode[0] && targetCode[1] == uInfo->itemCode[1] && targetCode[2] == uInfo->itemCode[2]);
 }
-bool ItemCodeCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool ItemCodeCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	return (targetCode[0] == info->code[0] && targetCode[1] == info->code[1] && targetCode[2] == info->code[2]);
 }
 bool QualityIdCondition::EvaluateInternal(UnitItemInfo* uInfo, Condition* arg1, Condition* arg2) {
 	return uInfo->item->pItemData->dwFileIndex == id && uInfo->item->pItemData->dwQuality == quality;
 }
-bool QualityIdCondition::EvaluateInternalFromPacket(ItemInfo* info, Condition* arg1, Condition* arg2) {
+bool QualityIdCondition::EvaluateInternalFromPacket(ItemFacts* info, Condition* arg1, Condition* arg2) {
 	switch (quality) {
 	case ITEM_QUALITY_UNIQUE:
 		return info->uniqueCode == id;
@@ -1376,7 +1376,7 @@ bool QualityIdCondition::EvaluateInternalFromPacket(ItemInfo* info, Condition* a
 bool FlagsCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	return ((uInfo->item->pItemData->dwFlags & flag) > 0);
 }
-bool FlagsCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool FlagsCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	switch (flag) {
 	case ITEM_ETHEREAL:
 		return info->ethereal;
@@ -1391,7 +1391,7 @@ bool FlagsCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1,
 bool PlayerTypeCondition::EvaluateInternal(UnitItemInfo* uInfo, Condition* arg1, Condition* arg2) {
 	return (((*p_D2LAUNCH_BnData)->nCharFlags >> 5) & 0x1) == mode;
 }
-bool PlayerTypeCondition::EvaluateInternalFromPacket(ItemInfo* info, Condition* arg1, Condition* arg2) {
+bool PlayerTypeCondition::EvaluateInternalFromPacket(ItemFacts* info, Condition* arg1, Condition* arg2) {
 	return (((*p_D2LAUNCH_BnData)->nCharFlags >> 5) & 0x1) == mode;
 }
 
@@ -1408,14 +1408,14 @@ static unsigned int GetCurrentCharClass() {
 bool CharClassCondition::EvaluateInternal(UnitItemInfo* uInfo, Condition* arg1, Condition* arg2) {
 	return GetCurrentCharClass() == charClass;
 }
-bool CharClassCondition::EvaluateInternalFromPacket(ItemInfo* info, Condition* arg1, Condition* arg2) {
+bool CharClassCondition::EvaluateInternalFromPacket(ItemFacts* info, Condition* arg1, Condition* arg2) {
 	return GetCurrentCharClass() == charClass;
 }
 
 bool QualityCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	return (uInfo->item->pItemData->dwQuality == quality);
 }
-bool QualityCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool QualityCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	return (info->quality == quality);
 }
 
@@ -1424,7 +1424,7 @@ bool NonMagicalCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1,
 			uInfo->item->pItemData->dwQuality == ITEM_QUALITY_NORMAL ||
 			uInfo->item->pItemData->dwQuality == ITEM_QUALITY_SUPERIOR);
 }
-bool NonMagicalCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool NonMagicalCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	return (info->quality == ITEM_QUALITY_INFERIOR ||
 			info->quality == ITEM_QUALITY_NORMAL ||
 			info->quality == ITEM_QUALITY_SUPERIOR);
@@ -1436,7 +1436,7 @@ bool GemLevelCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, C
 	}
 	return false;
 }
-bool GemLevelCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool GemLevelCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	if (IsGem(info->attrs)) {
 		return IntegerCompare(GetGemLevel(info->attrs), operation, gemLevel);
 	}
@@ -1448,7 +1448,7 @@ bool GemTypeCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Co
 	}
 	return false;
 }
-bool GemTypeCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool GemTypeCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	if (IsGem(info->attrs)) {
 		return IntegerCompare(GetGemType(info->attrs), operation, gemType);
 	}
@@ -1461,7 +1461,7 @@ bool RuneCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condi
 	}
 	return false;
 }
-bool RuneCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool RuneCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	if (IsRune(info->attrs)) {
 		return IntegerCompare(RuneNumberFromItemCode(info->code), operation, runeNumber);
 	}
@@ -1471,7 +1471,7 @@ bool RuneCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, 
 bool GoldCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	return false; // can only evaluate this from packet data
 }
-bool GoldCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool GoldCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	if (info->code[0] == 'g' && info->code[1] == 'l' && info->code[2] == 'd') {
 		return IntegerCompare(info->amount, operation, goldAmount);
 	}
@@ -1481,14 +1481,14 @@ bool GoldCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, 
 bool UsedSocketsCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	return IntegerCompare(GetUsedSockets(uInfo->item), operation, targetUsedSockets);
 }
-bool UsedSocketsCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool UsedSocketsCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	return IntegerCompare(info->usedSockets, operation, targetUsedSockets);
 }
 
 bool ItemLevelCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	return IntegerCompare(uInfo->item->pItemData->dwItemLevel, operation, itemLevel);
 }
-bool ItemLevelCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool ItemLevelCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	return IntegerCompare(info->level, operation, itemLevel);
 }
 
@@ -1496,7 +1496,7 @@ bool QualityLevelCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg
 	BYTE qlvl = uInfo->attrs->qualityLevel;
 	return IntegerCompare(qlvl, operation, qualityLevel);
 }
-bool QualityLevelCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool QualityLevelCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	int qlvl = info->attrs->qualityLevel;
 	return IntegerCompare(qlvl, operation, qualityLevel);
 }
@@ -1506,7 +1506,7 @@ bool AffixLevelCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1,
 	BYTE alvl = GetAffixLevel((BYTE)uInfo->item->pItemData->dwItemLevel, (BYTE)uInfo->attrs->qualityLevel, uInfo->attrs->magicLevel);
 	return IntegerCompare(alvl, operation, affixLevel);
 }
-bool AffixLevelCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool AffixLevelCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	int qlvl = info->attrs->qualityLevel;
 	BYTE alvl = GetAffixLevel(info->level, info->attrs->qualityLevel, info->attrs->magicLevel);
 	return IntegerCompare(alvl, operation, affixLevel);
@@ -1520,7 +1520,7 @@ bool CraftAffixLevelCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *
 	BYTE alvl = GetAffixLevel((BYTE)craft_ilvl, (BYTE)uInfo->attrs->qualityLevel, uInfo->attrs->magicLevel);
 	return IntegerCompare(alvl, operation, affixLevel);
 }
-bool CraftAffixLevelCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool CraftAffixLevelCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	int qlvl = info->attrs->qualityLevel;
 	auto ilvl = info->level;
 	auto clvl = D2COMMON_GetUnitStat(D2CLIENT_GetPlayerUnit(), STAT_LEVEL, 0); 
@@ -1534,7 +1534,7 @@ bool RequiredLevelCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *ar
 
 	return IntegerCompare(rlvl, operation, requiredLevel);
 }
-bool RequiredLevelCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool RequiredLevelCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 
 	//Not Done Yet (is it necessary? I think this might have something to do with the exact moment something drops?)
 
@@ -1544,7 +1544,7 @@ bool RequiredLevelCondition::EvaluateInternalFromPacket(ItemInfo *info, Conditio
 bool ItemGroupCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	return ((uInfo->attrs->flags & itemGroup) > 0);
 }
-bool ItemGroupCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool ItemGroupCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	return ((info->attrs->flags & itemGroup) > 0);
 }
 
@@ -1572,7 +1572,7 @@ bool EDCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Conditi
 	}
 	return IntegerCompare(value, operation, targetED);
 }
-bool EDCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool EDCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	// Either enhanced defense or enhanced damage depending on item type
 	WORD stat;
 	if (info->attrs->flags & ITEM_GROUP_ALLARMOR) {
@@ -1606,7 +1606,7 @@ bool DurabilityCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1,
 	}
 	return IntegerCompare(value, operation, targetDurability);
 }
-bool DurabilityCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool DurabilityCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	DWORD value = 0;
 	for (vector<ItemProperty>::iterator prop = info->properties.begin(); prop < info->properties.end(); prop++) {
 		if (prop->stat == STAT_ENHANCEDMAXDURABILITY) {
@@ -1633,7 +1633,7 @@ bool ChargedCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Co
 	}
 	return IntegerCompare(value, operation, targetLevel);
 }
-bool ChargedCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool ChargedCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	DWORD num = 0;
 	for (vector<ItemProperty>::iterator prop = info->properties.begin(); prop < info->properties.end(); prop++) {
 		if (prop->stat == STAT_CHARGED && prop->skill == skill) {
@@ -1669,7 +1669,7 @@ bool FoolsCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Cond
 	// types it can produce
 	return IntegerCompare(value, (BYTE)EQUAL, 3);
 }
-bool FoolsCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool FoolsCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	// 1 = MAX DMG / level
 	// 2 = AR / level
 	// 3 = Fools
@@ -1729,7 +1729,7 @@ bool SkillListCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, 
 	return IntegerCompare(value, operation, targetStat);
 }
 
-bool SkillListCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool SkillListCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	// TODO: Implement later
 	return false;
 }
@@ -1737,14 +1737,14 @@ bool SkillListCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *a
 bool CharStatCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	return IntegerCompare(D2COMMON_GetUnitStat(D2CLIENT_GetPlayerUnit(), stat1, stat2), operation, targetStat);
 }
-bool CharStatCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool CharStatCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	return IntegerCompare(D2COMMON_GetUnitStat(D2CLIENT_GetPlayerUnit(), stat1, stat2), operation, targetStat);
 }
 
 bool DifficultyCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	return IntegerCompare(D2CLIENT_GetDifficulty(), operation, targetDiff);
 }
-bool DifficultyCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool DifficultyCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	return IntegerCompare(D2CLIENT_GetDifficulty(), operation, targetDiff);
 }
 
@@ -1771,28 +1771,28 @@ unsigned int GetCurrentAreaLevel() {
 bool AreaLevelCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	return IsOnGround(uInfo->item) && IntegerCompare(GetCurrentAreaLevel(), operation, areaLevel);
 }
-bool AreaLevelCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool AreaLevelCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	return info->ground && IntegerCompare(GetCurrentAreaLevel(), operation, areaLevel);
 }
 
 bool AreaIdCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	return IsOnGround(uInfo->item) && IntegerCompare(GetPlayerArea(), operation, areaId);
 }
-bool AreaIdCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool AreaIdCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	return info->ground && IntegerCompare(GetPlayerArea(), operation, areaId);
 }
 
 bool FilterLevelCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	return IntegerCompare(Item::GetFilterLevel(), operation, filterLevel);
 }
-bool FilterLevelCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool FilterLevelCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	return IntegerCompare(Item::GetFilterLevel(), operation, filterLevel);
 }
 
 bool ItemStatCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	return IntegerCompare(D2COMMON_GetUnitStat(uInfo->item, itemStat, itemStat2), operation, targetStat);
 }
-bool ItemStatCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool ItemStatCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	int num = 0;
 	switch (itemStat) {
 	case STAT_SOCKETS:
@@ -1847,7 +1847,7 @@ bool PartialCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Co
 	return IntegerCompare(match_count, operation, target_count);
 }
 
-bool PartialCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool PartialCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	int match_count = 0;
 	for (auto &rule : rules) {
 		if (rule.Evaluate(NULL, info)) match_count++;
@@ -1858,7 +1858,7 @@ bool PartialCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg
 bool ItemPriceCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	return IntegerCompare(D2COMMON_GetItemPrice(D2CLIENT_GetPlayerUnit(), uInfo->item, D2CLIENT_GetDifficulty(), (DWORD)D2CLIENT_GetQuestInfo(), 0x201, 1), operation, targetStat);
 }
-bool ItemPriceCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool ItemPriceCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	// TODO: Implement later
 	return false;
 }
@@ -1873,7 +1873,7 @@ bool ResistAllCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, 
 			IntegerCompare(cRes, operation, targetStat) &&
 			IntegerCompare(pRes, operation, targetStat));
 }
-bool ResistAllCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool ResistAllCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	int fRes = 0, lRes = 0, cRes = 0, pRes = 0;
 	for (vector<ItemProperty>::iterator prop = info->properties.begin(); prop < info->properties.end(); prop++) {
 		if (prop->stat == STAT_FIRERESIST) {
@@ -1915,12 +1915,12 @@ bool AddCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condit
 	return IntegerCompare(value, operation, targetStat);
 }
 
-bool AddCondition::EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2) {
+bool AddCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
 	// TODO: Implement later
 	return false;
 }
 
-int GetDefense(ItemInfo *item) {
+int GetDefense(ItemFacts *item) {
 	int def = item->defense;
 	for (vector<ItemProperty>::iterator prop = item->properties.begin(); prop < item->properties.end(); prop++) {
 		if (prop->stat == STAT_ENHANCEDDEFENSE) {

@@ -80,11 +80,13 @@
     <ClCompile Include="BitReaderTests.cpp" />
     <ClCompile Include="CaptureFormatTests.cpp" />
     <ClCompile Include="FixtureTests.cpp" />
+    <ClCompile Include="ItemFactsPacketTests.cpp" />
     <!-- Sources under test. Only translation units that reference no D2 symbols
          can be linked here: the D2 function pointers are naked inline-asm thunks
          that need the game process to mean anything. -->
     <ClCompile Include="..\BH\BitReader.cpp" />
     <ClCompile Include="..\BH\Modules\Item\CaptureFormat.cpp" />
+    <ClCompile Include="..\BH\Modules\Item\ItemFactsPacket.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

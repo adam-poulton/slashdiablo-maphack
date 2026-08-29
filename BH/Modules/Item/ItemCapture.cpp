@@ -1,4 +1,4 @@
-#include "ItemCapture.h"
+﻿#include "ItemCapture.h"
 #include <fstream>
 #include <map>
 #include <string>
@@ -121,7 +121,7 @@ bool IsEnabled() {
 	return captureEnabled;
 }
 
-void RecordDrop(const unsigned char* packet, const ItemInfo& item,
+void RecordDrop(const unsigned char* packet, const ItemFacts& item,
 		const Outcome& outcome) {
 	if (!captureEnabled)
 		return;
