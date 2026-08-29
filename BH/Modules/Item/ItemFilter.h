@@ -159,8 +159,9 @@ class TrueCondition : public Condition
 public:
 	TrueCondition() { conditionType = CT_Operand; };
 private:
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts) const;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
+	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
 };
 
 class FalseCondition : public Condition
@@ -168,8 +169,9 @@ class FalseCondition : public Condition
 public:
 	FalseCondition() { conditionType = CT_Operand; };
 private:
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts) const;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
+	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
 };
 
 class NegationOperator : public Condition
@@ -229,8 +231,9 @@ public:
 	};
 private:
 	char targetCode[4];
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts) const;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
+	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
 };
 
 class FlagsCondition : public Condition
@@ -269,8 +272,9 @@ public:
 	QualityCondition(unsigned int qual) : quality(qual) { conditionType = CT_Operand; };
 private:
 	unsigned int quality;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts) const;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
+	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
 };
 
 class NonMagicalCondition : public Condition
@@ -278,8 +282,9 @@ class NonMagicalCondition : public Condition
 public:
 	NonMagicalCondition() { conditionType = CT_Operand; };
 private:
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts) const;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
+	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
 };
 
 class QualityIdCondition : public Condition
@@ -300,8 +305,9 @@ public:
 private:
 	BYTE operation;
 	BYTE gemLevel;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts) const;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
+	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
 };
 
 class GemTypeCondition : public Condition
@@ -311,8 +317,9 @@ public:
 private:
 	BYTE operation;
 	BYTE gemType;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts) const;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
+	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
 };
 
 class RuneCondition : public Condition
@@ -322,8 +329,9 @@ public:
 private:
 	BYTE operation;
 	BYTE runeNumber;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts) const;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
+	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
 };
 
 class GoldCondition : public Condition
@@ -344,8 +352,9 @@ public:
 private:
 	BYTE operation;
 	BYTE itemLevel;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts) const;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
+	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
 };
 
 class QualityLevelCondition : public Condition
@@ -355,8 +364,9 @@ public:
 private:
 	BYTE operation;
 	BYTE qualityLevel;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts) const;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
+	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
 };
 
 class AffixLevelCondition : public Condition
@@ -366,8 +376,9 @@ public:
 private:
 	BYTE operation;
 	BYTE affixLevel;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts) const;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
+	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
 };
 
 class CraftAffixLevelCondition : public Condition
@@ -399,8 +410,9 @@ public:
 private:
 	BYTE operation;
 	unsigned int targetUsedSockets;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts) const;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
+	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
 };
 
 class ItemGroupCondition : public Condition
@@ -409,8 +421,9 @@ public:
 	ItemGroupCondition(unsigned int group) : itemGroup(group) { conditionType = CT_Operand; };
 private:
 	unsigned int itemGroup;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts) const;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
+	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
 };
 
 class EDCondition : public Condition
@@ -749,7 +762,6 @@ bool IntegerCompare(unsigned int Lvalue, BYTE operation, unsigned int Rvalue);
 
 // Item facts several conditions ask for.
 BYTE GetAffixLevel(BYTE ilvl, BYTE qlvl, BYTE mlvl);
-unsigned int GetUsedSockets(UnitAny *item);
 bool IsGem(ItemAttributes *attrs);
 BYTE GetGemLevel(ItemAttributes *attrs);
 char *GetGemLevelString(BYTE level);

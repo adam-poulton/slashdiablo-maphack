@@ -1,4 +1,5 @@
 ﻿#include "ItemDisplay.h"
+#include "ItemFactsLive.h"
 #include "Item.h"
 #include "../../D2Helpers.h"
 

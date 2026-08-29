@@ -43,6 +43,9 @@ private:
  * in the world is still read from the game as it is asked for, which is what
  * the stats are for.
  */
+// How many of an item's sockets are filled.
+unsigned int GetUsedSockets(UnitAny *item);
+
 class LiveItem {
 public:
 	explicit LiveItem(UnitAny* item);

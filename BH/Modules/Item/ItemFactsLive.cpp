@@ -40,6 +40,17 @@ const std::vector<StatEntry>& LiveStats::Stats() const {
 	return entries;
 }
 
+unsigned int GetUsedSockets(UnitAny *item) {
+	unsigned int used = 0;
+	if (item == NULL || item->pInventory == NULL) {
+		return 0;
+	}
+	for (UnitAny *sItem = item->pInventory->pFirstItem; sItem; sItem = sItem->pItemData->pNextInvItem) {
+		used++;
+	}
+	return used;
+}
+
 LiveItem::LiveItem(UnitAny* item) : stats(item), unit(), facts(), known(false) {
 	unit.item = item;
 	unit.attrs = NULL;
@@ -62,4 +73,10 @@ LiveItem::LiveItem(UnitAny* item) : stats(item), unit(), facts(), known(false) {
 	unit.attrs = found->second;
 	facts.attrs = found->second;
 	known = true;
+
+	// Only what a collapsed condition asks for. The rest of an item in the world
+	// is still read from the game at the moment it is wanted.
+	facts.quality = item->pItemData->dwQuality;
+	facts.level = (unsigned char)item->pItemData->dwItemLevel;
+	facts.usedSockets = (unsigned char)GetUsedSockets(item);
 }

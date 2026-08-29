@@ -29,16 +29,6 @@ SkillReplace skills[] = {
 
 BYTE LastConditionType;
 
-unsigned int GetUsedSockets(UnitAny *item) {
-	unsigned int used = 0;
-	if (item == NULL || item->pInventory == NULL) {
-		return 0;
-	}
-	for (UnitAny *sItem = item->pInventory->pFirstItem; sItem; sItem = sItem->pItemData->pNextInvItem) {
-		used++;
-	}
-	return used;
-}
 
 TrueCondition *trueCondition = new TrueCondition();
 FalseCondition *falseCondition = new FalseCondition();
@@ -953,6 +943,70 @@ bool FoolsCondition::Match(const ItemFacts &facts) const {
 	return IntegerCompare(value, (BYTE)EQUAL, 3);
 }
 
+bool TrueCondition::Match(const ItemFacts &facts) const {
+	return true;
+}
+
+bool FalseCondition::Match(const ItemFacts &facts) const {
+	return false;
+}
+
+bool ItemCodeCondition::Match(const ItemFacts &facts) const {
+	return (targetCode[0] == facts.code[0] && targetCode[1] == facts.code[1] &&
+			targetCode[2] == facts.code[2]);
+}
+
+bool QualityCondition::Match(const ItemFacts &facts) const {
+	return facts.quality == quality;
+}
+
+bool NonMagicalCondition::Match(const ItemFacts &facts) const {
+	return (facts.quality == ITEM_QUALITY_INFERIOR ||
+			facts.quality == ITEM_QUALITY_NORMAL ||
+			facts.quality == ITEM_QUALITY_SUPERIOR);
+}
+
+bool GemLevelCondition::Match(const ItemFacts &facts) const {
+	if (!IsGem(facts.attrs))
+		return false;
+	return IntegerCompare(GetGemLevel(facts.attrs), operation, gemLevel);
+}
+
+bool GemTypeCondition::Match(const ItemFacts &facts) const {
+	if (!IsGem(facts.attrs))
+		return false;
+	return IntegerCompare(GetGemType(facts.attrs), operation, gemType);
+}
+
+bool RuneCondition::Match(const ItemFacts &facts) const {
+	if (!IsRune(facts.attrs))
+		return false;
+	return IntegerCompare(RuneNumberFromItemCode(const_cast<char*>(facts.code)),
+		operation, runeNumber);
+}
+
+bool UsedSocketsCondition::Match(const ItemFacts &facts) const {
+	return IntegerCompare(facts.usedSockets, operation, targetUsedSockets);
+}
+
+bool ItemLevelCondition::Match(const ItemFacts &facts) const {
+	return IntegerCompare(facts.level, operation, itemLevel);
+}
+
+bool QualityLevelCondition::Match(const ItemFacts &facts) const {
+	return IntegerCompare(facts.attrs->qualityLevel, operation, qualityLevel);
+}
+
+bool AffixLevelCondition::Match(const ItemFacts &facts) const {
+	BYTE alvl = GetAffixLevel(facts.level, facts.attrs->qualityLevel,
+		facts.attrs->magicLevel);
+	return IntegerCompare(alvl, operation, affixLevel);
+}
+
+bool ItemGroupCondition::Match(const ItemFacts &facts) const {
+	return (facts.attrs->flags & itemGroup) > 0;
+}
+
 bool Condition::Evaluate(UnitItemInfo *uInfo, ItemFacts *info, Condition *arg1, Condition *arg2) {
 	// Arguments will vary based on where we're called from.
 	// We will have either *info set (if called on reception of packet 0c9c, in which case
@@ -963,19 +1017,7 @@ bool Condition::Evaluate(UnitItemInfo *uInfo, ItemFacts *info, Condition *arg1, 
 	return EvaluateInternal(uInfo, arg1, arg2);
 }
 
-bool TrueCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	return true;
-}
-bool TrueCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	return true;
-}
 
-bool FalseCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	return false;
-}
-bool FalseCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	return false;
-}
 
 bool NegationOperator::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	return !arg1->Evaluate(uInfo, NULL, arg1, arg2);
@@ -1012,12 +1054,6 @@ bool OrOperator::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Co
 	return arg1->Evaluate(NULL, info, NULL, NULL) || arg2->Evaluate(NULL, info, NULL, NULL);
 }
 
-bool ItemCodeCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	return (targetCode[0] == uInfo->itemCode[0] && targetCode[1] == uInfo->itemCode[1] && targetCode[2] == uInfo->itemCode[2]);
-}
-bool ItemCodeCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	return (targetCode[0] == info->code[0] && targetCode[1] == info->code[1] && targetCode[2] == info->code[2]);
-}
 bool QualityIdCondition::EvaluateInternal(UnitItemInfo* uInfo, Condition* arg1, Condition* arg2) {
 	return uInfo->item->pItemData->dwFileIndex == id && uInfo->item->pItemData->dwQuality == quality;
 }
@@ -1071,61 +1107,9 @@ bool CharClassCondition::EvaluateInternalFromPacket(ItemFacts* info, Condition* 
 	return GetCurrentCharClass() == charClass;
 }
 
-bool QualityCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	return (uInfo->item->pItemData->dwQuality == quality);
-}
-bool QualityCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	return (info->quality == quality);
-}
 
-bool NonMagicalCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	return (uInfo->item->pItemData->dwQuality == ITEM_QUALITY_INFERIOR ||
-			uInfo->item->pItemData->dwQuality == ITEM_QUALITY_NORMAL ||
-			uInfo->item->pItemData->dwQuality == ITEM_QUALITY_SUPERIOR);
-}
-bool NonMagicalCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	return (info->quality == ITEM_QUALITY_INFERIOR ||
-			info->quality == ITEM_QUALITY_NORMAL ||
-			info->quality == ITEM_QUALITY_SUPERIOR);
-}
 
-bool GemLevelCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	if (IsGem(uInfo->attrs)) {
-		return IntegerCompare(GetGemLevel(uInfo->attrs), operation, gemLevel);
-	}
-	return false;
-}
-bool GemLevelCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	if (IsGem(info->attrs)) {
-		return IntegerCompare(GetGemLevel(info->attrs), operation, gemLevel);
-	}
-	return false;
-}
-bool GemTypeCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	if (IsGem(uInfo->attrs)) {
-		return IntegerCompare(GetGemType(uInfo->attrs), operation, gemType);
-	}
-	return false;
-}
-bool GemTypeCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	if (IsGem(info->attrs)) {
-		return IntegerCompare(GetGemType(info->attrs), operation, gemType);
-	}
-	return false;
-}
 
-bool RuneCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	if (IsRune(uInfo->attrs)) {
-		return IntegerCompare(RuneNumberFromItemCode(uInfo->itemCode), operation, runeNumber);
-	}
-	return false;
-}
-bool RuneCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	if (IsRune(info->attrs)) {
-		return IntegerCompare(RuneNumberFromItemCode(info->code), operation, runeNumber);
-	}
-	return false;
-}
 
 bool GoldCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	return false; // can only evaluate this from packet data
@@ -1137,39 +1121,9 @@ bool GoldCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1,
 	return false;
 }
 
-bool UsedSocketsCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	return IntegerCompare(GetUsedSockets(uInfo->item), operation, targetUsedSockets);
-}
-bool UsedSocketsCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	return IntegerCompare(info->usedSockets, operation, targetUsedSockets);
-}
 
-bool ItemLevelCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	return IntegerCompare(uInfo->item->pItemData->dwItemLevel, operation, itemLevel);
-}
-bool ItemLevelCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	return IntegerCompare(info->level, operation, itemLevel);
-}
 
-bool QualityLevelCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	BYTE qlvl = uInfo->attrs->qualityLevel;
-	return IntegerCompare(qlvl, operation, qualityLevel);
-}
-bool QualityLevelCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	int qlvl = info->attrs->qualityLevel;
-	return IntegerCompare(qlvl, operation, qualityLevel);
-}
 
-bool AffixLevelCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	BYTE qlvl = uInfo->attrs->qualityLevel;
-	BYTE alvl = GetAffixLevel((BYTE)uInfo->item->pItemData->dwItemLevel, (BYTE)uInfo->attrs->qualityLevel, uInfo->attrs->magicLevel);
-	return IntegerCompare(alvl, operation, affixLevel);
-}
-bool AffixLevelCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	int qlvl = info->attrs->qualityLevel;
-	BYTE alvl = GetAffixLevel(info->level, info->attrs->qualityLevel, info->attrs->magicLevel);
-	return IntegerCompare(alvl, operation, affixLevel);
-}
 
 bool CraftAffixLevelCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	BYTE qlvl = uInfo->attrs->qualityLevel;
@@ -1200,12 +1154,6 @@ bool RequiredLevelCondition::EvaluateInternalFromPacket(ItemFacts *info, Conditi
 	return true;
 }
 
-bool ItemGroupCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	return ((uInfo->attrs->flags & itemGroup) > 0);
-}
-bool ItemGroupCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	return ((info->attrs->flags & itemGroup) > 0);
-}
 
 
 
