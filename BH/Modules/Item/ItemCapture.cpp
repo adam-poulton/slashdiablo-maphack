@@ -70,6 +70,59 @@ void AppendAssoc(const char* type, const std::map<std::string, std::string>& ent
 }
 
 /*
+ * The rows of the game's own tables that reading a packet depends on.
+ *
+ * A packet says as little as it can get away with, and how wide each part of it
+ * is comes from these. Without them a recorded packet cannot be read back, so a
+ * capture carries them rather than leaving a reader to find a copy of the game
+ * to ask.
+ *
+ * All of them are written, not only the ones this session happened to need,
+ * since which rows matter is not known until a packet is read against them.
+ * Curation is where the ones nothing refers to are dropped.
+ */
+void AppendTables() {
+	for (auto it = ItemAttributeMap.cbegin(); it != ItemAttributeMap.cend(); ++it) {
+		const ItemAttributes* attrs = it->second;
+		if (!attrs)
+			continue;
+		Record record("itemattrs");
+		record.Add("code", it->first);
+		record.Add("name", attrs->name);
+		record.Add("category", attrs->category);
+		record.Add("width", (long long)attrs->width);
+		record.Add("height", (long long)attrs->height);
+		record.Add("stackable", (long long)attrs->stackable);
+		record.Add("useable", (long long)attrs->useable);
+		record.Add("throwable", (long long)attrs->throwable);
+		record.Add("itemLevel", (long long)attrs->itemLevel);
+		record.Add("flags", (long long)attrs->flags);
+		record.Add("flags2", (long long)attrs->flags2);
+		record.Add("qualityLevel", (long long)attrs->qualityLevel);
+		record.Add("magicLevel", (long long)attrs->magicLevel);
+		Append(record.Line());
+	}
+
+	// Written by position rather than by the id they carry: the list has an
+	// entry for every id up to the highest, gaps included, and a reader finds a
+	// stat by counting along it.
+	for (unsigned int i = 0; i < AllStatList.size(); i++) {
+		const StatProperties* stat = AllStatList[i];
+		if (!stat)
+			continue;
+		Record record("statwidths");
+		record.Add("at", (long long)i);
+		record.Add("name", stat->name);
+		record.Add("saveBits", (long long)stat->saveBits);
+		record.Add("saveParamBits", (long long)stat->saveParamBits);
+		record.Add("saveAdd", (long long)stat->saveAdd);
+		record.Add("op", (long long)stat->op);
+		record.Add("sendParamBits", (long long)stat->sendParamBits);
+		Append(record.Line());
+	}
+}
+
+/*
  * What the filter's decision rested on that only a change of configuration can
  * alter. Anything that moves while playing is recorded against each item
  * instead.
@@ -102,6 +155,7 @@ void AppendHeader() {
 	AppendAssoc("group", condition_group);
 	AppendAssoc("classskill", capturedClassSkills);
 	AppendAssoc("tabskill", capturedTabSkills);
+	AppendTables();
 }
 
 }  // namespace
@@ -135,6 +189,42 @@ void RecordDrop(const unsigned char* packet, const ItemFacts& item,
 	drop.Add("code", std::string(item.code, 3));
 	drop.Add("name", item.name);
 	drop.Add("action", (long long)item.action);
+
+	/*
+	 * What reading the packet made of it.
+	 *
+	 * The packet and these together are a worked example: given those bytes and
+	 * the tables above, this is what the fields came out as. Reading a packet is
+	 * a few hundred lines of counting bits, where a field of the wrong width
+	 * puts every field after it somewhere else, and this is what would catch
+	 * that.
+	 *
+	 * How many properties were read stands for the whole stat list, which is
+	 * where the widths are read from the tables and where being one bit out
+	 * shows up first.
+	 */
+	drop.Add("quality", (long long)item.quality);
+	drop.Add("level", (long long)item.level);
+	drop.Add("sockets", (long long)item.sockets);
+	drop.Add("usedSockets", (long long)item.usedSockets);
+	drop.Add("defense", (long long)item.defense);
+	drop.Add("durability", (long long)item.durability);
+	drop.Add("maxDurability", (long long)item.maxDurability);
+	drop.Add("amount", (long long)item.amount);
+	drop.Add("prefix", (long long)item.prefix);
+	drop.Add("suffix", (long long)item.suffix);
+	drop.Add("setCode", (long long)item.setCode);
+	drop.Add("uniqueCode", (long long)item.uniqueCode);
+	drop.Add("runewordId", (long long)item.runewordId);
+	drop.Add("properties", (long long)item.properties.size());
+	drop.Add("identified", item.identified);
+	drop.Add("ethereal", item.ethereal);
+	drop.Add("runeword", item.runeword);
+	drop.Add("personalized", item.personalized);
+	drop.Add("isGold", item.isGold);
+	drop.Add("ear", item.ear);
+	drop.Add("simpleItem", item.simpleItem);
+	drop.Add("hasSockets", item.hasSockets);
 
 	// Byte two of the packet is the message size the game itself declares, and
 	// is what bounds the bytes worth keeping.

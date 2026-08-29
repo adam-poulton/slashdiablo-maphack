@@ -23,6 +23,11 @@ Two sets come out of it, because they answer different questions.
                     too old to replay still serve here, since reading a packet
                     does not depend on the world it was read in.
 
+  tables.txt        The rows of the game's tables that reading those packets
+                    depends on: how wide each stat is written, and the
+                    attributes of the item codes the cases mention. Without
+                    these a recorded packet cannot be read back at all.
+
 Usage:
     python tools/captures/curate.py <capture.txt> [more captures...]
 """
@@ -53,7 +58,14 @@ GEM_PREFIX = ('gc', 'gf', 'gs', 'gl', 'gp', 'gz', 'sk', 'am', 'to', 'em',
 
 OUTCOME_FIELDS = ('blocked', 'showOnMap', 'noTracking', 'keepIndex',
                   'ignoreIndex', 'color', 'pingLevel')
-PARSE_FIELDS = ('code', 'name', 'action', 'packetSize', 'packet')
+# What a packet read out as. Recorded alongside the packet so that reading it
+# again can be checked field by field rather than only for not crashing.
+PARSE_FIELDS = ('code', 'name', 'action', 'packetSize', 'quality', 'level',
+                'sockets', 'usedSockets', 'defense', 'durability',
+                'maxDurability', 'amount', 'prefix', 'suffix', 'setCode',
+                'uniqueCode', 'runewordId', 'properties', 'identified',
+                'ethereal', 'runeword', 'personalized', 'isGold', 'ear',
+                'simpleItem', 'hasSockets', 'packet')
 
 
 def parse_fields(parts):
@@ -77,7 +89,7 @@ def read_sessions(paths):
             if parts[0] == 'header':
                 current = {'header': line.rstrip('\n'),
                            'fields': parse_fields(parts),
-                           'rules': [], 'drops': []}
+                           'rules': [], 'drops': [], 'tables': []}
                 sessions.append(current)
             elif current is None:
                 continue
@@ -85,6 +97,8 @@ def read_sessions(paths):
                 current['rules'].append(line.rstrip('\n'))
             elif parts[0] == 'drop':
                 current['drops'].append((line.rstrip('\n'), parse_fields(parts)))
+            elif parts[0] in ('itemattrs', 'statwidths'):
+                current['tables'].append((parts[0], parse_fields(parts)))
     return sessions
 
 
@@ -192,6 +206,41 @@ def curate_parse_cases(sessions):
     return out
 
 
+def curate_tables(sessions, needed_codes):
+    """The table rows the kept cases refer to, each written once.
+
+    Stat widths are kept whole. Which of them a packet needs is only known by
+    reading it against them, and there are few enough that guessing is not worth
+    the risk of leaving out the one that mattered. Item attributes are kept only
+    for the codes the cases mention, which is the larger table and the one where
+    most rows stand for items nobody dropped.
+    """
+    widths = {}
+    attributes = {}
+    for session in sessions:
+        for kind, f in session['tables']:
+            if kind == 'statwidths':
+                widths.setdefault(f.get('at'), f)
+            elif f.get('code') in needed_codes:
+                attributes.setdefault(f.get('code'), f)
+
+    lines = []
+    for at in sorted(widths, key=lambda value: int(value)):
+        f = widths[at]
+        lines.append('\t'.join(['statwidths'] +
+            ['%s=%s' % (k, f[k]) for k in
+             ('at', 'name', 'saveBits', 'saveParamBits', 'saveAdd', 'op',
+              'sendParamBits') if k in f]))
+    for code in sorted(attributes):
+        f = attributes[code]
+        lines.append('\t'.join(['itemattrs'] +
+            ['%s=%s' % (k, f[k]) for k in
+             ('code', 'name', 'category', 'width', 'height', 'stackable',
+              'useable', 'throwable', 'itemLevel', 'flags', 'flags2',
+              'qualityLevel', 'magicLevel') if k in f]))
+    return lines
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
@@ -239,8 +288,20 @@ def main():
 
     parse_lines = curate_parse_cases(sessions)
 
+    # Only the codes something kept refers to, so the larger table does not
+    # arrive whole for the sake of a few hundred items.
+    needed_codes = set()
+    for line in parse_lines + [l for l in filter_lines if l.startswith('drop\t')]:
+        for part in line.split('\t'):
+            if part.startswith('code='):
+                needed_codes.add(part[len('code='):])
+    table_lines = curate_tables(sessions, needed_codes)
+    print('table rows kept: %d for %d item codes' %
+          (len(table_lines), len(needed_codes)))
+
     for name, lines in (('filter-cases.txt', filter_lines),
-                        ('parse-cases.txt', parse_lines)):
+                        ('parse-cases.txt', parse_lines),
+                        ('tables.txt', table_lines)):
         path = os.path.join(root, name)
         with open(path, 'w', encoding='latin-1', newline='\n') as handle:
             for line in lines:

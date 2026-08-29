@@ -40,9 +40,15 @@ separable if those differ.
 
     python tools/captures/curate.py <capture.txt> [more captures...]
 
-Writes `BHTests/fixtures/filter-cases.txt` and
-`BHTests/fixtures/parse-cases.txt`. Both are read by the tests through
-`CaptureFormat`, the same code the game writes them with.
+Writes `BHTests/fixtures/filter-cases.txt`, `parse-cases.txt` and
+`tables.txt`. All three are read by the tests through `CaptureFormat`, the same
+code the game writes them with.
+
+`tables.txt` holds the rows of the game's own tables that reading a packet
+depends on: how wide each stat is written, and the attributes of the item codes
+the cases mention. A packet says as little as it can, and without these there is
+no way to know where one field ends and the next begins, so a capture carries
+them and the fixtures keep the ones something refers to.
 
 A capture is mostly repetition, and curation keeps what carries information: the
 first of every packet, item, outcome and area, everything long enough to hold a
