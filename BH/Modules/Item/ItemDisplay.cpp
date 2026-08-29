@@ -158,6 +158,9 @@ void GetItemName(UnitItemInfo *uInfo, string &name) {
 
 		verdict.name = built;
 		verdict.named = true;
+		// Dear enough that the automap's items must not push it out: there are
+		// far more of those than there are names on screen.
+		item_verdicts.Protect(uInfo->item->dwUnitId);
 	}
 	name.assign(verdict.name);
 }
@@ -174,6 +177,7 @@ std::string GetItemDescription(UnitItemInfo *uInfo) {
 
 		verdict.description = built;
 		verdict.described = true;
+		item_verdicts.Protect(uInfo->item->dwUnitId);
 	}
 	return verdict.description;
 }

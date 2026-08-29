@@ -22,8 +22,16 @@
  * on the ground and drawing it on the automap want different halves of the same
  * answer, and the automap asks about far more items.
  *
- * The least recently asked for is dropped once there are more than there is
- * room for.
+ * What is dropped when there is no room is the least recently asked for of the
+ * ones not being guarded. Guarding is how a caller says that what it just
+ * filled in was dear to work out: what the automap wants about an item is a
+ * short walk, where a name is a walk of every rule that names anything and a
+ * trip out to the game for a price and a required level. There are far more
+ * items on a map than there are on a screen, so without this the cheap and
+ * numerous would push out the dear and few, and the names on screen would be
+ * worked out again on every frame. Guarded entries are dropped only once there
+ * is nothing else left to drop, which is what a cache with no such notion does
+ * to everything.
  */
 template <typename Value>
 class StampedCache {
@@ -42,20 +50,34 @@ public:
 		typename Index::iterator found = index.find(key);
 		if (found == index.end() || found->second->stamp != stamp)
 			return NULL;
-		entries.splice(entries.begin(), entries, found->second);
+		Entries &list = ListOf(*found->second);
+		list.splice(list.begin(), list, found->second);
 		return &found->second->value;
 	}
 
-	// Holds value about key, in place of anything held about it before.
+	// Holds value about key, in place of anything held about it before. What is
+	// newly held is not guarded, whatever was held about key before.
 	Value &Hold(DWORD key, DWORD stamp, Value value) {
 		Forget(key);
-		entries.push_front(Entry{ key, stamp, std::move(value) });
-		index[key] = entries.begin();
-		while (index.size() > capacity) {
-			index.erase(entries.back().key);
-			entries.pop_back();
-		}
-		return entries.begin()->value;
+		while (index.size() >= capacity)
+			DropOne();
+		unguarded.push_front(Entry{ key, stamp, false, std::move(value) });
+		index[key] = unguarded.begin();
+		return unguarded.begin()->value;
+	}
+
+	/*
+	 * Says that what is held about key was dear to work out.
+	 *
+	 * Called once the caller has filled in the expensive half, not when the
+	 * entry is made, since until then there is nothing dear about it.
+	 */
+	void Protect(DWORD key) {
+		typename Index::iterator found = index.find(key);
+		if (found == index.end() || found->second->guarded)
+			return;
+		found->second->guarded = true;
+		guarded.splice(guarded.begin(), unguarded, found->second);
 	}
 
 	// Drops what is held about key, if anything is.
@@ -63,29 +85,46 @@ public:
 		typename Index::iterator found = index.find(key);
 		if (found == index.end())
 			return;
-		entries.erase(found->second);
+		ListOf(*found->second).erase(found->second);
 		index.erase(found);
 	}
 
 	void Clear() {
-		entries.clear();
+		unguarded.clear();
+		guarded.clear();
 		index.clear();
 	}
 
 	unsigned int Size() const { return (unsigned int)index.size(); }
+	unsigned int GuardedSize() const { return (unsigned int)guarded.size(); }
 
 private:
 	struct Entry {
 		DWORD key;
 		DWORD stamp;
+		bool guarded;
 		Value value;
 	};
 
 	typedef std::list<Entry> Entries;
 	typedef std::unordered_map<DWORD, typename Entries::iterator> Index;
 
-	// Most recently asked for first, so that what is dropped is at the back.
-	Entries entries;
+	Entries &ListOf(const Entry &entry) {
+		return entry.guarded ? guarded : unguarded;
+	}
+
+	// Only ever called with something to drop, since holding drops before it
+	// makes room rather than after.
+	void DropOne() {
+		Entries &list = unguarded.empty() ? guarded : unguarded;
+		index.erase(list.back().key);
+		list.pop_back();
+	}
+
+	// Each most recently asked for first, so that what is dropped is at the
+	// back of whichever is being drawn from.
+	Entries unguarded;
+	Entries guarded;
 	Index index;
 	unsigned int capacity;
 };

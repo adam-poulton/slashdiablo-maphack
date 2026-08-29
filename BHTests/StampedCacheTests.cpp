@@ -136,14 +136,108 @@ TEST_CASE("forgetting one thing leaves the rest") {
 	CHECK(cache.Find(2, 0) != NULL);
 }
 
+TEST_CASE("what is guarded is not dropped for what is not") {
+	StampedCache<Verdict> cache(2);
+	cache.Hold(1, 0, Verdict());
+	cache.Protect(1);
+	cache.Hold(2, 0, Verdict());
+
+	// Nothing was asked about 1 since, so on recency alone it would go first.
+	cache.Hold(3, 0, Verdict());
+
+	CHECK(cache.Find(1, 0) != NULL);
+	CHECK(cache.Find(2, 0) == NULL);
+	CHECK(cache.Find(3, 0) != NULL);
+}
+
+TEST_CASE("a flood of what is cheap leaves what is dear alone") {
+	// The automap asks about far more items than are ever named, and this is
+	// what stops it working every name out again on every frame.
+	StampedCache<Verdict> cache(8);
+	cache.Hold(1, 0, Verdict());
+	cache.Protect(1);
+
+	for (DWORD other = 100; other < 200; other++)
+		cache.Hold(other, 0, Verdict());
+
+	CHECK(cache.Find(1, 0) != NULL);
+	CHECK(cache.GuardedSize() == 1);
+}
+
+TEST_CASE("what is guarded is dropped once nothing else is left") {
+	StampedCache<Verdict> cache(2);
+	cache.Hold(1, 0, Verdict());
+	cache.Protect(1);
+	cache.Hold(2, 0, Verdict());
+	cache.Protect(2);
+
+	cache.Hold(3, 0, Verdict());
+
+	// Which is what a cache with no notion of this does to everything.
+	CHECK(cache.Size() == 2);
+	CHECK(cache.Find(1, 0) == NULL);
+	CHECK(cache.Find(2, 0) != NULL);
+	CHECK(cache.Find(3, 0) != NULL);
+}
+
+TEST_CASE("asking about a guarded thing keeps it over another guarded one") {
+	StampedCache<Verdict> cache(2);
+	cache.Hold(1, 0, Verdict());
+	cache.Protect(1);
+	cache.Hold(2, 0, Verdict());
+	cache.Protect(2);
+
+	REQUIRE(cache.Find(1, 0) != NULL);
+	cache.Hold(3, 0, Verdict());
+
+	CHECK(cache.Find(1, 0) != NULL);
+	CHECK(cache.Find(2, 0) == NULL);
+}
+
+TEST_CASE("holding again stops guarding what was held before") {
+	// The item changed, so the dear half has to be worked out again, and until
+	// it is there is nothing dear about what is held.
+	StampedCache<Verdict> cache(4);
+	cache.Hold(1, 0x11, Verdict());
+	cache.Protect(1);
+	REQUIRE(cache.GuardedSize() == 1);
+
+	cache.Hold(1, 0x12, Verdict());
+
+	CHECK(cache.GuardedSize() == 0);
+	CHECK(cache.Size() == 1);
+}
+
+TEST_CASE("guarding a thing not held does nothing") {
+	StampedCache<Verdict> cache(4);
+	cache.Protect(7);
+	CHECK(cache.Size() == 0);
+	CHECK(cache.GuardedSize() == 0);
+}
+
+TEST_CASE("forgetting a guarded thing leaves the rest") {
+	StampedCache<Verdict> cache(4);
+	cache.Hold(1, 0, Verdict());
+	cache.Protect(1);
+	cache.Hold(2, 0, Verdict());
+
+	cache.Forget(1);
+
+	CHECK(cache.Size() == 1);
+	CHECK(cache.GuardedSize() == 0);
+	CHECK(cache.Find(2, 0) != NULL);
+}
+
 TEST_CASE("clearing holds nothing") {
 	StampedCache<Verdict> cache(4);
 	cache.Hold(1, 0, Verdict());
 	cache.Hold(2, 0, Verdict());
 
+	cache.Protect(1);
 	cache.Clear();
 
 	CHECK(cache.Size() == 0);
+	CHECK(cache.GuardedSize() == 0);
 	CHECK(cache.Find(1, 0) == NULL);
 	CHECK(cache.Find(2, 0) == NULL);
 }
