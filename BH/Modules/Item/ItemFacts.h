@@ -158,4 +158,15 @@ struct ItemFacts {
 	// the item came from: an item in a packet answers out of the properties
 	// above, an item in the world answers by asking the game.
 	const StatSource *stats;
+
+	/*
+	 * The game unit this item is, or null for an item a packet has only just
+	 * described.
+	 *
+	 * Two questions are still put to the game rather than answered from here:
+	 * what a vendor would pay for the item, and what level it takes to use. Both
+	 * need it to exist. ADR 0002 has these becoming facts that may be absent,
+	 * at which point this goes.
+	 */
+	UnitAny *unit;
 };

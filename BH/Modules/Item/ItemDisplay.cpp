@@ -20,9 +20,10 @@ vector<Rule*> IgnoreRuleList;
 
 // Find the item description. This code is called only when there's a cache miss
 string ItemDescLookupCache::make_cached_T(UnitItemInfo *uInfo) {
+	LiveContext context;
 	string new_name;
 	for (vector<Rule*>::const_iterator it = this->RuleList.begin(); it != this->RuleList.end(); it++) {
-		if ((*it)->Evaluate(uInfo, NULL)) {
+		if ((*it)->Evaluate(*uInfo->facts, context.Context())) {
 			SubstituteNameVariables(uInfo, new_name, (*it)->action.description);
 			if ((*it)->action.stopProcessing) {
 				break;
@@ -44,9 +45,10 @@ string ItemDescLookupCache::to_str(const string &name) {
 
 // Find the item name. This code is called only when there's a cache miss
 string ItemNameLookupCache::make_cached_T(UnitItemInfo *uInfo, const string &name) {
+	LiveContext context;
 	string new_name(name);
 	for (vector<Rule*>::const_iterator it = this->RuleList.begin(); it != this->RuleList.end(); it++) {
-		if ((*it)->Evaluate(uInfo, NULL)) {
+		if ((*it)->Evaluate(*uInfo->facts, context.Context())) {
 			SubstituteNameVariables(uInfo, new_name, (*it)->action.name);
 			if ((*it)->action.stopProcessing) {
 				break;
@@ -86,9 +88,10 @@ string ItemNameLookupCache::to_str(const string &name) {
 }
 
 vector<Action> MapActionLookupCache::make_cached_T(UnitItemInfo *uInfo) {
+	LiveContext context;
 	vector<Action> actions;
 	for (vector<Rule*>::const_iterator it = this->RuleList.begin(); it != this->RuleList.end(); it++) {
-		if ((*it)->Evaluate(uInfo, NULL)) {
+		if ((*it)->Evaluate(*uInfo->facts, context.Context())) {
 			actions.push_back((*it)->action);
 		}
 	}
@@ -104,8 +107,9 @@ string MapActionLookupCache::to_str(const vector<Action> &actions) {
 }
 
 unsigned int IgnoreLookupCache::make_cached_T(UnitItemInfo *uInfo) {
+	LiveContext context;
 	for (vector<Rule*>::const_iterator it = this->RuleList.begin(); it != this->RuleList.end(); it++) {
-		if ((*it)->Evaluate(uInfo, NULL)) {
+		if ((*it)->Evaluate(*uInfo->facts, context.Context())) {
 			return (*it)->action.index;
 		}
 	}

@@ -2,6 +2,7 @@
 #include "../Settings/SettingsRegistry.h"
 #include "../Item/Item.h"
 #include "../Item/ItemCapture.h"
+#include "../Item/ItemFactsLive.h"
 #include "../Item/ItemFactsPacket.h"
 #include "../../BH.h"
 #include "../../D2Ptrs.h"
@@ -613,6 +614,8 @@ void ItemMover::OnGamePacketRecv(BYTE* packet, bool* block) {
 				ItemFactsPacket::PacketStats stats(item);
 				item.stats = &stats;
 				bool success = ReadItemPacket(packet, &item);
+				// The world the item landed in, read once for all the rules.
+				LiveContext context;
 				//PrintText(1, "Item packet: %s, %s, %X, %d, %d", item.name.c_str(), item.code, item.attrs->flags, item.sockets, GetDefense(&item));
 				if ((item.action == ITEM_ACTION_NEW_GROUND || item.action == ITEM_ACTION_OLD_GROUND) && success) {
 					bool showOnMap = false;
@@ -625,7 +628,7 @@ void ItemMover::OnGamePacketRecv(BYTE* packet, bool* block) {
 					unsigned int ignoreIndex = NO_RULE_MATCH;
 
 					for (vector<Rule*>::iterator it = MapRuleList.begin(); it != MapRuleList.end(); it++) {
-						if ((*it)->Evaluate(NULL, &item)) {
+						if ((*it)->Evaluate(item, context.Context())) {
 							if ((*it)->action.index < keepIndex) keepIndex = (*it)->action.index;
 							// skip map and notification if ping level requirement is not met
 							if ((*it)->action.pingLevel > Item::GetPingLevel()) continue;
@@ -642,7 +645,7 @@ void ItemMover::OnGamePacketRecv(BYTE* packet, bool* block) {
 					}
 					// Don't block items that have a white-listed name
 					for (vector<Rule*>::iterator it = DoNotBlockRuleList.begin(); it != DoNotBlockRuleList.end(); it++) {
-						if ((*it)->Evaluate(NULL, &item)) {
+						if ((*it)->Evaluate(item, context.Context())) {
 							if ((*it)->action.index < keepIndex) keepIndex = (*it)->action.index;
 							break;
 						}
@@ -651,7 +654,7 @@ void ItemMover::OnGamePacketRecv(BYTE* packet, bool* block) {
 					// so skip the scan entirely in that case to keep the old cost.
 					if (OrderedFiltering || keepIndex == NO_RULE_MATCH) {
 						for (vector<Rule*>::iterator it = IgnoreRuleList.begin(); it != IgnoreRuleList.end(); it++) {
-							if ((*it)->Evaluate(NULL, &item)) {
+							if ((*it)->Evaluate(item, context.Context())) {
 								ignoreIndex = (*it)->action.index;
 								break;
 							}

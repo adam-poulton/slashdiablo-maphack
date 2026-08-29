@@ -851,18 +851,21 @@ void Condition::AddNonOperand(vector<Condition*> &conditions, Condition *cond) {
  * and the packet half returned false. An item on the ground was judged against
  * a rule that could not match it. They match now.
  */
-bool ItemStatCondition::Match(const ItemFacts &facts) const {
+bool ItemStatCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	return IntegerCompare(facts.stats->Stat(itemStat, itemStat2), operation, targetStat);
 }
 
-bool ResistAllCondition::Match(const ItemFacts &facts) const {
+bool ResistAllCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	return (IntegerCompare(facts.stats->Stat(STAT_FIRERESIST, 0), operation, targetStat) &&
 			IntegerCompare(facts.stats->Stat(STAT_LIGHTNINGRESIST, 0), operation, targetStat) &&
 			IntegerCompare(facts.stats->Stat(STAT_COLDRESIST, 0), operation, targetStat) &&
 			IntegerCompare(facts.stats->Stat(STAT_POISONRESIST, 0), operation, targetStat));
 }
 
-bool AddCondition::Match(const ItemFacts &facts) const {
+bool AddCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	int value = 0;
 	for (unsigned int i = 0; i < stats.size(); i++) {
 		int one = facts.stats->Stat(stats[i], 0);
@@ -874,7 +877,8 @@ bool AddCondition::Match(const ItemFacts &facts) const {
 	return IntegerCompare(value, operation, targetStat);
 }
 
-bool SkillListCondition::Match(const ItemFacts &facts) const {
+bool SkillListCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	int value = 0;
 	if (type == CLASS_SKILLS) {
 		for (unsigned int i = 0; i < goodClassSkills.size(); i++)
@@ -886,7 +890,8 @@ bool SkillListCondition::Match(const ItemFacts &facts) const {
 	return IntegerCompare(value, operation, targetStat);
 }
 
-bool EDCondition::Match(const ItemFacts &facts) const {
+bool EDCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	// Enhanced defence on armour, enhanced damage on anything else. Normal
 	// enhanced damage carries the same value on the minimum and the maximum, so
 	// reading one of them is reading both.
@@ -902,7 +907,8 @@ bool EDCondition::Match(const ItemFacts &facts) const {
 	return IntegerCompare(value, operation, targetED);
 }
 
-bool DurabilityCondition::Match(const ItemFacts &facts) const {
+bool DurabilityCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	DWORD value = 0;
 	const std::vector<StatEntry>& entries = facts.stats->Stats();
 	for (unsigned int i = 0; i < entries.size(); i++) {
@@ -912,7 +918,8 @@ bool DurabilityCondition::Match(const ItemFacts &facts) const {
 	return IntegerCompare(value, operation, targetDurability);
 }
 
-bool ChargedCondition::Match(const ItemFacts &facts) const {
+bool ChargedCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	DWORD value = 0;
 	const std::vector<StatEntry>& entries = facts.stats->Stats();
 	for (unsigned int i = 0; i < entries.size(); i++) {
@@ -926,7 +933,8 @@ bool ChargedCondition::Match(const ItemFacts &facts) const {
 	return IntegerCompare(value, operation, targetLevel);
 }
 
-bool FoolsCondition::Match(const ItemFacts &facts) const {
+bool FoolsCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	// 1 is damage per level, 2 is attack rating per level, 3 is both, which is
 	// what a fool's item is. Rules write FOOLS rather than a number, so the
 	// comparison is against having both rather than against what was asked for.
@@ -943,71 +951,85 @@ bool FoolsCondition::Match(const ItemFacts &facts) const {
 	return IntegerCompare(value, (BYTE)EQUAL, 3);
 }
 
-bool TrueCondition::Match(const ItemFacts &facts) const {
+bool TrueCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	return true;
 }
 
-bool FalseCondition::Match(const ItemFacts &facts) const {
+bool FalseCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	return false;
 }
 
-bool ItemCodeCondition::Match(const ItemFacts &facts) const {
+bool ItemCodeCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	return (targetCode[0] == facts.code[0] && targetCode[1] == facts.code[1] &&
 			targetCode[2] == facts.code[2]);
 }
 
-bool QualityCondition::Match(const ItemFacts &facts) const {
+bool QualityCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	return facts.quality == quality;
 }
 
-bool NonMagicalCondition::Match(const ItemFacts &facts) const {
+bool NonMagicalCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	return (facts.quality == ITEM_QUALITY_INFERIOR ||
 			facts.quality == ITEM_QUALITY_NORMAL ||
 			facts.quality == ITEM_QUALITY_SUPERIOR);
 }
 
-bool GemLevelCondition::Match(const ItemFacts &facts) const {
+bool GemLevelCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	if (!IsGem(facts.attrs))
 		return false;
 	return IntegerCompare(GetGemLevel(facts.attrs), operation, gemLevel);
 }
 
-bool GemTypeCondition::Match(const ItemFacts &facts) const {
+bool GemTypeCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	if (!IsGem(facts.attrs))
 		return false;
 	return IntegerCompare(GetGemType(facts.attrs), operation, gemType);
 }
 
-bool RuneCondition::Match(const ItemFacts &facts) const {
+bool RuneCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	if (!IsRune(facts.attrs))
 		return false;
 	return IntegerCompare(RuneNumberFromItemCode(const_cast<char*>(facts.code)),
 		operation, runeNumber);
 }
 
-bool UsedSocketsCondition::Match(const ItemFacts &facts) const {
+bool UsedSocketsCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	return IntegerCompare(facts.usedSockets, operation, targetUsedSockets);
 }
 
-bool ItemLevelCondition::Match(const ItemFacts &facts) const {
+bool ItemLevelCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	return IntegerCompare(facts.level, operation, itemLevel);
 }
 
-bool QualityLevelCondition::Match(const ItemFacts &facts) const {
+bool QualityLevelCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	return IntegerCompare(facts.attrs->qualityLevel, operation, qualityLevel);
 }
 
-bool AffixLevelCondition::Match(const ItemFacts &facts) const {
+bool AffixLevelCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	BYTE alvl = GetAffixLevel(facts.level, facts.attrs->qualityLevel,
 		facts.attrs->magicLevel);
 	return IntegerCompare(alvl, operation, affixLevel);
 }
 
-bool ItemGroupCondition::Match(const ItemFacts &facts) const {
+bool ItemGroupCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	return (facts.attrs->flags & itemGroup) > 0;
 }
 
-bool FlagsCondition::Match(const ItemFacts &facts) const {
+bool FlagsCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	switch (flag) {
 	case ITEM_ETHEREAL:
 		return facts.ethereal;
@@ -1021,7 +1043,8 @@ bool FlagsCondition::Match(const ItemFacts &facts) const {
 	return false;
 }
 
-bool QualityIdCondition::Match(const ItemFacts &facts) const {
+bool QualityIdCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	switch (quality) {
 	case ITEM_QUALITY_UNIQUE:
 		return facts.uniqueCode == id;
@@ -1032,144 +1055,176 @@ bool QualityIdCondition::Match(const ItemFacts &facts) const {
 	}
 }
 
-bool GoldCondition::Match(const ItemFacts &facts) const {
+bool GoldCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	if (facts.code[0] != 'g' || facts.code[1] != 'l' || facts.code[2] != 'd')
 		return false;
 	return IntegerCompare(facts.amount, operation, goldAmount);
 }
 
-bool Condition::Evaluate(UnitItemInfo *uInfo, ItemFacts *info, Condition *arg1, Condition *arg2) {
-	// Arguments will vary based on where we're called from.
-	// We will have either *info set (if called on reception of packet 0c9c, in which case
-	// the normal item structures won't have been set up yet), or *uInfo otherwise.
-	if (info) {
-		return EvaluateInternalFromPacket(info, arg1, arg2);
-	}
-	return EvaluateInternal(uInfo, arg1, arg2);
+// The operators, which read the item only through what they are given.
+bool NegationOperator::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
+	return !arg1->Evaluate(facts, context, arg1, arg2);
 }
 
-
-
-bool NegationOperator::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	return !arg1->Evaluate(uInfo, NULL, arg1, arg2);
-}
-bool NegationOperator::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	return !arg1->Evaluate(NULL, info, arg1, arg2);
+bool AndOperator::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
+	return arg1->Evaluate(facts, context, NULL, NULL) &&
+		arg2->Evaluate(facts, context, NULL, NULL);
 }
 
-bool LeftParen::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	return false;
-}
-bool LeftParen::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	return false;
+bool OrOperator::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
+	return arg1->Evaluate(facts, context, NULL, NULL) ||
+		arg2->Evaluate(facts, context, NULL, NULL);
 }
 
-bool RightParen::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	return false;
-}
-bool RightParen::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
+// The parentheses never answer anything. They exist to carry their own kind
+// through the shunting yard and are gone before a rule is ever judged.
+bool LeftParen::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
 	return false;
 }
 
-bool AndOperator::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	return arg1->Evaluate(uInfo, NULL, NULL, NULL) && arg2->Evaluate(uInfo, NULL, NULL, NULL);
-}
-bool AndOperator::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	return arg1->Evaluate(NULL, info, NULL, NULL) && arg2->Evaluate(NULL, info, NULL, NULL);
+bool RightParen::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
+	return false;
 }
 
-bool OrOperator::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	return arg1->Evaluate(uInfo, NULL, NULL, NULL) || arg2->Evaluate(uInfo, NULL, NULL, NULL);
-}
-bool OrOperator::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	return arg1->Evaluate(NULL, info, NULL, NULL) || arg2->Evaluate(NULL, info, NULL, NULL);
-}
-
-
-
-bool PlayerTypeCondition::EvaluateInternal(UnitItemInfo* uInfo, Condition* arg1, Condition* arg2) {
-	return (((*p_D2LAUNCH_BnData)->nCharFlags >> 5) & 0x1) == mode;
-}
-bool PlayerTypeCondition::EvaluateInternalFromPacket(ItemFacts* info, Condition* arg1, Condition* arg2) {
-	return (((*p_D2LAUNCH_BnData)->nCharFlags >> 5) & 0x1) == mode;
+/*
+ * The conditions that ask about the character or the world rather than the
+ * item. Each one read the game itself, at the moment it was asked, which is
+ * why they had the same body twice: the two halves were never different.
+ */
+bool PlayerTypeCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
+	return ((context.charFlags >> 5) & 0x1) == mode;
 }
 
-// The class of the character the filter is running on. Prefer the live player unit,
-// whose dwTxtFileNo is the class id, and fall back to the character select data.
-static unsigned int GetCurrentCharClass() {
-	UnitAny* player = D2CLIENT_GetPlayerUnit();
-	if (player) {
-		return player->dwTxtFileNo;
-	}
-	return (*p_D2LAUNCH_BnData)->nCharClass;
+bool CharClassCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
+	return context.charClass == charClass;
 }
 
-bool CharClassCondition::EvaluateInternal(UnitItemInfo* uInfo, Condition* arg1, Condition* arg2) {
-	return GetCurrentCharClass() == charClass;
-}
-bool CharClassCondition::EvaluateInternalFromPacket(ItemFacts* info, Condition* arg1, Condition* arg2) {
-	return GetCurrentCharClass() == charClass;
+bool CharStatCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
+	return IntegerCompare(context.charStats->Stat(stat1, stat2), operation, targetStat);
 }
 
-
-
-
-
-
-
-
-
-
-bool CraftAffixLevelCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	BYTE qlvl = uInfo->attrs->qualityLevel;
-	auto ilvl = uInfo->item->pItemData->dwItemLevel;
-	auto clvl = D2COMMON_GetUnitStat(D2CLIENT_GetPlayerUnit(), STAT_LEVEL, 0); 
-	auto craft_ilvl = ilvl/2 + clvl/2;
-	BYTE alvl = GetAffixLevel((BYTE)craft_ilvl, (BYTE)uInfo->attrs->qualityLevel, uInfo->attrs->magicLevel);
-	return IntegerCompare(alvl, operation, affixLevel);
+bool DifficultyCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
+	return IntegerCompare(context.difficulty, operation, targetDiff);
 }
-bool CraftAffixLevelCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	int qlvl = info->attrs->qualityLevel;
-	auto ilvl = info->level;
-	auto clvl = D2COMMON_GetUnitStat(D2CLIENT_GetPlayerUnit(), STAT_LEVEL, 0); 
-	auto craft_ilvl = ilvl/2 + clvl/2;
-	BYTE alvl = GetAffixLevel((BYTE)craft_ilvl, info->attrs->qualityLevel, info->attrs->magicLevel);
+
+bool FilterLevelCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
+	return IntegerCompare(context.filterLevel, operation, filterLevel);
+}
+
+// Only an item lying in the world has an area to speak of, and for those the
+// character's area is the area the item is in.
+bool AreaLevelCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
+	return facts.ground && IntegerCompare(context.areaLevel, operation, areaLevel);
+}
+
+bool AreaIdCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
+	return facts.ground && IntegerCompare(context.areaId, operation, areaId);
+}
+
+// The affix level a craft rolled at, which is worked out from the item's level
+// and the character's together.
+bool CraftAffixLevelCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
+	unsigned int craftLevel = facts.level / 2 + context.charLevel / 2;
+	BYTE alvl = GetAffixLevel((BYTE)craftLevel, facts.attrs->qualityLevel,
+		facts.attrs->magicLevel);
 	return IntegerCompare(alvl, operation, affixLevel);
 }
 
-bool RequiredLevelCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	unsigned int rlvl = GetRequiredLevel(uInfo->item);
-
-	return IntegerCompare(rlvl, operation, requiredLevel);
-}
-bool RequiredLevelCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-
-	//Not Done Yet (is it necessary? I think this might have something to do with the exact moment something drops?)
-
-	return true;
-}
-
-
-
-
-
-
-
-
-
-bool CharStatCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	return IntegerCompare(D2COMMON_GetUnitStat(D2CLIENT_GetPlayerUnit(), stat1, stat2), operation, targetStat);
-}
-bool CharStatCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	return IntegerCompare(D2COMMON_GetUnitStat(D2CLIENT_GetPlayerUnit(), stat1, stat2), operation, targetStat);
+/*
+ * A rule of rules: how many of them the item satisfies.
+ */
+bool PartialCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
+	int matched = 0;
+	for (unsigned int i = 0; i < rules.size(); i++) {
+		if (const_cast<Rule&>(rules[i]).Evaluate(facts, context))
+			matched++;
+	}
+	return IntegerCompare(matched, operation, target_count);
 }
 
-bool DifficultyCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	return IntegerCompare(D2CLIENT_GetDifficulty(), operation, targetDiff);
+/*
+ * The two an item from a packet still cannot answer.
+ *
+ * Both need the item to exist as a game unit: one asks the game what a vendor
+ * would pay, the other what level it takes to use, and neither question can be
+ * put about an item that is still only a description of one. facts.unit is what
+ * says which kind of item this is, and is temporary: ADR 0002 has these
+ * becoming facts that may simply be absent, and an absent one stopping the rule
+ * rather than being answered wrongly.
+ */
+bool ItemPriceCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
+	if (!facts.unit)
+		return false;
+	return IntegerCompare(
+		D2COMMON_GetItemPrice(D2CLIENT_GetPlayerUnit(), facts.unit,
+			context.difficulty, (DWORD)D2CLIENT_GetQuestInfo(), 0x201, 1),
+		operation, targetStat);
 }
-bool DifficultyCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	return IntegerCompare(D2CLIENT_GetDifficulty(), operation, targetDiff);
+
+bool RequiredLevelCondition::Match(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) const {
+	// Answering true for an item that cannot be asked is what it has always
+	// done, and is wrong: it makes every item on the ground satisfy any
+	// comparison. Left as it was so that this change is a move and not a
+	// change of behaviour.
+	if (!facts.unit)
+		return true;
+	return IntegerCompare(GetRequiredLevel(facts.unit), operation, requiredLevel);
 }
+
+bool Condition::Evaluate(const ItemFacts &facts, const FilterContext &context,
+		Condition *arg1, Condition *arg2) {
+	return Match(facts, context, arg1, arg2);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // Only an item lying in the world has an area to speak of, and for those the character's
 // area is the area the item dropped in.
@@ -1177,66 +1232,13 @@ static bool IsOnGround(UnitAny *item) {
 	return item->dwMode == ITEM_MODE_ON_GROUND || item->dwMode == ITEM_MODE_BEING_DROPPED;
 }
 
-unsigned int GetCurrentAreaLevel() {
-	DWORD areaId = GetPlayerArea();
-	sgptDataTable* dataTable = *p_D2COMMON_sgptDataTable;
-	if (areaId == 0 || !dataTable || !dataTable->pLevelsTxt || areaId >= dataTable->dwLevelsRecs) {
-		return 0;
-	}
-	LevelsTxt* levelTxt = &dataTable->pLevelsTxt[areaId];
-	int difficulty = D2CLIENT_GetDifficulty();
-	if ((*p_D2LAUNCH_BnData)->nCharFlags & PLAYER_TYPE_EXPANSION) {
-		return levelTxt->wMonLvlEx[difficulty];
-	}
-	return levelTxt->wMonLvl[difficulty];
-}
-
-bool AreaLevelCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	return IsOnGround(uInfo->item) && IntegerCompare(GetCurrentAreaLevel(), operation, areaLevel);
-}
-bool AreaLevelCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	return info->ground && IntegerCompare(GetCurrentAreaLevel(), operation, areaLevel);
-}
-
-bool AreaIdCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	return IsOnGround(uInfo->item) && IntegerCompare(GetPlayerArea(), operation, areaId);
-}
-bool AreaIdCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	return info->ground && IntegerCompare(GetPlayerArea(), operation, areaId);
-}
-
-bool FilterLevelCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	return IntegerCompare(Item::GetFilterLevel(), operation, filterLevel);
-}
-bool FilterLevelCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	return IntegerCompare(Item::GetFilterLevel(), operation, filterLevel);
-}
 
 
-bool PartialCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	int match_count = 0;
-	for (auto &rule : rules) {
-		if (rule.Evaluate(uInfo, NULL)) match_count++;
-		//PrintText(1, "in EvaluateInternal. rule.conditions.size=%d match_count=%d", rule.conditions.size(), match_count);
-	}
-	return IntegerCompare(match_count, operation, target_count);
-}
 
-bool PartialCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	int match_count = 0;
-	for (auto &rule : rules) {
-		if (rule.Evaluate(NULL, info)) match_count++;
-	}
-	return IntegerCompare(match_count, operation, target_count);
-}
 
-bool ItemPriceCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	return IntegerCompare(D2COMMON_GetItemPrice(D2CLIENT_GetPlayerUnit(), uInfo->item, D2CLIENT_GetDifficulty(), (DWORD)D2CLIENT_GetQuestInfo(), 0x201, 1), operation, targetStat);
-}
-bool ItemPriceCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	// TODO: Implement later
-	return false;
-}
+
+
+
 
 
 void AddCondition::Init() {

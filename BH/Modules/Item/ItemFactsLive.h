@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include "FilterContext.h"
 #include "ItemFacts.h"
 
 struct UnitAny;
@@ -43,6 +44,30 @@ private:
  * in the world is still read from the game as it is asked for, which is what
  * the stats are for.
  */
+/*
+ * The world as the running game has it, for a rule to be judged against.
+ *
+ * Read once where an item is judged rather than by each condition that wants
+ * it, so that every condition asked about one item is answered about the same
+ * moment. Owns the character's stats, which is why it is a class rather than
+ * a struct handed back by value.
+ */
+class LiveContext {
+public:
+	LiveContext();
+
+	const FilterContext& Context() const { return context; }
+
+private:
+	LiveStats playerStats;
+	FilterContext context;
+};
+
+// The class the filter is running on, and the monster level of the area the
+// character is standing in.
+unsigned int GetCurrentCharClass();
+unsigned int GetCurrentAreaLevel();
+
 // How many of an item's sockets are filled.
 unsigned int GetUsedSockets(UnitAny *item);
 

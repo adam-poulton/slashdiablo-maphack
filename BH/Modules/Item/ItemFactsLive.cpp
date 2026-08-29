@@ -1,7 +1,9 @@
 #include "ItemFactsLive.h"
+#include "Item.h"
 #include "../../D2Ptrs.h"
 #include "../../D2Structs.h"
 #include "../../Constants.h"
+#include "../../D2Helpers.h"
 #include "../../MPQInit.h"
 
 int LiveStats::Stat(unsigned int stat, unsigned int sub) const {
@@ -41,6 +43,50 @@ const std::vector<StatEntry>& LiveStats::Stats() const {
 	return entries;
 }
 
+// The class of the character the filter is running on. Prefer the live player unit,
+// whose dwTxtFileNo is the class id, and fall back to the character select data.
+unsigned int GetCurrentCharClass() {
+	UnitAny* player = D2CLIENT_GetPlayerUnit();
+	if (player) {
+		return player->dwTxtFileNo;
+	}
+	return (*p_D2LAUNCH_BnData)->nCharClass;
+}
+
+unsigned int GetCurrentAreaLevel() {
+	DWORD areaId = GetPlayerArea();
+	sgptDataTable* dataTable = *p_D2COMMON_sgptDataTable;
+	if (areaId == 0 || !dataTable || !dataTable->pLevelsTxt || areaId >= dataTable->dwLevelsRecs) {
+		return 0;
+	}
+	LevelsTxt* levelTxt = &dataTable->pLevelsTxt[areaId];
+	int difficulty = D2CLIENT_GetDifficulty();
+	if ((*p_D2LAUNCH_BnData)->nCharFlags & PLAYER_TYPE_EXPANSION) {
+		return levelTxt->wMonLvlEx[difficulty];
+	}
+	return levelTxt->wMonLvl[difficulty];
+}
+
+/*
+ * The world, read once.
+ *
+ * Every one of these was read by whichever condition wanted it, at the moment
+ * it wanted it, so two conditions in one rule could in principle be answered
+ * about two different moments. Reading them together is also what lets a rule
+ * be judged with no game at all: a test says what the world is.
+ */
+LiveContext::LiveContext() : playerStats(D2CLIENT_GetPlayerUnit()), context() {
+	context.charClass = GetCurrentCharClass();
+	context.charLevel = playerStats.Stat(STAT_LEVEL, 0);
+	context.charFlags = (p_D2LAUNCH_BnData && *p_D2LAUNCH_BnData) ?
+		(*p_D2LAUNCH_BnData)->nCharFlags : 0;
+	context.difficulty = D2CLIENT_GetDifficulty();
+	context.areaId = GetPlayerArea();
+	context.areaLevel = GetCurrentAreaLevel();
+	context.filterLevel = Item::GetFilterLevel();
+	context.charStats = &playerStats;
+}
+
 unsigned int GetUsedSockets(UnitAny *item) {
 	unsigned int used = 0;
 	if (item == NULL || item->pInventory == NULL) {
@@ -58,6 +104,11 @@ LiveItem::LiveItem(UnitAny* item) : stats(item), unit(), facts(), known(false) {
 	unit.facts = &facts;
 	facts.attrs = NULL;
 	facts.stats = &stats;
+	facts.unit = item;
+	// Only an item lying in the world has an area, which is what the area
+	// conditions test before they compare one.
+	facts.ground = item->dwMode == ITEM_MODE_ON_GROUND ||
+		item->dwMode == ITEM_MODE_BEING_DROPPED;
 
 	const char* code = D2COMMON_GetItemText(item->dwTxtFileNo)->szCode;
 	for (int i = 0; i < 3; i++) {

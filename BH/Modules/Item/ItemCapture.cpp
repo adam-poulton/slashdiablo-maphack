@@ -11,6 +11,7 @@
 #include "CaptureFormat.h"
 #include "Item.h"
 #include "ItemDisplay.h"
+#include "ItemFactsLive.h"
 
 using CaptureFormat::Record;
 

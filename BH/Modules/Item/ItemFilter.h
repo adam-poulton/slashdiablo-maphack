@@ -15,6 +15,7 @@
 #include <vector>
 #include <windows.h>
 #include "../../Constants.h"
+#include "FilterContext.h"
 #include "ItemFacts.h"
 
 // A rule is written below the conditions it is built from, and one condition
@@ -146,12 +147,22 @@ public:
 	static void AddOperand(std::vector<Condition*> &conditions, Condition *cond);
 	static void AddNonOperand(std::vector<Condition*> &conditions, Condition *cond);
 
-	bool Evaluate(UnitItemInfo *uInfo, ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Evaluate(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2);
 
 	BYTE conditionType{};
 private:
-	virtual bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return false; }
-	virtual bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return false; }
+	/*
+	 * Whether an item satisfies this condition.
+	 *
+	 * One body, whichever way the item arrived. Every condition used to carry
+	 * two, one reading a game unit and one reading a packet, and no two of them
+	 * were kept in step by anything but attention.
+	 */
+	virtual bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const {
+		return false;
+	}
 };
 
 class TrueCondition : public Condition
@@ -159,9 +170,8 @@ class TrueCondition : public Condition
 public:
 	TrueCondition() { conditionType = CT_Operand; };
 private:
-	bool Match(const ItemFacts &facts) const;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class FalseCondition : public Condition
@@ -169,9 +179,8 @@ class FalseCondition : public Condition
 public:
 	FalseCondition() { conditionType = CT_Operand; };
 private:
-	bool Match(const ItemFacts &facts) const;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class NegationOperator : public Condition
@@ -179,8 +188,8 @@ class NegationOperator : public Condition
 public:
 	NegationOperator() { conditionType = CT_NegationOperator; };
 private:
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class LeftParen : public Condition
@@ -188,8 +197,8 @@ class LeftParen : public Condition
 public:
 	LeftParen() { conditionType = CT_LeftParen; };
 private:
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class RightParen : public Condition
@@ -197,8 +206,8 @@ class RightParen : public Condition
 public:
 	RightParen() { conditionType = CT_RightParen; };
 private:
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class AndOperator : public Condition
@@ -206,8 +215,8 @@ class AndOperator : public Condition
 public:
 	AndOperator() { conditionType = CT_BinaryOperator; };
 private:
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class OrOperator : public Condition
@@ -215,8 +224,8 @@ class OrOperator : public Condition
 public:
 	OrOperator() { conditionType = CT_BinaryOperator; };
 private:
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class ItemCodeCondition : public Condition
@@ -231,9 +240,8 @@ public:
 	};
 private:
 	char targetCode[4];
-	bool Match(const ItemFacts &facts) const;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class FlagsCondition : public Condition
@@ -242,9 +250,8 @@ public:
 	FlagsCondition(unsigned int flg) : flag(flg) { conditionType = CT_Operand; };
 private:
 	unsigned int flag;
-	bool Match(const ItemFacts &facts) const;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class PlayerTypeCondition : public Condition
@@ -253,8 +260,8 @@ public:
 	PlayerTypeCondition(unsigned int m) : mode(m) { conditionType = CT_Operand; };
 private:
 	unsigned int mode;
-	bool EvaluateInternal(UnitItemInfo* uInfo, Condition* arg1, Condition* arg2);
-	bool EvaluateInternalFromPacket(ItemFacts* info, Condition* arg1, Condition* arg2);
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class CharClassCondition : public Condition
@@ -263,8 +270,8 @@ public:
 	CharClassCondition(unsigned int c) : charClass(c) { conditionType = CT_Operand; };
 private:
 	unsigned int charClass;
-	bool EvaluateInternal(UnitItemInfo* uInfo, Condition* arg1, Condition* arg2);
-	bool EvaluateInternalFromPacket(ItemFacts* info, Condition* arg1, Condition* arg2);
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class QualityCondition : public Condition
@@ -273,9 +280,8 @@ public:
 	QualityCondition(unsigned int qual) : quality(qual) { conditionType = CT_Operand; };
 private:
 	unsigned int quality;
-	bool Match(const ItemFacts &facts) const;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class NonMagicalCondition : public Condition
@@ -283,9 +289,8 @@ class NonMagicalCondition : public Condition
 public:
 	NonMagicalCondition() { conditionType = CT_Operand; };
 private:
-	bool Match(const ItemFacts &facts) const;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class QualityIdCondition : public Condition
@@ -295,9 +300,8 @@ public:
 private:
 	unsigned int quality;
 	unsigned int id;
-	bool Match(const ItemFacts &facts) const;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class GemLevelCondition : public Condition
@@ -307,9 +311,8 @@ public:
 private:
 	BYTE operation;
 	BYTE gemLevel;
-	bool Match(const ItemFacts &facts) const;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class GemTypeCondition : public Condition
@@ -319,9 +322,8 @@ public:
 private:
 	BYTE operation;
 	BYTE gemType;
-	bool Match(const ItemFacts &facts) const;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class RuneCondition : public Condition
@@ -331,9 +333,8 @@ public:
 private:
 	BYTE operation;
 	BYTE runeNumber;
-	bool Match(const ItemFacts &facts) const;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class GoldCondition : public Condition
@@ -343,9 +344,8 @@ public:
 private:
 	BYTE operation;
 	unsigned int goldAmount;
-	bool Match(const ItemFacts &facts) const;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class ItemLevelCondition : public Condition
@@ -355,9 +355,8 @@ public:
 private:
 	BYTE operation;
 	BYTE itemLevel;
-	bool Match(const ItemFacts &facts) const;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class QualityLevelCondition : public Condition
@@ -367,9 +366,8 @@ public:
 private:
 	BYTE operation;
 	BYTE qualityLevel;
-	bool Match(const ItemFacts &facts) const;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class AffixLevelCondition : public Condition
@@ -379,9 +377,8 @@ public:
 private:
 	BYTE operation;
 	BYTE affixLevel;
-	bool Match(const ItemFacts &facts) const;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class CraftAffixLevelCondition : public Condition
@@ -391,8 +388,8 @@ public:
 private:
 	BYTE operation;
 	BYTE affixLevel;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class RequiredLevelCondition : public Condition
@@ -402,8 +399,8 @@ public:
 private:
 	BYTE operation;
 	BYTE requiredLevel;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class UsedSocketsCondition : public Condition
@@ -413,9 +410,8 @@ public:
 private:
 	BYTE operation;
 	unsigned int targetUsedSockets;
-	bool Match(const ItemFacts &facts) const;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class ItemGroupCondition : public Condition
@@ -424,9 +420,8 @@ public:
 	ItemGroupCondition(unsigned int group) : itemGroup(group) { conditionType = CT_Operand; };
 private:
 	unsigned int itemGroup;
-	bool Match(const ItemFacts &facts) const;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class EDCondition : public Condition
@@ -436,9 +431,8 @@ public:
 private:
 	BYTE operation;
 	unsigned int targetED;
-	bool Match(const ItemFacts &facts) const;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 	bool EvaluateED(unsigned int flags);
 };
 
@@ -449,9 +443,8 @@ public:
 private:
 	BYTE operation;
 	unsigned int targetDurability;
-	bool Match(const ItemFacts &facts) const;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class ChargedCondition : public Condition
@@ -462,9 +455,8 @@ private:
 	BYTE operation;
 	unsigned int skill;
 	unsigned int targetLevel;
-	bool Match(const ItemFacts &facts) const;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class FoolsCondition : public Condition
@@ -472,9 +464,8 @@ class FoolsCondition : public Condition
 public:
 	FoolsCondition() { conditionType = CT_Operand; };
 private:
-	bool Match(const ItemFacts &facts) const;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class SkillListCondition : public Condition
@@ -493,9 +484,8 @@ private:
 	unsigned int targetStat;
 	std::vector<unsigned int> goodClassSkills;
 	std::vector<unsigned int> goodTabSkills;
-	bool Match(const ItemFacts &facts) const;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class CharStatCondition : public Condition
@@ -508,8 +498,8 @@ private:
 	unsigned int stat2;
 	BYTE operation;
 	unsigned int targetStat;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class DifficultyCondition : public Condition
@@ -520,8 +510,8 @@ public:
 private:
 	BYTE operation;
 	unsigned int targetDiff;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class FilterLevelCondition : public Condition
@@ -532,8 +522,8 @@ public:
 private:
 	BYTE operation;
 	unsigned int filterLevel;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class AreaLevelCondition : public Condition
@@ -544,8 +534,8 @@ public:
 private:
 	BYTE operation;
 	unsigned int areaLevel;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class AreaIdCondition : public Condition
@@ -556,8 +546,8 @@ public:
 private:
 	BYTE operation;
 	unsigned int areaId;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class ItemStatCondition : public Condition
@@ -570,9 +560,8 @@ private:
 	unsigned int itemStat2;
 	BYTE operation;
 	unsigned int targetStat;
-	bool Match(const ItemFacts &facts) const;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class PartialCondition : public Condition
@@ -594,8 +583,8 @@ private:
 	const int target_count;
 	std::vector<Rule> rules; // TODO: should be const, but Rule::Evalate needs to be modified
 	void make_count_subrule(std::string token, const ItemFilterSettings &settings);
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class ItemPriceCondition : public Condition
@@ -608,8 +597,8 @@ public:
 private:
 	BYTE operation;
 	unsigned int targetStat;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class ResistAllCondition : public Condition
@@ -619,9 +608,8 @@ public:
 private:
 	BYTE operation;
 	unsigned int targetStat;
-	bool Match(const ItemFacts &facts) const;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 class AddCondition : public Condition
@@ -638,9 +626,8 @@ private:
 	unsigned int targetStat;
 	std::string key;
 	void Init();
-	bool Match(const ItemFacts &facts) const;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
+	bool Match(const ItemFacts &facts, const FilterContext &context,
+			Condition *arg1, Condition *arg2) const override;
 };
 
 extern TrueCondition *trueCondition;
@@ -703,7 +690,7 @@ struct Rule {
 
 	// TODO: Should this really be defined in the header? This will force it to be inlined AFAIK. -ybd
 	// Evaluate conditions which are in Reverse Polish Notation
-	bool Evaluate(UnitItemInfo *uInfo, ItemFacts *info) {
+	bool Evaluate(const ItemFacts &facts, const FilterContext &context) {
 		if (conditions.size() == 0) {
 			return true;  // a rule with no conditions always matches
 		}
@@ -734,7 +721,7 @@ struct Rule {
 						arg2 = conditionStack.back();
 						conditionStack.pop_back();
 					}
-					if (input->Evaluate(uInfo, info, arg1, arg2)) {
+					if (input->Evaluate(facts, context, arg1, arg2)) {
 						conditionStack.push_back(trueCondition);
 					} else {
 						conditionStack.push_back(falseCondition);
@@ -742,7 +729,7 @@ struct Rule {
 				}
 			}
 			if (conditionStack.size() == 1) {
-				retval = conditionStack[0]->Evaluate(uInfo, info, NULL, NULL);
+				retval = conditionStack[0]->Evaluate(facts, context, NULL, NULL);
 			} else {
 				retval = false;
 			}
@@ -773,8 +760,5 @@ char *GetGemTypeString(BYTE type);
 bool IsRune(ItemAttributes *attrs);
 BYTE RuneNumberFromItemCode(char *code);
 
-// The monster level of the area the character is in, which is what AREALVL
-// compares against.
-unsigned int GetCurrentAreaLevel();
 
 void HandleUnknownItemCode(char *code, char *tag);
