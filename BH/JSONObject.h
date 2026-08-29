@@ -21,11 +21,18 @@ enum JSONElementType{
 
 enum SerializationOptions {
 	SER_OPT_NONE = 0,
-	SER_OPT_FORMATTED = 1
+	// Writes newlines and indentation between elements.
+	SER_OPT_FORMATTED = 1,
+	// Omits members whose value is false, zero, an empty string or an empty
+	// collection, instead of writing them out explicitly.
+	SER_OPT_OMIT_EMPTY = 2
 };
 
+inline SerializationOptions operator|(SerializationOptions a, SerializationOptions b){
+	return (SerializationOptions)((int)a | (int)b);
+}
+
 std::string Json_Escape(const std::string &input);
-std::string Json_Unescape(const std::string &input);
 
 class JSONWriter {
 private:
@@ -47,6 +54,8 @@ public:
 	}
 
 	SerializationOptions getOptions() { return _options; }
+	bool isFormatted() const { return (_options & SER_OPT_FORMATTED) != 0; }
+	bool omitsEmpty() const { return (_options & SER_OPT_OMIT_EMPTY) != 0; }
 
 	void writeKey(std::string key);
 	void writeValue(std::string value);
@@ -107,17 +116,18 @@ class JSONNumber : public JSONElement{
 private:
 	float _fvalue;
 	int _ivalue;
+	bool _isFloat;
 public:
 	JSONNumber(float value);
 	JSONNumber(int value);
 	bool serialize(JSONWriter &writer);
-	bool hasValue() const { return _ivalue || _fvalue; }
+	bool hasValue() const { return _isFloat ? _fvalue != 0.0f : _ivalue != 0; }
 
-	float getValue() const { return _ivalue ? _ivalue : _fvalue; }
+	float getValue() const { return toFloat(); }
 
 	bool toBool() const { return hasValue(); }
-	int toInt() const { return _ivalue ? _ivalue : (int)_fvalue; }
-	float toFloat() const { return _fvalue ? _fvalue : (float)_ivalue; }
+	int toInt() const { return _isFloat ? (int)_fvalue : _ivalue; }
+	float toFloat() const { return _isFloat ? _fvalue : (float)_ivalue; }
 	std::string toString() const;
 	bool equals(JSONElement *other) { return other && other->getType() == JSON_NUMBER && getValue() == ((JSONNumber*)other)->getValue(); }
 };

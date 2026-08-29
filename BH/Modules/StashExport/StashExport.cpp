@@ -391,7 +391,9 @@ void StashExport::WriteStash() {
 
 		std::string buffer;
 		if (exportType == 0 /* text */){
-			JSONWriter writer(buffer, SER_OPT_FORMATTED);
+			// The stash file is a published format: absent members mean false, zero
+			// or empty, and third-party stash tools rely on that.
+			JSONWriter writer(buffer, SER_OPT_FORMATTED | SER_OPT_OMIT_EMPTY);
 			data->serialize(writer);
 		}
 		else { /* text */
