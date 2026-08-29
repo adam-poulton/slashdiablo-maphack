@@ -841,6 +841,34 @@ struct RuleLists {
 bool IsItemBlocked(unsigned int ignoreIndex, unsigned int keepIndex,
 		bool orderedFiltering);
 
+// A ping level no rule can exceed, for the lists where the setting has no say.
+// A rule's tier governs the map box and the notification; the name and the
+// description a rule gives an item are not tiered.
+#define PING_LEVEL_ALL    0xffffffff
+
+/*
+ * The actions of the rules in one list that an item matches.
+ *
+ * Every walk of a rule list stops the same way and few of them agreed about it,
+ * so the stopping is here and nothing else is. The actions come back in the
+ * order they were written, and what to do with each one is the caller's: the
+ * automap draws them, a name folds them together, the map walk reads a colour
+ * off them.
+ *
+ * Actions a rule asked to be shown above the ping level in force are still
+ * returned. They are what stops a rule that is too high a tier to be drawn from
+ * also hiding the item: whoever counts a rule as keeping an item counts those,
+ * and whoever shows one does not. Leaving them out here would make a tier
+ * setting hide items, which is what it is documented never to do.
+ *
+ * The walk ends after the first action that both sits at or below the ping
+ * level and asks to stop. A rule that asks to stop from above the ping level
+ * does not stop anything, since nothing it says is being listened to.
+ */
+std::vector<const Action*> MatchingActions(const std::vector<Rule*> &rules,
+		const ItemFacts &facts, const FilterContext &context,
+		unsigned int pingLevel);
+
 /*
  * What the rules make of one item.
  *
