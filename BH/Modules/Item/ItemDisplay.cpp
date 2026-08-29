@@ -72,7 +72,7 @@ string ItemNameLookupCache::make_cached_T(UnitItemInfo *uInfo, const string &nam
 			}
 
 		}
-		if (IsItemBlocked(ignore_index, keep_index)) return new_name + " [blocked]";
+		if (IsItemBlocked(ignore_index, keep_index, OrderedFiltering)) return new_name + " [blocked]";
 	}
 	return new_name;
 }
@@ -124,13 +124,6 @@ string IgnoreLookupCache::to_str(const unsigned int &index) {
 // it hidden and the index of the first rule that wants it kept (either a map
 // action or a whitelisted name). With ordered filtering off, any keeper wins
 // regardless of where it sits in the file; with it on, the earlier rule wins.
-bool IsItemBlocked(unsigned int ignore_index, unsigned int keep_index) {
-	if (ignore_index == NO_RULE_MATCH)
-		return false;
-	if (OrderedFiltering)
-		return ignore_index < keep_index;
-	return keep_index == NO_RULE_MATCH;
-}
 
 // least recently used cache for storing a limited number of item names
 ItemDescLookupCache item_desc_cache(DescRuleList);
@@ -288,23 +281,7 @@ BYTE GetRequiredLevel(UnitAny* item) {
 }
 
 
-void removeSubstrs(string& s, const string& p) {
-	string::size_type n = p.length();
-	for (string::size_type i = s.find(p); i != string::npos; i = s.find(p))
-		s.erase(i, n);
-}
 
-std::string without_invis_chars(const std::string &name) {
-	string wo_invis_chars(name);
-	ColorReplace colors[] = {
-		MAP_COLOR_REPLACEMENTS
-	};
-	for (int n = 0; n < sizeof(colors) / sizeof(colors[0]); n++) {
-		removeSubstrs(wo_invis_chars, "%" + colors[n].key + "%");
-	}
-	removeSubstrs(wo_invis_chars, " ");
-	return wo_invis_chars;
-}
 
 namespace ItemDisplay {
 	bool item_display_initialized = false;
@@ -405,34 +382,12 @@ static ItemFilterSettings ReadFilterSettings() {
 			r->action.index = i;
 
 			RuleList.push_back(r);
-			bool has_map_action = false;
-			bool has_desc = false;
-			bool has_name = false;
-			if (without_invis_chars(r->action.description).length() > 0) {
-				DescRuleList.push_back(r);
-				has_desc = true;
-			}
-			if (r->action.colorOnMap != UNDEFINED_COLOR ||
-					r->action.borderColor != UNDEFINED_COLOR ||
-					r->action.dotColor != UNDEFINED_COLOR ||
-					r->action.pxColor != UNDEFINED_COLOR ||
-					r->action.lineColor != UNDEFINED_COLOR) {
-				MapRuleList.push_back(r);
-				has_map_action = true;
-			}
-			if (without_invis_chars(r->action.name).length() > 0) {
-				NameRuleList.push_back(r);
-				// this is a bit of a hack. the idea is not to block items that have a name specified. Items with a map action are
-				// already not blocked, so we make another rule list for those with a name and not a map action. Note the name must
-				// not use CONTINUE. If item display line uses continue, then the item can still be blocked by a matching ignore
-				// item display line.
-				if (r->action.stopProcessing && !has_map_action)
-					DoNotBlockRuleList.push_back(r); // if we have a non-blank name and no continue, we don't want to block
-				has_name = true;
-			}
-			if (!has_map_action && !has_name && !has_desc && r->action.stopProcessing) {
-				IgnoreRuleList.push_back(r);
-			}
+			RulePlacement placement = PlaceRule(*r);
+			if (placement.description) DescRuleList.push_back(r);
+			if (placement.map) MapRuleList.push_back(r);
+			if (placement.name) NameRuleList.push_back(r);
+			if (placement.doNotBlock) DoNotBlockRuleList.push_back(r);
+			if (placement.ignore) IgnoreRuleList.push_back(r);
 		}
 		cout << "Finished initializing item rules" << endl << endl;
 	}

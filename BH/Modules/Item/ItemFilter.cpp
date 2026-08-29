@@ -1204,3 +1204,109 @@ bool Condition::Evaluate(const ItemFacts &facts, const FilterContext &context,
 		Condition *arg1, Condition *arg2) {
 	return Match(facts, context, arg1, arg2);
 }
+
+bool IsItemBlocked(unsigned int ignoreIndex, unsigned int keepIndex,
+		bool orderedFiltering) {
+	if (ignoreIndex == NO_RULE_MATCH)
+		return false;
+	if (orderedFiltering)
+		return ignoreIndex < keepIndex;
+	return keepIndex == NO_RULE_MATCH;
+}
+
+RuleMatch MatchRules(const RuleLists &lists, const ItemFacts &facts,
+		const FilterContext &context, unsigned int pingLevel,
+		bool orderedFiltering) {
+	RuleMatch match;
+
+	for (unsigned int i = 0; i < lists.map->size(); i++) {
+		Rule *rule = (*lists.map)[i];
+		if (!rule->Evaluate(facts, context))
+			continue;
+		if (rule->action.index < match.keepIndex)
+			match.keepIndex = rule->action.index;
+		// A rule kept the item even if its tier is above what is being pinged;
+		// it just has nothing to say about the map.
+		if (rule->action.pingLevel > pingLevel)
+			continue;
+		int color = rule->action.notifyColor;
+		// Never overwrite a colour with no colour, nor a real one with the
+		// colour that means do not say anything.
+		if (color != UNDEFINED_COLOR &&
+				(color != DEAD_COLOR || match.color == UNDEFINED_COLOR))
+			match.color = color;
+		match.showOnMap = true;
+		match.noTracking = rule->action.noTracking;
+		match.pingLevel = rule->action.pingLevel;
+		if (rule->action.stopProcessing)
+			break;	// unless the rule said to carry on
+	}
+
+	// An item whose name a rule gave it is not hidden by a later one.
+	for (unsigned int i = 0; i < lists.doNotBlock->size(); i++) {
+		Rule *rule = (*lists.doNotBlock)[i];
+		if (!rule->Evaluate(facts, context))
+			continue;
+		if (rule->action.index < match.keepIndex)
+			match.keepIndex = rule->action.index;
+		break;
+	}
+
+	// With ordered filtering off this list only matters when nothing kept the
+	// item, so the scan is skipped entirely in that case.
+	if (orderedFiltering || match.keepIndex == NO_RULE_MATCH) {
+		for (unsigned int i = 0; i < lists.ignore->size(); i++) {
+			Rule *rule = (*lists.ignore)[i];
+			if (rule->Evaluate(facts, context)) {
+				match.ignoreIndex = rule->action.index;
+				break;
+			}
+		}
+	}
+
+	match.blocked = IsItemBlocked(match.ignoreIndex, match.keepIndex,
+		orderedFiltering);
+	return match;
+}
+
+void removeSubstrs(string& s, const string& p) {
+	string::size_type n = p.length();
+	for (string::size_type i = s.find(p); i != string::npos; i = s.find(p))
+		s.erase(i, n);
+}
+std::string without_invis_chars(const std::string &name) {
+	string wo_invis_chars(name);
+	ColorReplace colors[] = {
+		MAP_COLOR_REPLACEMENTS
+	};
+	for (int n = 0; n < sizeof(colors) / sizeof(colors[0]); n++) {
+		removeSubstrs(wo_invis_chars, "%" + colors[n].key + "%");
+	}
+	removeSubstrs(wo_invis_chars, " ");
+	return wo_invis_chars;
+}
+
+RulePlacement PlaceRule(const Rule &rule) {
+	RulePlacement placement = {};
+	placement.description = without_invis_chars(rule.action.description).length() > 0;
+	placement.map = rule.action.colorOnMap != UNDEFINED_COLOR ||
+		rule.action.borderColor != UNDEFINED_COLOR ||
+		rule.action.dotColor != UNDEFINED_COLOR ||
+		rule.action.pxColor != UNDEFINED_COLOR ||
+		rule.action.lineColor != UNDEFINED_COLOR;
+	placement.name = without_invis_chars(rule.action.name).length() > 0;
+
+	/*
+	 * An item a rule gave a name to is not one to hide, and an item shown on
+	 * the map is already not hidden, so only a name without a map action needs
+	 * saying. A rule that carries on is not counted: something later may still
+	 * hide the item.
+	 */
+	placement.doNotBlock = placement.name && rule.action.stopProcessing &&
+		!placement.map;
+
+	// A rule that says nothing at all about an item is a rule to hide it.
+	placement.ignore = !placement.map && !placement.name &&
+		!placement.description && rule.action.stopProcessing;
+	return placement;
+}

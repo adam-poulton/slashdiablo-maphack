@@ -618,49 +618,17 @@ void ItemMover::OnGamePacketRecv(BYTE* packet, bool* block) {
 				LiveContext context;
 				//PrintText(1, "Item packet: %s, %s, %X, %d, %d", item.name.c_str(), item.code, item.attrs->flags, item.sockets, GetDefense(&item));
 				if ((item.action == ITEM_ACTION_NEW_GROUND || item.action == ITEM_ACTION_OLD_GROUND) && success) {
-					bool showOnMap = false;
-					bool noTracking = false;
-					auto pingLevel = -1;
-					auto color = UNDEFINED_COLOR;
-					// config position of the earliest rule that wants this item kept, and of the
-					// earliest one that wants it hidden. Ordered filtering compares the two.
-					unsigned int keepIndex = NO_RULE_MATCH;
-					unsigned int ignoreIndex = NO_RULE_MATCH;
-
-					for (vector<Rule*>::iterator it = MapRuleList.begin(); it != MapRuleList.end(); it++) {
-						if ((*it)->Evaluate(item, context.Context())) {
-							if ((*it)->action.index < keepIndex) keepIndex = (*it)->action.index;
-							// skip map and notification if ping level requirement is not met
-							if ((*it)->action.pingLevel > Item::GetPingLevel()) continue;
-							auto action_color = (*it)->action.notifyColor;
-							// never overwrite color with an undefined color. never overwrite a defined color with dead color.
-							if (action_color != UNDEFINED_COLOR && (action_color != DEAD_COLOR || color == UNDEFINED_COLOR))
-								color = action_color;
-							showOnMap = true;
-							noTracking = (*it)->action.noTracking;
-							pingLevel = (*it)->action.pingLevel;
-							// break unless %CONTINUE% is used
-							if ((*it)->action.stopProcessing) break;
-						}
-					}
-					// Don't block items that have a white-listed name
-					for (vector<Rule*>::iterator it = DoNotBlockRuleList.begin(); it != DoNotBlockRuleList.end(); it++) {
-						if ((*it)->Evaluate(item, context.Context())) {
-							if ((*it)->action.index < keepIndex) keepIndex = (*it)->action.index;
-							break;
-						}
-					}
-					// With ordered filtering off this list only matters when nothing kept the item,
-					// so skip the scan entirely in that case to keep the old cost.
-					if (OrderedFiltering || keepIndex == NO_RULE_MATCH) {
-						for (vector<Rule*>::iterator it = IgnoreRuleList.begin(); it != IgnoreRuleList.end(); it++) {
-							if ((*it)->Evaluate(item, context.Context())) {
-								ignoreIndex = (*it)->action.index;
-								break;
-							}
-						}
-					}
-					bool blocked = IsItemBlocked(ignoreIndex, keepIndex);
+					RuleLists lists = { &MapRuleList, &DoNotBlockRuleList,
+						&IgnoreRuleList };
+					RuleMatch match = MatchRules(lists, item, context.Context(),
+						Item::GetPingLevel(), OrderedFiltering);
+					bool showOnMap = match.showOnMap;
+					bool noTracking = match.noTracking;
+					auto pingLevel = match.pingLevel;
+					auto color = match.color;
+					unsigned int keepIndex = match.keepIndex;
+					unsigned int ignoreIndex = match.ignoreIndex;
+					bool blocked = match.blocked;
 					if (ItemCapture::IsEnabled()) {
 						ItemCapture::Outcome outcome = {};
 						outcome.keepIndex = keepIndex;

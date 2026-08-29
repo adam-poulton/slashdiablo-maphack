@@ -807,4 +807,66 @@ char *GetGemTypeString(BYTE type);
 bool IsRune(ItemAttributes *attrs);
 BYTE RuneNumberFromItemCode(char *code);
 
+/*
+ * What the rules decided about one item.
+ *
+ * keepIndex and ignoreIndex are where in the configuration the earliest rule
+ * that wanted the item kept, and the earliest that wanted it hidden, were
+ * written. Ordered filtering compares the two; otherwise anything kept wins.
+ */
+struct RuleMatch {
+	unsigned int keepIndex;
+	unsigned int ignoreIndex;
+	bool blocked;
+	bool showOnMap;
+	bool noTracking;
+	int color;
+	int pingLevel;
 
+	RuleMatch() : keepIndex(NO_RULE_MATCH), ignoreIndex(NO_RULE_MATCH),
+		blocked(false), showOnMap(false), noTracking(false),
+		color(UNDEFINED_COLOR), pingLevel(-1) {}
+};
+
+// The three lists a rule is sorted into when it is read, in the order they are
+// walked.
+struct RuleLists {
+	const std::vector<Rule*> *map;
+	const std::vector<Rule*> *doNotBlock;
+	const std::vector<Rule*> *ignore;
+};
+
+// Whether an item is hidden, given where the earliest rule wanting it kept and
+// the earliest wanting it hidden were written.
+bool IsItemBlocked(unsigned int ignoreIndex, unsigned int keepIndex,
+		bool orderedFiltering);
+
+/*
+ * What the rules make of one item.
+ *
+ * The walk itself: which rules match, which of them has a say about the map,
+ * and whether what is left hides the item. Written once here because it is what
+ * the filter does, and because a recorded decision can only be checked against
+ * it if it is the same walk that made the recording.
+ */
+RuleMatch MatchRules(const RuleLists &lists, const ItemFacts &facts,
+		const FilterContext &context, unsigned int pingLevel,
+		bool orderedFiltering);
+
+// A name or description that is only colour codes and spaces says nothing, so
+// what is left once those are taken out is what decides whether a rule has one.
+void removeSubstrs(std::string& s, const std::string& p);
+std::string without_invis_chars(const std::string &name);
+
+// Which lists a rule belongs to, which follows entirely from what its action
+// does. Answered in one place so that reading a rule set and judging against
+// one cannot disagree about it.
+struct RulePlacement {
+	bool name;
+	bool description;
+	bool map;
+	bool doNotBlock;
+	bool ignore;
+};
+
+RulePlacement PlaceRule(const Rule &rule);

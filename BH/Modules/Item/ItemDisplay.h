@@ -74,6 +74,5 @@ namespace ItemDisplay {
 }
 void HandleUnknownItemCode(char *code, char *tag);
 void GetItemName(UnitItemInfo *uInfo, string &name);
-bool IsItemBlocked(unsigned int ignore_index, unsigned int keep_index);
 void SubstituteNameVariables(UnitItemInfo *uInfo, string &name, const string &action_name);
 BYTE GetRequiredLevel(UnitAny* item);
