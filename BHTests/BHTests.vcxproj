@@ -79,6 +79,7 @@
     <ClCompile Include="TestMain.cpp" />
     <ClCompile Include="BitReaderTests.cpp" />
     <ClCompile Include="CaptureFormatTests.cpp" />
+    <ClCompile Include="FixtureTests.cpp" />
     <!-- Sources under test. Only translation units that reference no D2 symbols
          can be linked here: the D2 function pointers are naked inline-asm thunks
          that need the game process to mean anything. -->
