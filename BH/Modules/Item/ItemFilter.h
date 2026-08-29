@@ -242,8 +242,9 @@ public:
 	FlagsCondition(unsigned int flg) : flag(flg) { conditionType = CT_Operand; };
 private:
 	unsigned int flag;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts) const;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
+	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
 };
 
 class PlayerTypeCondition : public Condition
@@ -294,8 +295,9 @@ public:
 private:
 	unsigned int quality;
 	unsigned int id;
-	bool EvaluateInternal(UnitItemInfo* uInfo, Condition* arg1, Condition* arg2);
-	bool EvaluateInternalFromPacket(ItemFacts* info, Condition* arg1, Condition* arg2);
+	bool Match(const ItemFacts &facts) const;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
+	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
 };
 
 class GemLevelCondition : public Condition

@@ -1,6 +1,7 @@
 #include "ItemFactsLive.h"
 #include "../../D2Ptrs.h"
 #include "../../D2Structs.h"
+#include "../../Constants.h"
 #include "../../MPQInit.h"
 
 int LiveStats::Stat(unsigned int stat, unsigned int sub) const {
@@ -79,4 +80,27 @@ LiveItem::LiveItem(UnitAny* item) : stats(item), unit(), facts(), known(false) {
 	facts.quality = item->pItemData->dwQuality;
 	facts.level = (unsigned char)item->pItemData->dwItemLevel;
 	facts.usedSockets = (unsigned char)GetUsedSockets(item);
+
+	/*
+	 * The flags a rule may ask about, as the named things a packet describes
+	 * rather than as bits. Only these three can be asked for: they are the only
+	 * flags a rule's text can name.
+	 */
+	DWORD flags = item->pItemData->dwFlags;
+	facts.ethereal = (flags & ITEM_ETHEREAL) > 0;
+	facts.identified = (flags & ITEM_IDENTIFIED) > 0;
+	facts.runeword = (flags & ITEM_RUNEWORD) > 0;
+
+	/*
+	 * Which unique or which set piece this is.
+	 *
+	 * The game keeps one number for it and says which kind it is separately,
+	 * where a packet carries a field for each. Filling only the one the item's
+	 * quality calls for is what makes the two agree: asked whether a rare is a
+	 * particular unique, both say no.
+	 */
+	if (facts.quality == ITEM_QUALITY_UNIQUE)
+		facts.uniqueCode = item->pItemData->dwFileIndex;
+	else if (facts.quality == ITEM_QUALITY_SET)
+		facts.setCode = item->pItemData->dwFileIndex;
 }

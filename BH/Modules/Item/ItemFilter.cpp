@@ -1007,6 +1007,31 @@ bool ItemGroupCondition::Match(const ItemFacts &facts) const {
 	return (facts.attrs->flags & itemGroup) > 0;
 }
 
+bool FlagsCondition::Match(const ItemFacts &facts) const {
+	switch (flag) {
+	case ITEM_ETHEREAL:
+		return facts.ethereal;
+	case ITEM_IDENTIFIED:
+		return facts.identified;
+	case ITEM_RUNEWORD:
+		return facts.runeword;
+	}
+	// No other flag can be asked for: these three are the only ones a rule's
+	// text can name.
+	return false;
+}
+
+bool QualityIdCondition::Match(const ItemFacts &facts) const {
+	switch (quality) {
+	case ITEM_QUALITY_UNIQUE:
+		return facts.uniqueCode == id;
+	case ITEM_QUALITY_SET:
+		return facts.setCode == id;
+	default:
+		return false;
+	}
+}
+
 bool Condition::Evaluate(UnitItemInfo *uInfo, ItemFacts *info, Condition *arg1, Condition *arg2) {
 	// Arguments will vary based on where we're called from.
 	// We will have either *info set (if called on reception of packet 0c9c, in which case
@@ -1054,34 +1079,7 @@ bool OrOperator::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Co
 	return arg1->Evaluate(NULL, info, NULL, NULL) || arg2->Evaluate(NULL, info, NULL, NULL);
 }
 
-bool QualityIdCondition::EvaluateInternal(UnitItemInfo* uInfo, Condition* arg1, Condition* arg2) {
-	return uInfo->item->pItemData->dwFileIndex == id && uInfo->item->pItemData->dwQuality == quality;
-}
-bool QualityIdCondition::EvaluateInternalFromPacket(ItemFacts* info, Condition* arg1, Condition* arg2) {
-	switch (quality) {
-	case ITEM_QUALITY_UNIQUE:
-		return info->uniqueCode == id;
-	case ITEM_QUALITY_SET:
-		return info->setCode == id;
-	default:
-		return false;
-	}
-}
 
-bool FlagsCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	return ((uInfo->item->pItemData->dwFlags & flag) > 0);
-}
-bool FlagsCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	switch (flag) {
-	case ITEM_ETHEREAL:
-		return info->ethereal;
-	case ITEM_IDENTIFIED:
-		return info->identified;
-	case ITEM_RUNEWORD:
-		return info->runeword;
-	}
-	return false;
-}
 
 bool PlayerTypeCondition::EvaluateInternal(UnitItemInfo* uInfo, Condition* arg1, Condition* arg2) {
 	return (((*p_D2LAUNCH_BnData)->nCharFlags >> 5) & 0x1) == mode;
