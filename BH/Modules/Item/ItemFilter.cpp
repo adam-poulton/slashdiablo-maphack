@@ -1205,13 +1205,10 @@ bool Condition::Evaluate(const ItemFacts &facts, const FilterContext &context,
 	return Match(facts, context, arg1, arg2);
 }
 
-bool IsItemBlocked(unsigned int ignoreIndex, unsigned int keepIndex,
-		bool orderedFiltering) {
+bool IsItemBlocked(unsigned int ignoreIndex, unsigned int keepIndex) {
 	if (ignoreIndex == NO_RULE_MATCH)
 		return false;
-	if (orderedFiltering)
-		return ignoreIndex < keepIndex;
-	return keepIndex == NO_RULE_MATCH;
+	return ignoreIndex < keepIndex;
 }
 
 std::vector<const Action*> MatchingActions(const std::vector<Rule*> &rules,
@@ -1244,8 +1241,7 @@ static const Rule *FirstMatchingRule(const std::vector<Rule*> &rules,
 }
 
 RuleMatch MatchRules(const RuleLists &lists, const ItemFacts &facts,
-		const FilterContext &context, unsigned int pingLevel,
-		bool orderedFiltering) {
+		const FilterContext &context, unsigned int pingLevel) {
 	RuleMatch match;
 
 	match.mapActions = MatchingActions(*lists.map, facts, context, pingLevel);
@@ -1273,16 +1269,12 @@ RuleMatch MatchRules(const RuleLists &lists, const ItemFacts &facts,
 	if (keeper && keeper->action.index < match.keepIndex)
 		match.keepIndex = keeper->action.index;
 
-	// With ordered filtering off this list only matters when nothing kept the
-	// item, so the scan is skipped entirely in that case.
-	if (orderedFiltering || match.keepIndex == NO_RULE_MATCH) {
-		const Rule *hider = FirstMatchingRule(*lists.ignore, facts, context);
-		if (hider)
-			match.ignoreIndex = hider->action.index;
-	}
+	// Wanted whatever else matched, since which came first is what decides.
+	const Rule *hider = FirstMatchingRule(*lists.ignore, facts, context);
+	if (hider)
+		match.ignoreIndex = hider->action.index;
 
-	match.blocked = IsItemBlocked(match.ignoreIndex, match.keepIndex,
-		orderedFiltering);
+	match.blocked = IsItemBlocked(match.ignoreIndex, match.keepIndex);
 	return match;
 }
 

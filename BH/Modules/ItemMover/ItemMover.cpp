@@ -621,7 +621,7 @@ void ItemMover::OnGamePacketRecv(BYTE* packet, bool* block) {
 					RuleLists lists = { &MapRuleList, &DoNotBlockRuleList,
 						&IgnoreRuleList };
 					RuleMatch match = MatchRules(lists, item, context.Context(),
-						Item::GetPingLevel(), OrderedFiltering);
+						Item::GetPingLevel());
 					bool showOnMap = match.showOnMap;
 					bool noTracking = match.noTracking;
 					auto pingLevel = match.pingLevel;

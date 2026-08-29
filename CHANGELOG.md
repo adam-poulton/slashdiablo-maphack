@@ -1,4 +1,4 @@
-Changelog
+﻿Changelog
 =========
 
 All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
@@ -44,6 +44,15 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
   answer they gave before you levelled up or changed area. Items already seen were
   judged again only on rejoining the game; they are now judged again when your level
   or your area changes.
+* Item filtering is now always ordered, and the `Ordered Item Filtering` setting is
+  gone. Whether a hide rule (a blank label) hides an item depends on whether it was
+  written before or after the rules that name it, which is what lets a single
+  catch-all near the top of `BH.cfg` hide a whole category. Configs that set the key
+  need no change - it is ignored. A rule ending in `%CONTINUE%` decorates an item
+  rather than settling it, so it does not protect the item from a hide rule above it;
+  an exception has to be a rule that stops. Replaying 1,351 recorded drops from 11
+  sessions, no item changed between the old default and this. See
+  [Advanced Item Display](docs/Advanced-Item-Display.md#rule-order-decides-what-is-hidden).
 
 # Release Notes for 1.9.11g (2026-08-19)
 * Add `Monster Curses` option (`BH_settings.cfg`, default `True, None`) to mark
@@ -65,7 +74,7 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
   hide rule regardless of position. This allows a single catch-all near the top
   of the file to hide a whole category. Note that with it enabled a broad hide
   rule high in the file silently suppresses everything below it — see
-  [Advanced Item Display](docs/Advanced-Item-Display.md#ordered-item-filtering-as-of-bh-1911f).
+  [Advanced Item Display](docs/Advanced-Item-Display.md#rule-order-decides-what-is-hidden).
 * Add `Smart Scrolls` option (`BH_settings.cfg`, default `False, None`) to
   dynamically hide ground scrolls when your tomes are full.
 

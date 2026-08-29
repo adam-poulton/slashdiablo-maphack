@@ -21,7 +21,6 @@ extern vector<Rule*> IgnoreRuleList;
 extern vector<pair<string, string>> rules;
 
 extern map<string, string> condition_group;
-extern bool OrderedFiltering;
 
 namespace ItemDisplay {
 	void InitializeItemRules();

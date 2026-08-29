@@ -850,10 +850,16 @@ struct RuleLists {
 	const std::vector<Rule*> *ignore;
 };
 
-// Whether an item is hidden, given where the earliest rule wanting it kept and
-// the earliest wanting it hidden were written.
-bool IsItemBlocked(unsigned int ignoreIndex, unsigned int keepIndex,
-		bool orderedFiltering);
+/*
+ * Whether an item is hidden, given where the earliest rule wanting it kept and
+ * the earliest wanting it hidden were written.
+ *
+ * Whichever was written first. A rule that only decorates an item and passes it
+ * on is not one of these: saying nothing final about an item is not wanting it
+ * kept, which is what lets a rule hide a whole category that later rules go on
+ * to colour and name.
+ */
+bool IsItemBlocked(unsigned int ignoreIndex, unsigned int keepIndex);
 
 // A ping level no rule can exceed, for the lists where the setting has no say.
 // A rule's tier governs the map box and the notification; the name and the
@@ -892,8 +898,7 @@ std::vector<const Action*> MatchingActions(const std::vector<Rule*> &rules,
  * it if it is the same walk that made the recording.
  */
 RuleMatch MatchRules(const RuleLists &lists, const ItemFacts &facts,
-		const FilterContext &context, unsigned int pingLevel,
-		bool orderedFiltering);
+		const FilterContext &context, unsigned int pingLevel);
 
 // A name or description that is only colour codes and spaces says nothing, so
 // what is left once those are taken out is what decides whether a rule has one.

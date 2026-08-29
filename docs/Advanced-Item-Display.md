@@ -1,4 +1,4 @@
-By enabling the "Advanced Item Display" configuration parameter, you can customize exactly how items are displayed. It is the only mechanism for customizing item names: with it disabled, items are named exactly as the game names them.
+﻿By enabling the "Advanced Item Display" configuration parameter, you can customize exactly how items are displayed. It is the only mechanism for customizing item names: with it disabled, items are named exactly as the game names them.
 
 One other parameter works alongside it rather than being superseded by it. "Show iLvl" adds the item level and affix level to an item's properties, and needs "Advanced Item Display" enabled to do so.
 
@@ -470,32 +470,13 @@ The keyword can also be used as part of the filter condition. For example:
  ItemDisplay[MAG amu CRAFTALVL>89]: %NAME%%MAP%
 ```
 
-## Ordered item filtering (as of BH 1.9.11f)
+## Rule order decides what is hidden
 
-By default, a hide rule (a rule with a blank action) only takes effect when no
-other rule anywhere in `BH.cfg` gives the item a name or a map marker. Rules are
-kept in separate lists internally, and the whitelist is checked without regard
-to where the rules sit in the file, so the order you wrote them in is ignored.
-
-This makes broad "hide this whole category" rules impractical. Say you want rare
-belts gone at the most aggressive filter level, and you add this line to the top 
-of your config:
-
-```
-ItemDisplay[FILTLVL=3 RARE BELT]:
-```
-
-By default this usually does nothing, because your config will already have
-other lines that name or map rare belts. 
-Every one of those whitelists the item regardless of where it sits, 
-so to actually hide rare belts you have to hunt down each of those
-lines and add `FILTLVL<3` to it. Miss one and the belts keep showing, and you
-get to repeat the exercise for every category you want to filter.
-
-Setting `Ordered Item Filtering: True` in `BH_settings.cfg` makes each rule's
-position in the file significant. An item is hidden when the matching hide rule
-comes *before* the matching whitelist rule. The catch-all above then works as
-written, from a single line near the top:
+A hide rule is a rule with a blank action. Whether it hides an item depends on
+where it sits in `BH.cfg` relative to the rules that name or map the same item:
+**the earlier rule wins**. So a single catch-all near the top hides a whole
+category, and the rules further down that would have named it do not bring it
+back:
 
 ```
 // near the top of BH.cfg
@@ -505,14 +486,30 @@ ItemDisplay[FILTLVL=3 RARE BELT]:
 ItemDisplay[RARE]: %NAME%
 ```
 
-Exceptions go *above* the hide rule rather than below it
+Exceptions go *above* the hide rule rather than below it.
 
-### ⚠️ Order now matters, and a broad rule high in the file is destructive
+### An exception has to be a rule that stops
 
-With this setting on, a hide rule suppresses **every** whitelist rule below it
-that matches the same item. The failure mode is severe and silent - items simply
-stop existing as far as the game client is concerned, with no error and nothing
-in the log to tell you which line did it.
+Only a rule that settles what an item is called protects it from a hide rule.
+A rule ending in `%CONTINUE%` is saying it is not the final word - it decorates
+the item and passes it on - so it does not count as an exception, wherever it
+sits:
+
+```
+ItemDisplay[ETH]: %DARK_GREEN%Eth %NAME%%CONTINUE%   // decorates, does not protect
+ItemDisplay[ETH RARE BELT]: %NAME%                   // protects
+```
+
+This is what makes broad hide rules usable at all. A config typically has a few
+`%CONTINUE%` rules matching enormous numbers of items purely to colour them, and
+if those counted as exceptions almost nothing could ever be hidden.
+
+### ⚠️ A broad rule high in the file is destructive
+
+A hide rule suppresses **every** naming rule below it that matches the same
+item. The failure mode is severe and silent - items simply stop existing as far
+as the game client is concerned, with no error and nothing in the log to tell
+you which line did it.
 
 The extreme case is a bare catch-all:
 
@@ -520,28 +517,24 @@ The extreme case is a bare catch-all:
 ItemDisplay[]:
 ```
 
-At the top of the file with ordered filtering on, that hides every item in the
-game, ignoring all of the hundreds of rules beneath it. Your entire config
-appears to have stopped working. The same line at the *bottom* of the file is
-the harmless idiom it has always been.
+At the top of the file, that hides every item in the game, ignoring all of the
+hundreds of rules beneath it. Your entire config appears to have stopped
+working. The same line at the *bottom* of the file is the harmless idiom it has
+always been.
 
-Before enabling this, be aware that:
+So:
 
 * A rule you wrote as a fallback will behave as a veto if it sits above the
   rules it was meant to fall back to. Move fallbacks to the bottom.
-* The default config was written with this ordering in mind and places the hide
-  rules at the bottom, if usure you should re-read yours top to bottom before 
-  trusting it.
+* The shipped config places its hide rules at the bottom. If you are unsure
+  about your own, re-read it top to bottom before trusting it.
 * The broader a hide rule's conditions, the higher the cost of putting it early.
   Prefer conditions that are as narrow as the intent (`FILTLVL=3 RARE BELT`
   rather than `RARE` or nothing at all).
 * Hidden items are filtered out at the packet level, so as far as your client is
   concerned they never dropped. There is nothing to reveal in game and no
   in-game way to tell a hidden drop from one that did not happen. If items seem
-  to be missing after enabling this, turn the setting back off to confirm
-  ordering is the cause, then bisect your config.
-
-The setting defaults to `False`, preserving the older behaviour.
+  to be missing, bisect your config.
 
 ## Excluding items from the run tracker
 

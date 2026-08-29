@@ -11,7 +11,6 @@
 std::map<std::string, int> UnknownItemCodes;
 vector<pair<string, string>> rules;
 map<string, string> condition_group;
-bool OrderedFiltering = false;
 vector<Rule*> RuleList;
 vector<Rule*> NameRuleList;
 vector<Rule*> DescRuleList;
@@ -87,7 +86,7 @@ static ItemVerdict &VerdictFor(UnitItemInfo *uInfo, World &world) {
 	RuleLists lists = { &MapRuleList, &DoNotBlockRuleList, &IgnoreRuleList };
 	ItemVerdict verdict;
 	verdict.match = MatchRules(lists, *uInfo->facts, world.Now(),
-		Item::GetPingLevel(), OrderedFiltering);
+		Item::GetPingLevel());
 	return item_verdicts.Hold(id, flags, std::move(verdict));
 }
 

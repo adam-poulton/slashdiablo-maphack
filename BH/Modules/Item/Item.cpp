@@ -150,7 +150,6 @@ void Item::LoadConfig() {
 	BH::config->ReadInt("Scroll Visibility Threshold", scrollVisibilityThreshold);
 	if (scrollVisibilityThreshold > MAX_SCROLL_VISIBILITY_THRESHOLD)
 		scrollVisibilityThreshold = MAX_SCROLL_VISIBILITY_THRESHOLD;
-	BH::config->ReadBoolean("Ordered Item Filtering", OrderedFiltering);
 	ItemCapture::LoadConfig();
 
 	LoadNoIlvlCodes();
@@ -244,11 +243,6 @@ void Item::RegisterSettings() {
 	Settings::AddEnum(GetName(), Settings::Category::Filter, "Ping Level", "Ping tiers <=",
 		&pingLevelSetting, { "0", "1", "2", "3", "4", "5", "6" },
 		"The highest tier that is still pinged.");
-	// No hotkey: this changes how BH.cfg is read, which is not something to flip
-	// mid game.
-	Settings::AddBool(GetName(), Settings::Category::Filter, "Ordered Item Filtering", "Ordered item filtering",
-		&OrderedFiltering,
-		"Applies the rules in BH.cfg strictly in the order they are written, rather than whitelist before hidelist.");
 	Settings::AddToggle(GetName(), Settings::Category::Filter, "Hide Redundant Scrolls", "Hide redundant scrolls",
 		&Toggles["Hide Redundant Scrolls"],
 		"Hides scrolls on the ground once you are carrying enough of them.");
