@@ -518,6 +518,30 @@ private:
 	bool EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2);
 };
 
+class AreaLevelCondition : public Condition
+{
+public:
+	AreaLevelCondition(BYTE op, unsigned int target)
+		: operation(op), areaLevel(target) { conditionType = CT_Operand; };
+private:
+	BYTE operation;
+	unsigned int areaLevel;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
+	bool EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2);
+};
+
+class AreaIdCondition : public Condition
+{
+public:
+	AreaIdCondition(BYTE op, unsigned int target)
+		: operation(op), areaId(target) { conditionType = CT_Operand; };
+private:
+	BYTE operation;
+	unsigned int areaId;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
+	bool EvaluateInternalFromPacket(ItemInfo *info, Condition *arg1, Condition *arg2);
+};
+
 class ItemStatCondition : public Condition
 {
 public:
