@@ -343,8 +343,9 @@ public:
 private:
 	BYTE operation;
 	unsigned int goldAmount;
-	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2);
-	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2);
+	bool Match(const ItemFacts &facts) const;
+	bool EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) { return Match(*uInfo->facts); }
+	bool EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) { return Match(*info); }
 };
 
 class ItemLevelCondition : public Condition

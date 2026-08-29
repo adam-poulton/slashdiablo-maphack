@@ -1032,6 +1032,12 @@ bool QualityIdCondition::Match(const ItemFacts &facts) const {
 	}
 }
 
+bool GoldCondition::Match(const ItemFacts &facts) const {
+	if (facts.code[0] != 'g' || facts.code[1] != 'l' || facts.code[2] != 'd')
+		return false;
+	return IntegerCompare(facts.amount, operation, goldAmount);
+}
+
 bool Condition::Evaluate(UnitItemInfo *uInfo, ItemFacts *info, Condition *arg1, Condition *arg2) {
 	// Arguments will vary based on where we're called from.
 	// We will have either *info set (if called on reception of packet 0c9c, in which case
@@ -1109,15 +1115,6 @@ bool CharClassCondition::EvaluateInternalFromPacket(ItemFacts* info, Condition* 
 
 
 
-bool GoldCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	return false; // can only evaluate this from packet data
-}
-bool GoldCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	if (info->code[0] == 'g' && info->code[1] == 'l' && info->code[2] == 'd') {
-		return IntegerCompare(info->amount, operation, goldAmount);
-	}
-	return false;
-}
 
 
 

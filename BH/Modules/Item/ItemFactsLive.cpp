@@ -99,6 +99,17 @@ LiveItem::LiveItem(UnitAny* item) : stats(item), unit(), facts(), known(false) {
 	 * quality calls for is what makes the two agree: asked whether a rare is a
 	 * particular unique, both say no.
 	 */
+	/*
+	 * How much gold a pile is worth.
+	 *
+	 * A packet says so outright. The game keeps it as a stat, which is why an
+	 * item in the world could not answer this before: the condition had no way
+	 * to ask, and returned false, so a pile matched a rule as it landed and
+	 * stopped matching once it existed.
+	 */
+	if (facts.code[0] == 'g' && facts.code[1] == 'l' && facts.code[2] == 'd')
+		facts.amount = stats.Stat(STAT_GOLD, 0);
+
 	if (facts.quality == ITEM_QUALITY_UNIQUE)
 		facts.uniqueCode = item->pItemData->dwFileIndex;
 	else if (facts.quality == ITEM_QUALITY_SET)
