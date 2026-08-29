@@ -1,0 +1,389 @@
+AmaOnly	(Amazon Only)
+AssOnly	(Assassin Only)
+BarOnly	(Barbarian Only)
+DruOnly	(Druid Only)
+ItemExpansiveChanc1	%d%% Chance to cast level %d %s on striking
+ItemExpansiveChanc2	%d%% Chance to cast level %d %s when struck
+ItemExpansiveChancX	%d%% Chance to cast level %d %s on attack
+ModStr1a	to Strength
+ModStr1b	to Dexterity
+ModStr1c	to Vitality
+ModStr1d	to Energy
+ModStr1e	to Mana
+ModStr1f	to Maximum Damage
+ModStr1g	to Minimum Damage
+ModStr1h	to Attack Rating
+ModStr1i	Defense
+ModStr1j	Fire Resist
+ModStr1k	Cold Resist
+ModStr1l	Lightning Resist
+ModStr1m	Magic Resist
+ModStr1n	Poison Resist
+ModStr1o	to Maximum Fire Damage
+ModStr1p	to Minimum Fire Damage
+ModStr1q	to Maximum Lightning Damage
+ModStr1r	to Minimum Lightning Damage
+ModStr1s	to Maximum Cold Damage
+ModStr1t	to Minimum Cold Damage
+ModStr1u	to Life
+ModStr1v	Attacker Takes Damage of
+ModStr1w	Extra Gold from Monsters
+ModStr1x	Better Chance of Getting Magic Items
+ModStr1y	Knockback
+ModStr2g	Increase Maximum Life
+ModStr2h	Increase Maximum Mana
+ModStr2i	Increase Maximum Durability
+ModStr2j	Enhanced Maximum Damage
+ModStr2k	Enhanced Minimum Damage
+ModStr2l	Replenish Life
+ModStr2t	Magic Damage Reduced by
+ModStr2u	Damage Reduced by
+ModStr2w	Drain Life
+ModStr2y	Mana stolen per hit
+ModStr2z	Life stolen per hit
+ModStr3a	to Amazon Skill Levels
+ModStr3b	to Paladin Skill Levels
+ModStr3c	to Necromancer Skill Levels
+ModStr3d	to Sorceress Skill Levels
+ModStr3e	to Barbarian Skill Levels
+ModStr3f	to Light Radius
+ModStr3g	Increased Chance of Blocking
+ModStr3h	Requirements
+ModStr3i	to Fire Skills
+ModStr3j	Attacker Takes Lightning Damage of
+ModStr3k	to All Skills
+ModStr3l	Freezes target
+ModStr3m	Chance of Open Wounds
+ModStr3r	Poison Length Reduced by
+ModStr3u	Hit Causes Monster to Flee
+ModStr3v	Heal Stamina Plus
+ModStr3w	Damage Taken Goes To Mana
+ModStr3y	Ignore Target's Defense
+ModStr4a	Prevent Monster Heal
+ModStr4b	Half Freeze Duration
+ModStr4c	Bonus to Attack Rating
+ModStr4d	to Monster Defense Per Hit
+ModStr4e	Damage to Demons
+ModStr4f	Damage to Undead
+ModStr4g	Regenerate Mana
+ModStr4h	to Maximum Poison Damage
+ModStr4i	to Minimum Poison Damage
+ModStr4j	to Attack Rating against Demons
+ModStr4k	to Attack Rating against Undead
+ModStr4m	Increased Attack Speed
+ModStr4p	Faster Hit Recovery
+ModStr4s	Faster Run/Walk
+ModStr4v	Faster Cast Rate
+ModStr4y	Faster Block Rate
+ModStr5a	Throwable
+ModStr5b	Damage
+ModStr5c	Chance of Crushing Blow
+ModStr5d	Maximum Stamina
+ModStr5e	Kick Damage
+ModStr5f	to Mana after each Kill
+ModStr5g	Fire Absorb
+ModStr5h	Fire Absorb
+ModStr5i	Lightning Absorb
+ModStr5j	Lightning Absorb
+ModStr5k	Magic Absorb
+ModStr5l	Magic Absorb
+ModStr5m	Cold Absorb
+ModStr5n	Cold Absorb
+ModStr5o	Target Defense
+ModStr5q	Deadly Strike
+ModStr5r	Slows Target by
+ModStr5u	to Maximum Fire Resist
+ModStr5v	to Maximum Cold Resist
+ModStr5w	to Maximum Lightning Resist
+ModStr5x	to Maximum Magic Resist
+ModStr5y	to Maximum Poison Resist
+ModStr5z	Cannot Be Frozen
+ModStr6a	Defense vs. Missile
+ModStr6b	Defense vs. Melee
+ModStr6c	Life after each Demon Kill
+ModStr6d	Hit Blinds Target
+ModStr6e	Slower Stamina Drain
+ModStr6g	Piercing Attack
+ModStr6h	Fires Magic Arrows
+ModStr6i	Fires Explosive Arrows or Bolts
+ModStre10b	Level
+ModStre10d	(%d/%d Charges)
+ModStre8a	to Druid Skills
+ModStre8b	to Assassin Skills
+ModStre9i	Increased Stack Size
+ModStre9o	Absorbs Fire Damage
+ModStre9p	Absorbs Cold Damage
+ModStre9q	Absorbs Lightning Damage
+ModStre9s	Indestructible
+ModStre9t	Repairs %d durability per second
+ModStre9v	Replenishes quantity
+Moditem2ExpG	to Experience Gained
+Moditem2allattrib	to all Attributes
+ModitemAttratvsM	to Attack Rating versus
+ModitemAura	Level %d %s Aura When Equipped
+ModitemHPaK	Life after each Kill
+ModitemRedVendP	Reduces all Vendor Prices
+ModitemSMRIP	Slain Monsters Rest in Peace
+ModitemdamColdsk	to Cold Skill Damage
+ModitemdamFiresk	to Fire Skill Damage
+ModitemdamLtngsk	to Lightning Skill Damage
+ModitemdamPoissk	to Poison Skill Damage
+Moditemdamvsm	to Damage versus
+Moditemenrescoldsk	to Enemy Cold Resistance
+Moditemenresfiresk	to Enemy Fire Resistance
+Moditemenresltngsk	to Enemy Lightning Resistance
+Moditemenrespoissk	to Enemy Poison Resistance
+Moditemreanimas	Reanimate as:
+ModitemskonKill	%d%% Chance to cast level %d %s when you Kill an Enemy
+ModitemskonLevel	%d%% Chance to cast level %d %s when you Level-Up
+Moditemskondeath	%d%% Chance to cast level %d %s when you Die
+Modstr2v	Enhanced Defense
+NecOnly	(Necromancer Only)
+PalOnly	(Paladin Only)
+Runeword22	Delirium
+Skillname222	Raven
+Skillname223	Werewolf
+Skillname224	Werewolf
+Skillname225	Lycanthropy
+Skillname226	Firestorm
+Skillname227	Oak Sage
+Skillname228	Summon Spirit Wolf
+Skillname229	Werebear
+Skillname230	Molten Boulder
+Skillname231	Arctic Blast
+Skillname232	Carrion Vine
+Skillname233	Feral Rage
+Skillname234	Maul
+Skillname235	Fissure
+Skillname236	Cyclone Armor
+Skillname237	Heart of Wolverine
+Skillname238	Summon Dire Wolf
+Skillname239	Rabies
+Skillname240	Fire Claws
+Skillname241	Twister
+Skillname242	Solar Creeper
+Skillname243	Hunger
+Skillname244	Shock Wave
+Skillname245	Volcano
+Skillname246	Tornado
+Skillname247	Spirit of Barbs
+Skillname248	Summon Grizzly
+Skillname249	Fury
+Skillname250	Armageddon
+Skillname251	Hurricane
+Skillname252	Fire Blast
+Skillname253	Claw Mastery
+Skillname254	Psychic Hammer
+Skillname255	Tiger Strike
+Skillname256	Dragon Talon
+Skillname257	Shock Web
+Skillname258	Blade Sentinel
+Skillname259	Burst of Speed
+Skillname260	Fists of Fire
+Skillname261	Dragon Claw
+Skillname262	Charged Bolt Sentry
+Skillname263	Wake of Fire
+Skillname264	Weapon Block
+Skillname265	Cloak of Shadows
+Skillname266	Cobra Strike
+Skillname267	Blade Fury
+Skillname268	Fade
+Skillname269	Shadow Warrior
+Skillname270	Claws of Thunder
+Skillname271	Dragon Tail
+Skillname272	Lightning Sentry
+Skillname273	Wake of Inferno
+Skillname274	Mind Blast
+Skillname275	Blades of Ice
+Skillname276	Dragon Flight
+Skillname277	Death Sentry
+Skillname278	Blade Shield
+Skillname279	Venom
+Skillname280	Shadow Master
+Skillname281	Phoenix Strike
+SorOnly	(Sorceress Only)
+StrSklTabItem1	+%d to Javelin and Spear Skills
+StrSklTabItem10	+%d to Warcries
+StrSklTabItem11	+%d to Combat Skills
+StrSklTabItem12	+%d to Masteries
+StrSklTabItem13	+%d to Cold Skills
+StrSklTabItem14	+%d to Lightning Skills
+StrSklTabItem15	+%d to Fire Skills
+StrSklTabItem16	+%d to Summoning Skills
+StrSklTabItem17	+%d to Shape Shifting Skills
+StrSklTabItem18	+%d to Elemental Skills
+StrSklTabItem19	+%d to Traps
+StrSklTabItem2	+%d to Passive and Magic Skills
+StrSklTabItem20	+%d to Shadow Disciplines
+StrSklTabItem21	+%d to Martial Arts
+StrSklTabItem3	+%d to Bow and Crossbow Skills
+StrSklTabItem4	+%d to Defensive Auras
+StrSklTabItem5	+%d to Offensive Auras
+StrSklTabItem6	+%d to Summoning Skills
+StrSklTabItem7	+%d to Poison and Bone Skills
+StrSklTabItem8	+%d to Curses
+StrSklTabItem9	+%d to Summoning Skills
+increaseswithplaylevelX	(Based on Character Level)
+skillname0	Attack
+skillname1	Kick
+skillname10	Jab
+skillname100	Resist Fire
+skillname101	Holy Bolt
+skillname102	Holy Fire
+skillname103	Thorns
+skillname104	Defiance
+skillname105	Resist Cold
+skillname106	Zeal
+skillname107	Charge
+skillname108	Blessed Aim
+skillname109	Cleansing
+skillname11	Cold Arrow
+skillname110	Resist Lightning
+skillname111	Vengeance
+skillname112	Blessed Hammer
+skillname113	Concentration
+skillname114	Holy Freeze
+skillname115	Vigor
+skillname116	Conversion
+skillname117	Holy Shield
+skillname118	Holy Shock
+skillname119	Sanctuary
+skillname12	Multiple Shot
+skillname120	Meditation
+skillname121	Fist of the Heavens
+skillname122	Fanaticism
+skillname123	Conviction
+skillname124	Redemption
+skillname125	Salvation
+skillname126	Bash
+skillname127	Sword Mastery
+skillname128	Axe Mastery
+skillname129	Mace Mastery
+skillname13	Dodge
+skillname130	Howl
+skillname131	Find Potion
+skillname132	Leap
+skillname133	Double Swing
+skillname134	Pole Arm Mastery
+skillname135	Throwing Mastery
+skillname136	Spear Mastery
+skillname137	Taunt
+skillname138	Shout
+skillname139	Stun
+skillname14	Power Strike
+skillname140	Double Throw
+skillname141	Increased Stamina
+skillname142	Find Item
+skillname143	Leap Attack
+skillname144	Concentrate
+skillname145	Iron Skin
+skillname146	Battle Cry
+skillname147	Frenzy
+skillname148	Increased Speed
+skillname149	Battle Orders
+skillname15	Poison Javelin
+skillname150	Grim Ward
+skillname151	Whirlwind
+skillname152	Berserk
+skillname153	Natural Resistance
+skillname154	War Cry
+skillname155	Battle Command
+skillname16	Exploding Arrow
+skillname17	Slow Missiles
+skillname18	Avoid
+skillname19	Impale
+skillname2	Throw
+skillname20	Lightning Bolt
+skillname21	Ice Arrow
+skillname217	Scroll of Identify
+skillname218	Tome of Identify
+skillname219	Scroll of Townportal
+skillname22	Guided Arrow
+skillname220	Tome of Townportal
+skillname23	Penetrate
+skillname24	Charged Strike
+skillname25	Plague Javelin
+skillname26	Strafe
+skillname27	Immolation Arrow
+skillname28	Decoy
+skillname29	Evade
+skillname3	Unsummon
+skillname30	Fend
+skillname31	Freezing Arrow
+skillname32	Valkyrie
+skillname33	Pierce
+skillname34	Lightning Strike
+skillname35	Lightning Fury
+skillname36	Fire Bolt
+skillname37	Warmth
+skillname38	Charged Bolt
+skillname39	Ice Bolt
+skillname4	Left Hand Throw
+skillname40	Frozen Armor
+skillname41	Inferno
+skillname42	Static Field
+skillname43	Telekinesis
+skillname44	Frost Nova
+skillname45	Ice Blast
+skillname46	Blaze
+skillname47	Fire Ball
+skillname48	Nova
+skillname49	Lightning
+skillname5	Left Hand Swing
+skillname50	Shiver Armor
+skillname51	Fire Wall
+skillname52	Enchant
+skillname53	Chain Lightning
+skillname54	Teleport
+skillname55	Glacial Spike
+skillname56	Meteor
+skillname57	Thunder Storm
+skillname58	Energy Shield
+skillname59	Blizzard
+skillname6	Magic Arrow
+skillname60	Chilling Armor
+skillname62	Hydra
+skillname63	Lightning Mastery
+skillname64	Frozen Orb
+skillname65	Cold Mastery
+skillname66	Amplify Damage
+skillname67	Teeth
+skillname68	Bone Armor
+skillname69	Skeleton Mastery
+skillname7	Fire Arrow
+skillname70	Raise Skeleton
+skillname71	Dim Vision
+skillname72	Weaken
+skillname73	Poison Dagger
+skillname74	Corpse Explosion
+skillname75	Clay Golem
+skillname76	Iron Maiden
+skillname77	Terror
+skillname78	Bone Wall
+skillname79	Golem Mastery
+skillname8	Inner Sight
+skillname80	Raise Skeletal Mage
+skillname81	Confuse
+skillname82	Life Tap
+skillname83	Poison Explosion
+skillname84	Bone Spear
+skillname85	Blood Golem
+skillname86	Attract
+skillname87	Decrepify
+skillname88	Bone Prison
+skillname89	Summon Resist
+skillname9	Critical Strike
+skillname90	Iron Golem
+skillname91	Lower Resist
+skillname92	Poison Nova
+skillname93	Bone Spirit
+skillname94	Fire Golem
+skillname95	Revive
+skillname96	Sacrifice
+skillname97	Smite
+skillname98	Might
+skillname99	Prayer
+skillsname61	Fire Mastery
+strModAllResistances	All Resistances +%d
+strModEnhancedDamage	Enhanced damage
+strModMagicDamage	+%d magic damage

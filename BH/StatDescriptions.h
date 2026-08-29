@@ -1,4 +1,5 @@
 #pragma once
+#include <iosfwd>
 #include <string>
 #include <vector>
 
@@ -43,9 +44,21 @@ namespace StatDescriptions {
 
 	// Loads the string tables out of the MPQ archives. Safe to call repeatedly;
 	// only the first call does any work. Requires the MPQ data tables to be
-	// initialised first.
+	// initialised first. Lives in StatDescriptionsFromMPQ.cpp, which is the only
+	// part of this module that knows the archives exist.
 	bool Initialize();
+
+	// Whether any string table text is in, which is what a line needs to be
+	// worded at all.
 	bool IsInitialized();
+
+	// Reads key and text pairs, one "key<TAB>text" to a line. This is how
+	// anything without a game running supplies what Initialize would otherwise
+	// read out of the archives.
+	//
+	// A key whose text carries a tab or a line ending cannot be written this
+	// way; whatever produces the stream leaves those out.
+	void LoadStrings(std::istream& stream);
 
 	// Localised text for a string table key, or an empty string if unknown.
 	std::string GetString(const std::string& key);

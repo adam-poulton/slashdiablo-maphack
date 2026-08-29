@@ -3,7 +3,7 @@ MPQ data tools
 
 BH reads the game's data tables (`Runes.txt`, `ItemTypes.txt`, `Properties.txt`,
 the `.tbl` string tables and so on) out of the Diablo II MPQ archives at run
-time. These two tools pull the same files out on the desktop, so you can see what
+time. These tools pull the same files out on the desktop, so you can see what
 the data actually says while working on a feature rather than guessing at column
 names and values.
 
@@ -103,6 +103,23 @@ for row in csv.DictReader(open('ItemStatCost.txt', encoding='latin-1'), delimite
     print(row['Stat'], strings.get(row['descstrpos']))
 ```
 
+## make_fixtures.py
+
+Writes the table fixtures `BHTests` reads, so the stat description tests can
+stand the game's tables up with no game running. Point it at a directory holding
+the extracted `.txt` tables and all three `.tbl` files, and at the repository
+root:
+
+```bash
+python make_fixtures.py . /c/repos/slashdiablo-maphack
+```
+
+The tables a property is looked up in go in whole; the tables holding the items
+under test are trimmed to those items with their header row kept; the three
+string tables are merged into one `key<TAB>text` file trimmed to the keys the
+whole tables can reach. Rerun it when the tests need an item the fixtures do not
+have, adding the item to `SUBJECT_TABLES` first.
+
 ## What these are good for
 
 Reading the data, and checking a change against all of it at once. The runeword
@@ -115,5 +132,5 @@ Damage from 38 of the 78 runewords.
 What they are **not** good for is testing the shipped code. A script that
 reimplements what `StatDescriptions.cpp` does only tests your understanding of
 the game's rules; it drifts the moment the C++ changes, and it can't see faults
-that live in the C++ itself. To check the real code, have the real code print
-what it produces and check that.
+that live in the C++ itself. To check the real code, run the real code against
+the tables: `make_fixtures.py` is how they reach `BHTests`.

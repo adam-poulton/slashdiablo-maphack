@@ -19,8 +19,10 @@ set(SOURCE_FILES "AsyncDrawBuffer.cpp"
                  "Mustache.cpp"
                  "Patch.cpp"
                  "StatDescriptions.cpp"
+                 "StatDescriptionsFromMPQ.cpp"
                  "StringUtil.cpp"
                  "TableReader.cpp"
+                 "TablesFromMPQ.cpp"
                  "Task.cpp")
 
 set(MODULE_SOURCES "Modules/Module.cpp"

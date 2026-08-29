@@ -53,10 +53,12 @@
     <ClCompile Include="MPQReader.cpp" />
     <ClCompile Include="ItemDescription.cpp" />
     <ClCompile Include="StatDescriptions.cpp" />
+    <ClCompile Include="StatDescriptionsFromMPQ.cpp" />
     <ClCompile Include="Mustache.cpp" />
     <ClCompile Include="Patch.cpp" />
     <ClCompile Include="Modules\StashExport\StashExport.cpp" />
     <ClCompile Include="TableReader.cpp" />
+    <ClCompile Include="TablesFromMPQ.cpp" />
     <ClCompile Include="Task.cpp" />
     <ClCompile Include="Modules\GambleRefresh\GambleRefresh.cpp" />
   </ItemGroup>
@@ -128,6 +130,7 @@
     <ClInclude Include="MPQReader.h" />
     <ClInclude Include="ItemDescription.h" />
     <ClInclude Include="StatDescriptions.h" />
+    <ClInclude Include="StatDescriptionsStrings.h" />
     <ClInclude Include="Mustache.h" />
     <ClInclude Include="Patch.h" />
     <ClInclude Include="Modules\StashExport\StashExport.h" />
