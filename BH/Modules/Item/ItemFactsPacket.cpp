@@ -8,6 +8,104 @@
 
 namespace ItemFactsPacket {
 
+/*
+ * The stats a packet described, answered the two ways the conditions ask.
+ *
+ * Adding a stat up is not simply summing every entry that names it. Several
+ * stats carry a second thing alongside the value, and the sub index selects
+ * among them: which skill, which class, which of a class's skill tabs. Sockets
+ * and defence are not in the property list at all, being fields of their own,
+ * which is why they are answered here rather than looked for.
+ */
+int PacketStats::Stat(unsigned int stat, unsigned int sub) const {
+	switch (stat) {
+	case STAT_SOCKETS:
+		return facts.sockets;
+	case STAT_DEFENSE:
+		return Defense(facts);
+	default:
+		break;
+	}
+
+	int total = 0;
+	for (std::vector<ItemProperty>::const_iterator prop = facts.properties.begin();
+			prop != facts.properties.end(); ++prop) {
+		if (prop->stat != stat)
+			continue;
+		switch (stat) {
+		case STAT_NONCLASSSKILL:
+		case STAT_SINGLESKILL:
+			if (prop->skill != sub)
+				continue;
+			break;
+		case STAT_CLASSSKILLS:
+			if (prop->characterClass != sub)
+				continue;
+			break;
+		case STAT_SKILLTAB:
+			// A class and one of its eight tabs, packed into one number.
+			if (prop->characterClass * 8 + prop->tab != sub)
+				continue;
+			break;
+		default:
+			break;
+		}
+		total += prop->value;
+	}
+	return total;
+}
+
+const std::vector<StatEntry>& PacketStats::Stats() const {
+	if (built)
+		return entries;
+
+	/*
+	 * The sub index is put back together the way the game packs it, so that a
+	 * condition reading entries does not have to know which side it came from.
+	 * A charged skill keeps its level in the low six bits and its skill above
+	 * them, which is the one the conditions actually take apart.
+	 */
+	for (std::vector<ItemProperty>::const_iterator prop = facts.properties.begin();
+			prop != facts.properties.end(); ++prop) {
+		StatEntry entry;
+		entry.stat = (unsigned short)prop->stat;
+		entry.value = (int)prop->value;
+		switch (prop->stat) {
+		case STAT_CHARGED:
+			entry.sub = (unsigned short)((prop->skill << 6) | (prop->level & 0x3F));
+			break;
+		case STAT_NONCLASSSKILL:
+		case STAT_SINGLESKILL:
+			entry.sub = (unsigned short)prop->skill;
+			break;
+		case STAT_CLASSSKILLS:
+			entry.sub = (unsigned short)prop->characterClass;
+			break;
+		case STAT_SKILLTAB:
+			entry.sub = (unsigned short)(prop->characterClass * 8 + prop->tab);
+			break;
+		default:
+			entry.sub = 0;
+			break;
+		}
+		entries.push_back(entry);
+	}
+	built = true;
+	return entries;
+}
+
+int Defense(const ItemFacts& facts) {
+	int defense = facts.defense;
+	for (std::vector<ItemProperty>::const_iterator prop = facts.properties.begin();
+			prop != facts.properties.end(); ++prop) {
+		if (prop->stat == STAT_ENHANCEDDEFENSE) {
+			defense *= (prop->value + 100);
+			defense /= 100;
+		}
+	}
+	return defense;
+}
+
 const StatProperties& Reader::Widths(unsigned int stat) const {
 	StatProperties *widths = tables.Stat(stat);
 	if (!widths) {

@@ -8,6 +8,8 @@
 #include "../../MPQInit.h"
 #include "Item.h"
 #include "ItemDisplay.h"
+#include "ItemFactsLive.h"
+#include "ItemFactsPacket.h"
 
 /*
  * A condition still reaches into the running game for anything the item itself
@@ -1114,17 +1116,12 @@ bool EDCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Conditi
 		stat = STAT_ENHANCEDMAXIMUMDAMAGE;
 	}
 
-	// Pulled from JSUnit.cpp in d2bs
 	DWORD value = 0;
-	Stat aStatList[256] = { NULL };
-	StatList* pStatList = D2COMMON_GetStatList(uInfo->item, NULL, 0x40);
-	if (pStatList) {
-		DWORD dwStats = D2COMMON_CopyStatList(pStatList, (Stat*)aStatList, 256);
-		for (UINT i = 0; i < dwStats; i++) {
-			if (aStatList[i].wStatIndex == stat && aStatList[i].wSubIndex == 0) {
-				value += aStatList[i].dwStatValue;
-			}
-		}
+	LiveStats live(uInfo->item);
+	const std::vector<StatEntry>& stats = live.Stats();
+	for (unsigned int i = 0; i < stats.size(); i++) {
+		if (stats[i].stat == stat && stats[i].sub == 0)
+			value += stats[i].value;
 	}
 	return IntegerCompare(value, operation, targetED);
 }
@@ -1148,17 +1145,12 @@ bool EDCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, C
 }
 
 bool DurabilityCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
-	// Pulled from JSUnit.cpp in d2bs
 	DWORD value = 0;
-	Stat aStatList[256] = { NULL };
-	StatList* pStatList = D2COMMON_GetStatList(uInfo->item, NULL, 0x40);
-	if (pStatList) {
-		DWORD dwStats = D2COMMON_CopyStatList(pStatList, (Stat*)aStatList, 256);
-		for (UINT i = 0; i < dwStats; i++) {
-			if (aStatList[i].wStatIndex == STAT_ENHANCEDMAXDURABILITY && aStatList[i].wSubIndex == 0) {
-				value += aStatList[i].dwStatValue;
-			}
-		}
+	LiveStats live(uInfo->item);
+	const std::vector<StatEntry>& stats = live.Stats();
+	for (unsigned int i = 0; i < stats.size(); i++) {
+		if (stats[i].stat == STAT_ENHANCEDMAXDURABILITY && stats[i].sub == 0)
+			value += stats[i].value;
 	}
 	return IntegerCompare(value, operation, targetDurability);
 }
@@ -1174,17 +1166,14 @@ bool DurabilityCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition 
 
 bool ChargedCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
 	DWORD value = 0;
-	Stat aStatList[256] = { NULL };
-	StatList* pStatList = D2COMMON_GetStatList(uInfo->item, NULL, 0x40);
-	if (pStatList) {
-		DWORD dwStats = D2COMMON_CopyStatList(pStatList, (Stat*)aStatList, 256);
-		for (UINT i = 0; i < dwStats; i++) {
-			//if (aStatList[i].wStatIndex == STAT_CHARGED)
-			//	PrintText(1, "ChargedCondition::EvaluateInternal: Index=%hx, SubIndex=%hx, Value=%x", aStatList[i].wStatIndex, aStatList[i].wSubIndex, aStatList[i].dwStatValue);
-			if (aStatList[i].wStatIndex == STAT_CHARGED && (aStatList[i].wSubIndex>>6) == skill) { // 10 MSBs of subindex is the skill ID
-				unsigned int level = aStatList[i].wSubIndex & 0x3F; // 6 LSBs are the skill level
-				value = (level > value) ? level : value; // use highest level
-			}
+	LiveStats live(uInfo->item);
+	const std::vector<StatEntry>& stats = live.Stats();
+	for (unsigned int i = 0; i < stats.size(); i++) {
+		// The skill is held above the low six bits, the level it is charged at
+		// in them.
+		if (stats[i].stat == STAT_CHARGED && (stats[i].sub >> 6) == skill) {
+			unsigned int level = stats[i].sub & 0x3F;
+			value = (level > value) ? level : value;	// the highest one wins
 		}
 	}
 	return IntegerCompare(value, operation, targetLevel);
@@ -1205,20 +1194,16 @@ bool FoolsCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Cond
 	// 2 = AR / level
 	// 3 = Fools
 
-	// Pulled from JSUnit.cpp in d2bs
 	unsigned int value = 0;
-	Stat aStatList[256] = { NULL };
-	StatList* pStatList = D2COMMON_GetStatList(uInfo->item, NULL, 0x40);
-	if (pStatList) {
-		DWORD dwStats = D2COMMON_CopyStatList(pStatList, (Stat*)aStatList, 256);
-		for (UINT i = 0; i < dwStats; i++) {
-			if (aStatList[i].wStatIndex == STAT_MAXDAMAGEPERLEVEL && aStatList[i].wSubIndex == 0) {
-				value += 1;
-			}
-			if (aStatList[i].wStatIndex == STAT_ATTACKRATINGPERLEVEL && aStatList[i].wSubIndex == 0) {
-				value += 2;
-			}
-		}
+	LiveStats live(uInfo->item);
+	const std::vector<StatEntry>& stats = live.Stats();
+	for (unsigned int i = 0; i < stats.size(); i++) {
+		if (stats[i].sub != 0)
+			continue;
+		if (stats[i].stat == STAT_MAXDAMAGEPERLEVEL)
+			value += 1;
+		if (stats[i].stat == STAT_ATTACKRATINGPERLEVEL)
+			value += 2;
 	}
 	// We are returning a comparison on 3 here instead of any the actual number because the way it is setup is
 	// to just write FOOLS in the mh file instead of FOOLS=3 this could be changed to accept 1-3 for the different
@@ -1326,49 +1311,8 @@ bool ItemStatCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, C
 	return IntegerCompare(D2COMMON_GetUnitStat(uInfo->item, itemStat, itemStat2), operation, targetStat);
 }
 bool ItemStatCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	int num = 0;
-	switch (itemStat) {
-	case STAT_SOCKETS:
-		return IntegerCompare(info->sockets, operation, targetStat);
-	case STAT_DEFENSE:
-		return IntegerCompare(GetDefense(info), operation, targetStat);
-	case STAT_NONCLASSSKILL:
-		for (vector<ItemProperty>::iterator prop = info->properties.begin(); prop < info->properties.end(); prop++) {
-			if (prop->stat == STAT_NONCLASSSKILL && prop->skill == itemStat2) {
-				num += prop->value;
-			}
-		}
-		return IntegerCompare(num, operation, targetStat);
-	case STAT_SINGLESKILL:
-		for (vector<ItemProperty>::iterator prop = info->properties.begin(); prop < info->properties.end(); prop++) {
-			if (prop->stat == STAT_SINGLESKILL && prop->skill == itemStat2) {
-				num += prop->value;
-			}
-		}
-		return IntegerCompare(num, operation, targetStat);
-	case STAT_CLASSSKILLS:
-		for (vector<ItemProperty>::iterator prop = info->properties.begin(); prop < info->properties.end(); prop++) {
-			if (prop->stat == STAT_CLASSSKILLS && prop->characterClass == itemStat2) {
-				num += prop->value;
-			}
-		}
-		return IntegerCompare(num, operation, targetStat);
-	case STAT_SKILLTAB:
-		for (vector<ItemProperty>::iterator prop = info->properties.begin(); prop < info->properties.end(); prop++) {
-			if (prop->stat == STAT_SKILLTAB && (prop->characterClass * 8 + prop->tab) == itemStat2) {
-				num += prop->value;
-			}
-		}
-		return IntegerCompare(num, operation, targetStat);
-	default:
-		for (vector<ItemProperty>::iterator prop = info->properties.begin(); prop < info->properties.end(); prop++) {
-			if (prop->stat == itemStat) {
-				num += prop->value;
-			}
-		}
-		return IntegerCompare(num, operation, targetStat);
-	}
-	return false;
+	ItemFactsPacket::PacketStats stats(*info);
+	return IntegerCompare(stats.Stat(itemStat, itemStat2), operation, targetStat);
 }
 
 bool PartialCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, Condition *arg2) {
@@ -1407,22 +1351,11 @@ bool ResistAllCondition::EvaluateInternal(UnitItemInfo *uInfo, Condition *arg1, 
 			IntegerCompare(pRes, operation, targetStat));
 }
 bool ResistAllCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, Condition *arg2) {
-	int fRes = 0, lRes = 0, cRes = 0, pRes = 0;
-	for (vector<ItemProperty>::iterator prop = info->properties.begin(); prop < info->properties.end(); prop++) {
-		if (prop->stat == STAT_FIRERESIST) {
-			fRes += prop->value;
-		} else if (prop->stat == STAT_LIGHTNINGRESIST) {
-			lRes += prop->value;
-		} else if (prop->stat == STAT_COLDRESIST) {
-			cRes += prop->value;
-		} else if (prop->stat == STAT_POISONRESIST) {
-			pRes += prop->value;
-		}
-	}
-	return (IntegerCompare(fRes, operation, targetStat) &&
-			IntegerCompare(lRes, operation, targetStat) &&
-			IntegerCompare(cRes, operation, targetStat) &&
-			IntegerCompare(pRes, operation, targetStat));
+	ItemFactsPacket::PacketStats stats(*info);
+	return (IntegerCompare(stats.Stat(STAT_FIRERESIST, 0), operation, targetStat) &&
+			IntegerCompare(stats.Stat(STAT_LIGHTNINGRESIST, 0), operation, targetStat) &&
+			IntegerCompare(stats.Stat(STAT_COLDRESIST, 0), operation, targetStat) &&
+			IntegerCompare(stats.Stat(STAT_POISONRESIST, 0), operation, targetStat));
 }
 
 void AddCondition::Init() {
@@ -1453,16 +1386,6 @@ bool AddCondition::EvaluateInternalFromPacket(ItemFacts *info, Condition *arg1, 
 	return false;
 }
 
-int GetDefense(ItemFacts *item) {
-	int def = item->defense;
-	for (vector<ItemProperty>::iterator prop = item->properties.begin(); prop < item->properties.end(); prop++) {
-		if (prop->stat == STAT_ENHANCEDDEFENSE) {
-			def *= (prop->value + 100);
-			def /= 100;
-		}
-	}
-	return def;
-}
 
 void HandleUnknownItemCode(char *code, char *tag) {
 	// If the MPQ files arent loaded yet then this is expected

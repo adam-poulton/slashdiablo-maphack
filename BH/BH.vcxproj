@@ -177,6 +177,7 @@ if defined D2Path (
     <ClCompile Include="Modules\Item\Item.cpp" />
     <ClCompile Include="Modules\Item\CaptureFormat.cpp" />
     <ClCompile Include="Modules\Item\ItemCapture.cpp" />
+    <ClCompile Include="Modules\Item\ItemFactsLive.cpp" />
     <ClCompile Include="Modules\Item\ItemFactsPacket.cpp" />
     <ClCompile Include="Modules\Item\ItemFilter.cpp" />
     <ClCompile Include="Modules\Item\ItemDisplay.cpp" />
@@ -264,6 +265,7 @@ if defined D2Path (
     <ClInclude Include="Modules\Item\ItemCapture.h" />
     <ClInclude Include="ItemTables.h" />
     <ClInclude Include="Modules\Item\ItemFacts.h" />
+    <ClInclude Include="Modules\Item\ItemFactsLive.h" />
     <ClInclude Include="Modules\Item\ItemFactsPacket.h" />
     <ClInclude Include="Modules\Item\ItemFilter.h" />
     <ClInclude Include="Modules\Item\ItemDisplay.h" />

@@ -21,6 +21,37 @@ struct UnitAny;
  * be built and tested without one.
  */
 
+// One entry of an item's stat list, as the game stores it.
+struct StatEntry {
+	unsigned short stat;
+	// What the stat is about where it needs saying: which skill, which class,
+	// which skill tab. Several stats pack more than one thing into it.
+	unsigned short sub;
+	int value;
+};
+
+/*
+ * An item's stats, asked for in the two ways the conditions ask for them.
+ *
+ * Both are here because the game itself answers both, and not always with the
+ * same number. A condition that compares a total asks for one; a condition that
+ * needs to look at how a stat was stored, such as the level a charged skill is
+ * held at, reads the entries. Answering the first by adding up the second would
+ * be tidier and is not obviously the same thing, so the choice is left where it
+ * already was. This is what ADR 0001 records.
+ */
+struct StatSource {
+	virtual ~StatSource() {}
+
+	// A stat's value, added up the way the game adds it. sub selects among the
+	// stats that carry more than one value.
+	virtual int Stat(unsigned int stat, unsigned int sub) const = 0;
+
+	// The entries as stored, for the conditions that read a sub index rather
+	// than compare a total.
+	virtual const std::vector<StatEntry>& Stats() const = 0;
+};
+
 // A property an item carries, as one is written into a packet.
 struct ItemProperty {
 	unsigned int stat;
@@ -116,4 +147,9 @@ struct ItemFacts {
 	std::vector<unsigned long> prefixes;
 	std::vector<unsigned long> suffixes;
 	std::vector<ItemProperty> properties;
+
+	// The item's stats. Not held by value because what answers depends on where
+	// the item came from: an item in a packet answers out of the properties
+	// above, an item in the world answers by asking the game.
+	const StatSource *stats;
 };

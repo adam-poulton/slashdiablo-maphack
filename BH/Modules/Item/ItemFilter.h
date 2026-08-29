@@ -741,7 +741,6 @@ bool IntegerCompare(unsigned int Lvalue, BYTE operation, unsigned int Rvalue);
 
 // Item facts several conditions ask for.
 BYTE GetAffixLevel(BYTE ilvl, BYTE qlvl, BYTE mlvl);
-int GetDefense(ItemFacts *item);
 unsigned int GetUsedSockets(UnitAny *item);
 bool IsGem(ItemAttributes *attrs);
 BYTE GetGemLevel(ItemAttributes *attrs);

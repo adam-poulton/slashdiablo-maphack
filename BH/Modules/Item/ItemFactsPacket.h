@@ -1,9 +1,9 @@
 #pragma once
 #include <string>
+#include <vector>
+#include "ItemFacts.h"
 
 struct ItemAttributes;
-struct ItemFacts;
-struct ItemProperty;
 struct StatProperties;
 class BitReader;
 
@@ -46,6 +46,28 @@ namespace ItemFactsPacket {
 		// Reading gave out part way through.
 		virtual void Failed(const char* code, const std::string& reason) {}
 	};
+
+	/*
+	 * An item's stats as read out of the properties a packet carried.
+	 *
+	 * Holds the item rather than a copy of its stats, so it costs nothing to
+	 * make and must not outlive what it was made from.
+	 */
+	class PacketStats : public StatSource {
+	public:
+		explicit PacketStats(const ItemFacts& facts) : facts(facts), built(false) {}
+
+		int Stat(unsigned int stat, unsigned int sub) const override;
+		const std::vector<StatEntry>& Stats() const override;
+
+	private:
+		const ItemFacts& facts;
+		mutable std::vector<StatEntry> entries;
+		mutable bool built;
+	};
+
+	// An item's defence once the enhanced defence it carries is applied.
+	int Defense(const ItemFacts& facts);
 
 	class Reader {
 	public:
