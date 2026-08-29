@@ -1248,10 +1248,9 @@ RuleMatch MatchRules(const RuleLists &lists, const ItemFacts &facts,
 		bool orderedFiltering) {
 	RuleMatch match;
 
-	std::vector<const Action*> mapActions =
-		MatchingActions(*lists.map, facts, context, pingLevel);
-	for (unsigned int i = 0; i < mapActions.size(); i++) {
-		const Action *action = mapActions[i];
+	match.mapActions = MatchingActions(*lists.map, facts, context, pingLevel);
+	for (unsigned int i = 0; i < match.mapActions.size(); i++) {
+		const Action *action = match.mapActions[i];
 		if (action->index < match.keepIndex)
 			match.keepIndex = action->index;
 		// A rule kept the item even if its tier is above what is being pinged;

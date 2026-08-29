@@ -823,6 +823,20 @@ struct RuleMatch {
 	int color;
 	int pingLevel;
 
+	/*
+	 * The map actions the item matched, in the order they were written.
+	 *
+	 * The fields above are what an item arriving in a packet needs: one colour,
+	 * one tier, shown or not. What is drawn on the automap is not that, since
+	 * several rules may each contribute a box, a dot or a line to one item. So
+	 * the actions themselves are kept rather than only what was folded out of
+	 * them, and the walk that found them is not made twice.
+	 *
+	 * They point into the rules, which outlive any decision made from them:
+	 * reading a rule set again resets everything holding one of these.
+	 */
+	std::vector<const Action*> mapActions;
+
 	RuleMatch() : keepIndex(NO_RULE_MATCH), ignoreIndex(NO_RULE_MATCH),
 		blocked(false), showOnMap(false), noTracking(false),
 		color(UNDEFINED_COLOR), pingLevel(-1) {}
