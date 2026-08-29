@@ -43,6 +43,13 @@ import sys
 # vouch for, and uncertain data does not belong in a baseline.
 EXCLUDED_CHAR_LEVELS = {'84'}
 
+# Sessions played against a rule set that a later one supersedes. The area rules
+# were first written with the area id tests ahead of the area level ones, which
+# left every area level result hidden behind a lower matching rule and so
+# recorded nothing about them. A whole rule set is a quarter of a megabyte, and
+# these sessions cover no filter level or ping level that a later one does not.
+EXCLUDED_FIRST_RULES = ('gld AREAID=1',)
+
 # Enough of a repeated item to prove it repeats, without keeping all of it.
 MAX_PER_OUTCOME = 2
 MAX_PER_AREA = 4
@@ -113,7 +120,13 @@ def is_uncommon(code):
 
 def replayable(session):
     """A session recorded with the world state a replay needs."""
-    return session['drops'] and 'areaId' in session['drops'][0][1]
+    if not session['drops'] or 'areaId' not in session['drops'][0][1]:
+        return False
+    for rule in session['rules'][:1]:
+        for excluded in EXCLUDED_FIRST_RULES:
+            if 'condition=' + excluded in rule:
+                return False
+    return True
 
 
 def curate_drops(drops):
@@ -178,16 +191,24 @@ def curate_parse_cases(sessions):
     since those are the shapes the reader has most to get wrong. The rest is
     sampled: a thousandth potion exercises nothing the first did not.
     """
-    seen_packets = set()
+    seen_packets = {}
     seen_codes = set()
     ordinary = 0
     out = []
     for session in sessions:
         for line, f in session['drops']:
             packet = f.get('packet', '')
-            if not packet or packet in seen_packets:
+            if not packet:
                 continue
-            seen_packets.add(packet)
+
+            # A capture taken before the reading was recorded holds the same
+            # packet with nothing to check it against. Where both were seen the
+            # one that says what it read out as is the one worth keeping.
+            if packet in seen_packets:
+                at = seen_packets[packet]
+                if 'quality' in f and 'quality' not in out[at][1]:
+                    out[at] = (render_parse_case(f), f)
+                continue
 
             code = f.get('code', '')
             interesting = (code not in seen_codes or is_uncommon(code) or
@@ -198,12 +219,17 @@ def curate_parse_cases(sessions):
                     continue
             seen_codes.add(code)
 
-            record = ['parse']
-            for key in PARSE_FIELDS:
-                if key in f:
-                    record.append('%s=%s' % (key, f[key]))
-            out.append('\t'.join(record))
-    return out
+            seen_packets[packet] = len(out)
+            out.append((render_parse_case(f), f))
+    return [line for line, f in out]
+
+
+def render_parse_case(f):
+    record = ['parse']
+    for key in PARSE_FIELDS:
+        if key in f:
+            record.append('%s=%s' % (key, f[key]))
+    return '\t'.join(record)
 
 
 def curate_tables(sessions, needed_codes):
