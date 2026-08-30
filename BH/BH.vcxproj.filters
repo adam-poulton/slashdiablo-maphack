@@ -41,7 +41,6 @@
     <ClCompile Include="Modules\Module.cpp" />
     <ClCompile Include="Modules\ModuleManager.cpp" />
     <ClCompile Include="Modules\Party\Party.cpp" />
-    <ClCompile Include="Modules\Info\InfoText.cpp" />
     <ClCompile Include="Modules\Info\InfoWindow.cpp" />
     <ClCompile Include="Modules\Info\BaseTab.cpp" />
     <ClCompile Include="Modules\Info\RecipeTab.cpp" />
@@ -52,6 +51,7 @@
     <ClCompile Include="MPQInit.cpp" />
     <ClCompile Include="MPQReader.cpp" />
     <ClCompile Include="ItemDescription.cpp" />
+    <ClCompile Include="PropertyStats.cpp" />
     <ClCompile Include="StatDescriptions.cpp" />
     <ClCompile Include="StatDescriptionsFromMPQ.cpp" />
     <ClCompile Include="Mustache.cpp" />
@@ -117,7 +117,6 @@
     <ClInclude Include="Modules\Module.h" />
     <ClInclude Include="Modules\ModuleManager.h" />
     <ClInclude Include="Modules\Party\Party.h" />
-    <ClInclude Include="Modules\Info\InfoText.h" />
     <ClInclude Include="Modules\Info\InfoWindow.h" />
     <ClInclude Include="Modules\Info\InfoTab.h" />
     <ClInclude Include="Modules\Info\BaseTab.h" />
@@ -129,6 +128,7 @@
     <ClInclude Include="MPQInit.h" />
     <ClInclude Include="MPQReader.h" />
     <ClInclude Include="ItemDescription.h" />
+    <ClInclude Include="PropertyStats.h" />
     <ClInclude Include="StatDescriptions.h" />
     <ClInclude Include="StatDescriptionsStrings.h" />
     <ClInclude Include="Mustache.h" />

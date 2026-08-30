@@ -2,15 +2,8 @@
 #include <string>
 #include <vector>
 #include "../../ItemDescription.h"
+#include "../../PropertyStats.h"
 #include "../Window/UIPanel.h"
-
-// A property entry as it appears in the game's tables.
-struct RunewordProperty {
-	std::string code;
-	std::string param;
-	int min;
-	int max;
-};
 
 // A single runeword recipe, pre-formatted for display.
 struct RunewordRecipe {
@@ -22,7 +15,9 @@ struct RunewordRecipe {
 	ItemDescription::Requirements requirements;
 	std::string searchKey;	// lowercased name/runes/types, used for filtering
 
-	std::vector<RunewordProperty> properties;	// the runeword's own bonuses
+	// The runeword's own bonuses. What each rune adds is read from the gems
+	// table as the stats are worded, since it depends on the base.
+	std::vector<PropertyStats::Property> properties;
 	std::vector<std::string> extraLines;		// bonuses given as ready made text
 	std::vector<std::string> runeCodes;			// "r31", in socket order
 	std::vector<std::string> baseSlots;			// "weapon" / "helm" / "shield"

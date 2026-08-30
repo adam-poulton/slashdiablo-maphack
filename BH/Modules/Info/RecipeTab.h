@@ -2,15 +2,8 @@
 #include <string>
 #include <vector>
 #include "../../ItemDescription.h"
+#include "../../PropertyStats.h"
 #include "../Window/UIPanel.h"
-
-// A property entry as it appears in the game's tables.
-struct CubeProperty {
-	std::string code;
-	std::string param;
-	int min;
-	int max;
-};
 
 // A single Horadric Cube recipe, pre-formatted for display.
 struct CubeRecipe {
@@ -29,7 +22,8 @@ struct CubeRecipe {
 	// levels it costs, and the conditions it is only allowed under.
 	std::vector<std::string> notes;
 
-	std::vector<CubeProperty> properties;	// the bonuses the result is given
+	// The bonuses the result is given.
+	std::vector<PropertyStats::Property> properties;
 
 	// Bonuses given as ready made text, for what the result carries that no
 	// property entry describes. They read as stat lines because that is what

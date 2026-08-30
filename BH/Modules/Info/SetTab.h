@@ -2,20 +2,8 @@
 #include <string>
 #include <vector>
 #include "../../ItemDescription.h"
+#include "../../PropertyStats.h"
 #include "../Window/UIPanel.h"
-
-// A property entry as it appears in the game's tables. itemCount is how many
-// pieces have to be worn for it to apply, and 0 for a bonus that is always on.
-//
-// Defaults are declared inline rather than in a constructor: windows.h leaves min
-// and max defined as macros, and an initializer list naming them does not compile.
-struct SetProperty {
-	std::string code;
-	std::string param;
-	int min = 0;
-	int max = 0;
-	int itemCount = 0;
-};
 
 // One piece of a set, pre-formatted for display.
 struct SetItemRecord {
@@ -28,8 +16,9 @@ struct SetItemRecord {
 	int requiredLevel;			// what the piece itself asks for, 0 if nothing
 	std::string searchKey;		// lowercased name/base/type/set, for filtering
 
-	std::vector<SetProperty> own;		// the item's own always-on properties
-	std::vector<SetProperty> partial;	// unlocked as pieces are worn
+	// The piece's own always-on properties, and the ones more pieces unlock.
+	std::vector<PropertyStats::Property> own;
+	std::vector<PropertyStats::Property> partial;
 
 	std::vector<std::string> ownStats;		// built on first view
 	std::vector<std::string> partialStats;	// each already carrying its count
@@ -47,8 +36,9 @@ struct SetItemRecord {
 struct SetRecord {
 	std::string name;			// "Tal Rasha's Wrappings"
 
-	std::vector<SetProperty> partial;	// unlocked as pieces are worn
-	std::vector<SetProperty> full;		// the complete set bonus
+	// Unlocked as pieces are worn, and what wearing all of them gives.
+	std::vector<PropertyStats::Property> partial;
+	std::vector<PropertyStats::Property> full;
 
 	std::vector<std::string> partialStats;	// each already carrying its count
 	std::vector<std::string> fullStats;

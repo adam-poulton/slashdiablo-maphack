@@ -2,15 +2,8 @@
 #include <string>
 #include <vector>
 #include "../../ItemDescription.h"
+#include "../../PropertyStats.h"
 #include "../Window/UIPanel.h"
-
-// A property entry as it appears in the game's tables.
-struct UniqueProperty {
-	std::string code;
-	std::string param;
-	int min;
-	int max;
-};
 
 // A single unique item, pre-formatted for display.
 struct UniqueRecord {
@@ -21,7 +14,7 @@ struct UniqueRecord {
 	int requiredLevel;			// what the unique itself asks for, 0 if nothing
 	std::string searchKey;		// lowercased name/base/type, used for filtering
 
-	std::vector<UniqueProperty> properties;
+	std::vector<PropertyStats::Property> properties;
 	std::vector<std::string> stats;		// built on first view
 
 	// What its properties do to the numbers its base carries, worked out

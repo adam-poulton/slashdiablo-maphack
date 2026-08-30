@@ -7,10 +7,8 @@
 #include "../../ItemRarity.h"
 #include "../../StatDescriptions.h"
 #include "../../TableReader.h"
-#include "InfoText.h"
 
 using namespace Drawing;
-using namespace InfoText;
 
 // Margins and the gaps between the three bands. Widths and the list height are
 // measured from the tab by ApplyLayout().
@@ -46,8 +44,8 @@ static std::string TableName(const std::string& index) {
 static void ReadProperty(JSONObject* entry, const std::string& codeColumn,
 		const std::string& paramColumn, const std::string& minColumn,
 		const std::string& maxColumn, int itemCount,
-		std::vector<SetProperty>& into) {
-	SetProperty property;
+		std::vector<PropertyStats::Property>& into) {
+	PropertyStats::Property property;
 	property.code = Trim(entry->getString(codeColumn));
 	if (property.code.length() == 0)
 		return;
@@ -56,38 +54,6 @@ static void ReadProperty(JSONObject* entry, const std::string& codeColumn,
 	property.max = atoi(entry->getString(maxColumn).c_str());
 	property.itemCount = itemCount;
 	into.push_back(property);
-}
-
-// Rendered a group at a time, not all at once: stats from different groups are
-// separate lines on the item, and one pass would merge the belt's own
-// "+60 Defense (2 Items)" with its set's "+150 Defense" into a single +210.
-static std::vector<std::string> RenderGroup(const std::vector<SetProperty>& properties) {
-	std::vector<StatDescriptions::Stat> stats;
-	for (unsigned int i = 0; i < properties.size(); i++) {
-		StatDescriptions::CollectProperty(properties[i].code, properties[i].param,
-			properties[i].min, properties[i].max, stats);
-	}
-	return StatDescriptions::BuildLines(stats);
-}
-
-// A count at a time, so each adds up only among itself.
-static std::vector<std::string> RenderCounted(const std::vector<SetProperty>& properties) {
-	std::vector<std::string> lines;
-	for (int count = 2; count <= ST_PARTIAL_COUNT + 1; count++) {
-		std::vector<SetProperty> group;
-		for (unsigned int i = 0; i < properties.size(); i++) {
-			if (properties[i].itemCount == count)
-				group.push_back(properties[i]);
-		}
-		if (group.empty())
-			continue;
-
-		std::string tag = " (" + std::to_string(count) + " Items)";
-		std::vector<std::string> rendered = RenderGroup(group);
-		for (unsigned int i = 0; i < rendered.size(); i++)
-			lines.push_back(rendered[i] + tag);
-	}
-	return lines;
 }
 
 SetTab::SetTab(UI* ui) : UIPanel("Sets", ui),
@@ -273,15 +239,13 @@ void SetTab::LoadItemStats(SetItemRecord* item) {
 	item->statsLoaded = true;
 	StatDescriptions::Initialize();
 
-	item->ownStats = RenderGroup(item->own);
-	item->partialStats = RenderCounted(item->partial);
-
-	std::vector<StatDescriptions::StatTotal> totals;
-	for (unsigned int i = 0; i < item->own.size(); i++) {
-		StatDescriptions::CollectTotals(item->own[i].code, item->own[i].param,
-			item->own[i].min, item->own[i].max, totals);
-	}
-	item->modifiers = ItemDescription::ReadModifiers(totals);
+	// A group at a time, not all at once: stats from different groups are
+	// separate lines on the item, and one pass would merge the belt's own
+	// "+60 Defense (2 Items)" with its set's "+150 Defense" into a single +210.
+	item->ownStats = PropertyStats::Lines(item->own);
+	item->partialStats = PropertyStats::CountedLines(item->partial);
+	item->modifiers = ItemDescription::ReadModifiers(
+		PropertyStats::Totals(item->own));
 }
 
 // Cached on the set, so pointing at each of Immortal King's six pieces in turn
@@ -292,8 +256,8 @@ void SetTab::LoadSetStats(SetRecord* set) {
 	set->statsLoaded = true;
 	StatDescriptions::Initialize();
 
-	set->partialStats = RenderCounted(set->partial);
-	set->fullStats = RenderGroup(set->full);
+	set->partialStats = PropertyStats::CountedLines(set->partial);
+	set->fullStats = PropertyStats::Lines(set->full);
 }
 
 void SetTab::ApplyFilter() {

@@ -7,10 +7,8 @@
 #include "../../ItemRarity.h"
 #include "../../StatDescriptions.h"
 #include "../../TableReader.h"
-#include "InfoText.h"
 
 using namespace Drawing;
-using namespace InfoText;
 
 // The name takes the larger share; the tier beside it is one short word.
 #define BT_COL_NAME_WEIGHT	3

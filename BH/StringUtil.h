@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <vector>
 
 /*
  * Small things done to strings, kept apart from the rest of Common.
@@ -14,6 +15,9 @@
 std::string Trim(std::string source);
 
 std::string ToLower(const std::string& text);
+
+// The parts one after another with the separator between them.
+std::string Join(const std::vector<std::string>& parts, const std::string& separator);
 
 // True for the several ways a setting can say yes.
 bool IsTrue(const char *str);

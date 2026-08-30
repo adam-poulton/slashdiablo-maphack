@@ -87,6 +87,7 @@
     <ClCompile Include="FilterReplayTests.cpp" />
     <ClCompile Include="RuleWalkTests.cpp" />
     <ClCompile Include="StampedCacheTests.cpp" />
+    <ClCompile Include="PropertyStatsTests.cpp" />
     <ClCompile Include="StatDescriptionTests.cpp" />
     <ClCompile Include="TableFixture.cpp" />
     <ClCompile Include="TableLookupTests.cpp" />
@@ -100,6 +101,7 @@
     <ClCompile Include="..\BH\Modules\Item\CaptureFormat.cpp" />
     <ClCompile Include="..\BH\Modules\Item\ItemFactsPacket.cpp" />
     <ClCompile Include="..\BH\JSONObject.cpp" />
+    <ClCompile Include="..\BH\PropertyStats.cpp" />
     <ClCompile Include="..\BH\StatDescriptions.cpp" />
     <ClCompile Include="..\BH\ItemDescription.cpp" />
     <ClCompile Include="..\BH\TableReader.cpp" />

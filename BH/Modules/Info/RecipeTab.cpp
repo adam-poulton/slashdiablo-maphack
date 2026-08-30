@@ -8,10 +8,8 @@
 #include "../../ItemRarity.h"
 #include "../../StatDescriptions.h"
 #include "../../TableReader.h"
-#include "InfoText.h"
 
 using namespace Drawing;
-using namespace InfoText;
 
 // Margins and the gaps between the three bands. Widths and the list height are
 // measured from the tab by ApplyLayout().
@@ -292,14 +290,14 @@ static TextColor NameColor(ItemRarity rarity) {
 // CubeMain.txt names it by row rather than by name.
 // What an affix grants is on the same row, so it is collected here.
 static std::string ReadAffix(Table& table, int row,
-		std::vector<CubeProperty>& properties) {
+		std::vector<PropertyStats::Property>& properties) {
 	JSONObject* entry = table.entryAt(row);
 	if (!entry)
 		return "";
 
 	for (int n = 1; n <= RC_AFFIX_MOD_COUNT; n++) {
 		std::string index = std::to_string(n);
-		CubeProperty property;
+		PropertyStats::Property property;
 		property.code = ToLower(Trim(entry->getString("mod" + index + "code")));
 		if (property.code.length() == 0)
 			continue;
@@ -435,7 +433,7 @@ std::vector<ChatCommand> RecipeTab::GetCommands() {
 // the game gives neither a stat line of its own: it shows them in the shape of
 // the item instead. So they are read out here and said in words rather than
 // left to StatDescriptions, which would drop them.
-static bool ReadStructuralMod(const CubeProperty& property, CubeRecipe& recipe,
+static bool ReadStructuralMod(const PropertyStats::Property& property, CubeRecipe& recipe,
 		bool& socketed) {
 	if (property.code.compare("sock") == 0) {
 		std::string sockets = std::to_string(property.min);
@@ -495,7 +493,7 @@ void RecipeTab::BuildRecipes() {
 
 			for (int n = 1; n <= RC_MOD_COUNT; n++) {
 				std::string index = std::to_string(n);
-				CubeProperty property;
+				PropertyStats::Property property;
 				property.code = ToLower(Trim(entry->getString("mod " + index)));
 				if (property.code.length() == 0)
 					continue;
@@ -518,7 +516,7 @@ void RecipeTab::BuildRecipes() {
 			// rather than through a bonus, which comes to the same thing.
 			int forcedSockets = output.Number("sock", 0);
 			if (forcedSockets > 0) {
-				CubeProperty sockets = { "sock", "", forcedSockets, forcedSockets };
+				PropertyStats::Property sockets = { "sock", "", forcedSockets, forcedSockets };
 				ReadStructuralMod(sockets, recipe, socketed);
 			}
 
@@ -690,18 +688,9 @@ void RecipeTab::LoadStats(CubeRecipe* recipe) {
 	recipe->statsLoaded = true;
 	StatDescriptions::Initialize();
 
-	std::vector<StatDescriptions::Stat> stats;
-	for (unsigned int i = 0; i < recipe->properties.size(); i++) {
-		const CubeProperty& property = recipe->properties[i];
-		StatDescriptions::CollectProperty(property.code, property.param,
-			property.min, property.max, stats);
-	}
-	recipe->stats = StatDescriptions::BuildLines(stats);
-
 	// After the described bonuses, the ready made ones being what the tables
 	// could not put in order among them.
-	for (unsigned int i = 0; i < recipe->extraLines.size(); i++)
-		recipe->stats.push_back(recipe->extraLines[i]);
+	recipe->stats = PropertyStats::Lines(recipe->properties, recipe->extraLines);
 }
 
 void RecipeTab::ApplyFilter() {
