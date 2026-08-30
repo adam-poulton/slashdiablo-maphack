@@ -77,6 +77,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="TestMain.cpp" />
+    <ClCompile Include="BaseItemTests.cpp" />
     <ClCompile Include="BitReaderTests.cpp" />
     <ClCompile Include="CaptureFormatTests.cpp" />
     <ClCompile Include="FixtureTests.cpp" />
@@ -100,6 +101,7 @@
     <ClCompile Include="..\BH\Modules\Item\ItemFactsPacket.cpp" />
     <ClCompile Include="..\BH\JSONObject.cpp" />
     <ClCompile Include="..\BH\StatDescriptions.cpp" />
+    <ClCompile Include="..\BH\ItemDescription.cpp" />
     <ClCompile Include="..\BH\TableReader.cpp" />
     <ClCompile Include="..\BH\Modules\Item\ItemFilter.cpp" />
   </ItemGroup>

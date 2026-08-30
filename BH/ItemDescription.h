@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 #include "Constants.h"
-#include "Drawing.h"
+#include "Drawing/Advanced/Tooltiphook/TooltipLine.h"
 #include "StatDescriptions.h"
 
 /*

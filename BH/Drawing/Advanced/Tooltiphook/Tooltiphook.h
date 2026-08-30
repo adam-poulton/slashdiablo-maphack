@@ -2,20 +2,11 @@
 
 #include <string>
 #include <vector>
+#include "TooltipLine.h"
 #include "../../Hook.h"
 #include "../../Basic/Texthook/Texthook.h"
 
 namespace Drawing {
-	// One line of a tooltip, with the colour it is drawn in.
-	struct TooltipLine {
-		std::string text;
-		TextColor color;
-
-		TooltipLine() : color(White) {};
-		TooltipLine(std::string text, TextColor color = White) :
-			text(text), color(color) {};
-	};
-
 	// A bordered panel that describes something the way the game describes an
 	// item: lines of text centred inside a border sized to hold them.
 	//

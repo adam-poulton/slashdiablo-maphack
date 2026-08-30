@@ -238,6 +238,7 @@ if defined D2Path (
     <ClInclude Include="Drawing\Advanced\Inputhook\Inputhook.h" />
     <ClInclude Include="Drawing\Advanced\Keyhook\Keyhook.h" />
     <ClInclude Include="Drawing\Advanced\Listhook\Listhook.h" />
+    <ClInclude Include="Drawing\Advanced\Tooltiphook\TooltipLine.h" />
     <ClInclude Include="Drawing\Advanced\Tooltiphook\Tooltiphook.h" />
     <ClInclude Include="Drawing\Basic\Boxhook\Boxhook.h" />
     <ClInclude Include="Drawing\Basic\Crosshook\Crosshook.h" />

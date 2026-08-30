@@ -75,9 +75,9 @@ public:
 	static Table Gems;
 	static Table SkillDesc;
 	static Table CubeMain;
-	/*static Table Armor;
 	static Table Weapons;
-	static Table Misc;*/
+	static Table Armor;
+	static Table Misc;
 
 	static std::string getString(int index);
 
