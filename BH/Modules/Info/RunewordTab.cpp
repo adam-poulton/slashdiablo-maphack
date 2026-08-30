@@ -6,10 +6,8 @@
 #include "../../ItemRarity.h"
 #include "../../StatDescriptions.h"
 #include "../../TableReader.h"
-#include "InfoText.h"
 
 using namespace Drawing;
-using namespace InfoText;
 
 // Margins and the gaps between the three bands. Widths and the list height are
 // measured from the tab by ApplyLayout().
@@ -27,7 +25,7 @@ struct ExtraRuneword {
 	const char* name;
 	const char* runes[6];
 	const char* itemType;
-	RunewordProperty properties[8];
+	PropertyStats::Property properties[8];
 	const char* lines[4];
 };
 
@@ -223,7 +221,7 @@ void RunewordTab::BuildRecipes() {
 
 			for (int n = 1; n <= 7; n++) {
 				std::string index = std::to_string(n);
-				RunewordProperty property;
+				PropertyStats::Property property;
 				property.code = Trim(entry->getString("T1Code" + index));
 				if (property.code.length() == 0)
 					continue;
@@ -288,44 +286,32 @@ void RunewordTab::LoadStats(RunewordRecipe* recipe) {
 	recipe->statsLoaded = true;
 	StatDescriptions::Initialize();
 
-	std::vector<StatDescriptions::Stat> own;
-	for (unsigned int i = 0; i < recipe->properties.size(); i++) {
-		const RunewordProperty& property = recipe->properties[i];
-		StatDescriptions::CollectProperty(property.code, property.param,
-			property.min, property.max, own);
-	}
-
-	// One rendered list per kind of base.
+	// One rendered list per kind of base. The ready made lines read the same
+	// whatever the base, so putting them in every list leaves them in common.
 	std::vector<std::vector<std::string>> perBase;
 	for (unsigned int s = 0; s < recipe->baseSlots.size(); s++) {
-		std::vector<StatDescriptions::Stat> stats = own;
+		std::vector<PropertyStats::Property> properties = recipe->properties;
 		for (unsigned int r = 0; r < recipe->runeCodes.size(); r++) {
 			JSONObject* gem = Tables::Gems.findEntry("code", recipe->runeCodes[r]);
 			if (!gem)
 				continue;
 			for (int n = 1; n <= 3; n++) {
 				std::string prefix = recipe->baseSlots[s] + "Mod" + std::to_string(n);
-				std::string code = Trim(gem->getString(prefix + "Code"));
-				if (code.length() == 0)
+				PropertyStats::Property property;
+				property.code = Trim(gem->getString(prefix + "Code"));
+				if (property.code.length() == 0)
 					continue;
-				StatDescriptions::CollectProperty(code,
-					Trim(gem->getString(prefix + "Param")),
-					atoi(gem->getString(prefix + "Min").c_str()),
-					atoi(gem->getString(prefix + "Max").c_str()),
-					stats);
+				property.param = Trim(gem->getString(prefix + "Param"));
+				property.min = atoi(gem->getString(prefix + "Min").c_str());
+				property.max = atoi(gem->getString(prefix + "Max").c_str());
+				properties.push_back(property);
 			}
 		}
-		std::vector<std::string> lines = StatDescriptions::BuildLines(stats);
-		// Base independent, so adding them to every list leaves them in common.
-		for (unsigned int i = 0; i < recipe->extraLines.size(); i++)
-			lines.push_back(recipe->extraLines[i]);
-		perBase.push_back(lines);
+		perBase.push_back(PropertyStats::Lines(properties, recipe->extraLines));
 	}
 
 	if (perBase.empty()) {
-		recipe->stats = StatDescriptions::BuildLines(own);
-		for (unsigned int i = 0; i < recipe->extraLines.size(); i++)
-			recipe->stats.push_back(recipe->extraLines[i]);
+		recipe->stats = PropertyStats::Lines(recipe->properties, recipe->extraLines);
 		return;
 	}
 

@@ -6,10 +6,8 @@
 #include "../../ItemRarity.h"
 #include "../../StatDescriptions.h"
 #include "../../TableReader.h"
-#include "InfoText.h"
 
 using namespace Drawing;
-using namespace InfoText;
 
 // The unique's own name takes the larger share, being the longer of the two
 // ("Bul-Kathos' Tribal Guardian" against "Ceremonial Javelin").
@@ -109,7 +107,7 @@ void UniqueTab::BuildUniques() {
 
 			for (int n = 1; n <= UQ_PROPERTY_COUNT; n++) {
 				std::string index = std::to_string(n);
-				UniqueProperty property;
+				PropertyStats::Property property;
 				property.code = Trim(entry->getString("prop" + index));
 				if (property.code.length() == 0)
 					continue;
@@ -144,17 +142,9 @@ void UniqueTab::LoadStats(UniqueRecord* unique) {
 	unique->statsLoaded = true;
 	StatDescriptions::Initialize();
 
-	std::vector<StatDescriptions::Stat> stats;
-	std::vector<StatDescriptions::StatTotal> totals;
-	for (unsigned int i = 0; i < unique->properties.size(); i++) {
-		const UniqueProperty& property = unique->properties[i];
-		StatDescriptions::CollectProperty(property.code, property.param,
-			property.min, property.max, stats);
-		StatDescriptions::CollectTotals(property.code, property.param,
-			property.min, property.max, totals);
-	}
-	unique->stats = StatDescriptions::BuildLines(stats);
-	unique->modifiers = ItemDescription::ReadModifiers(totals);
+	unique->stats = PropertyStats::Lines(unique->properties);
+	unique->modifiers = ItemDescription::ReadModifiers(
+		PropertyStats::Totals(unique->properties));
 }
 
 void UniqueTab::ApplyFilter() {

@@ -104,6 +104,13 @@ runeword, a cube recipe, an affix. What they have in common is granting stats,
 which is what makes them worth holding together.
 _Avoid_: record, entry, result
 
+**Property**:
+One entry in the game's tables that grants something: what it grants, the
+parameter saying which of it, the range it rolls in, and the count of set pieces
+where that applies. A source's stat lines and its totals are both worked out
+from its properties, by the one path every catalogue reads them through.
+_Avoid_: mod, modifier, bonus, affix
+
 **Stat index**:
 Every source of every catalogue, keyed by what it can grant, so that what grants
 a stat can be asked without knowing which catalogue the answer is in.
