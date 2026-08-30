@@ -53,6 +53,10 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
   an exception has to be a rule that stops. Replaying 1,351 recorded drops from 11
   sessions, no item changed between the old default and this. See
   [Advanced Item Display](docs/Advanced-Item-Display.md#rule-order-decides-what-is-hidden).
+* Releases now ship a single archive holding `BH.dll`, `BH.cfg`, `BH_settings.cfg`,
+  `buffs.mpq` and installation instructions, instead of loose files. Release notes
+  are the changelog entry for the version plus the install steps, rather than the
+  commit log. See [Installation](docs/Installation.md).
 
 # Release Notes for 1.9.11g (2026-08-19)
 * Add `Monster Curses` option (`BH_settings.cfg`, default `True, None`) to mark

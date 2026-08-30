@@ -11,6 +11,10 @@ Currently works with client versions 1.13c and 1.13d
 
 See [CHANGELOG.md](CHANGELOG.md) for the release history.
 
+To install, download the archive from the
+[latest release](https://github.com/adam-poulton/slashdiablo-maphack/releases/latest)
+and follow [docs/Installation.md](docs/Installation.md).
+
 Configuration is documented in [docs/](docs/Home.md), which is the source of
 truth. It is published to the
 [wiki](https://github.com/adam-poulton/slashdiablo-maphack/wiki) when a release
