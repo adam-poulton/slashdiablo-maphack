@@ -186,7 +186,19 @@ int Table::size() {
 }
 
 void Table::removeWhere(std::function<bool(JSONElement*)> predicate){
+	lookups.clear();
 	data->removeWhere(predicate);
+}
+
+void Table::lookupBy(std::string field){
+	std::map<std::string, JSONObject*> &lookup = lookups[field];
+	lookup.clear();
+	for (int i = 0; i < data->length(); i++){
+		JSONObject *obj = data->getObject(i);
+		if (obj){
+			lookup.insert(std::make_pair(obj->getString(field), obj));
+		}
+	}
 }
 
 Table::Table(std::string filePath) : data(new JSONArray()){
@@ -222,6 +234,12 @@ JSONObject* Table::findEntry(std::function<bool(JSONObject*)> predicate){
 }
 
 JSONObject* Table::findEntry(std::string field, std::string value){
+	auto lookup = lookups.find(field);
+	if (lookup != lookups.end()){
+		auto row = lookup->second.find(value);
+		return row != lookup->second.end() ? row->second : nullptr;
+	}
+
 	for (int i = 0; i < data->length(); i++){
 		JSONObject *obj = data->getObject(i);
 		if (obj->getString(field).compare(value) == 0){
@@ -290,6 +308,18 @@ std::string Tables::getString(int index){
 		return obj->getString("value");
 	}
 	return "";
+}
+
+/*
+ * Wording one property reads the properties table for its row and the stat cost
+ * table for each stat that row grants, which walked is the better part of a
+ * thousand rows for a single line. Both are keyed instead, so a line costs a
+ * handful of lookups and the Info window can word a whole list without the
+ * player waiting on it.
+ */
+void Tables::buildLookups(){
+	Properties.lookupBy("code");
+	ItemStatCost.lookupBy("Stat");
 }
 
 bool Tables::isInitialized(){

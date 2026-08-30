@@ -88,6 +88,7 @@
     <ClCompile Include="StampedCacheTests.cpp" />
     <ClCompile Include="StatDescriptionTests.cpp" />
     <ClCompile Include="TableFixture.cpp" />
+    <ClCompile Include="TableLookupTests.cpp" />
     <!-- Sources under test. Only translation units that reference no D2 symbols
          can be linked here: the D2 function pointers are naked inline-asm thunks
          that need the game process to mean anything. That rules out anything

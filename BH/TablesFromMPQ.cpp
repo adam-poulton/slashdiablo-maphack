@@ -61,6 +61,8 @@ bool Tables::initTables(){
 		Sets.removeWhere([](JSONElement* obj){
 			return ((JSONObject*)obj)->getString("index").length() == 0;
 		});
+
+		buildLookups();
 	}
 
 	return success;
