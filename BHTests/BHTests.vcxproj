@@ -86,13 +86,20 @@
     <ClCompile Include="FilterReplayTests.cpp" />
     <ClCompile Include="RuleWalkTests.cpp" />
     <ClCompile Include="StampedCacheTests.cpp" />
+    <ClCompile Include="StatDescriptionTests.cpp" />
+    <ClCompile Include="TableFixture.cpp" />
     <!-- Sources under test. Only translation units that reference no D2 symbols
          can be linked here: the D2 function pointers are naked inline-asm thunks
-         that need the game process to mean anything. -->
+         that need the game process to mean anything. That rules out anything
+         reading the MPQ archives, so the data tables and the string table text
+         are stood up from fixtures instead. -->
     <ClCompile Include="..\BH\BitReader.cpp" />
     <ClCompile Include="..\BH\StringUtil.cpp" />
     <ClCompile Include="..\BH\Modules\Item\CaptureFormat.cpp" />
     <ClCompile Include="..\BH\Modules\Item\ItemFactsPacket.cpp" />
+    <ClCompile Include="..\BH\JSONObject.cpp" />
+    <ClCompile Include="..\BH\StatDescriptions.cpp" />
+    <ClCompile Include="..\BH\TableReader.cpp" />
     <ClCompile Include="..\BH\Modules\Item\ItemFilter.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

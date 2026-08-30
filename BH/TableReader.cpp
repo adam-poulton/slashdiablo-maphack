@@ -2,8 +2,12 @@
 #include <iterator>
 #include <algorithm>
 #include "TableReader.h"
-#include "BH.h"
-#include "MPQReader.h"
+
+// Only the directory the game is installed in is wanted from BH.h, and
+// including that header brings the game's own function pointers with it.
+namespace BH {
+extern std::string path;
+}
 
 std::vector<std::string> tokenize(std::string line){
 	std::vector<std::string> vstrings;
@@ -181,26 +185,6 @@ int Table::size() {
 	return data->length();
 }
 
-bool TableReader::loadMPQData(std::string archiveName, Table &table)
-{
-	std::transform(archiveName.begin(), archiveName.end(), archiveName.begin(), ::tolower);
-	MPQData* mpq = MpqDataMap[archiveName];
-	if (!mpq) return false;
-	for (auto iter = mpq->data.begin(); iter != mpq->data.end(); iter++){
-		auto entry = *iter;
-		JSONObject *obj = new JSONObject();
-		for (auto header = mpq->fields.begin(); header != mpq->fields.end(); header++){
-			std::string h = *header;
-			if (entry[h].length() > 0){
-				obj->set(h, entry[h]);
-			}
-		}
-		table.addEntry(obj);
-	}
-
-	return true;
-}
-
 void Table::removeWhere(std::function<bool(JSONElement*)> predicate){
 	data->removeWhere(predicate);
 }
@@ -290,53 +274,6 @@ Table Tables::CubeMain;
 Table Strings;
 Table Expansion;
 Table Patch;
-
-bool Tables::initTables(){
-	bool success = true;
-	if (!init){
-		init = true;
-		// Add tables here:
-		//success &= TableReader::readTable("data\\ItemStatCost.txt", ItemStatCost);		
-		//success &= TableReader::readTable("data\\ItemTypes.txt", ItemTypes);		
-		//success &= TableReader::readTable("data\\Properties.txt", Properties);		
-		//success &= TableReader::readTable("data\\runes.txt", Runewords);		
-		//success &= TableReader::readTable("data\\skills.txt", Skills);		
-		//success &= TableReader::readTable("data\\MagicPrefix.txt", MagicPrefix);		
-		//success &= TableReader::readTable("data\\MagicSuffix.txt", MagicSuffix);		
-		//success &= TableReader::readTable("data\\SetItems.txt", SetItems);
-		//success &= TableReader::readTable("data\\UniqueItems.txt", UniqueItems);
-
-		success &= TableReader::loadMPQData("itemstatcost", ItemStatCost);
-		success &= TableReader::loadMPQData("ItemTypes", ItemTypes);
-		success &= TableReader::loadMPQData("Properties", Properties);
-		success &= TableReader::loadMPQData("runes", Runewords);
-		success &= TableReader::loadMPQData("skills", Skills);
-		success &= TableReader::loadMPQData("MagicPrefix", MagicPrefix);
-		success &= TableReader::loadMPQData("MagicSuffix", MagicSuffix);
-		success &= TableReader::loadMPQData("UniqueItems", UniqueItems);
-		success &= TableReader::loadMPQData("SetItems", SetItems);
-		success &= TableReader::loadMPQData("Sets", Sets);
-		success &= TableReader::loadMPQData("RarePrefix", RarePrefix);
-		success &= TableReader::loadMPQData("RareSuffix", RareSuffix);
-		success &= TableReader::loadMPQData("CharStats", CharStats);
-		success &= TableReader::loadMPQData("Gems", Gems);
-		success &= TableReader::loadMPQData("SkillDesc", SkillDesc);
-		success &= TableReader::loadMPQData("CubeMain", CubeMain);
-
-		UniqueItems.removeWhere([](JSONElement* obj){
-			return ((JSONObject*)obj)->getString("index").compare("Expansion") == 0;
-		});
-		SetItems.removeWhere([](JSONElement* obj){
-			return ((JSONObject*)obj)->getString("item").length() == 0;
-		});
-		// Sets.txt ends on a blank row.
-		Sets.removeWhere([](JSONElement* obj){
-			return ((JSONObject*)obj)->getString("index").length() == 0;
-		});
-	}
-
-	return success;
-}
 
 std::string Tables::getString(int index){
 	JSONObject *obj;
