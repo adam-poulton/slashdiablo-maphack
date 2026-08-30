@@ -12,6 +12,11 @@ The pages originated in the
 [planqi wiki](https://github.com/planqi/slashdiablo-maphack/wiki) and were
 imported with their history. Pages covering features added after 1.9.9 are new.
 
+## Installing
+
+* [Installation](Installation.md) - what a release contains, where the files
+  go, how to update and how to check which version is loaded
+
 ## BH Configuration
 
 As of BH 1.9.9, there are two configuration files associated with BH. They are:
