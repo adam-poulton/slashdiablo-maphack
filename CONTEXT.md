@@ -1,8 +1,9 @@
 # slashdiablo-maphack
 
 A Diablo II mod that judges every item the game shows or is about to show, and
-decides what the player sees of it. The language below is the item filter's,
-which is where most of the project's own vocabulary lives.
+decides what the player sees of it. Most of the language below is the item
+filter's, which is where most of the project's own vocabulary lives. The rest is
+the catalogue's, which is what the game's own tables are read into.
 
 ## Language
 
@@ -60,6 +61,12 @@ An item the server has described but which does not exist yet. It is the only
 kind that can be stopped before the player ever sees it.
 _Avoid_: dropped item, incoming item, ground item
 
+**Catalogue item**:
+A source said as item facts, at one of the rolls it can take. An item nobody has
+dropped and nobody will, described from the tables alone, so that a rule can be
+walked against it without a game.
+_Avoid_: fake item, sample item, hypothetical item
+
 ### What the player is shown
 
 **Blocked**:
@@ -82,3 +89,29 @@ _Avoid_: ping level, priority, importance
 How much of what drops the player has asked to hide, which rules read to say
 what should disappear at each setting.
 _Avoid_: filter strength, hide level
+
+### What the tables hold
+
+**Catalogue**:
+One kind of thing the game's tables describe, read once and kept: the uniques,
+the set items, the runewords, the cube recipes, the base items, the prefixes and
+the suffixes.
+_Avoid_: database, registry, store, cache
+
+**Source**:
+One thing in a catalogue: a unique, a piece of a set, a set's own bonus, a
+runeword, a cube recipe, an affix. What they have in common is granting stats,
+which is what makes them worth holding together.
+_Avoid_: record, entry, result
+
+**Stat index**:
+Every source of every catalogue, keyed by what it can grant, so that what grants
+a stat can be asked without knowing which catalogue the answer is in.
+_Avoid_: search index, lookup, table
+
+**Criterion**:
+One question the stat index is asked of a source: a stat with a comparator and a
+value, or a piece of text. A stat criterion is answered on the best roll, so a
+source that can reach the value answers it. Not a condition, which is what a rule
+asks of an item.
+_Avoid_: condition, filter, term, query
