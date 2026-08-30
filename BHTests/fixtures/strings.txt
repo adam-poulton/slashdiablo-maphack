@@ -1,3 +1,8 @@
+6lw	Hydra Bow
+7bk	Winged Knife
+7cr	Phase Blade
+7gd	Colossus Blade
+7vo	Colossus Voulge
 AmaOnly	(Amazon Only)
 AssOnly	(Assassin Only)
 BarOnly	(Barbarian Only)
@@ -5,6 +10,15 @@ DruOnly	(Druid Only)
 ItemExpansiveChanc1	%d%% Chance to cast level %d %s on striking
 ItemExpansiveChanc2	%d%% Chance to cast level %d %s when struck
 ItemExpansiveChancX	%d%% Chance to cast level %d %s on attack
+ItemStast1k	to
+ItemStats1d	Durability:
+ItemStats1e	Required Strength:
+ItemStats1f	Required Dexterity:
+ItemStats1h	Defense:
+ItemStats1l	One-Hand Damage:
+ItemStats1m	Two-Hand Damage:
+ItemStats1n	Throw Damage:
+ItemStats1p	Required Level:
 ModStr1a	to Strength
 ModStr1b	to Dexterity
 ModStr1c	to Vitality
@@ -110,6 +124,7 @@ ModStre10b	Level
 ModStre10d	(%d/%d Charges)
 ModStre8a	to Druid Skills
 ModStre8b	to Assassin Skills
+ModStre8c	 Sockets
 ModStre9i	Increased Stack Size
 ModStre9o	Absorbs Fire Damage
 ModStre9p	Absorbs Cold Damage
@@ -202,6 +217,7 @@ Skillname279	Venom
 Skillname280	Shadow Master
 Skillname281	Phoenix Strike
 SorOnly	(Sorceress Only)
+StrSkill106	Attack Speed: 
 StrSklTabItem1	+%d to Javelin and Spear Skills
 StrSklTabItem10	+%d to Warcries
 StrSklTabItem11	+%d to Combat Skills
@@ -223,7 +239,12 @@ StrSklTabItem6	+%d to Summoning Skills
 StrSklTabItem7	+%d to Poison and Bone Skills
 StrSklTabItem8	+%d to Curses
 StrSklTabItem9	+%d to Summoning Skills
+amu	Amulet
+cap	Cap
+cm1	Small Charm
+crs	Crystal Sword
 increaseswithplaylevelX	(Based on Character Level)
+r33	Zod Rune
 skillname0	Attack
 skillname1	Kick
 skillname10	Jab
@@ -387,3 +408,6 @@ skillsname61	Fire Mastery
 strModAllResistances	All Resistances +%d
 strModEnhancedDamage	Enhanced damage
 strModMagicDamage	+%d magic damage
+uap	Shako
+xea	Serpentskin Armor
+xlt	Templar Coat

@@ -105,20 +105,20 @@ for row in csv.DictReader(open('ItemStatCost.txt', encoding='latin-1'), delimite
 
 ## make_fixtures.py
 
-Writes the table fixtures `BHTests` reads, so the stat description tests can
-stand the game's tables up with no game running. Point it at a directory holding
-the extracted `.txt` tables and all three `.tbl` files, and at the repository
-root:
+Writes the table fixtures `BHTests` reads, so the tests can stand the game's
+tables up with no game running. Point it at a directory holding the extracted
+`.txt` tables and all three `.tbl` files, and at the repository root:
 
 ```bash
 python make_fixtures.py . /c/repos/slashdiablo-maphack
 ```
 
-The tables a property is looked up in go in whole; the tables holding the items
-under test are trimmed to those items with their header row kept; the three
-string tables are merged into one `key<TAB>text` file trimmed to the keys the
-whole tables can reach. Rerun it when the tests need an item the fixtures do not
-have, adding the item to `SUBJECT_TABLES` first.
+The tables a property or an item type is looked up in go in whole; the tables
+holding the items under test, which include the three the base items are split
+across, are trimmed to those items with their header row kept; the three string
+tables are merged into one `key<TAB>text` file trimmed to the keys the fixtures
+can reach. Rerun it when the tests need an item the fixtures do not have, adding
+the item to `SUBJECT_TABLES` first.
 
 ## What these are good for
 

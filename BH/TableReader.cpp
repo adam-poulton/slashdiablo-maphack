@@ -288,6 +288,9 @@ Table Tables::CharStats;
 Table Tables::Gems;
 Table Tables::SkillDesc;
 Table Tables::CubeMain;
+Table Tables::Weapons;
+Table Tables::Armor;
+Table Tables::Misc;
 
 Table Strings;
 Table Expansion;

@@ -1,4 +1,4 @@
-"""Writes the table fixtures the stat description tests read.
+"""Writes the table fixtures the item tests read.
 
 The tests stand the game's data tables up from files rather than from the MPQ
 archives, so this copies the tables out of a directory of extracted `.txt` files
@@ -11,11 +11,12 @@ would let a test pass against a table the game does not have. Subject tables,
 which hold the items a test is about, are trimmed to those items with their
 header row kept.
 
-The string table is trimmed to the keys the reference tables can reach, which is
-every key ItemStatCost.txt names for a stat line or a grouped line, the skill
-names SkillDesc.txt points at, the class and skill tab labels, and the handful of
-keys the wording code names itself. Keys whose text carries a tab or a newline
-are dropped, since the fixture is one key to a line.
+The string table is trimmed to the keys the fixtures can reach, which is every
+key ItemStatCost.txt names for a stat line or a grouped line, the skill names
+SkillDesc.txt points at, the class and skill tab labels, the name each base item
+kept is called by, and the handful of keys the wording code names itself. Keys
+whose text carries a tab or a newline are dropped, since the fixture is one key
+to a line.
 """
 import csv
 import os
@@ -23,16 +24,20 @@ import sys
 
 import tbl
 
-# Read whole. These are what a property is looked up in.
+# Read whole. These are what a property or an item type is looked up in.
 REFERENCE_TABLES = [
     'ItemStatCost.txt',
     'Properties.txt',
     'CharStats.txt',
     'Skills.txt',
     'SkillDesc.txt',
+    'ItemTypes.txt',
 ]
 
-# Read trimmed to the rows named here, which are the items under test.
+# Read trimmed to the rows named here, which are the items under test. The base
+# items between them cover what a base can carry: each of the three tiers, one
+# and two handed damage, throw damage, defense, a durability the game hides, and
+# a name only the string table gets right.
 SUBJECT_TABLES = {
     'UniqueItems.txt': ('index', [
         'Harlequin Crest',
@@ -40,37 +45,76 @@ SUBJECT_TABLES = {
         "Mara's Kaleidoscope",
         'Guardian Angel',
     ]),
+    'Weapons.txt': ('code', [
+        'crs',      # Crystal Sword, one handed
+        '7cr',      # Phase Blade, elite, and wears out never
+        '7gd',      # Colossus Blade, swung in either hand
+        '7bk',      # Winged Knife, thrown and stacked
+        '7vo',      # Colossus Voulge, two handed only
+        '6lw',      # Hydra Bow, a durability the game never shows
+    ]),
+    'Armor.txt': ('code', [
+        'cap',      # Cap, normal
+        'xea',      # Serpentskin Armor, exceptional
+        'uap',      # Shako, elite
+        'xlt',      # Templar Coat
+    ]),
+    'Misc.txt': ('code', [
+        'amu',      # Amulet, which carries no numbers at all
+        'cm1',      # Small Charm, whose name only the string table gets right
+        'r33',      # Zod Rune
+    ]),
 }
 
+# The column a base item keys its name into the string table by.
+NAME_COLUMN = 'namestr'
+
 # Keys the wording code names in its own source rather than reading from a table.
-LITERAL_KEYS = ['ModStre10b', 'strModEnhancedDamage'] + \
+LITERAL_KEYS = ['ModStre8c', 'ModStre10b', 'strModEnhancedDamage',
+                'ItemStast1k', 'ItemStats1d', 'ItemStats1e', 'ItemStats1f',
+                'ItemStats1h', 'ItemStats1l', 'ItemStats1m', 'ItemStats1n',
+                'ItemStats1p', 'StrSkill106'] + \
     ['StrSklTabItem%d' % i for i in range(1, 22)]
 
 
-def read_rows(path):
+def read_table(path):
+    """The header and the rows as they stand. Read as rows rather than into
+    dictionaries because Armor.txt names two of its columns twice, and a
+    dictionary would lose one of each pair."""
     with open(path, encoding='latin-1', newline='') as handle:
-        return list(csv.DictReader(handle, delimiter='\t'))
+        rows = list(csv.reader(handle, delimiter='\t'))
+    header = rows[0]
+    body = [(row + [''] * len(header))[:len(header)] for row in rows[1:]]
+    return header, body
 
 
-def write_rows(path, header, rows):
+def cell(header, row, name):
+    return row[header.index(name)] if name in header else ''
+
+
+def write_table(path, header, rows):
     with open(path, 'w', encoding='latin-1', newline='\n') as handle:
         handle.write('\t'.join(header) + '\n')
         for row in rows:
-            handle.write('\t'.join((row[name] or '') for name in header) + '\n')
+            handle.write('\t'.join(row) + '\n')
+
+
+def keys_in(tables, name, columns):
+    header, rows = tables[name]
+    return set(cell(header, row, column) for row in rows for column in columns)
 
 
 def wanted_keys(tables):
     keys = set(LITERAL_KEYS)
-    for row in tables['ItemStatCost.txt']:
-        for column in ('descstrpos', 'descstrneg', 'descstr2',
-                       'dgrpstrpos', 'dgrpstrneg', 'dgrpstr2'):
-            keys.add(row[column])
-    for row in tables['SkillDesc.txt']:
-        keys.add(row['str name'])
-    for row in tables['CharStats.txt']:
-        for column in ('StrAllSkills', 'StrSkillTab1', 'StrSkillTab2',
-                       'StrSkillTab3', 'StrClassOnly'):
-            keys.add(row[column])
+    keys |= keys_in(tables, 'ItemStatCost.txt',
+                    ('descstrpos', 'descstrneg', 'descstr2',
+                     'dgrpstrpos', 'dgrpstrneg', 'dgrpstr2'))
+    keys |= keys_in(tables, 'SkillDesc.txt', ('str name',))
+    keys |= keys_in(tables, 'CharStats.txt',
+                    ('StrAllSkills', 'StrSkillTab1', 'StrSkillTab2',
+                     'StrSkillTab3', 'StrClassOnly'))
+    for name in SUBJECT_TABLES:
+        keys |= keys_in(tables, name, (NAME_COLUMN,))
     keys.discard(None)
     keys.discard('')
     return keys
@@ -82,18 +126,19 @@ def main(source, root):
 
     tables = {}
     for name in REFERENCE_TABLES:
-        rows = read_rows(os.path.join(source, name))
-        tables[name] = rows
-        write_rows(os.path.join(out, name), list(rows[0].keys()), rows)
+        header, rows = read_table(os.path.join(source, name))
+        tables[name] = (header, rows)
+        write_table(os.path.join(out, name), header, rows)
         print('%s: %d rows' % (name, len(rows)))
 
-    for name, (column, wanted) in SUBJECT_TABLES.items():
-        rows = read_rows(os.path.join(source, name))
-        kept = [row for row in rows if row[column] in wanted]
-        missing = set(wanted) - set(row[column] for row in kept)
+    for name, (key, wanted) in SUBJECT_TABLES.items():
+        header, rows = read_table(os.path.join(source, name))
+        kept = [row for row in rows if cell(header, row, key) in wanted]
+        missing = set(wanted) - set(cell(header, row, key) for row in kept)
         if missing:
             raise SystemExit('not in %s: %s' % (name, ', '.join(sorted(missing))))
-        write_rows(os.path.join(out, name), list(rows[0].keys()), kept)
+        tables[name] = (header, kept)
+        write_table(os.path.join(out, name), header, kept)
         print('%s: %d of %d rows' % (name, len(kept), len(rows)))
 
     strings = tbl.load_all(source)

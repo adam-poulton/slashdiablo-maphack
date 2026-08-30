@@ -1,8 +1,7 @@
 #include "ItemDescription.h"
 #include <map>
-#include "Common.h"
-#include "MPQReader.h"
 #include "StatDescriptions.h"
+#include "StringUtil.h"
 #include "TableReader.h"
 
 namespace ItemDescription {
@@ -11,7 +10,14 @@ namespace ItemDescription {
 // them. Weapons and armour carry damage, defense and durability between them;
 // Misc.txt holds the rings, amulets, charms, jewels, gems and runes, which carry
 // nothing but a name.
-static const char* kBaseTables[] = { "weapons", "armor", "misc" };
+//
+// The flag beside each says whether its rows are to be read as weapons, since
+// only Weapons.txt carries damage and speed.
+static const struct { Table* table; bool weapon; } kBaseTables[] = {
+	{ &Tables::Weapons, true },
+	{ &Tables::Armor, false },
+	{ &Tables::Misc, false }
+};
 
 // Read once and kept, since a panel asks for a base a row at a time. The order
 // is held alongside the map: a map is keyed by code, and table order is the
@@ -20,16 +26,10 @@ static std::map<std::string, Base> bases;
 static std::vector<const Base*> baseOrder;
 static bool basesLoaded = false;
 
-static int Column(const std::map<std::string, std::string>& row,
-		const std::string& name) {
-	std::map<std::string, std::string>::const_iterator found = row.find(name);
-	return (found != row.end()) ? atoi(found->second.c_str()) : 0;
-}
-
-static std::string Text(const std::map<std::string, std::string>& row,
-		const std::string& name) {
-	std::map<std::string, std::string>::const_iterator found = row.find(name);
-	return (found != row.end()) ? found->second : "";
+// A blank cell is absent from the row rather than empty, which reads back as
+// the nothing it is.
+static int Column(const JSONObject* row, const std::string& name) {
+	return atoi(row->getString(name).c_str());
 }
 
 // The game's own wording, so a localised client reads correctly. The fallbacks
@@ -76,8 +76,7 @@ static Range Apply(const Range& base, const Range& percent, const Range& flat) {
 // The numbers the game prints between an item's name and its requirements.
 // Damage comes in whichever forms the weapon can be swung in, and a weapon that
 // can be held in either hand carries both.
-static void ReadNumbers(const std::map<std::string, std::string>& row,
-		bool weapon, Base& base) {
+static void ReadNumbers(const JSONObject* row, bool weapon, Base& base) {
 	if (weapon) {
 		if (Column(row, "maxmisdam") > 0) {
 			base.throwDamage = Range(Column(row, "minmisdam"),
@@ -146,8 +145,7 @@ static void RenderAttributes(const Base& base, const Modifiers& modifiers,
 // An item can be given no more sockets than its base allows and no more than
 // its type allows at the item level it rolled at, and MaxSock40 is the highest
 // of those three bands.
-static int MaxSockets(const std::map<std::string, std::string>& row,
-		const std::string& type) {
+static int MaxSockets(const JSONObject* row, const std::string& type) {
 	int sockets = Column(row, "gemsockets");
 	JSONObject* entry = Tables::ItemTypes.findEntry("Code", type);
 	if (!entry)
@@ -156,43 +154,50 @@ static int MaxSockets(const std::map<std::string, std::string>& row,
 	return (sockets < cap) ? sockets : cap;
 }
 
-// Nothing is cached until the tables the names and types come out of are all
-// readable, so that a base is never remembered half resolved.
+// Nothing is kept until every table a base is read out of has been read, so
+// that a base is never remembered half resolved. ItemTypes is one of them: a
+// base takes the name of its type and the cap on its sockets from there, and
+// both are settled here rather than on the way out.
 static void LoadBases() {
-	if (basesLoaded || !Tables::isInitialized())
+	if (basesLoaded)
 		return;
 
-	for (int i = 0; i < (int)(sizeof(kBaseTables) / sizeof(kBaseTables[0])); i++) {
-		std::map<std::string, MPQData*>::iterator data =
-			MpqDataMap.find(kBaseTables[i]);
-		if (data == MpqDataMap.end() || !data->second)
+	const int tableCount = (int)(sizeof(kBaseTables) / sizeof(kBaseTables[0]));
+	if (Tables::ItemTypes.size() == 0)
+		return;
+	for (int i = 0; i < tableCount; i++) {
+		if (kBaseTables[i].table->size() == 0)
 			return;
+	}
 
-		bool weapon = (i == 0);
-		for (auto row = data->second->data.begin(); row != data->second->data.end(); row++) {
-			std::string code = Text(*row, "code");
+	for (int i = 0; i < tableCount; i++) {
+		Table& table = *kBaseTables[i].table;
+		bool weapon = kBaseTables[i].weapon;
+		for (int n = 0; n < table.size(); n++) {
+			const JSONObject* row = table.entryAt(n);
+			std::string code = row->getString("code");
 			if (code.length() == 0)
 				continue;
 
 			Base base;
 			base.code = code;
 			base.name = NameLine(
-				StatDescriptions::GetString(Text(*row, "namestr")));
+				StatDescriptions::GetString(row->getString("namestr")));
 			if (base.name.length() == 0)
-				base.name = Text(*row, "name");
-			base.type = Text(*row, "type");
+				base.name = row->getString("name");
+			base.type = row->getString("type");
 			base.typeName = TypeName(base.type);
 			base.weapon = weapon;
-			base.spawnable = (Column(*row, "spawnable") == 1);
-			base.level = Column(*row, "level");
-			base.quest = Column(*row, "quest");
-			base.speed = weapon ? Column(*row, "speed") : 0;
-			base.maxSockets = MaxSockets(*row, base.type);
+			base.spawnable = (Column(row, "spawnable") == 1);
+			base.level = Column(row, "level");
+			base.quest = Column(row, "quest");
+			base.speed = weapon ? Column(row, "speed") : 0;
+			base.maxSockets = MaxSockets(row, base.type);
 
 			// A base pointing an upgrade column at itself has no upgrade there, and
 			// is itself the tier that column stands for.
-			std::string exceptional = Text(*row, "ubercode");
-			std::string elite = Text(*row, "ultracode");
+			std::string exceptional = row->getString("ubercode");
+			std::string elite = row->getString("ultracode");
 			if (elite.compare(code) == 0)
 				base.tier = TierElite;
 			else if (exceptional.compare(code) == 0)
@@ -204,13 +209,13 @@ static void LoadBases() {
 
 			// Armor.txt has no reqdex column at all, and a blank cell is what an
 			// item with no requirement of that kind carries.
-			base.requirements.level = Column(*row, "levelreq");
-			base.requirements.strength = Range(Column(*row, "reqstr"),
-				Column(*row, "reqstr"));
-			base.requirements.dexterity = Range(Column(*row, "reqdex"),
-				Column(*row, "reqdex"));
+			base.requirements.level = Column(row, "levelreq");
+			base.requirements.strength = Range(Column(row, "reqstr"),
+				Column(row, "reqstr"));
+			base.requirements.dexterity = Range(Column(row, "reqdex"),
+				Column(row, "reqdex"));
 
-			ReadNumbers(*row, weapon, base);
+			ReadNumbers(row, weapon, base);
 
 			// A map keeps its nodes put, so a pointer taken here survives the rest of
 			// the load. Listed on the way in rather than afterwards, so that a code

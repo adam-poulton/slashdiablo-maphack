@@ -50,6 +50,9 @@ bool Tables::initTables(){
 		success &= TableReader::loadMPQData("Gems", Gems);
 		success &= TableReader::loadMPQData("SkillDesc", SkillDesc);
 		success &= TableReader::loadMPQData("CubeMain", CubeMain);
+		success &= TableReader::loadMPQData("Weapons", Weapons);
+		success &= TableReader::loadMPQData("Armor", Armor);
+		success &= TableReader::loadMPQData("Misc", Misc);
 
 		UniqueItems.removeWhere([](JSONElement* obj){
 			return ((JSONObject*)obj)->getString("index").compare("Expansion") == 0;

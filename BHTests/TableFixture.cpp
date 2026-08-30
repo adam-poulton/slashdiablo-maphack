@@ -40,7 +40,11 @@ void TableFixture::Load() {
 	LoadTable("CharStats.txt", Tables::CharStats);
 	LoadTable("Skills.txt", Tables::Skills);
 	LoadTable("SkillDesc.txt", Tables::SkillDesc);
+	LoadTable("ItemTypes.txt", Tables::ItemTypes);
 	LoadTable("UniqueItems.txt", Tables::UniqueItems);
+	LoadTable("Weapons.txt", Tables::Weapons);
+	LoadTable("Armor.txt", Tables::Armor);
+	LoadTable("Misc.txt", Tables::Misc);
 	// The keying the game does once its archives are read, so the tests search
 	// the tables the way it does.
 	Tables::buildLookups();
