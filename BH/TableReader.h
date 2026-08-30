@@ -1,6 +1,7 @@
 #pragma once
 #include "JSONObject.h"
 #include <functional>
+#include <map>
 
 class TableReader;
 class Tables;
@@ -11,11 +12,20 @@ class Table {
 private:
 	std::unique_ptr<JSONArray> data;
 	std::vector<std::string> headers;
+	// A field's rows keyed by the value each carries in it, so that findEntry
+	// answers without walking the table. Emptied whenever the rows change,
+	// since a lookup outliving them would answer for rows that are gone.
+	std::map<std::string, std::map<std::string, JSONObject*>> lookups;
 	void addEntry(JSONObject *entry);
 	void removeWhere(std::function<bool(JSONElement*)> predicate);
 public:
 	Table() : data(new JSONArray()){}
 	Table(std::string filePath);
+
+	// Keys the rows by what they carry in a field. Where two rows carry the
+	// same value the first keeps the key, that being the row a walk would have
+	// stopped at and so the only one findEntry has ever returned.
+	void lookupBy(std::string field);
 
 	JSONObject* findEntry(std::function<bool(JSONObject*)> predicate);
 	JSONObject* findEntry(std::string field, std::string value);
@@ -44,6 +54,11 @@ private:
 public:
 	static bool initTables();
 
+	// Keys the tables that are searched by a field often enough to be worth it.
+	// Called once the rows are in, by whatever put them there: the archives in
+	// a running game, fixture files in the tests.
+	static void buildLookups();
+
 	static Table ItemStatCost;
 	static Table ItemTypes;
 	static Table Properties;
@@ -71,6 +86,7 @@ public:
 
 inline
 void Table::addEntry(JSONObject *entry){
+	lookups.clear();
 	data->add(entry);
 }
 

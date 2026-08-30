@@ -41,6 +41,9 @@ void TableFixture::Load() {
 	LoadTable("Skills.txt", Tables::Skills);
 	LoadTable("SkillDesc.txt", Tables::SkillDesc);
 	LoadTable("UniqueItems.txt", Tables::UniqueItems);
+	// The keying the game does once its archives are read, so the tests search
+	// the tables the way it does.
+	Tables::buildLookups();
 
 	std::ifstream strings(std::string(kFixtures) + "strings.txt");
 	REQUIRE_MESSAGE(strings.is_open(),
