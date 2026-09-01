@@ -14,6 +14,10 @@ class Table;
  */
 namespace UniqueCatalogue {
 
+	// What this catalogue calls itself where a kind of source is asked for, as
+	// in a stat index entry or a query scoped to one kind.
+	extern const char* const Kind;
+
 	// Every unique, ordered for a list: by name, and by the base under it where
 	// several uniques share a name, as the facet jewels do. Empty until the
 	// game data has loaded.

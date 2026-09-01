@@ -581,23 +581,41 @@ void CollectTotals(const std::string& code, const std::string& param,
 		if (func == 17 || func == 18)
 			continue;
 
+		// Poison damage is held per frame in 256ths, and the total the game
+		// shows needs the duration the parameter carries. The raw amount is not
+		// one a caller could compare against a number of points.
+		if (name.compare("poisonmindam") == 0 || name.compare("poisonmaxdam") == 0)
+			continue;
+
 		StatTotal total;
 		total.stat = name;
-		total.low = min;
-		total.high = max;
+		if (func == 15) {
+			// The minimum half of a damage line: "Adds 10-40 Fire Damage" grants
+			// exactly ten of the minimum and exactly forty of the maximum, so
+			// neither half rolls the range the row carries.
+			total.low = total.high = min;
+		} else if (func == 16) {
+			total.low = total.high = max;
+		} else {
+			total.low = min;
+			total.high = max;
+		}
 		totals.push_back(total);
 	}
 }
 
-void TotalFor(const std::vector<StatTotal>& totals, const std::string& stat,
+bool TotalFor(const std::vector<StatTotal>& totals, const std::string& stat,
 		int& low, int& high) {
 	low = high = 0;
+	bool written = false;
 	for (unsigned int i = 0; i < totals.size(); i++) {
 		if (totals[i].stat.compare(stat) != 0)
 			continue;
 		low += totals[i].low;
 		high += totals[i].high;
+		written = true;
 	}
+	return written;
 }
 
 void MergeStats(std::vector<Stat>& stats) {

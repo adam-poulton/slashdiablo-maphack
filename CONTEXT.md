@@ -122,3 +122,30 @@ value, or a piece of text. A stat criterion is answered on the best roll, so a
 source that can reach the value answers it. Not a condition, which is what a rule
 asks of an item.
 _Avoid_: condition, filter, term, query
+
+**Query**:
+The whole of what the stat index is asked: the criteria, all of which a source
+must satisfy, and the one kind of source to answer from where the asker wants
+only one. Structured rather than written as text, so that a condition builder
+can offer rows without a syntax having to be parsed.
+_Avoid_: search, filter, request
+
+**Kind**:
+What a catalogue calls itself where a kind of source is asked for: "unique",
+and later a word each for the set items, the runewords, the recipes, the bases
+and the affixes. The catalogue owns the word; the stat index only ever compares
+it, which is what keeps the index ignorant of every kind there is.
+_Avoid_: type, category, class
+
+**Entry**:
+One source as the stat index holds it: the kind that registered it, the search
+key a text criterion is matched against, what it can grant as stat totals, and
+a handle back to the source itself. An entry is how the index holds a source,
+never another word for one.
+_Avoid_: record, row, item
+
+**Result**:
+One source that answered a query, and the range it rolls for each stat criterion
+that was asked. The range is part of the answer rather than a detail of it: an
+amount a source can roll is not one it will.
+_Avoid_: match, hit, answer

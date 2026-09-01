@@ -85,6 +85,51 @@ TEST_CASE("a property list adds up to the totals it grants") {
 	CHECK(high == 0);
 }
 
+TEST_CASE("each half of a damage line is the whole of what it grants") {
+	std::vector<Property> properties;
+	properties.push_back(Make("dmg-fire", 10, 40, 0));
+	std::vector<StatDescriptions::StatTotal> totals = PropertyStats::Totals(properties);
+
+	// The row's ten and forty are the two ends of one line, not a range either
+	// end rolls in.
+	int low = 0, high = 0;
+	StatDescriptions::TotalFor(totals, "firemindam", low, high);
+	CHECK(low == 10);
+	CHECK(high == 10);
+	StatDescriptions::TotalFor(totals, "firemaxdam", low, high);
+	CHECK(low == 40);
+	CHECK(high == 40);
+
+	// The line the same property reads as, which is where the two ends meet.
+	CHECK(PropertyStats::Lines(properties) ==
+		std::vector<std::string>({ "+10-40 Fire Damage" }));
+}
+
+TEST_CASE("what the totals leave out is left out, not guessed at") {
+	SUBCASE("poison damage, which is held per frame in 256ths") {
+		std::vector<Property> properties;
+		Property poison = Make("dmg-pois", 50, 150, 0);
+		poison.param = "125";
+		properties.push_back(poison);
+		std::vector<StatDescriptions::StatTotal> totals = PropertyStats::Totals(properties);
+
+		int low = 0, high = 0;
+		CHECK_FALSE(StatDescriptions::TotalFor(totals, "poisonmindam", low, high));
+		CHECK_FALSE(StatDescriptions::TotalFor(totals, "poisonmaxdam", low, high));
+	}
+
+	SUBCASE("an amount granted per character level") {
+		std::vector<Property> properties;
+		Property perLevel = Make("hp/lvl", 0, 0, 0);
+		perLevel.param = "12";
+		properties.push_back(perLevel);
+
+		int low = 0, high = 0;
+		CHECK_FALSE(StatDescriptions::TotalFor(
+			PropertyStats::Totals(properties), "maxhp", low, high));
+	}
+}
+
 TEST_CASE("bonuses given as ready made text follow the worded ones") {
 	std::vector<Property> properties;
 	properties.push_back(Make("str", 5, 5, 0));

@@ -50,6 +50,8 @@
     <ClCompile Include="Modules\ScreenInfo\ScreenInfo.cpp" />
     <ClCompile Include="MPQInit.cpp" />
     <ClCompile Include="MPQReader.cpp" />
+    <ClCompile Include="Catalogue\Catalogues.cpp" />
+    <ClCompile Include="Catalogue\StatIndex.cpp" />
     <ClCompile Include="Catalogue\UniqueCatalogue.cpp" />
     <ClCompile Include="ItemDescription.cpp" />
     <ClCompile Include="PropertyStats.cpp" />
@@ -128,6 +130,8 @@
     <ClInclude Include="Modules\ScreenInfo\ScreenInfo.h" />
     <ClInclude Include="MPQInit.h" />
     <ClInclude Include="MPQReader.h" />
+    <ClInclude Include="Catalogue\Catalogues.h" />
+    <ClInclude Include="Catalogue\StatIndex.h" />
     <ClInclude Include="Catalogue\UniqueCatalogue.h" />
     <ClInclude Include="Catalogue\Source.h" />
     <ClInclude Include="ItemDescription.h" />

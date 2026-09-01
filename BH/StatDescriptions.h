@@ -92,17 +92,28 @@ namespace StatDescriptions {
 	// longer names either, and the properties the game hardcodes are answered
 	// from a stand in stat rather than from what they really grant.
 	//
-	// Amounts granted per character level are left out. They are a stat of
-	// their own in every case, so a caller adding up a named stat never meets
-	// one, but leaving them out here means a caller cannot mistake the eighths
-	// they are held in for a flat amount.
+	// Two kinds of grant are left out, both because the tables hold them in
+	// units no caller could compare against a number of points. Amounts granted
+	// per character level are held in eighths in the parameter. Poison damage is
+	// held per frame in 256ths and needs the duration to come to a total. Each
+	// is a stat of its own, so a caller adding up any other stat never meets
+	// one.
+	//
+	// The two halves of a damage line are each the whole of what they grant
+	// rather than a range: "Adds 10-40 Fire Damage" writes exactly ten of the
+	// minimum and exactly forty of the maximum.
 	void CollectTotals(const std::string& code, const std::string& param,
 			int min, int max, std::vector<StatTotal>& totals);
 
 	// The range a stat comes to across a set of totals. Absent stats come back
 	// as zero, which is what a caller wants: an item that does not grant it
 	// changes nothing.
-	void TotalFor(const std::vector<StatTotal>& totals, const std::string& stat,
+	//
+	// Answers whether the stat was written at all, which is what tells a zero
+	// granted apart from a stat nothing granted. A caller comparing the range
+	// against a value has to know the difference; one adding it to a number
+	// does not.
+	bool TotalFor(const std::vector<StatTotal>& totals, const std::string& stat,
 			int& low, int& high);
 
 	// Adds equal stats together in place, keeping the order they first appear.
