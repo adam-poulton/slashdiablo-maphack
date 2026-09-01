@@ -1,26 +1,20 @@
 #pragma once
 #include <string>
 #include <vector>
+#include "../../Catalogue/UniqueCatalogue.h"
 #include "../../ItemDescription.h"
-#include "../../PropertyStats.h"
 #include "../Window/UIPanel.h"
 
-// A single unique item, pre-formatted for display.
-struct UniqueRecord {
-	std::string name;			// "Harlequin Crest"
-	std::string code;			// the base item's code, "uap"
-	std::string baseName;		// "Shako"
-	std::string itemType;		// "Cap", from the base's item type
-	int requiredLevel;			// what the unique itself asks for, 0 if nothing
+// A unique in the panel's list: the catalogue's source, and beside it what only
+// a panel drawing the source has any use for.
+struct UniqueRow {
+	const Catalogue::Source* source;
 	std::string searchKey;		// lowercased name/base/type, used for filtering
 
-	std::vector<PropertyStats::Property> properties;
-	std::vector<std::string> stats;		// built on first view
-
-	// What its properties do to the numbers its base carries, worked out
-	// alongside the stat lines they are described by.
+	// What the source's properties do to the numbers its base carries. Worked
+	// out on first view, since it is only wanted for the row being read.
 	ItemDescription::Modifiers modifiers;
-	bool statsLoaded;
+	bool modifiersLoaded;
 };
 
 // The unique items panel, laid out and driven the same way as the runewords
@@ -33,8 +27,8 @@ class UniqueTab : public UIPanel {
 		// bare Tooltiphook rather than one of the tab's hooks.
 		Drawing::Tooltiphook* summary;
 
-		std::vector<UniqueRecord> uniques;
-		std::vector<const UniqueRecord*> matches;
+		std::vector<UniqueRow> uniques;
+		std::vector<UniqueRow*> matches;
 		std::string query;			// active filter, always lowercase
 		int shownSummary;			// row the summary was built for, or -1
 		bool uniquesLoaded;
@@ -48,11 +42,11 @@ class UniqueTab : public UIPanel {
 		void ApplyLayout();
 
 		void BuildUniques();
-		void LoadStats(UniqueRecord* unique);
+		void LoadModifiers(UniqueRow* unique);
 		void ApplyFilter();
 		void PushRows();
 
-		std::vector<Drawing::TooltipLine> BuildSummaryLines(UniqueRecord* unique);
+		std::vector<Drawing::TooltipLine> BuildSummaryLines(UniqueRow* unique);
 		void UpdateSummary();
 
 	public:
@@ -67,6 +61,4 @@ class UniqueTab : public UIPanel {
 		void OnSearchSubmitted();
 		std::string GetSearchPlaceholder();
 		std::string GetStatus();
-
-		unsigned int GetUniqueCount() { return uniques.size(); };
 };

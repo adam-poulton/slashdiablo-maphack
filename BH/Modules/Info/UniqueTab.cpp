@@ -1,10 +1,10 @@
 #include "UniqueTab.h"
-#include <algorithm>
 #include "../../BH.h"
 #include "../../Common.h"
 #include "../../ItemDescription.h"
 #include "../../ItemRarity.h"
 #include "../../StatDescriptions.h"
+#include "../../StringUtil.h"
 #include "../../TableReader.h"
 
 using namespace Drawing;
@@ -14,17 +14,6 @@ using namespace Drawing;
 #define UQ_COL_NAME_WEIGHT	3
 #define UQ_COL_BASE_WEIGHT	2
 #define UQ_COL_GAP			4
-
-// How many prop/par/min/max groups UniqueItems.txt gives each row.
-#define UQ_PROPERTY_COUNT	12
-
-// "index" doubles as the string table key, which is preferred so a localised
-// client reads correctly. The raw index is the fallback for realm additions.
-static std::string UniqueName(JSONObject* entry) {
-	std::string index = Trim(entry->getString("index"));
-	std::string localized = StatDescriptions::GetString(index);
-	return (localized.length() > 0) ? localized : index;
-}
 
 UniqueTab::UniqueTab(UI* ui) : UIPanel("Uniques", ui),
 	shownSummary(-1),
@@ -71,80 +60,35 @@ std::vector<ChatCommand> UniqueTab::GetCommands() {
 	return { { "uni", { "uniques" }, "<search>", "Opens the Uniques tab" } };
 }
 
+// The catalogue holds the uniques and the order they are listed in; the panel
+// adds only what it takes to filter them.
 void UniqueTab::BuildUniques() {
 	uniques.clear();
 	matches.clear();
+	if (!UniqueCatalogue::Loaded())
+		return;
 
-	// Only the rows flagged enabled; the file keeps unreleased and placeholder
-	// items too. A modified file with nothing flagged falls back to every row.
-	for (int pass = 0; pass < 2 && uniques.empty(); pass++) {
-		bool requireEnabled = (pass == 0);
-		for (int i = 0; i < Tables::UniqueItems.size(); i++) {
-			JSONObject* entry = Tables::UniqueItems.entryAt(i);
-			if (!entry)
-				continue;
-			if (requireEnabled && entry->getString("enabled").compare("1") != 0)
-				continue;
-
-			std::string code = Trim(entry->getString("code"));
-			if (code.length() == 0)
-				continue;
-
-			UniqueRecord unique;
-			unique.statsLoaded = false;
-			unique.code = code;
-			unique.name = UniqueName(entry);
-			if (unique.name.length() == 0)
-				continue;
-
-			unique.baseName = ItemDescription::BaseName(code);
-			unique.requiredLevel = atoi(entry->getString("lvl req").c_str());
-
-			// What makes a search for "amulet" work; the base's name rarely says.
-			const ItemDescription::Base* base = ItemDescription::FindBase(code);
-			if (base)
-				unique.itemType = base->typeName;
-
-			for (int n = 1; n <= UQ_PROPERTY_COUNT; n++) {
-				std::string index = std::to_string(n);
-				PropertyStats::Property property;
-				property.code = Trim(entry->getString("prop" + index));
-				if (property.code.length() == 0)
-					continue;
-				property.param = Trim(entry->getString("par" + index));
-				property.min = atoi(entry->getString("min" + index).c_str());
-				property.max = atoi(entry->getString("max" + index).c_str());
-				unique.properties.push_back(property);
-			}
-
-			unique.searchKey = ToLower(unique.name + " " + unique.baseName + " " +
-				unique.itemType);
-			uniques.push_back(unique);
-		}
+	const std::vector<Catalogue::Source>& sources = UniqueCatalogue::Sources();
+	uniques.reserve(sources.size());
+	for (unsigned int i = 0; i < sources.size(); i++) {
+		UniqueRow row;
+		row.source = &sources[i];
+		row.modifiersLoaded = false;
+		row.searchKey = ToLower(sources[i].name + " " + sources[i].baseName +
+			" " + sources[i].itemType);
+		uniques.push_back(row);
 	}
-
-	// The facet jewels share a name across several bases, so the base is the
-	// tiebreak and equal names still land next to each other.
-	std::sort(uniques.begin(), uniques.end(), [](const UniqueRecord& a, const UniqueRecord& b) {
-		std::string nameA = ToLower(a.name), nameB = ToLower(b.name);
-		if (nameA != nameB)
-			return nameA < nameB;
-		return ToLower(a.baseName) < ToLower(b.baseName);
-	});
 
 	uniquesLoaded = true;
 	needsRefresh = true;
 }
 
-void UniqueTab::LoadStats(UniqueRecord* unique) {
-	if (unique->statsLoaded)
+void UniqueTab::LoadModifiers(UniqueRow* unique) {
+	if (unique->modifiersLoaded)
 		return;
-	unique->statsLoaded = true;
-	StatDescriptions::Initialize();
-
-	unique->stats = PropertyStats::Lines(unique->properties);
+	unique->modifiersLoaded = true;
 	unique->modifiers = ItemDescription::ReadModifiers(
-		PropertyStats::Totals(unique->properties));
+		PropertyStats::Totals(unique->source->properties));
 }
 
 void UniqueTab::ApplyFilter() {
@@ -160,8 +104,8 @@ void UniqueTab::PushRows() {
 	rows.reserve(matches.size());
 	for (unsigned int i = 0; i < matches.size(); i++) {
 		std::vector<std::string> row;
-		row.push_back(matches[i]->name);
-		row.push_back(matches[i]->baseName);
+		row.push_back(matches[i]->source->name);
+		row.push_back(matches[i]->source->baseName);
 		rows.push_back(row);
 	}
 	list->SetRows(rows);	// also clears the selection
@@ -170,18 +114,19 @@ void UniqueTab::PushRows() {
 
 // ItemDescription orders and spaces the panel the way the game describes an
 // item; the tab only says what goes in it.
-std::vector<TooltipLine> UniqueTab::BuildSummaryLines(UniqueRecord* unique) {
-	TextColor color = RarityColor(RarityUnique);
+std::vector<TooltipLine> UniqueTab::BuildSummaryLines(UniqueRow* unique) {
+	const Catalogue::Source& source = *unique->source;
+	TextColor color = RarityColor(source.rarity);
 
 	ItemDescription::Description item;
-	item.AddTitle(unique->name, color);
-	item.AddBase(unique->code, color, unique->modifiers);
+	item.AddTitle(source.name, color);
+	item.AddBase(source.baseCode, color, unique->modifiers);
 
 	// A unique can ask for a higher level than the base it is made on does.
-	if (unique->requiredLevel > item.requirements.level)
-		item.requirements.level = unique->requiredLevel;
+	if (source.requiredLevel > item.requirements.level)
+		item.requirements.level = source.requiredLevel;
 
-	item.AddStats(unique->stats, Blue);
+	item.AddStats(source.lines, Blue);
 	return ItemDescription::Build(item);
 }
 
@@ -199,9 +144,8 @@ void UniqueTab::UpdateSummary() {
 	}
 
 	if (row != shownSummary) {
-		// uniques owns the records; matches only points into it.
-		UniqueRecord* unique = const_cast<UniqueRecord*>(matches[row]);
-		LoadStats(unique);
+		UniqueRow* unique = matches[row];
+		LoadModifiers(unique);
 
 		summary->SetLines(BuildSummaryLines(unique));
 		shownSummary = row;
