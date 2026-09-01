@@ -26,7 +26,9 @@ set(SOURCE_FILES "AsyncDrawBuffer.cpp"
                  "TablesFromMPQ.cpp"
                  "Task.cpp")
 
-set(CATALOGUE_SOURCES "Catalogue/UniqueCatalogue.cpp")
+set(CATALOGUE_SOURCES "Catalogue/Catalogues.cpp"
+                      "Catalogue/StatIndex.cpp"
+                      "Catalogue/UniqueCatalogue.cpp")
 
 set(MODULE_SOURCES "Modules/Module.cpp"
                    "Modules/ModuleManager.cpp"

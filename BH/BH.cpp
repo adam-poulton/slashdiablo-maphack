@@ -8,7 +8,9 @@
 #include "Modules.h"
 #include "MPQReader.h"
 #include "MPQInit.h"
+#include "StatDescriptions.h"
 #include "TableReader.h"
+#include "Catalogue/Catalogues.h"
 #include "Task.h"
 #include "Modules/Settings/SettingsRegistry.h"
 
@@ -104,6 +106,11 @@ void BH::Initialize()
 		ReadMPQFiles();
 		InitializeMPQData();
 		Tables::initTables();
+		// Read the catalogues here, ahead of the modules and off the drawing
+		// thread: the stat index has to hold what every source grants, which
+		// is not work a frame can absorb.
+		StatDescriptions::Initialize();
+		Catalogue::Load();
 		moduleManager->MpqLoaded();
 	});
 

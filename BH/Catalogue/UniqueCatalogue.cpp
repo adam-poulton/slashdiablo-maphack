@@ -8,6 +8,8 @@
 
 namespace UniqueCatalogue {
 
+const char* const Kind = "unique";
+
 // How many prop/par/min/max groups UniqueItems.txt gives each row.
 static const int kPropertyCount = 12;
 
