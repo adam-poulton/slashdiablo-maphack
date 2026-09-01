@@ -99,7 +99,12 @@ std::vector<Catalogue::Source> Read(Table& table) {
 static void Load() {
 	if (loaded)
 		return;
-	if (Tables::UniqueItems.size() == 0 || !StatDescriptions::IsInitialized())
+	if (!StatDescriptions::IsInitialized())
+		return;
+	// Read as soon as there are rows to read, and once the game says its tables
+	// are in whatever they hold, so that a table a realm has emptied leaves the
+	// catalogue loaded and empty rather than waiting for rows that never come.
+	if (Tables::UniqueItems.size() == 0 && !Tables::isInitialized())
 		return;
 
 	sources = Read(Tables::UniqueItems);
