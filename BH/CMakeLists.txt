@@ -26,6 +26,8 @@ set(SOURCE_FILES "AsyncDrawBuffer.cpp"
                  "TablesFromMPQ.cpp"
                  "Task.cpp")
 
+set(CATALOGUE_SOURCES "Catalogue/UniqueCatalogue.cpp")
+
 set(MODULE_SOURCES "Modules/Module.cpp"
                    "Modules/ModuleManager.cpp"
                    "Modules/AutoTele/AutoTele.cpp"
@@ -67,7 +69,7 @@ set(DRAWING_SOURCES "Drawing/Hook.cpp"
                     "Drawing/UI/UI.cpp"
                     "Drawing/UI/UITab.cpp")
 
-set(SOURCE_FILES ${SOURCE_FILES} ${MODULE_SOURCES} ${DRAWING_SOURCES})
+set(SOURCE_FILES ${SOURCE_FILES} ${CATALOGUE_SOURCES} ${MODULE_SOURCES} ${DRAWING_SOURCES})
 add_library(BH ${SOURCE_FILES})
 target_include_directories(BH PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/cpp-lru-cache/include)
 target_link_libraries(BH ${STORM_LIBRARY} Shlwapi)
