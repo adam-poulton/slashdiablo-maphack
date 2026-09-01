@@ -81,7 +81,7 @@ TEST_CASE("a result reports the range the source rolls") {
 
 TEST_CASE("a stat a source does not grant answers nothing") {
 	// No source in the fixture converts damage to mana, and a comparator a zero
-	// would satisfy must not turn a stat nobody grants into a match.
+	// would satisfy must not have a stat nobody grants answer it.
 	CHECK(Answers({ Criterion::OnStat("item_damagetomana", StatIndex::LessThan, 5) }).empty());
 	CHECK(Answers({ Criterion::OnStat("nosuchstat", StatIndex::EqualTo, 0) }).empty());
 }
@@ -169,7 +169,7 @@ TEST_CASE("an entry carries what the index was registered with") {
 	REQUIRE(results.size() == 1);
 	const StatIndex::Entry& entry = *results[0].entry;
 
-	CHECK(entry.kind == std::string(UniqueCatalogue::Kind));
+	CHECK(entry.kind == UniqueCatalogue::Kind);
 	CHECK(entry.searchKey == "harlequin crest shako helm");
 
 	// The handle back to the full record, which is how a result reaches the
@@ -194,11 +194,9 @@ TEST_CASE("what the totals leave out cannot be asked for") {
 		}).empty());
 	}
 
-	SUBCASE("a property the tables give no stat to") {
-		// Guardian Angel's block rate is a stat the tables name, so it answers.
-		// A property naming no stat at all, which is how the tables carry the
-		// handful the game hardcodes, grants nothing to add up unless it is one
-		// of the few spelled out by name.
+	// What the tables do name a stat for is reachable, which is what makes the
+	// two cases above exclusions rather than the index seeing nothing.
+	SUBCASE("a stat the tables name is reachable") {
 		CHECK(Answers({
 			Criterion::OnStat("item_fasterblockrate", StatIndex::GreaterThan, 0)
 		}) == std::vector<std::string>({ "Guardian Angel" }));

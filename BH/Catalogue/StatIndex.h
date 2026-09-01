@@ -24,17 +24,12 @@
  * the answer being wrong. Every result carries the range the source rolls, so
  * that a possible amount is not read as a guaranteed one.
  *
- * What cannot be asked for:
- *
- * The stat totals are the mechanism that answers what a property adds up to
- * rather than the one that answers how it reads, and two things are outside it
- * on purpose. Amounts granted per character level are held in eighths in a
- * parameter rather than in a range, so Harlequin Crest's life is reachable
- * neither as maxhp nor as the per-level stat it is really granted under.
- * Properties the game hardcodes carry no stat in the tables at all, so only the
- * handful spelled out by name in StatDescriptions grants anything to add up.
- * Both are unreachable by design rather than missing by accident; see
- * docs/adr/0005.
+ * A criterion is answered from the stat totals a source's properties add up to,
+ * and some of what a source grants is outside those totals on purpose: amounts
+ * granted per character level, poison damage, and properties the tables give no
+ * stat to beyond the handful StatDescriptions spells out by name. Which roll
+ * answers each comparator is a decision too. docs/adr/0005 is where all of it
+ * is written down and reasoned about.
  */
 namespace StatIndex {
 
@@ -47,9 +42,10 @@ namespace StatIndex {
 		// that comparison.
 		std::string kind;
 
-		// What a text criterion is matched against, lowercased by whoever
-		// registered it, since it is the catalogue that knows which of a
-		// source's words are worth searching.
+		// What a text criterion is matched against, lowercased. Supplied at
+		// registration rather than worked out here, since which of a source's
+		// words are worth searching is not a question the index can answer for
+		// a kind it knows nothing about.
 		std::string searchKey;
 
 		std::vector<StatDescriptions::StatTotal> totals;
@@ -80,7 +76,9 @@ namespace StatIndex {
 		static Criterion OnStat(const std::string& stat, Comparator comparator,
 				int value);
 
-		// Matched case insensitively, so a player types what they read.
+		// Matched case insensitively, so a player types what they read. Empty
+		// text is carried by every search key, which is a search box with
+		// nothing typed in it answering with the whole list.
 		static Criterion OnText(const std::string& text);
 	};
 

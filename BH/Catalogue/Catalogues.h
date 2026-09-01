@@ -16,10 +16,11 @@ namespace Catalogue {
 	// Reads every catalogue and registers its sources into the stat index.
 	// Later calls do nothing.
 	//
-	// Called once the game's data tables are in, off the drawing thread, since
-	// the index has to hold what every source grants and cannot be worked out a
-	// row at a time. Safe to call before the tables are in, in which case it
-	// does nothing and the next call tries again.
+	// Called by whatever read the game's data tables, on the thread that read
+	// them rather than the drawing one, since the index has to hold what every
+	// source grants and that cannot be worked out a row at a time. A call made
+	// before the tables are in registers nothing and leaves the catalogues
+	// unloaded, so the caller is the one place that knows they are ready.
 	void Load();
 
 	// Whether the catalogues have been read and registered. Tells an index
