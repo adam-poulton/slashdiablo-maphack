@@ -1,24 +1,15 @@
 #pragma once
 #include <string>
 #include <vector>
-#include "../../Catalogue/UniqueCatalogue.h"
-#include "../../ItemDescription.h"
+#include "../../Catalogue/StatIndex.h"
 #include "../Window/UIPanel.h"
-
-// A unique in the panel's list: the catalogue's source, and beside it what only
-// a panel drawing the source has any use for.
-struct UniqueRow {
-	const Catalogue::Source* source;
-	std::string searchKey;		// lowercased name/base/type, used for filtering
-
-	// What the source's properties do to the numbers its base carries. Worked
-	// out on first view, since it is only wanted for the row being read.
-	ItemDescription::Modifiers modifiers;
-	bool modifiersLoaded;
-};
 
 // The unique items panel, laid out and driven the same way as the runewords
 // panel.
+//
+// A view onto the stat index, scoped to the uniques. What the player types
+// becomes a query with one text criterion, so the panel holds no uniques of its
+// own and matches nothing for itself: what it draws is the answer it was given.
 class UniqueTab : public UIPanel {
 	private:
 		Drawing::Listhook* list;
@@ -27,11 +18,10 @@ class UniqueTab : public UIPanel {
 		// bare Tooltiphook rather than one of the tab's hooks.
 		Drawing::Tooltiphook* summary;
 
-		std::vector<UniqueRow> uniques;
-		std::vector<UniqueRow*> matches;
-		std::string query;			// active filter, always lowercase
+		std::vector<StatIndex::Result> results;
+		std::string search;			// what the player typed, always lowercase
 		int shownSummary;			// row the summary was built for, or -1
-		bool uniquesLoaded;
+		bool catalogueLoaded;
 		bool needsRefresh;
 
 		// Tab size the contents were last fitted to, so a resize is noticed.
@@ -41,18 +31,16 @@ class UniqueTab : public UIPanel {
 		// The only place anything is sized or positioned.
 		void ApplyLayout();
 
-		void BuildUniques();
-		void LoadModifiers(UniqueRow* unique);
-		void ApplyFilter();
+		void RunQuery();
 		void PushRows();
 
-		std::vector<Drawing::TooltipLine> BuildSummaryLines(UniqueRow* unique);
+		std::vector<Drawing::TooltipLine> BuildSummaryLines(
+				const StatIndex::Entry& entry);
 		void UpdateSummary();
 
 	public:
 		UniqueTab(Drawing::UI* ui);
 
-		void MpqLoaded();
 		std::vector<ChatCommand> GetCommands();
 		void OnDraw();
 		bool OnKey(bool up, BYTE key);

@@ -1,11 +1,11 @@
 #include "UniqueTab.h"
 #include "../../BH.h"
+#include "../../Catalogue/Catalogues.h"
+#include "../../Catalogue/UniqueCatalogue.h"
 #include "../../Common.h"
 #include "../../ItemDescription.h"
 #include "../../ItemRarity.h"
-#include "../../StatDescriptions.h"
 #include "../../StringUtil.h"
-#include "../../TableReader.h"
 
 using namespace Drawing;
 
@@ -17,7 +17,7 @@ using namespace Drawing;
 
 UniqueTab::UniqueTab(UI* ui) : UIPanel("Uniques", ui),
 	shownSummary(-1),
-	uniquesLoaded(false),
+	catalogueLoaded(false),
 	needsRefresh(true) {
 
 	list = new Listhook(tab, UI_CONTENT_MARGIN, 0, 0, 0);
@@ -51,61 +51,27 @@ void UniqueTab::ApplyLayout() {
 	summary->SetMaxWidth(contentWidth);
 }
 
-void UniqueTab::MpqLoaded() {
-	StatDescriptions::Initialize();
-	BuildUniques();
-}
-
 std::vector<ChatCommand> UniqueTab::GetCommands() {
 	return { { "uni", { "uniques" }, "<search>", "Opens the Uniques tab" } };
 }
 
-// The catalogue holds the uniques and the order they are listed in; the panel
-// adds only what it takes to filter them.
-void UniqueTab::BuildUniques() {
-	uniques.clear();
-	matches.clear();
-	if (!UniqueCatalogue::Loaded())
-		return;
-
-	const std::vector<Catalogue::Source>& sources = UniqueCatalogue::Sources();
-	uniques.reserve(sources.size());
-	for (unsigned int i = 0; i < sources.size(); i++) {
-		UniqueRow row;
-		row.source = &sources[i];
-		row.modifiersLoaded = false;
-		row.searchKey = ToLower(sources[i].name + " " + sources[i].baseName +
-			" " + sources[i].itemType);
-		uniques.push_back(row);
-	}
-
-	uniquesLoaded = true;
-	needsRefresh = true;
-}
-
-void UniqueTab::LoadModifiers(UniqueRow* unique) {
-	if (unique->modifiersLoaded)
-		return;
-	unique->modifiersLoaded = true;
-	unique->modifiers = ItemDescription::ReadModifiers(
-		PropertyStats::Totals(unique->source->properties));
-}
-
-void UniqueTab::ApplyFilter() {
-	matches.clear();
-	for (unsigned int i = 0; i < uniques.size(); i++) {
-		if (query.empty() || uniques[i].searchKey.find(query) != std::string::npos)
-			matches.push_back(&uniques[i]);
-	}
+// One text criterion, scoped to the uniques. An empty search is carried by
+// every source, which is what shows the whole list.
+void UniqueTab::RunQuery() {
+	StatIndex::Query query;
+	query.kind = UniqueCatalogue::Kind;
+	query.criteria.push_back(StatIndex::Criterion::OnText(search));
+	results = StatIndex::Find(query);
 }
 
 void UniqueTab::PushRows() {
 	std::vector<std::vector<std::string>> rows;
-	rows.reserve(matches.size());
-	for (unsigned int i = 0; i < matches.size(); i++) {
+	rows.reserve(results.size());
+	for (unsigned int i = 0; i < results.size(); i++) {
+		const Catalogue::Source& source = *results[i].entry->source;
 		std::vector<std::string> row;
-		row.push_back(matches[i]->source->name);
-		row.push_back(matches[i]->source->baseName);
+		row.push_back(source.name);
+		row.push_back(source.baseName);
 		rows.push_back(row);
 	}
 	list->SetRows(rows);	// also clears the selection
@@ -114,13 +80,15 @@ void UniqueTab::PushRows() {
 
 // ItemDescription orders and spaces the panel the way the game describes an
 // item; the tab only says what goes in it.
-std::vector<TooltipLine> UniqueTab::BuildSummaryLines(UniqueRow* unique) {
-	const Catalogue::Source& source = *unique->source;
+std::vector<TooltipLine> UniqueTab::BuildSummaryLines(const StatIndex::Entry& entry) {
+	const Catalogue::Source& source = *entry.source;
 	TextColor color = RarityColor(source.rarity);
 
 	ItemDescription::Description item;
 	item.AddTitle(source.name, color);
-	item.AddBase(source.baseCode, color, unique->modifiers);
+	// What the source's properties do to the numbers its base carries. The
+	// index already holds the totals they add up to.
+	item.AddBase(source.baseCode, color, ItemDescription::ReadModifiers(entry.totals));
 
 	// A unique can ask for a higher level than the base it is made on does.
 	if (source.requiredLevel > item.requirements.level)
@@ -137,17 +105,14 @@ void UniqueTab::UpdateSummary() {
 	if (row < 0)
 		row = list->GetSelectedRow();
 
-	if (!IsActive() || row < 0 || row >= (int)matches.size()) {
+	if (!IsActive() || row < 0 || row >= (int)results.size()) {
 		summary->SetActive(false);
 		shownSummary = -1;
 		return;
 	}
 
 	if (row != shownSummary) {
-		UniqueRow* unique = matches[row];
-		LoadModifiers(unique);
-
-		summary->SetLines(BuildSummaryLines(unique));
+		summary->SetLines(BuildSummaryLines(*results[row].entry));
 		shownSummary = row;
 	}
 
@@ -157,7 +122,7 @@ void UniqueTab::UpdateSummary() {
 }
 
 void UniqueTab::Search(const std::string& text) {
-	query = ToLower(Trim(text));
+	search = ToLower(Trim(text));
 	list->SetScrollTop(0);
 	needsRefresh = true;
 }
@@ -175,25 +140,25 @@ std::string UniqueTab::GetSearchPlaceholder() {
 
 // Follows the scroll position as well as the rows, so it is read per frame.
 std::string UniqueTab::GetStatus() {
-	if (!uniquesLoaded)
+	if (!catalogueLoaded)
 		return "Waiting for game data to finish loading...";
-	if (matches.empty())
-		return "No uniques match \"" + query + "\"";
+	if (results.empty())
+		return "No uniques match \"" + search + "\"";
 
 	char line[64];
 	if (list->GetMaxScrollTop() > 0) {
 		sprintf_s(line, sizeof(line), "%u - %u of %u uniques",
 			list->GetFirstVisibleRow() + 1, list->GetLastVisibleRow(),
-			(unsigned int)matches.size());
+			(unsigned int)results.size());
 	} else {
-		sprintf_s(line, sizeof(line), "%u uniques", (unsigned int)matches.size());
+		sprintf_s(line, sizeof(line), "%u uniques", (unsigned int)results.size());
 	}
 	return line;
 }
 
 // Enter picks the first match rather than typing a newline.
 void UniqueTab::OnSearchSubmitted() {
-	if (!matches.empty())
+	if (!results.empty())
 		list->SetSelectedRow(0);
 }
 
@@ -201,14 +166,15 @@ void UniqueTab::OnDraw() {
 	if (tab->GetXSize() != laidOutWidth || tab->GetYSize() != laidOutHeight)
 		ApplyLayout();
 
-	// MpqLoaded can fire before this tab exists.
-	if (!uniquesLoaded && Tables::isInitialized()) {
-		StatDescriptions::Initialize();
-		BuildUniques();
+	// The catalogues are read on the thread that read the tables, which can
+	// finish either before this tab exists or after it has drawn a frame.
+	if (!catalogueLoaded && Catalogue::Loaded()) {
+		catalogueLoaded = true;
+		needsRefresh = true;
 	}
 
 	if (needsRefresh) {
-		ApplyFilter();
+		RunQuery();
 		PushRows();
 		needsRefresh = false;
 	}

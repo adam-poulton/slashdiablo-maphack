@@ -114,6 +114,9 @@ TEST_CASE("a text criterion is matched against the search key") {
 
 	CHECK(Answers({ Criterion::OnText("nothing named this") }).empty());
 
+	// A search box with nothing typed in it shows the whole list.
+	CHECK(Answers({ Criterion::OnText("") }) == Answers({}));
+
 	// A text criterion asks for no stat, so there is no range to report.
 	std::vector<Result> results = StatIndex::Find(Ask({ Criterion::OnText("Shako") }));
 	REQUIRE(results.size() == 1);
