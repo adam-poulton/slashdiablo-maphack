@@ -1,5 +1,4 @@
 #include "AffixCatalogue.h"
-#include <algorithm>
 #include <string>
 #include <vector>
 #include "../ItemDescription.h"
@@ -31,40 +30,6 @@ static bool loaded = false;
 static std::string NameOf(const std::string& code) {
 	std::string localized = StatDescriptions::GetString(code);
 	return (localized.length() > 0) ? localized : code;
-}
-
-// The kinds of base one of the two columns of them names, in table order.
-static void AppendTypes(JSONObject& entry, const char* column, int count,
-		std::vector<std::string>& out) {
-	for (int n = 1; n <= count; n++) {
-		std::string code = Trim(entry.getString(column + std::to_string(n)));
-		if (code.length() == 0)
-			continue;
-		// A row naming the same kind of base twice, which some of the tables
-		// do, says nothing the once did not.
-		std::string name = ItemDescription::TypeName(code);
-		if (std::find(out.begin(), out.end(), name) == out.end())
-			out.push_back(name);
-	}
-}
-
-// The kinds of base an affix rolls on, down to the ones it does not: "Any
-// Armor, Ring, Amulet" or "Melee Weapon (not Wand, Orb)". The exclusions are
-// the tables' own way of carving a kind out of a broader one, so leaving them
-// off would say the affix rolls where it cannot.
-static std::string ItemTypeOf(JSONObject& entry) {
-	std::vector<std::string> types;
-	AppendTypes(entry, "itype", kTypeCount, types);
-
-	std::vector<std::string> excluded;
-	AppendTypes(entry, "etype", kExcludedTypeCount, excluded);
-
-	std::string itemType = Join(types, ", ");
-	// A row carving kinds out of nothing carves nothing, so the exclusions are
-	// only worth saying where there is a kind for them to narrow.
-	if (itemType.length() > 0 && !excluded.empty())
-		itemType += " (not " + Join(excluded, ", ") + ")";
-	return itemType;
 }
 
 static std::vector<Catalogue::Source> ReadRows(Table& table,
@@ -100,7 +65,12 @@ static std::vector<Catalogue::Source> ReadRows(Table& table,
 			continue;
 
 		source.name = NameOf(source.code);
-		source.itemType = ItemTypeOf(*entry);
+		// The kinds of base an affix rolls on, down to the ones it does not:
+		// "Any Armor, Ring, Amulet" or "Melee Weapon (not Wand, Orb)". The
+		// exclusions are the tables' own way of carving a kind out of a broader
+		// one, so leaving them off would say the affix rolls where it cannot.
+		source.itemType = ItemDescription::ReadTypes(*entry, kTypeCount,
+			kExcludedTypeCount).text;
 		source.level = atoi(entry->getString("level").c_str());
 		source.requiredLevel = atoi(entry->getString("levelreq").c_str());
 		// Magic is the only quality an affix is drawn in on its own. It also
