@@ -111,6 +111,14 @@ armour and in a shield, because each of its runes gives one set of bonuses per
 kind. A criterion is answered by whichever variant satisfies it.
 _Avoid_: version, flavour, form, slot
 
+**Roll**:
+One of the amounts a source can grant, out of the range its properties are held
+in. The best roll is every property at the top of its range and the worst every
+property at the bottom. A criterion is answered on whichever roll suits it and
+reports the range either way; a catalogue item has to be said at one, because an
+item carries a number where a source carries a range.
+_Avoid_: value, amount, instance
+
 **Ingredient**:
 One of the things a source is made from, named by its code and kept in the
 order they go in: the runes of a runeword in socket order. A source made from

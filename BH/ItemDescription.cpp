@@ -74,6 +74,12 @@ static Range Apply(const Range& base, const Range& percent, const Range& flat) {
 	return (first <= second) ? Range(first, second) : Range(second, first);
 }
 
+Range Defense(const Base& base, const Modifiers& modifiers) {
+	if (!base.defense.Any())
+		return Range();
+	return Apply(base.defense, modifiers.defensePercent, modifiers.defenseFlat);
+}
+
 // The numbers the game prints between an item's name and its requirements.
 // Damage comes in whichever forms the weapon can be swung in, and a weapon that
 // can be held in either hand carries both.
@@ -131,8 +137,7 @@ static void RenderAttributes(const Base& base, const Modifiers& modifiers,
 	}
 	if (base.defense.Any()) {
 		attributes.push_back(Label("ItemStats1h", "Defense:") + " " +
-			RangeText(Apply(base.defense, modifiers.defensePercent,
-				modifiers.defenseFlat)));
+			RangeText(Defense(base, modifiers)));
 	}
 
 	// An item the game will never let wear out is given no durability to watch,

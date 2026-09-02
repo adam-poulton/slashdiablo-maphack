@@ -620,6 +620,11 @@ void CollectTotals(const std::string& code, const std::string& param,
 	}
 }
 
+int StatId(const std::string& stat) {
+	JSONObject* entry = Tables::ItemStatCost.findEntry("Stat", stat);
+	return entry ? ToInt(entry->getString("ID"), -1) : -1;
+}
+
 bool TotalFor(const std::vector<StatTotal>& totals, const std::string& stat,
 		int& low, int& high) {
 	low = high = 0;
