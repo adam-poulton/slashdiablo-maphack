@@ -80,6 +80,8 @@ static std::vector<Catalogue::Source> ReadRows(Table& table,
 
 		source.properties = ReadProperties(entry);
 		source.lines = PropertyStats::Lines(source.properties);
+		source.modifiers = ItemDescription::ReadModifiers(
+			PropertyStats::Totals(source.properties));
 		read.push_back(source);
 	}
 	return read;

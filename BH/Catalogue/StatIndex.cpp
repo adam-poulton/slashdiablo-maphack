@@ -60,10 +60,16 @@ static bool Satisfies(const Entry& entry, const Criterion& criterion,
 
 void Register(const std::string& kind, const std::string& searchKey,
 		const Catalogue::Source& source) {
+	// Everything the source can grant, the bonuses a count of set pieces
+	// unlocks included: a stat that arrives only with four pieces worn is one
+	// the source grants, and a criterion asking for it has to find it.
+	std::vector<PropertyStats::Property> granting = source.properties;
+	granting.insert(granting.end(), source.partial.begin(), source.partial.end());
+
 	Entry entry;
 	entry.kind = kind;
 	entry.searchKey = searchKey;
-	entry.totals = PropertyStats::Totals(source.properties);
+	entry.totals = PropertyStats::Totals(granting);
 	entry.source = &source;
 	entries.push_back(entry);
 }

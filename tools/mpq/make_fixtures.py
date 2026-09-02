@@ -14,7 +14,8 @@ header row kept.
 The string table is trimmed to the keys the fixtures can reach, which is every
 key ItemStatCost.txt names for a stat line or a grouped line, the skill names
 SkillDesc.txt points at, the class and skill tab labels, the name each base item
-kept is called by, and the handful of keys the wording code names itself. Keys
+kept is called by, the name each set and each piece of one is called by, and
+the handful of keys the wording code names itself. Keys
 whose text carries a tab or a newline are dropped, since the fixture is one key
 to a line.
 """
@@ -46,6 +47,8 @@ SUBJECT_TABLES = {
         'Guardian Angel',
     ]),
     'Weapons.txt': ('code', [
+        'gsc',      # Grand Scepter, under Civerb's Cudgel
+        'oba',      # Swirling Crystal, under Tal Rasha's Lidless Eye
         'crs',      # Crystal Sword, one handed
         '7cr',      # Phase Blade, elite, and wears out never
         '7gd',      # Colossus Blade, swung in either hand
@@ -58,13 +61,40 @@ SUBJECT_TABLES = {
         'xea',      # Serpentskin Armor, exceptional
         'uap',      # Shako, elite
         'xlt',      # Templar Coat
+        'lrg',      # Large Shield, under Civerb's Ward
+        'zmb',      # Mesh Belt, under Tal Rasha's Fire-Spun Cloth
+        'uth',      # Lacquered Plate, under Tal Rasha's Howling Wind
+        'xsk',      # Death Mask, under Tal Rasha's Horadric Crest
     ]),
     'Misc.txt': ('code', [
         'amu',      # Amulet, which carries no numbers at all
         'cm1',      # Small Charm, whose name only the string table gets right
         'r33',      # Zod Rune
     ]),
+    'Sets.txt': ('index', [
+        "Civerb's Vestments",
+        "Tal Rasha's Wrappings",
+    ]),
+    'SetItems.txt': ('index', [
+        # Civerb's three, which between them carry each of the three ways a
+        # piece's own partial bonuses are unlocked: all at once, one at a time,
+        # and the blank that grants them never.
+        "Civerb's Ward",
+        "Civerb's Icon",
+        "Civerb's Cudgel",
+        # Tal Rasha's five, one of which the file still calls by the working
+        # title the string table corrects.
+        "Tal Rasha's Fire-Spun Cloth",
+        "Tal Rasha's Adjudication",
+        "Tal Rasha's Lidless Eye",
+        "Tal Rasha's Howling Wind",
+        "Tal Rasha's Horadric Crest",
+    ]),
 }
+
+# Columns a subject table keys a name into the string table by, beyond the base
+# items' own. A set and a piece of one are both named by their index.
+INDEX_KEY_TABLES = ['Sets.txt', 'SetItems.txt']
 
 # The column a base item keys its name into the string table by.
 NAME_COLUMN = 'namestr'
@@ -115,6 +145,8 @@ def wanted_keys(tables):
                      'StrSkillTab3', 'StrClassOnly'))
     for name in SUBJECT_TABLES:
         keys |= keys_in(tables, name, (NAME_COLUMN,))
+    for name in INDEX_KEY_TABLES:
+        keys |= keys_in(tables, name, ('index',))
     keys.discard(None)
     keys.discard('')
     return keys

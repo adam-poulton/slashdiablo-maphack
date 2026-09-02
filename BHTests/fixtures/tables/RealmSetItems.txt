@@ -1,0 +1,5 @@
+index	set	item	rarity	lvl	lvl req	add func	prop1	par1	min1	max1	prop2	par2	min2	max2	aprop1a	apar1a	amin1a	amax1a	aprop1b	apar1b	amin1b	amax1b	aprop2a	apar2a	amin2a	amax2a	
+Ward of the Realm	Vestments of the Realm	lrg	1	25	20	1	ac		15	15	block		15	15	mana		21	21					res-pois		25	25	
+Icon of the Realm	Vestments of the Realm	amu	1	25	20	2	regen		4	4					res-cold		25	25					ac		25	25	
+Divider																											
+Charm of the Realm	Baubles of the Realm	cap	1	25	20	2	str		10	10					dex		10	10									

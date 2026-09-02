@@ -202,6 +202,7 @@ if defined D2Path (
     <ClCompile Include="MPQInit.cpp" />
     <ClCompile Include="MPQReader.cpp" />
     <ClCompile Include="Catalogue\Catalogues.cpp" />
+    <ClCompile Include="Catalogue\SetCatalogue.cpp" />
     <ClCompile Include="Catalogue\StatIndex.cpp" />
     <ClCompile Include="Catalogue\UniqueCatalogue.cpp" />
     <ClCompile Include="ItemDescription.cpp" />
@@ -298,6 +299,7 @@ if defined D2Path (
     <ClInclude Include="MPQInit.h" />
     <ClInclude Include="MPQReader.h" />
     <ClInclude Include="Catalogue\Catalogues.h" />
+    <ClInclude Include="Catalogue\SetCatalogue.h" />
     <ClInclude Include="Catalogue\StatIndex.h" />
     <ClInclude Include="Catalogue\UniqueCatalogue.h" />
     <ClInclude Include="Catalogue\Source.h" />

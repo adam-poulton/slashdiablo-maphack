@@ -1,0 +1,2 @@
+index	name	version	level	PCode2a	PParam2a	PMin2a	PMax2a	PCode3a	PParam3a	PMin3a	PMax3a	FCode1	FParam1	FMin1	FMax1	FCode2	FParam2	FMin2	FMax2	
+Vestments of the Realm	Vestments of the Realm	100	40	res-fire		20	20					res-ltng		30	30	mag%		50	50	
