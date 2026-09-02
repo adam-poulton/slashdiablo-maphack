@@ -67,6 +67,12 @@ namespace StatDescriptions {
 	// they appear in property parameters.
 	std::string GetSkillName(const std::string& idOrName);
 
+	// The game's own words for an item only one class can use, "(Amazon Only)",
+	// given the three letter class code the item tables restrict it by. Empty
+	// where the code names no class, which is what an unrestricted item's
+	// column holds.
+	std::string GetClassOnly(const std::string& classCode);
+
 	// Appends the stats one property entry grants. Entries the tables mark as
 	// having no description of their own contribute nothing.
 	void CollectProperty(const std::string& code, const std::string& param,

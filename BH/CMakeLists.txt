@@ -26,7 +26,8 @@ set(SOURCE_FILES "AsyncDrawBuffer.cpp"
                  "TablesFromMPQ.cpp"
                  "Task.cpp")
 
-set(CATALOGUE_SOURCES "Catalogue/BaseItemCatalogue.cpp"
+set(CATALOGUE_SOURCES "Catalogue/AffixCatalogue.cpp"
+                      "Catalogue/BaseItemCatalogue.cpp"
                       "Catalogue/Catalogues.cpp"
                       "Catalogue/RecipeCatalogue.cpp"
                       "Catalogue/RunewordCatalogue.cpp"

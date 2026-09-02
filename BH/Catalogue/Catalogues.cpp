@@ -4,6 +4,7 @@
 #include "../ItemDescription.h"
 #include "../StatDescriptions.h"
 #include "../StringUtil.h"
+#include "AffixCatalogue.h"
 #include "BaseItemCatalogue.h"
 #include "RecipeCatalogue.h"
 #include "RunewordCatalogue.h"
@@ -69,6 +70,8 @@ void Load() {
 		return;
 	if (!BaseItemCatalogue::Loaded())
 		return;
+	if (!AffixCatalogue::Loaded())
+		return;
 
 	RegisterAll(UniqueCatalogue::Kind, UniqueCatalogue::Sources());
 	RegisterAll(SetCatalogue::Kind, SetCatalogue::Pieces());
@@ -76,6 +79,8 @@ void Load() {
 	RegisterAll(RunewordCatalogue::Kind, RunewordCatalogue::Sources());
 	RegisterAll(RecipeCatalogue::Kind, RecipeCatalogue::Sources());
 	RegisterAll(BaseItemCatalogue::Kind, BaseItemCatalogue::Sources());
+	RegisterAll(AffixCatalogue::PrefixKind, AffixCatalogue::Prefixes());
+	RegisterAll(AffixCatalogue::SuffixKind, AffixCatalogue::Suffixes());
 
 	loaded = true;
 }

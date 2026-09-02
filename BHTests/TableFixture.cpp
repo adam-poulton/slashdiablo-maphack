@@ -45,7 +45,8 @@ void TableFixture::Load() {
 	LoadTable("Sets.txt", Tables::Sets);
 	LoadTable("SetItems.txt", Tables::SetItems);
 	LoadTable("CubeMain.txt", Tables::CubeMain);
-	// Whole, because a recipe names a forced affix by the row it sits on.
+	// Whole, because the affixes catalogue is read out of both and because a
+	// recipe names a forced affix by the row it sits on.
 	LoadTable("MagicPrefix.txt", Tables::MagicPrefix);
 	LoadTable("MagicSuffix.txt", Tables::MagicSuffix);
 	LoadTable("Weapons.txt", Tables::Weapons);

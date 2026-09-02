@@ -153,8 +153,10 @@ _Avoid_: search, filter, request
 
 **Kind**:
 What a catalogue calls itself where a kind of source is asked for: "unique",
-"set item", "set bonus", "runeword", "recipe" and "base", and later a word for
-the affixes. The catalogue owns the word; the stat index only ever compares
+"set item", "set bonus", "runeword", "recipe", "base", "prefix" and "suffix". A
+catalogue owns more than one where the things it reads are not one another's
+variation, as a set's pieces and its own bonuses are not, and as a prefix and a
+suffix are not. The catalogue owns the word; the stat index only ever compares
 it, which is what keeps the index ignorant of every kind there is.
 _Avoid_: type, category, class
 
