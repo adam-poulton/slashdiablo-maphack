@@ -117,6 +117,14 @@ order they go in: the runes of a runeword in socket order. A source made from
 nothing has none.
 _Avoid_: component, part, reagent, input
 
+**Base tier**:
+Which of the three the game builds a base item in: normal, exceptional or
+elite. A base names the other two in its upgrade columns, and the tier it is
+itself by pointing one of them at its own code. A source made on no one base is
+built in none. Always said with its base, since a rule's tier is a different
+idea under the same word.
+_Avoid_: quality, grade, level
+
 **Property**:
 One entry in the game's tables that grants something: what it grants, the
 parameter saying which of it, the range it rolls in, and the count of set pieces
@@ -145,8 +153,8 @@ _Avoid_: search, filter, request
 
 **Kind**:
 What a catalogue calls itself where a kind of source is asked for: "unique",
-"set item", "set bonus", "runeword" and "recipe", and later a word each for the
-bases and the affixes. The catalogue owns the word; the stat index only ever compares
+"set item", "set bonus", "runeword", "recipe" and "base", and later a word for
+the affixes. The catalogue owns the word; the stat index only ever compares
 it, which is what keeps the index ignorant of every kind there is.
 _Avoid_: type, category, class
 
