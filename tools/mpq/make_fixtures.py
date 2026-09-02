@@ -14,10 +14,10 @@ header row kept.
 The string table is trimmed to the keys the fixtures can reach, which is every
 key ItemStatCost.txt names for a stat line or a grouped line, the skill names
 SkillDesc.txt points at, the class and skill tab labels, the name each base item
-kept is called by, the name each set and each piece of one is called by, and
-the handful of keys the wording code names itself. Keys
-whose text carries a tab or a newline are dropped, since the fixture is one key
-to a line.
+kept is called by, the name each set, each piece of one and each runeword is
+called by, and the handful of keys the wording code names itself. Keys whose
+text carries a tab or a newline are dropped, since the fixture is one key to a
+line.
 """
 import csv
 import os
@@ -34,6 +34,13 @@ REFERENCE_TABLES = [
     'SkillDesc.txt',
     'ItemTypes.txt',
 ]
+
+# The runes the fixture runewords are made from, plus the Zod rune, which is the
+# base item a test reads for a name only the string table gets right. Both
+# Misc.txt, which holds a rune as a base item, and Gems.txt, which holds what it
+# grants in each kind of base, are trimmed to these.
+RUNE_CODES = ['r05', 'r06', 'r07', 'r09', 'r10', 'r11', 'r12', 'r17', 'r19',
+              'r22', 'r30', 'r31', 'r32', 'r33']
 
 # Read trimmed to the rows named here, which are the items under test. The base
 # items between them cover what a base can carry: each of the three tiers, one
@@ -69,7 +76,14 @@ SUBJECT_TABLES = {
     'Misc.txt': ('code', [
         'amu',      # Amulet, which carries no numbers at all
         'cm1',      # Small Charm, whose name only the string table gets right
-        'r33',      # Zod Rune
+    ] + RUNE_CODES),
+    # The runewords under test. Between them they reach each of the three kinds
+    # of base a rune gives bonuses for, and one of them is allowed in two.
+    'Runes.txt': ('Name', [
+        'Runeword75',       # Lore, a helm
+        'Runeword33',       # Enigma, body armour, which is worded as a helm is
+        'Runeword131',      # Splendor, a shield
+        'Runeword130',      # Spirit, a sword or a shield, so worded twice
     ]),
     'Sets.txt': ('index', [
         "Civerb's Vestments",
@@ -90,11 +104,17 @@ SUBJECT_TABLES = {
         "Tal Rasha's Howling Wind",
         "Tal Rasha's Horadric Crest",
     ]),
+    'Gems.txt': ('code', RUNE_CODES),
 }
 
-# Columns a subject table keys a name into the string table by, beyond the base
-# items' own. A set and a piece of one are both named by their index.
-INDEX_KEY_TABLES = ['Sets.txt', 'SetItems.txt']
+# The column a subject table keys a name into the string table by, for the
+# tables that do not key it the way a base item does. A set and a piece of one
+# are named by their index, a runeword by what the table calls the row.
+NAME_KEY_COLUMNS = {
+    'Sets.txt': 'index',
+    'SetItems.txt': 'index',
+    'Runes.txt': 'Name',
+}
 
 # The column a base item keys its name into the string table by.
 NAME_COLUMN = 'namestr'
@@ -145,8 +165,8 @@ def wanted_keys(tables):
                      'StrSkillTab3', 'StrClassOnly'))
     for name in SUBJECT_TABLES:
         keys |= keys_in(tables, name, (NAME_COLUMN,))
-    for name in INDEX_KEY_TABLES:
-        keys |= keys_in(tables, name, ('index',))
+    for name, column in NAME_KEY_COLUMNS.items():
+        keys |= keys_in(tables, name, (column,))
     keys.discard(None)
     keys.discard('')
     return keys

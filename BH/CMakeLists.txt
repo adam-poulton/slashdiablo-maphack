@@ -27,6 +27,7 @@ set(SOURCE_FILES "AsyncDrawBuffer.cpp"
                  "Task.cpp")
 
 set(CATALOGUE_SOURCES "Catalogue/Catalogues.cpp"
+                      "Catalogue/RunewordCatalogue.cpp"
                       "Catalogue/SetCatalogue.cpp"
                       "Catalogue/StatIndex.cpp"
                       "Catalogue/UniqueCatalogue.cpp")

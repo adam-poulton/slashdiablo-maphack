@@ -22,6 +22,18 @@ A criterion is answered on the roll most favourable to it. "More than" is answer
 
 A source that does not write the stat at all answers no criterion on it. Its range would otherwise read as zero to zero, which "less than five" would be satisfied by for every source in the index.
 
+## What a source made on several kinds of base is answered from
+
+A runeword is not made on one base. Each of its runes gives one set of bonuses in a weapon, another in a helm or body armour and a third in a shield, so the same runeword grants different things depending on what it is made in. A source carries one variant per kind of base it is allowed in, each holding the whole of what it grants there, and the index adds each kind up on its own rather than into one set of totals.
+
+A criterion is then answered by whichever kind satisfies it, and the range reported is the one that kind rolls. This is the best roll read across the kinds a source can be made on: what a player is asking is what could grant them a stat, and Spirit in a shield really does grant thirty five cold resistance, so hiding it because Spirit in a sword grants none is the answer being wrong.
+
+Holding one set of totals widened across the kinds, the lowest low and the highest high of each stat, was rejected. It answers the same criteria, but the range it reports for a stat two kinds grant at different amounts is a blend of the two, which describes an item that cannot exist. A range is part of the answer rather than a detail of it, so answering the question right and the range wrong is not a trade worth making.
+
+Which kind answered is not part of a result. A player looking for cold resistance is shown the runeword, and what it grants in each kind of base is in the lines they read next. Carrying the kind through the index would put a word only some catalogues have into every result for the sake of a distinction the lines already draw.
+
+Registering one entry per variant, so that each kind answered for itself, was rejected because a panel scoped to the runewords would then show Spirit twice. The index answers in the order it was registered and a view over it draws what it is given, which is what makes one entry per source the shape a list can be drawn from.
+
 ## Considered options
 
 Widening the totals to carry per-level amounts, tagged as per-level so a caller could tell them apart, was rejected for now. A criterion asking for thirty life would then have to say which character level it is asking at, and the value a player types is not a level-dependent one. It is not ruled out: a criterion carrying a level is a coherent thing to add later, and the totals are where it would go.

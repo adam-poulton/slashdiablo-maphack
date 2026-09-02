@@ -33,6 +33,9 @@
  */
 namespace StatIndex {
 
+	// What one kind of base a source can be made on grants.
+	typedef std::vector<StatDescriptions::StatTotal> StatTotals;
+
 	// One source as the index holds it. The source is what a result hands back
 	// so that a caller can read the whole record: its lines, its base, its
 	// rarity.
@@ -48,7 +51,16 @@ namespace StatIndex {
 		// a kind it knows nothing about.
 		std::string searchKey;
 
-		std::vector<StatDescriptions::StatTotal> totals;
+		// What the source can grant: one set of totals per kind of base it can
+		// be made on, and a single set for a source made on one base. There is
+		// always at least one, so a source granting nothing holds one empty
+		// set rather than none.
+		//
+		// A stat criterion is answered by whichever set satisfies it and
+		// reports that set's range, since a range read across the kinds would
+		// describe an item that cannot exist.
+		std::vector<StatTotals> totals;
+
 		const Catalogue::Source* source;
 
 		Entry() : source(NULL) {};

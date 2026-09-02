@@ -1,0 +1,9 @@
+Name	Rune Name	complete	itype1	itype2	etype1	etype2	Rune1	Rune2	Rune3	T1Code1	T1Param1	T1Min1	T1Max1	T1Code2	T1Param2	T1Min2	T1Max2
+Expansion																	
+Runeword75	Lore	1	helm				r09	r12		allskills		2	2				
+Realmword1	Guard of the Realm	1	ashd				r05	r17		res-all		15	15				
+Realmword2	Blade of the Realm	1	weap		bow	xbow	r31	r30		str		25	25				
+Realmword3	Sigil of the Realm	1	pala				r06	r22		dex		20	20				
+Realmword4	Word of the Unfinished		tors				r07	r10									
+Realmword5	Plague	1	weap				r32	r19	r22	str		5	5				
+Realmword6	Ward of the Realm	1	tors	shld			r22	r30									

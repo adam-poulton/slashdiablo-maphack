@@ -1,0 +1,3 @@
+Name	Rune Name	itype1	itype2	etype1	etype2	Rune1	Rune2	Rune3	T1Code1	T1Param1	T1Min1	T1Max1	T1Code2	T1Param2	T1Min2	T1Max2
+Expansion																
+Realmword9	Cloak of the Realm	tors				r09	r12		str		10	10				

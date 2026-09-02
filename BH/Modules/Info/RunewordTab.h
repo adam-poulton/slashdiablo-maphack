@@ -1,32 +1,15 @@
 #pragma once
 #include <string>
 #include <vector>
-#include "../../ItemDescription.h"
-#include "../../PropertyStats.h"
+#include "../../Catalogue/StatIndex.h"
 #include "../Window/UIPanel.h"
 
-// A single runeword recipe, pre-formatted for display.
-struct RunewordRecipe {
-	std::string name;		// "Enigma"
-	std::string runes;		// "Jah + Ith + Ber"
-	std::string itemTypes;	// "Any Armor"
-	// Highest level requirement among its runes. A runeword goes in any of a
-	// range of bases, so it carries no strength or dexterity of its own.
-	ItemDescription::Requirements requirements;
-	std::string searchKey;	// lowercased name/runes/types, used for filtering
-
-	// The runeword's own bonuses. What each rune adds is read from the gems
-	// table as the stats are worded, since it depends on the base.
-	std::vector<PropertyStats::Property> properties;
-	std::vector<std::string> extraLines;		// bonuses given as ready made text
-	std::vector<std::string> runeCodes;			// "r31", in socket order
-	std::vector<std::string> baseSlots;			// "weapon" / "helm" / "shield"
-	std::vector<std::string> baseLabels;		// readable name per base slot
-
-	std::vector<std::string> stats;				// built on first view
-	bool statsLoaded;
-};
-
+// The runewords panel, laid out and driven the same way as the uniques panel.
+//
+// A view onto the stat index, scoped to the runewords. What the player types
+// becomes a query with one text criterion, so the panel holds no runewords of
+// its own and matches nothing for itself: what it draws is the answer it was
+// given.
 class RunewordTab : public UIPanel {
 	private:
 		Drawing::Listhook* list;
@@ -35,11 +18,10 @@ class RunewordTab : public UIPanel {
 		// bare Tooltiphook rather than one of the tab's hooks.
 		Drawing::Tooltiphook* summary;
 
-		std::vector<RunewordRecipe> recipes;
-		std::vector<const RunewordRecipe*> matches;
-		std::string query;			// active filter, always lowercase
+		std::vector<StatIndex::Result> results;
+		std::string search;			// what the player typed, always lowercase
 		int shownSummary;			// row the summary was built for, or -1
-		bool recipesLoaded;
+		bool catalogueLoaded;
 		bool needsRefresh;
 
 		// Tab size the contents were last fitted to, so a resize is noticed.
@@ -49,18 +31,16 @@ class RunewordTab : public UIPanel {
 		// The only place anything is sized or positioned.
 		void ApplyLayout();
 
-		void BuildRecipes();
-		void LoadStats(RunewordRecipe* recipe);
-		void ApplyFilter();
+		void RunQuery();
 		void PushRows();
 
-		std::vector<Drawing::TooltipLine> BuildSummaryLines(RunewordRecipe* recipe);
+		std::vector<Drawing::TooltipLine> BuildSummaryLines(
+				const Catalogue::Source& source);
 		void UpdateSummary();
 
 	public:
 		RunewordTab(Drawing::UI* ui);
 
-		void MpqLoaded();
 		std::vector<ChatCommand> GetCommands();
 		void OnDraw();
 		bool OnKey(bool up, BYTE key);
@@ -69,6 +49,4 @@ class RunewordTab : public UIPanel {
 		void OnSearchSubmitted();
 		std::string GetSearchPlaceholder();
 		std::string GetStatus();
-
-		unsigned int GetRecipeCount() { return recipes.size(); };
 };
