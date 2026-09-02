@@ -70,7 +70,7 @@ static std::vector<Catalogue::Source> ReadRows(Table& table,
 		// index from and what UNI in a rule is written with. Counted over every
 		// row of the table, so the dividers and the unreleased rows skipped
 		// above still take their numbers up.
-		source.id = i;
+		source.fileIndex = i;
 		source.code = code;
 		source.name = NameOf(code);
 		source.baseCode = baseCode;

@@ -78,15 +78,17 @@ FilterContext AWorld() {
 	return context;
 }
 
-// The names of the rules that matched, which is the whole of what a walk says
-// about an item this small a rule set is judged against.
-std::vector<std::string> Matched(const RuleList& list, const ItemFacts& facts,
+// The names the rules that matched put on the item, in the order they matched,
+// which is the whole of what a walk says about an item this small a rule set is
+// judged against. One string rather than a list of them so that a failure reads
+// as the verdict it is.
+std::string Matched(const RuleList& list, const ItemFacts& facts,
 		const FilterContext& context) {
 	std::vector<const Action*> actions =
 		MatchingActions(list.Rules(), facts, context, PING_LEVEL_ALL);
-	std::vector<std::string> names;
+	std::string names;
 	for (unsigned int i = 0; i < actions.size(); i++)
-		names.push_back(actions[i]->name);
+		names += (i > 0 ? ", " : "") + actions[i]->name;
 	return names;
 }
 
@@ -106,7 +108,7 @@ TEST_CASE("a rule that names a unique matches it as a catalogue item") {
 	// The base code and the unique's own number both have to be right for the
 	// first rule and wrong for the other two.
 	CHECK(Matched(list, item.Facts(), AWorld()) ==
-		std::vector<std::string>({ "the shako" }));
+		"the shako");
 }
 
 TEST_CASE("a rule that names a set item matches it as a catalogue item") {
@@ -120,7 +122,7 @@ TEST_CASE("a rule that names a set item matches it as a catalogue item") {
 	list.Add("amu UNI4", "a unique amulet%CONTINUE%");
 
 	CHECK(Matched(list, item.Facts(), AWorld()) ==
-		std::vector<std::string>({ "the amulet" }));
+		"the amulet");
 }
 
 TEST_CASE("a stat is answered at the roll the item was said at") {
@@ -134,12 +136,12 @@ TEST_CASE("a stat is answered at the roll the item was said at") {
 	SUBCASE("the best roll") {
 		CatalogueItem item(source, &attrs, BestRoll);
 		CHECK(Matched(list, item.Facts(), AWorld()) ==
-			std::vector<std::string>({ "well rolled" }));
+			"well rolled");
 	}
 
 	SUBCASE("the worst roll") {
 		CatalogueItem item(source, &attrs, WorstRoll);
-		CHECK(Matched(list, item.Facts(), AWorld()).empty());
+		CHECK(Matched(list, item.Facts(), AWorld()) == "");
 	}
 }
 
@@ -156,13 +158,13 @@ TEST_CASE("defence is the base's own under what the source adds to it") {
 		CatalogueItem item(source, &attrs, BestRoll);
 		CHECK(item.Facts().stats->Stat(STAT_DEFENSE, 0) == 822);
 		CHECK(Matched(list, item.Facts(), AWorld()) ==
-			std::vector<std::string>({ "high defence" }));
+			"high defence");
 	}
 
 	SUBCASE("the worst roll") {
 		CatalogueItem item(source, &attrs, WorstRoll);
 		CHECK(item.Facts().stats->Stat(STAT_DEFENSE, 0) == 705);
-		CHECK(Matched(list, item.Facts(), AWorld()).empty());
+		CHECK(Matched(list, item.Facts(), AWorld()) == "");
 	}
 }
 
@@ -183,10 +185,47 @@ TEST_CASE("what only an item that exists can answer is absent") {
 	// being answered false, so that negating it does not turn not knowing into
 	// a match.
 	CHECK(Matched(list, item.Facts(), AWorld()) ==
-		std::vector<std::string>({ "a shako" }));
+		"a shako");
 	list.Add("uap !PRICE>1", "not worth anything%CONTINUE%");
 	CHECK(Matched(list, item.Facts(), AWorld()) ==
-		std::vector<std::string>({ "a shako" }));
+		"a shako");
+}
+
+TEST_CASE("a stat the game stores with a sub index is not answered") {
+	// Vipermagi grants a skill to every class and Guardian Angel one to the
+	// Paladin. What a source's properties add up to says how much a stat is
+	// granted and not which class it was granted to, so the second cannot be
+	// asked at all, and answering it from the total would credit the amount to
+	// whichever class was asked about.
+	const Source& viper = Unique("Skin of the Vipermagi");
+	const Source& guardian = Unique("Guardian Angel");
+	ItemAttributes viperBase = Attributes(viper.baseCode);
+	ItemAttributes guardianBase = Attributes(guardian.baseCode);
+
+	RuleList list;
+	list.Add("ALLSK>0", "a skill to every class%CONTINUE%");
+	list.Add("CLSK3>0", "a paladin skill%CONTINUE%");
+
+	CatalogueItem viperItem(viper, &viperBase);
+	CHECK(Matched(list, viperItem.Facts(), AWorld()) ==
+		"a skill to every class");
+
+	CatalogueItem guardianItem(guardian, &guardianBase);
+	CHECK(Matched(list, guardianItem.Facts(), AWorld()) == "");
+}
+
+TEST_CASE("an item's level is not stood in for") {
+	// A drop's item level is the level of whatever dropped it, which is not
+	// something a source says. Left unsaid rather than answered from the level
+	// the source starts dropping at, which is a different number.
+	const Source& source = Unique("Harlequin Crest");
+	ItemAttributes attrs = Attributes(source.baseCode);
+	CatalogueItem item(source, &attrs);
+
+	RuleList list;
+	list.Add("uap ILVL>1", "dropped high%CONTINUE%");
+
+	CHECK(Matched(list, item.Facts(), AWorld()) == "");
 }
 
 TEST_CASE("the same catalogue item is judged differently at two filter levels") {
@@ -203,25 +242,52 @@ TEST_CASE("the same catalogue item is judged differently at two filter levels") 
 	FilterContext showing = AWorld();
 	showing.filterLevel = 0;
 	CHECK(Matched(list, item.Facts(), showing) ==
-		std::vector<std::string>({ "always shown" }));
+		"always shown");
 
 	FilterContext hiding = AWorld();
 	hiding.filterLevel = 2;
 	CHECK(Matched(list, item.Facts(), hiding) ==
-		std::vector<std::string>({ "hidden further up", "always shown" }));
+		"hidden further up, always shown");
 }
 
-TEST_CASE("a source that names no one base is not an item") {
-	// A runeword is made in a range of bases and grants different things in
-	// each, so there is no one item to say it as. Nothing here picks a base.
+TEST_CASE("a runeword is said on the base it is made in") {
+	// Spirit is allowed in swords and in shields, and each of its runes grants
+	// one thing in one and something else in the other: in a shield the four
+	// give resistances, in a sword they give damage. What it grants has to
+	// follow the base it is made in.
 	const Source& source = Runeword("Runeword130");
-	REQUIRE(source.baseCode.empty());
+	ItemAttributes shield = Attributes("lrg");
+	ItemAttributes sword = Attributes("crs");
 
-	CatalogueItem item(source, NULL);
+	RuleList list;
+	list.Add("RW SOCK=4 FCR>30", "a spirit%CONTINUE%");
+	list.Add("RW CRES>30", "and cold resist%CONTINUE%");
+
+	SUBCASE("in a shield") {
+		CatalogueItem item(source, &shield);
+		REQUIRE(item.Known());
+		CHECK(Matched(list, item.Facts(), AWorld()) ==
+			"a spirit, and cold resist");
+	}
+
+	SUBCASE("in a sword") {
+		CatalogueItem item(source, &sword);
+		REQUIRE(item.Known());
+		CHECK(Matched(list, item.Facts(), AWorld()) ==
+			"a spirit");
+	}
+}
+
+TEST_CASE("a source is not an item on a base it cannot be made on") {
+	// Spirit is allowed in swords and shields and in nothing worn on the head.
+	const Source& source = Runeword("Runeword130");
+	ItemAttributes helm = Attributes("uap");
+
+	CatalogueItem item(source, &helm);
 	CHECK_FALSE(item.Known());
 }
 
-TEST_CASE("a base the tables do not describe is not an item") {
+TEST_CASE("a source with no base handed in is not an item") {
 	const Source& source = Unique("Harlequin Crest");
 	CatalogueItem item(source, NULL);
 	CHECK_FALSE(item.Known());

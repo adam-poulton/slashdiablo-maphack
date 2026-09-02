@@ -37,3 +37,9 @@ TextColor NameColor(ItemRarity rarity);
 
 // The rarity of one of the game's ITEM_QUALITY_* values.
 ItemRarity RarityFromQuality(unsigned int quality);
+
+// The game's own quality for a rarity, which converts straight across for the
+// rarities that are qualities. A runeword and a rune are the two that are not,
+// and an item that is either carries a plain item's quality: what says an item
+// is a runeword is its own flag, which is also all a rule can ask about one.
+unsigned int QualityFromRarity(ItemRarity rarity);

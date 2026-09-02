@@ -104,6 +104,13 @@ runeword, a cube recipe, an affix. What they have in common is granting stats,
 which is what makes them worth holding together.
 _Avoid_: record, entry, result
 
+**File index**:
+The row a source sits on in its own table, which is the number the game tells
+one from another by and the number a rule naming a unique or a set item is
+written with. A source no table numbers has none: a runeword and a recipe are
+told apart by their base and their ingredients instead.
+_Avoid_: id, number, row, index
+
 **Variant**:
 The same source made on a different kind of base, and the whole of what it
 grants there. A runeword rolls differently in a weapon, in a helm or body

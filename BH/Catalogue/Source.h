@@ -50,12 +50,11 @@ namespace Catalogue {
 		// an entry for it.
 		std::string name;
 
-		// The number the game knows it by, which is the row its own table holds
-		// it at: the file index a dropped unique or piece of a set carries, and
-		// what a rule naming one by number asks for. -1 where nothing numbers
-		// it, which is everything the game identifies by its base and its
-		// runes instead.
-		int id;
+		// The row its own table holds it at, which is the file index a dropped
+		// unique or piece of a set carries and what a rule naming one by number
+		// asks for. -1 where no table numbers it, which is everything the game
+		// tells apart by its base and its runes instead.
+		int fileIndex;
 
 		std::string baseCode;		// the base item it is made on, "uap"
 		std::string baseName;		// "Shako"
@@ -127,8 +126,8 @@ namespace Catalogue {
 		// instead, so there is no stat line for them to be part of.
 		std::vector<std::string> notes;
 
-		Source() : id(-1), tier(ItemDescription::TierNone), requiredLevel(0),
-			level(0), rarity(RarityNone) {};
+		Source() : fileIndex(-1), tier(ItemDescription::TierNone),
+			requiredLevel(0), level(0), rarity(RarityNone) {};
 	};
 
 }

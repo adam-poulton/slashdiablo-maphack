@@ -9,14 +9,18 @@ struct UnitAny;
 /*
  * What the item filter knows about an item.
  *
- * An item reaches the filter in one of two ways, and each brings its own shape.
- * An item already in the world is a game unit, and UnitItemInfo is little more
- * than a pointer to it: the rest is read from the game as each condition asks
- * for it. An item arriving in a packet is not a unit yet, so everything about
- * it is read out of the packet in one go and kept in ItemFacts.
+ * An item reaches the filter in one of three ways, and each brings its own
+ * shape. An item already in the world is a game unit, and UnitItemInfo is
+ * little more than a pointer to it: the rest is read from the game as each
+ * condition asks for it. An item arriving in a packet is not a unit yet, so
+ * everything about it is read out of the packet in one go and kept in
+ * ItemFacts. A catalogue source is neither: it is said as ItemFacts from the
+ * game's tables alone, so that a rule can be walked against an item nobody has
+ * dropped, which ADR 0004 records.
  *
- * The two are not equivalent, and the conditions carry two implementations
- * apiece because of it. ItemFacts is the shape both are heading towards.
+ * The three are not equivalent, and the conditions reading a game unit carry an
+ * implementation of their own because of it. ItemFacts is the shape they are
+ * heading towards.
  *
  * Nothing here reaches into the game, so what depends only on this header can
  * be built and tested without one.
@@ -107,7 +111,9 @@ struct UnitItemInfo {
 	const ItemFacts *facts;
 };
 
-// An item as an incoming 0x9c packet described it.
+// Everything a rule reads about an item, whichever of the three ways it
+// reached the filter. Shaped after what an incoming 0x9c packet describes,
+// which is the one of the three that says the most in one go.
 struct ItemFacts {
 	ItemAttributes *attrs;
 	char code[4];
@@ -174,7 +180,8 @@ struct ItemFacts {
 
 	// The item's stats. Not held by value because what answers depends on where
 	// the item came from: an item in a packet answers out of the properties
-	// above, an item in the world answers by asking the game.
+	// above, an item in the world answers by asking the game, and a catalogue
+	// source answers out of the property entries the tables hold for it.
 	const StatSource *stats;
 
 	/*

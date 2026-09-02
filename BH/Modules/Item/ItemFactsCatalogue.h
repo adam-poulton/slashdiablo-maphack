@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include "../../Catalogue/Source.h"
+#include "../../StatDescriptions.h"
 #include "ItemFacts.h"
 
 struct ItemAttributes;
@@ -16,9 +17,17 @@ struct ItemAttributes;
  * real rules against one, which is what keeps a preview from drifting away from
  * what a game shows. ADR 0004 is why the stat index does not read one.
  *
- * The stat index asks what a source could grant and answers with the range it
- * rolls. An item carries one number for a stat, not a range, so which roll the
- * item is said at is chosen here.
+ * Two things a source leaves open have to be settled before it is an item. The
+ * stat index asks what a source could grant and answers with the range it
+ * rolls, where an item carries one number, so the roll is chosen here. A source
+ * that names a range of bases grants different things in each, so the base is
+ * chosen by whoever is asking.
+ *
+ * What no source says is left unsaid rather than stood in for. An item's level
+ * is the level of whatever dropped it, so ILVL, and the affix and craft levels
+ * read off it, are answered from zero and say nothing true about a source. A
+ * stat the game stores with a sub index is left out of the item's stats
+ * entirely, for the reason CatalogueStats gives.
  *
  * Nothing here reaches into the game, so a rule can be walked against a source
  * with no game running.
@@ -41,24 +50,33 @@ namespace ItemFactsCatalogue {
 	 * damage, and the properties the tables give no stat to, all of which
 	 * ADR 0005 sets out.
 	 *
-	 * A stat the game stores with a sub index alongside the value is written
-	 * with none, because a total says how much a source grants and not which
-	 * skill or which class it granted it to. So a condition naming one of
-	 * those, a single skill or a class's skill tab, is answered from nothing
-	 * rather than from a total belonging to some other skill.
+	 * A stat the game stores with a sub index alongside the value is left out
+	 * altogether. A total says how much a source grants and not which skill or
+	 * which class it granted it to, and writing such a stat with a sub index of
+	 * nothing would answer a rule asking about the first skill or the first
+	 * class with every skill the source grants added together.
 	 *
 	 * Holds the item rather than a copy of it, so it must not outlive what it
-	 * was made from.
+	 * was made from, and is not copied for the same reason.
 	 */
 	class CatalogueStats : public StatSource {
 	public:
-		CatalogueStats(const ItemFacts& facts, const Catalogue::Source& source,
+		explicit CatalogueStats(const ItemFacts& facts) : facts(facts) {}
+
+		// Reads what a source's properties add up to. Added up by whatever is
+		// building the item, since which of a source's properties it grants
+		// depends on the base it is being made on, and the item's own numbers
+		// are read off the same totals.
+		void Read(const std::vector<StatDescriptions::StatTotal>& totals,
 				Roll roll);
 
 		int Stat(unsigned int stat, unsigned int sub) const override;
 		const std::vector<StatEntry>& Stats() const override;
 
 	private:
+		CatalogueStats(const CatalogueStats&);
+		CatalogueStats& operator=(const CatalogueStats&);
+
 		const ItemFacts& facts;
 		std::vector<StatEntry> entries;
 	};
@@ -66,30 +84,36 @@ namespace ItemFactsCatalogue {
 	/*
 	 * One source as an item, owning everything the facts point at.
 	 *
-	 * The item is said on the source's own base, so a source that names a range
-	 * of bases rather than one cannot be said at all: which of them a runeword
-	 * is made in decides what it grants, and nothing here picks one. Such a
-	 * source is not known.
+	 * The item's own facts point back at what this holds, so it is not copied:
+	 * a copy would leave its stats reading the item it was copied from.
 	 */
 	class CatalogueItem {
 	public:
 		/*
-		 * attrs is the base item's attributes, as ItemAttributeMap holds them,
-		 * and null for a source whose base the tables do not describe. Handed
-		 * in rather than looked up because that map is filled from the game's
-		 * archives, and a catalogue item is meant to be built without them.
+		 * The base to make the source on is the caller's, handed in as the
+		 * attributes the game keeps for it in ItemAttributeMap. The caller
+		 * looks up the base a source names, or picks one of the bases a source
+		 * that names a range of them is allowed in.
+		 *
+		 * Asked for rather than looked up because that map is filled from the
+		 * game's archives, and a catalogue item is meant to be built without
+		 * them.
 		 */
 		CatalogueItem(const Catalogue::Source& source, ItemAttributes* attrs,
 				Roll roll = BestRoll);
 
-		// False where the source names no one base, or where the tables do not
-		// describe the base it names. Nothing is filled in either case, which
-		// is the answer an item in the world gives to the same question.
+		// False where no base was handed in, where the tables carry no such
+		// base, and where the base is not of a kind the source can be made on.
+		// Nothing is filled in any of those cases, which is the answer an item
+		// in the world gives to the same question.
 		bool Known() const { return known; }
 
 		const ItemFacts& Facts() const { return facts; }
 
 	private:
+		CatalogueItem(const CatalogueItem&);
+		CatalogueItem& operator=(const CatalogueItem&);
+
 		ItemFacts facts;
 		CatalogueStats stats;
 		bool known;

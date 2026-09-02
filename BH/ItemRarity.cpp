@@ -34,3 +34,13 @@ ItemRarity RarityFromQuality(unsigned int quality) {
 		return RarityNormal;
 	return (ItemRarity)quality;
 }
+
+unsigned int QualityFromRarity(ItemRarity rarity) {
+	switch (rarity) {
+	case RarityRuneword:
+	case RarityRune:
+		return ITEM_QUALITY_NORMAL;
+	default:
+		return (unsigned int)rarity;
+	}
+}

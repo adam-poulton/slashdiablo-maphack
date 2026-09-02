@@ -108,7 +108,7 @@ static std::string RuneName(const std::string& code) {
 // in ItemTypes.txt up to the root categories. A shield is looked for before any
 // armour, since the shields hang off "Any Armor" and take rune bonuses of their
 // own.
-static const char* BaseKindFor(const std::string& code) {
+const char* BaseKind(const std::string& code) {
 	std::string current = code;
 	for (int depth = 0; depth < kEquivDepth && current.length() > 0; depth++) {
 		if (current.compare("shld") == 0)
@@ -146,7 +146,7 @@ static int LevelForRunes(const std::vector<std::string>& runeCodes) {
 // grants is tagged with.
 static void AddVariant(std::vector<Catalogue::Variant>& variants,
 		const std::string& typeCode, const std::string& typeName) {
-	std::string baseKind = BaseKindFor(typeCode);
+	std::string baseKind = BaseKind(typeCode);
 	for (unsigned int i = 0; i < variants.size(); i++) {
 		if (variants[i].baseKind.compare(baseKind) == 0)
 			return;

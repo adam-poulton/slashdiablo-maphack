@@ -1,8 +1,10 @@
 #include "ItemFactsCatalogue.h"
 #include <string>
 #include <vector>
+#include "../../Catalogue/RunewordCatalogue.h"
 #include "../../Constants.h"
 #include "../../ItemDescription.h"
+#include "../../ItemRarity.h"
 #include "../../ItemTables.h"
 #include "../../PropertyStats.h"
 #include "../../StatDescriptions.h"
@@ -11,53 +13,68 @@ namespace ItemFactsCatalogue {
 
 namespace {
 
-// What a stat comes to at this roll: the top of the range the source rolls it
-// in, or the bottom. A stat granted as one number is that number at both ends.
-int At(const StatDescriptions::StatTotal& total, Roll roll) {
-	return (roll == BestRoll) ? total.high : total.low;
+// Whichever end of a range the roll asks for. A range whose ends are equal is
+// the one number it is either way.
+int At(int low, int high, Roll roll) {
+	return (roll == BestRoll) ? high : low;
 }
 
-// The same reading of a range the base's own numbers are taken at.
-int At(const ItemDescription::Range& range, Roll roll) {
-	return (roll == BestRoll) ? range.high : range.low;
+// The stats the game stores with something alongside the value: which skill,
+// which class, which of a class's skill tabs. What a total says is how much,
+// so none of these can be said at all. CatalogueStats has why.
+bool CarriesSubIndex(unsigned int stat) {
+	switch (stat) {
+	case STAT_CHARGED:
+	case STAT_NONCLASSSKILL:
+	case STAT_SINGLESKILL:
+	case STAT_CLASSSKILLS:
+	case STAT_SKILLTAB:
+		return true;
+	default:
+		return false;
+	}
 }
 
 /*
- * Which of the game's own qualities the source is drawn as.
+ * What the source grants on the base it is being made on.
  *
- * A rarity is a quality wherever the game has one, and the two carry the same
- * values so they convert straight across. A runeword and a rune are the two BH
- * gives itself, and an item that is either has a plain item's quality: what
- * says an item is a runeword is the flag, which is also all a rule can ask
- * about one.
+ * A source made on one base grants its own properties, which are the whole of
+ * what it grants. A source that names a range of bases grants what its variant
+ * for that kind of base does, since each of a runeword's runes gives one set of
+ * bonuses in a weapon, another in a helm or body armour and a third in a
+ * shield.
+ *
+ * Null where the source has variants and none of them is of that base's kind,
+ * which is a base the source cannot be made on.
  */
-unsigned int QualityOf(ItemRarity rarity) {
-	switch (rarity) {
-	case RarityRuneword:
-	case RarityRune:
-		return ITEM_QUALITY_NORMAL;
-	default:
-		return (unsigned int)rarity;
+const std::vector<PropertyStats::Property>* GrantsOn(
+		const Catalogue::Source& source, const ItemDescription::Base& base) {
+	if (source.variants.empty())
+		return &source.properties;
+
+	std::string kind = RunewordCatalogue::BaseKind(base.type);
+	for (unsigned int i = 0; i < source.variants.size(); i++) {
+		if (source.variants[i].baseKind.compare(kind) == 0)
+			return &source.variants[i].properties;
 	}
+	return NULL;
 }
 
 }  // namespace
 
-CatalogueStats::CatalogueStats(const ItemFacts& facts,
-		const Catalogue::Source& source, Roll roll) : facts(facts) {
-	std::vector<StatDescriptions::StatTotal> totals =
-		PropertyStats::Totals(source.properties);
+void CatalogueStats::Read(
+		const std::vector<StatDescriptions::StatTotal>& totals, Roll roll) {
 	for (unsigned int i = 0; i < totals.size(); i++) {
 		// A stat the tables do not carry is one nothing can ask about, since a
 		// rule names a stat by the number the tables give it.
 		int id = StatDescriptions::StatId(totals[i].stat);
-		if (id < 0)
+		if (id < 0 || CarriesSubIndex((unsigned int)id))
 			continue;
 
 		StatEntry entry;
 		entry.stat = (unsigned short)id;
 		entry.sub = 0;
-		entry.value = At(totals[i], roll);
+		entry.value = At(totals[i].low, totals[i].high, roll);
 		entries.push_back(entry);
 	}
 }
@@ -69,9 +86,16 @@ int CatalogueStats::Stat(unsigned int stat, unsigned int sub) const {
 	 * item carries and what the source's armour properties have already been
 	 * spent on. Answered off the item for that reason, the way an item from a
 	 * packet answers it.
+	 *
+	 * Sockets are answered off the item for the same reason. A source grants
+	 * them as a property, but a runeword's are the sockets its runes fill and
+	 * are no property of its own, so the item's own count is the one answer that
+	 * holds for both.
 	 */
 	if (stat == STAT_DEFENSE)
 		return facts.defense;
+	if (stat == STAT_SOCKETS)
+		return facts.sockets;
 
 	int total = 0;
 	for (unsigned int i = 0; i < entries.size(); i++) {
@@ -88,7 +112,7 @@ const std::vector<StatEntry>& CatalogueStats::Stats() const {
 
 CatalogueItem::CatalogueItem(const Catalogue::Source& source,
 		ItemAttributes* attrs, Roll roll)
-		: facts(), stats(facts, source, roll), known(false) {
+		: facts(), stats(facts), known(false) {
 	facts.stats = &stats;
 
 	/*
@@ -98,61 +122,76 @@ CatalogueItem::CatalogueItem(const Catalogue::Source& source,
 	 */
 	facts.liveOnly = NULL;
 
-	// A source that names a range of bases grants different things in each, and
-	// which of them it is made in is not something the source decides. Nothing
-	// here picks one, so there is no item to say.
-	if (source.baseCode.length() == 0 || !attrs)
+	if (!attrs)
+		return;
+	const ItemDescription::Base* base = ItemDescription::FindBase(attrs->code);
+	if (!base)
 		return;
 
+	const std::vector<PropertyStats::Property>* properties =
+		GrantsOn(source, *base);
+	if (!properties)
+		return;
+
+	// Added up once, since the item's stats, its defence and its sockets are all
+	// read off the same totals.
+	std::vector<StatDescriptions::StatTotal> totals =
+		PropertyStats::Totals(*properties);
+	stats.Read(totals, roll);
+
 	facts.attrs = attrs;
-	for (int i = 0; i < 3; i++) {
-		// Padded with spaces where the code is shorter, as the game pads the
-		// code it keeps on an item.
-		facts.code[i] = (i < (int)source.baseCode.length())
-			? source.baseCode[i] : ' ';
-	}
-	facts.code[3] = 0;
+	for (int i = 0; i < 4; i++)
+		facts.code[i] = attrs->code[i];
 	facts.name = source.name;
 
-	facts.quality = QualityOf(source.rarity);
+	facts.quality = QualityFromRarity(source.rarity);
 	facts.runeword = source.rarity == RarityRuneword;
 
 	/*
 	 * Which unique or which piece of a set this is, filled the way an item in
 	 * the world fills it: the one the quality calls for and no other, so that
-	 * asked whether it is a particular set item a unique says no.
+	 * asked whether it is a particular set item a unique says no. A runeword is
+	 * numbered by nothing here, since the flag above is the whole of what a rule
+	 * can ask about one.
 	 */
-	if (source.id >= 0) {
+	if (source.fileIndex >= 0) {
 		if (facts.quality == ITEM_QUALITY_UNIQUE)
-			facts.uniqueCode = (unsigned int)source.id;
+			facts.uniqueCode = (unsigned int)source.fileIndex;
 		else if (facts.quality == ITEM_QUALITY_SET)
-			facts.setCode = (unsigned int)source.id;
+			facts.setCode = (unsigned int)source.fileIndex;
 	}
 
 	// Described down to what it rolled, which is what being identified means.
 	facts.identified = true;
 
 	/*
-	 * The level from which the game starts dropping the source, which is the
-	 * lowest level an item of it exists at. A particular drop's item level is
-	 * the level of whatever dropped it and is not something a source says, so
-	 * this stands in for it.
+	 * What the base is worth with the source's own always-on bonuses folded in,
+	 * which is the number the finished item carries. Worked out from the
+	 * properties granted on this base rather than read off the source, so that
+	 * a source made on a range of bases is worth what it is worth on this one.
 	 */
-	facts.level = (unsigned char)source.level;
+	ItemDescription::Modifiers modifiers =
+		ItemDescription::ReadModifiers(totals);
+	ItemDescription::Range defense = ItemDescription::Defense(*base, modifiers);
+	facts.defense = At(defense.low, defense.high, roll);
 
-	const ItemDescription::Base* base =
-		ItemDescription::FindBase(source.baseCode);
-	if (base) {
-		facts.defense = At(ItemDescription::Defense(*base, source.modifiers),
-			roll);
+	/*
+	 * A runeword fills one socket per rune, that being the whole of what it is
+	 * made from, and grants none as a property of its own. Anything else
+	 * carries the sockets its properties grant it, and carries them empty: a
+	 * source says what an item rolls, not what has since been put in it.
+	 */
+	if (source.rarity == RarityRuneword) {
+		facts.sockets = (unsigned char)source.ingredientCodes.size();
+		facts.usedSockets = facts.sockets;
+	} else {
+		int low = 0, high = 0;
+		StatDescriptions::TotalFor(totals, "item_numsockets", low, high);
+		facts.sockets = (unsigned char)At(low, high, roll);
 	}
-
-	// What the source grants sockets, said as a field of the item as well,
-	// since that is where an item keeps them.
-	facts.sockets = (unsigned char)stats.Stat(STAT_SOCKETS, 0);
 	facts.hasSockets = facts.sockets > 0;
 
 	known = true;
 }
 
-}
+}  // namespace ItemFactsCatalogue

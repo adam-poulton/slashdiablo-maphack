@@ -154,7 +154,7 @@ std::vector<Catalogue::Source> ReadPieces(Table& table) {
 		// The row itself, as a unique's is: what the game draws a set item's
 		// file index from and what SET in a rule is written with. A set's own
 		// bonus is numbered by nothing, since no item is one.
-		source.id = i;
+		source.fileIndex = i;
 		source.code = code;
 		source.name = NameOf(code);
 		source.baseCode = baseCode;
