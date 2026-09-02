@@ -1,6 +1,7 @@
 #include "doctest.h"
 #include <string>
 #include <vector>
+#include "Catalogue/BaseItemCatalogue.h"
 #include "Catalogue/Catalogues.h"
 #include "Catalogue/RecipeCatalogue.h"
 #include "Catalogue/RunewordCatalogue.h"
@@ -30,9 +31,11 @@ namespace {
 const char* const kUnique = UniqueCatalogue::Kind;
 const char* const kRuneword = RunewordCatalogue::Kind;
 const char* const kRecipe = RecipeCatalogue::Kind;
+const char* const kBase = BaseItemCatalogue::Kind;
 
 // The fixture holds four uniques, the eight pieces of two sets, those two sets'
-// own bonuses, five runewords, and eleven cube recipes. A question about one
+// own bonuses, five runewords, eleven cube recipes, and every base item the
+// other four needed to be read at all. A question about one
 // catalogue is scoped to its kind, so that what it asserts does not turn on
 // which other catalogues the fixture happens to carry.
 Query Ask(const std::vector<Criterion>& criteria, const std::string& kind = "") {
@@ -68,7 +71,7 @@ std::vector<std::string> AnswersFrom(const std::string& kind,
 TEST_CASE("every source of every catalogue is in the index") {
 	// Every catalogue, one after another in the order Catalogues.cpp reads
 	// them, and each in the order it lists its own sources.
-	CHECK(Answers({}) == std::vector<std::string>({
+	std::vector<std::string> expected({
 		"Guardian Angel",
 		"Harlequin Crest",
 		"Mara's Kaleidoscope",
@@ -99,7 +102,17 @@ TEST_CASE("every source of every catalogue is in the index") {
 		"Unsocketed Item",
 		"Exceptional Unique Any Armor",
 		"Repaired Weapon",
-	}));
+	});
+
+	// The bases are read last, and there is one for every row the other four
+	// catalogues needed in the base tables. They are named in
+	// BaseItemCatalogueTests rather than a second time here; what this asserts
+	// is that all of them arrive, after the recipes and in their own order.
+	std::vector<std::string> bases = AnswersFrom(kBase, {});
+	CHECK(bases.size() == 50);
+	expected.insert(expected.end(), bases.begin(), bases.end());
+
+	CHECK(Answers({}) == expected);
 }
 
 TEST_CASE("a stat criterion is answered on the best roll") {
@@ -163,9 +176,14 @@ TEST_CASE("a text criterion is matched against the search key") {
 	// A search box with nothing typed in it shows the whole list.
 	CHECK(Answers({ Criterion::OnText("") }) == Answers({}));
 
+	// One question answered across two kinds of source: the unique made on a
+	// Shako, and the Shako itself.
+	CHECK(Answers({ Criterion::OnText("Shako") }) ==
+		std::vector<std::string>({ "Harlequin Crest", "Shako" }));
+
 	// A text criterion asks for no stat, so there is no range to report.
 	std::vector<Result> results = StatIndex::Find(Ask({ Criterion::OnText("Shako") }));
-	REQUIRE(results.size() == 1);
+	REQUIRE(results.size() == 2);
 	CHECK(results[0].ranges.empty());
 }
 
@@ -219,6 +237,9 @@ TEST_CASE("a query can be scoped to one kind") {
 	query.kind = RecipeCatalogue::Kind;
 	CHECK(StatIndex::Find(query).size() == 11);
 
+	query.kind = BaseItemCatalogue::Kind;
+	CHECK(StatIndex::Find(query).size() == 50);
+
 	// A kind no catalogue registers, which is what every catalogue not yet
 	// written looks like.
 	query.kind = "affix";
@@ -233,6 +254,8 @@ TEST_CASE("a scoped query answers with only its own kind") {
 		std::vector<std::string>({ "Mara's Kaleidoscope" }));
 	CHECK(AnswersFrom(kRecipe, { Criterion::OnText("amulet") }) ==
 		std::vector<std::string>({ "Prismatic Amulet" }));
+	CHECK(AnswersFrom(kBase, { Criterion::OnText("amulet") }) ==
+		std::vector<std::string>({ "Amulet" }));
 }
 
 TEST_CASE("a recipe is reachable by the words a player types about it") {
@@ -270,7 +293,7 @@ TEST_CASE("a recipe answers a criterion on what its result is given") {
 
 TEST_CASE("an entry carries what the index was registered with") {
 	std::vector<Result> results = StatIndex::Find(Ask({ Criterion::OnText("Shako") }));
-	REQUIRE(results.size() == 1);
+	REQUIRE(results.size() == 2);
 	const StatIndex::Entry& entry = *results[0].entry;
 
 	CHECK(entry.kind == UniqueCatalogue::Kind);

@@ -252,6 +252,15 @@ std::string BaseName(const std::string& code) {
 	return (base && base->name.length() > 0) ? base->name : code;
 }
 
+std::string TierName(Tier tier) {
+	switch (tier) {
+		case TierNormal:		return "Normal";
+		case TierExceptional:	return "Exceptional";
+		case TierElite:			return "Elite";
+		default:				return "";
+	}
+}
+
 std::string TypeName(const std::string& code) {
 	JSONObject* entry = Tables::ItemTypes.findEntry("Code", code);
 	if (entry) {

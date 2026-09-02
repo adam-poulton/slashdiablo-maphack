@@ -64,9 +64,17 @@ namespace Catalogue {
 		std::string setCode;
 		std::string setName;
 
+		// Which of the three the base under it is built in, and none for a
+		// source made on no one base.
+		ItemDescription::Tier tier;
+
 		// The level the source itself asks for, which can be higher than the
 		// one its base asks for. Zero where it asks for none.
 		int requiredLevel;
+
+		// The level from which the game starts dropping it. What a character
+		// needs to use it is requiredLevel; this is where it begins to appear.
+		int level;
 
 		// How the game draws it, which is also what a rule matching on rarity
 		// would have to ask for.
@@ -112,7 +120,8 @@ namespace Catalogue {
 		// instead, so there is no stat line for them to be part of.
 		std::vector<std::string> notes;
 
-		Source() : requiredLevel(0), rarity(RarityNone) {};
+		Source() : tier(ItemDescription::TierNone), requiredLevel(0), level(0),
+			rarity(RarityNone) {};
 	};
 
 }

@@ -50,6 +50,7 @@
     <ClCompile Include="Modules\ScreenInfo\ScreenInfo.cpp" />
     <ClCompile Include="MPQInit.cpp" />
     <ClCompile Include="MPQReader.cpp" />
+    <ClCompile Include="Catalogue\BaseItemCatalogue.cpp" />
     <ClCompile Include="Catalogue\Catalogues.cpp" />
     <ClCompile Include="Catalogue\RecipeCatalogue.cpp" />
     <ClCompile Include="Catalogue\RunewordCatalogue.cpp" />
@@ -133,6 +134,7 @@
     <ClInclude Include="Modules\ScreenInfo\ScreenInfo.h" />
     <ClInclude Include="MPQInit.h" />
     <ClInclude Include="MPQReader.h" />
+    <ClInclude Include="Catalogue\BaseItemCatalogue.h" />
     <ClInclude Include="Catalogue\Catalogues.h" />
     <ClInclude Include="Catalogue\RecipeCatalogue.h" />
     <ClInclude Include="Catalogue\RunewordCatalogue.h" />

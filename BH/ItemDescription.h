@@ -53,6 +53,10 @@ namespace ItemDescription {
 	// its upgrade columns, and the tier it is itself by pointing one of them at
 	// its own code.
 	enum Tier {
+		// A source made on no one base is built in no tier: a runeword names a
+		// range of bases and a set's own bonus names none.
+		TierNone,
+
 		TierNormal,
 		TierExceptional,
 		TierElite
@@ -137,6 +141,10 @@ namespace ItemDescription {
 	// What an item type code is called ("armo" -> "Any Armor"), from
 	// ItemTypes.txt. Falls back to the code.
 	std::string TypeName(const std::string& code);
+
+	// What a tier is called. The game never writes one out anywhere, so the
+	// words are ours, and a tier of none has none.
+	std::string TierName(Tier tier);
 
 	// What an item's own always-on properties do to the numbers its base carries.
 	//
