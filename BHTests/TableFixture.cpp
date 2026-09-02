@@ -47,6 +47,10 @@ void TableFixture::Load() {
 	LoadTable("Weapons.txt", Tables::Weapons);
 	LoadTable("Armor.txt", Tables::Armor);
 	LoadTable("Misc.txt", Tables::Misc);
+	// The game reads its runewords out of runes.txt, so the fixture is named
+	// after the file rather than after the table it lands in.
+	LoadTable("Runes.txt", Tables::Runewords);
+	LoadTable("Gems.txt", Tables::Gems);
 	// The keying the game does once its archives are read, so the tests search
 	// the tables the way it does.
 	Tables::buildLookups();

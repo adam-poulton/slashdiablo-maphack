@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include "Catalogue/Catalogues.h"
+#include "Catalogue/RunewordCatalogue.h"
 #include "Catalogue/SetCatalogue.h"
 #include "Catalogue/StatIndex.h"
 #include "Catalogue/UniqueCatalogue.h"
@@ -26,11 +27,12 @@ using StatIndex::Result;
 namespace {
 
 const char* const kUnique = UniqueCatalogue::Kind;
+const char* const kRuneword = RunewordCatalogue::Kind;
 
-// The fixture holds four uniques, the eight pieces of two sets, and those two
-// sets' own bonuses. A question about one catalogue is scoped to its kind, so
-// that what it asserts does not turn on which other catalogues the fixture
-// happens to carry.
+// The fixture holds four uniques, the eight pieces of two sets, those two sets'
+// own bonuses, and five runewords. A question about one catalogue is scoped to
+// its kind, so that what it asserts does not turn on which other catalogues the
+// fixture happens to carry.
 Query Ask(const std::vector<Criterion>& criteria, const std::string& kind = "") {
 	TableFixture::Load();
 	Catalogue::Load();
@@ -62,6 +64,8 @@ std::vector<std::string> AnswersFrom(const std::string& kind,
 // In registration order, which is the order the catalogues are read in and,
 // within each, the order it lists its sources.
 TEST_CASE("every source of every catalogue is in the index") {
+	// Every catalogue, one after another in the order Catalogues.cpp reads
+	// them, and each in the order it lists its own sources.
 	CHECK(Answers({}) == std::vector<std::string>({
 		"Guardian Angel",
 		"Harlequin Crest",
@@ -77,6 +81,11 @@ TEST_CASE("every source of every catalogue is in the index") {
 		"Tal Rasha's Horadric Crest",
 		"Civerb's Vestments",
 		"Tal Rasha's Wrappings",
+		"Enigma",
+		"Lore",
+		"Plague",
+		"Spirit",
+		"Splendor",
 	}));
 }
 
@@ -191,9 +200,12 @@ TEST_CASE("a query can be scoped to one kind") {
 	query.kind = SetCatalogue::BonusKind;
 	CHECK(StatIndex::Find(query).size() == 2);
 
+	query.kind = RunewordCatalogue::Kind;
+	CHECK(StatIndex::Find(query).size() == 5);
+
 	// A kind no catalogue registers, which is what every catalogue not yet
 	// written looks like.
-	query.kind = "runeword";
+	query.kind = "affix";
 	CHECK(StatIndex::Find(query).empty());
 }
 
@@ -288,4 +300,46 @@ TEST_CASE("a piece is found by the set it belongs to") {
 	CHECK(results[0].entry->searchKey ==
 		"civerb's ward large shield shield civerb's vestments");
 	CHECK(results[0].entry->source->setName == "Civerb's Vestments");
+}
+
+TEST_CASE("a source made on several kinds of base is answered by the kind that satisfies") {
+	// Spirit's runes give cold resistance only in a shield and steal life only
+	// in a weapon. Both are what it could grant, so a criterion finds it under
+	// either.
+	CHECK(AnswersFrom(kRuneword,
+		{ Criterion::OnStat("coldresist", StatIndex::GreaterThan, 30) }) ==
+		std::vector<std::string>({ "Spirit" }));
+	CHECK(AnswersFrom(kRuneword,
+		{ Criterion::OnStat("lifedrainmindam", StatIndex::GreaterThan, 5) }) ==
+		std::vector<std::string>({ "Spirit" }));
+
+	// And the range reported is the one that kind of base rolls rather than
+	// anything the kinds were read across.
+	std::vector<Result> results = StatIndex::Find(
+		Ask({ Criterion::OnStat("coldresist", StatIndex::GreaterThan, 30) },
+			kRuneword));
+	REQUIRE(results.size() == 1);
+	REQUIRE(results[0].ranges.size() == 1);
+	CHECK(results[0].ranges[0].low == 35);
+	CHECK(results[0].ranges[0].high == 35);
+
+	// A stat the runeword grants itself is the same in every kind of base, and
+	// is reported once rather than once a kind.
+	results = StatIndex::Find(
+		Ask({ Criterion::OnStat("maxmana", StatIndex::GreaterThan, 100) },
+			kRuneword));
+	REQUIRE(results.size() == 1);
+	CHECK(results[0].entry->source->name == "Spirit");
+	REQUIRE(results[0].ranges.size() == 1);
+	CHECK(results[0].ranges[0].low == 89);
+	CHECK(results[0].ranges[0].high == 112);
+}
+
+TEST_CASE("a runeword is reached by the runes it is made from") {
+	// Neither the name nor the kind of base says so, which is what puts the
+	// runes in the search key.
+	CHECK(AnswersFrom(kRuneword, { Criterion::OnText("jah") }) ==
+		std::vector<std::string>({ "Enigma" }));
+	CHECK(AnswersFrom(kRuneword, { Criterion::OnText("any shield") }) ==
+		std::vector<std::string>({ "Spirit", "Splendor" }));
 }

@@ -104,6 +104,19 @@ runeword, a cube recipe, an affix. What they have in common is granting stats,
 which is what makes them worth holding together.
 _Avoid_: record, entry, result
 
+**Variant**:
+The same source made on a different kind of base, and the whole of what it
+grants there. A runeword rolls differently in a weapon, in a helm or body
+armour and in a shield, because each of its runes gives one set of bonuses per
+kind. A criterion is answered by whichever variant satisfies it.
+_Avoid_: version, flavour, form, slot
+
+**Ingredient**:
+One of the things a source is made from, named by its code and kept in the
+order they go in: the runes of a runeword in socket order. A source made from
+nothing has none.
+_Avoid_: component, part, reagent, input
+
 **Property**:
 One entry in the game's tables that grants something: what it grants, the
 parameter saying which of it, the range it rolls in, and the count of set pieces
@@ -139,8 +152,8 @@ _Avoid_: type, category, class
 
 **Entry**:
 One source as the stat index holds it: the kind that registered it, the search
-key a text criterion is matched against, what it can grant as stat totals, and
-a handle back to the source itself. An entry is how the index holds a source,
+key a text criterion is matched against, what it can grant as stat totals, one
+set per kind of base it can be made on, and a handle back to the source itself. An entry is how the index holds a source,
 never another word for one.
 _Avoid_: record, row, item
 

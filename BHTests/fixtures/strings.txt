@@ -159,7 +159,11 @@ Moditemskondeath	%d%% Chance to cast level %d %s when you Die
 Modstr2v	Enhanced Defense
 NecOnly	(Necromancer Only)
 PalOnly	(Paladin Only)
+Runeword130	Spirit
+Runeword131	Splendor
 Runeword22	Delirium
+Runeword33	Enigma
+Runeword75	Lore
 Skillname222	Raven
 Skillname223	Werewolf
 Skillname224	Werewolf
@@ -257,6 +261,19 @@ gsc	Grand Scepter
 increaseswithplaylevelX	(Based on Character Level)
 lrg	Large Shield
 oba	Swirling Crystal
+r05	Eth Rune
+r06	Ith Rune
+r07	Tal Rune
+r09	Ort Rune
+r10	Thul Rune
+r11	Amn Rune
+r12	Sol Rune
+r17	Lum Rune
+r19	Fal Rune
+r22	Um Rune
+r30	Ber Rune
+r31	Jah Rune
+r32	Cham Rune
 r33	Zod Rune
 skillname0	Attack
 skillname1	Kick

@@ -93,6 +93,7 @@
     <ClCompile Include="TableLookupTests.cpp" />
     <ClCompile Include="SetCatalogueTests.cpp" />
     <ClCompile Include="StatIndexTests.cpp" />
+    <ClCompile Include="RunewordCatalogueTests.cpp" />
     <ClCompile Include="UniqueCatalogueTests.cpp" />
     <!-- Sources under test. Only translation units that reference no D2 symbols
          can be linked here: the D2 function pointers are naked inline-asm thunks
@@ -109,6 +110,7 @@
     <ClCompile Include="..\BH\ItemDescription.cpp" />
     <ClCompile Include="..\BH\TableReader.cpp" />
     <ClCompile Include="..\BH\Catalogue\Catalogues.cpp" />
+    <ClCompile Include="..\BH\Catalogue\RunewordCatalogue.cpp" />
     <ClCompile Include="..\BH\Catalogue\SetCatalogue.cpp" />
     <ClCompile Include="..\BH\Catalogue\StatIndex.cpp" />
     <ClCompile Include="..\BH\Catalogue\UniqueCatalogue.cpp" />

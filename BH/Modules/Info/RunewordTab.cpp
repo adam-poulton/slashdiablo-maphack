@@ -1,11 +1,11 @@
 #include "RunewordTab.h"
-#include <algorithm>
 #include "../../BH.h"
+#include "../../Catalogue/Catalogues.h"
+#include "../../Catalogue/RunewordCatalogue.h"
 #include "../../Common.h"
 #include "../../ItemDescription.h"
 #include "../../ItemRarity.h"
-#include "../../StatDescriptions.h"
-#include "../../TableReader.h"
+#include "../../StringUtil.h"
 
 using namespace Drawing;
 
@@ -17,94 +17,9 @@ using namespace Drawing;
 #define RW_COL_NAME_W		136
 #define RW_COL_GAP			4
 
-// Recipes the realm enables without shipping them in runes.txt, as property
-// entries in a runes.txt row's shape so they render and add up like the rest. What
-// a rune contributes still comes from Gems.txt, so only the runeword's own bonuses
-// are listed; anything the property tables cannot express goes in lines[].
-struct ExtraRuneword {
-	const char* name;
-	const char* runes[6];
-	const char* itemType;
-	PropertyStats::Property properties[8];
-	const char* lines[4];
-};
-
-static const ExtraRuneword kExtraRunewords[] = {
-	{
-		"Plague", { "r32", "r19", "r22" }, "weap",	// Cham + Fal + Um
-		{
-			{ "hit-skill",    "Poison Nova",   25,  15 },
-			{ "gethit-skill", "Lower Resist",  20,  12 },
-			{ "aura",         "Cleansing",     13,  17 },
-			{ "allskills",    "",               1,   2 },
-			{ "dmg-demon",    "",             260, 380 },
-			{ "pierce-pois",  "",              23,  23 },
-			{ "dmg-fire",     "",               5,  30 },
-		},
-		{
-			// Per level amounts are held in eighths, which cannot express 0.3%.
-			"0.3% Deadly Strike (Based on Character Level)",
-		}
-	},
-};
-
-// gems.txt gives every rune three sets of bonuses - weapon, helm or body armour,
-// shield - which is why the same runeword rolls differently per base.
-static const char* kSlotWeapon = "weapon";
-static const char* kSlotHelm = "helm";
-static const char* kSlotShield = "shield";
-
-// The string table key is in "Name" ("Runeword1"), the readable name in
-// "Rune Name".
-static std::string RunewordName(JSONObject* entry) {
-	std::string id = Trim(entry->getString("Name"));
-	std::string localized = StatDescriptions::GetString(id);
-	if (localized.length() > 0)
-		return localized;
-	
-	std::string name;
-	const char* fields[] = { "Rune Name", "*Rune Name" };
-	for (int i = 0; i < 2 && name.length() == 0; i++)
-		name = Trim(entry->getString(fields[i]));
-	return (name.length() > 0) ? name : id;
-}
-
-// Rune codes ("r14") come from runes.txt; what a rune is called comes from the
-// string table, the same as any other base item.
-static std::string RuneName(const std::string& code) {
-	std::string name = ItemDescription::BaseName(code);
-	// "El Rune" reads better as just "El" in a recipe list.
-	const std::string suffix = " Rune";
-	if (name.length() > suffix.length() &&
-		name.compare(name.length() - suffix.length(), suffix.length(), suffix) == 0) {
-		name.erase(name.length() - suffix.length());
-	}
-	return name;
-}
-
-// Walks the Equiv chain in ItemTypes.txt up to the root categories.
-static const char* BaseSlot(const std::string& code) {
-	std::string current = code;
-	for (int depth = 0; depth < 12 && current.length() > 0; depth++) {
-		if (current.compare("shld") == 0)
-			return kSlotShield;
-		if (current.compare("weap") == 0)
-			return kSlotWeapon;
-		if (current.compare("armo") == 0 || current.compare("tors") == 0 ||
-			current.compare("helm") == 0)
-			return kSlotHelm;
-		JSONObject* entry = Tables::ItemTypes.findEntry("Code", current);
-		if (!entry)
-			break;
-		current = Trim(entry->getString("Equiv1"));
-	}
-	// What the game does with the leftover types runewords are allowed in.
-	return kSlotWeapon;
-}
-
 RunewordTab::RunewordTab(UI* ui) : UIPanel("Runewords", ui),
 	shownSummary(-1),
-	recipesLoaded(false),
+	catalogueLoaded(false),
 	needsRefresh(true) {
 
 	list = new Listhook(tab, UI_CONTENT_MARGIN, 0, 0, 0);
@@ -138,220 +53,28 @@ void RunewordTab::ApplyLayout() {
 	summary->SetMaxWidth(contentWidth);
 }
 
-void RunewordTab::MpqLoaded() {
-	StatDescriptions::Initialize();
-	BuildRecipes();
-}
-
 std::vector<ChatCommand> RunewordTab::GetCommands() {
 	return { { "rw", { "runewords" }, "<search>", "Opens the Runewords tab" } };
 }
 
-// A runeword can be made as soon as its highest rune can be worn, which is what
-// the runes ask for as base items.
-static void RaiseToRuneLevel(const std::string& code,
-		ItemDescription::Requirements& requirements) {
-	const ItemDescription::Base* rune = ItemDescription::FindBase(code);
-	if (rune && rune->requirements.level > requirements.level)
-		requirements.level = rune->requirements.level;
-}
-
-void RunewordTab::BuildRecipes() {
-	recipes.clear();
-	matches.clear();
-
-	// Only the rows flagged complete; the file keeps placeholders too. A modified
-	// runes.txt with nothing flagged falls back to every row that has runes.
-	for (int pass = 0; pass < 2 && recipes.empty(); pass++) {
-		bool requireComplete = (pass == 0);
-		for (int i = 0; i < Tables::Runewords.size(); i++) {
-			JSONObject* entry = Tables::Runewords.entryAt(i);
-			if (!entry)
-				continue;
-			if (requireComplete && entry->getString("complete").compare("1") != 0)
-				continue;
-
-			RunewordRecipe recipe;
-			recipe.statsLoaded = false;
-
-			std::vector<std::string> runeNames;
-			for (int n = 1; n <= 6; n++) {
-				std::string code = Trim(entry->getString("Rune" + std::to_string(n)));
-				if (code.length() == 0)
-					continue;
-				recipe.runeCodes.push_back(code);
-				runeNames.push_back(RuneName(code));
-				RaiseToRuneLevel(code, recipe.requirements);
-			}
-			if (runeNames.empty())
-				continue;
-
-			recipe.name = RunewordName(entry);
-			if (recipe.name.length() == 0)
-				continue;
-			recipe.runes = Join(runeNames, " + ");
-
-			std::vector<std::string> types;
-			for (int n = 1; n <= 6; n++) {
-				std::string code = Trim(entry->getString("itype" + std::to_string(n)));
-				if (code.length() == 0)
-					continue;
-				types.push_back(ItemDescription::TypeName(code));
-
-				// One block of rune bonuses per distinct kind of base.
-				const char* slot = BaseSlot(code);
-				bool seen = false;
-				for (unsigned int s = 0; s < recipe.baseSlots.size() && !seen; s++)
-					seen = (recipe.baseSlots[s].compare(slot) == 0);
-				if (!seen) {
-					recipe.baseSlots.push_back(slot);
-					recipe.baseLabels.push_back(types.back());
-				}
-			}
-			recipe.itemTypes = Join(types, ", ");
-
-			std::vector<std::string> excluded;
-			for (int n = 1; n <= 3; n++) {
-				std::string code = Trim(entry->getString("etype" + std::to_string(n)));
-				if (code.length() > 0)
-					excluded.push_back(ItemDescription::TypeName(code));
-			}
-			if (!excluded.empty())
-				recipe.itemTypes += " (not " + Join(excluded, ", ") + ")";
-
-			for (int n = 1; n <= 7; n++) {
-				std::string index = std::to_string(n);
-				PropertyStats::Property property;
-				property.code = Trim(entry->getString("T1Code" + index));
-				if (property.code.length() == 0)
-					continue;
-				property.param = Trim(entry->getString("T1Param" + index));
-				property.min = atoi(entry->getString("T1Min" + index).c_str());
-				property.max = atoi(entry->getString("T1Max" + index).c_str());
-				recipe.properties.push_back(property);
-			}
-
-			recipe.searchKey = ToLower(recipe.name + " " + recipe.runes + " " + recipe.itemTypes);
-			recipes.push_back(recipe);
-		}
-	}
-
-	for (unsigned int i = 0; i < (sizeof(kExtraRunewords) / sizeof(kExtraRunewords[0])); i++) {
-		const ExtraRuneword& extra = kExtraRunewords[i];
-
-		// Skip it if the realm has since added it to runes.txt.
-		bool known = false;
-		for (unsigned int n = 0; n < recipes.size() && !known; n++)
-			known = (recipes[n].name.compare(extra.name) == 0);
-		if (known)
-			continue;
-
-		RunewordRecipe recipe;
-		recipe.statsLoaded = false;
-		recipe.name = extra.name;
-
-		std::vector<std::string> runeNames;
-		for (int n = 0; n < 6 && extra.runes[n]; n++) {
-			recipe.runeCodes.push_back(extra.runes[n]);
-			runeNames.push_back(RuneName(extra.runes[n]));
-			RaiseToRuneLevel(extra.runes[n], recipe.requirements);
-		}
-		recipe.runes = Join(runeNames, " + ");
-		recipe.itemTypes = ItemDescription::TypeName(extra.itemType);
-		recipe.baseSlots.push_back(BaseSlot(extra.itemType));
-		recipe.baseLabels.push_back(recipe.itemTypes);
-
-		for (int n = 0; n < 8 && extra.properties[n].code.length() > 0; n++)
-			recipe.properties.push_back(extra.properties[n]);
-		for (int n = 0; n < 4 && extra.lines[n]; n++)
-			recipe.extraLines.push_back(extra.lines[n]);
-		recipe.searchKey = ToLower(recipe.name + " " + recipe.runes + " " + recipe.itemTypes);
-		recipes.push_back(recipe);
-	}
-
-	std::sort(recipes.begin(), recipes.end(), [](const RunewordRecipe& a, const RunewordRecipe& b) {
-		return ToLower(a.name) < ToLower(b.name);
-	});
-
-	recipesLoaded = true;
-	needsRefresh = true;
-}
-
-// Stats are the runeword's own bonuses plus each rune's, added together the way
-// the game does. Runes differ by base, so this runs once per kind of base the
-// runeword allows and only the lines that differ are tagged with their base.
-void RunewordTab::LoadStats(RunewordRecipe* recipe) {
-	if (recipe->statsLoaded)
-		return;
-	recipe->statsLoaded = true;
-	StatDescriptions::Initialize();
-
-	// One rendered list per kind of base. The ready made lines read the same
-	// whatever the base, so putting them in every list leaves them in common.
-	std::vector<std::vector<std::string>> perBase;
-	for (unsigned int s = 0; s < recipe->baseSlots.size(); s++) {
-		std::vector<PropertyStats::Property> properties = recipe->properties;
-		for (unsigned int r = 0; r < recipe->runeCodes.size(); r++) {
-			JSONObject* gem = Tables::Gems.findEntry("code", recipe->runeCodes[r]);
-			if (!gem)
-				continue;
-			for (int n = 1; n <= 3; n++) {
-				std::string prefix = recipe->baseSlots[s] + "Mod" + std::to_string(n);
-				PropertyStats::Property property;
-				property.code = Trim(gem->getString(prefix + "Code"));
-				if (property.code.length() == 0)
-					continue;
-				property.param = Trim(gem->getString(prefix + "Param"));
-				property.min = atoi(gem->getString(prefix + "Min").c_str());
-				property.max = atoi(gem->getString(prefix + "Max").c_str());
-				properties.push_back(property);
-			}
-		}
-		perBase.push_back(PropertyStats::Lines(properties, recipe->extraLines));
-	}
-
-	if (perBase.empty()) {
-		recipe->stats = PropertyStats::Lines(recipe->properties, recipe->extraLines);
-		return;
-	}
-
-	// Only the lines the bases disagree on are tagged.
-	for (unsigned int i = 0; i < perBase[0].size(); i++) {
-		bool everywhere = true;
-		for (unsigned int b = 1; b < perBase.size() && everywhere; b++) {
-			everywhere = std::find(perBase[b].begin(), perBase[b].end(),
-				perBase[0][i]) != perBase[b].end();
-		}
-		if (everywhere)
-			recipe->stats.push_back(perBase[0][i]);
-	}
-	for (unsigned int b = 0; b < perBase.size(); b++) {
-		for (unsigned int i = 0; i < perBase[b].size(); i++) {
-			bool common = std::find(recipe->stats.begin(), recipe->stats.end(),
-				perBase[b][i]) != recipe->stats.end();
-			if (common)
-				continue;
-			recipe->stats.push_back(perBase[b][i] + "  (" + recipe->baseLabels[b] + ")");
-		}
-	}
-}
-
-void RunewordTab::ApplyFilter() {
-	matches.clear();
-	for (unsigned int i = 0; i < recipes.size(); i++) {
-		if (query.empty() || recipes[i].searchKey.find(query) != std::string::npos)
-			matches.push_back(&recipes[i]);
-	}
+// One text criterion, scoped to the runewords. An empty search is carried by
+// every source, which is what shows the whole list.
+void RunewordTab::RunQuery() {
+	StatIndex::Query query;
+	query.kind = RunewordCatalogue::Kind;
+	query.criteria.push_back(StatIndex::Criterion::OnText(search));
+	results = StatIndex::Find(query);
 }
 
 void RunewordTab::PushRows() {
 	std::vector<std::vector<std::string>> rows;
-	rows.reserve(matches.size());
-	for (unsigned int i = 0; i < matches.size(); i++) {
+	rows.reserve(results.size());
+	for (unsigned int i = 0; i < results.size(); i++) {
+		const Catalogue::Source& source = *results[i].entry->source;
 		std::vector<std::string> row;
-		row.push_back(matches[i]->name);
-		row.push_back(matches[i]->runes);
-		row.push_back(matches[i]->itemTypes);
+		row.push_back(source.name);
+		row.push_back(source.ingredients);
+		row.push_back(source.itemType);
 		rows.push_back(row);
 	}
 	list->SetRows(rows);	// also clears the selection
@@ -360,15 +83,18 @@ void RunewordTab::PushRows() {
 
 // ItemDescription orders and spaces the panel the way the game describes a
 // recipe; the tab only says what goes in it.
-std::vector<TooltipLine> RunewordTab::BuildSummaryLines(RunewordRecipe* recipe) {
+std::vector<TooltipLine> RunewordTab::BuildSummaryLines(
+		const Catalogue::Source& source) {
 	ItemDescription::Recipe runeword;
-	runeword.name = recipe->name;
-	runeword.nameColor = RarityColor(RarityRuneword);
-	runeword.appliesTo = recipe->itemTypes;
-	runeword.ingredients = recipe->runes;
+	runeword.name = source.name;
+	runeword.nameColor = RarityColor(source.rarity);
+	runeword.appliesTo = source.itemType;
+	runeword.ingredients = source.ingredients;
 	runeword.ingredientColor = RarityColor(RarityRune);
-	runeword.requirements = recipe->requirements;
-	runeword.AddStats(recipe->stats, Blue);
+	// A runeword goes in any of a range of bases, so it carries no strength or
+	// dexterity of its own.
+	runeword.requirements.level = source.requiredLevel;
+	runeword.AddStats(source.lines, Blue);
 	return ItemDescription::Build(runeword);
 }
 
@@ -379,18 +105,14 @@ void RunewordTab::UpdateSummary() {
 	if (row < 0)
 		row = list->GetSelectedRow();
 
-	if (!IsActive() || row < 0 || row >= (int)matches.size()) {
+	if (!IsActive() || row < 0 || row >= (int)results.size()) {
 		summary->SetActive(false);
 		shownSummary = -1;
 		return;
 	}
 
 	if (row != shownSummary) {
-		// recipes owns the records; matches only points into it.
-		RunewordRecipe* recipe = const_cast<RunewordRecipe*>(matches[row]);
-		LoadStats(recipe);
-
-		summary->SetLines(BuildSummaryLines(recipe));
+		summary->SetLines(BuildSummaryLines(*results[row].entry->source));
 		shownSummary = row;
 	}
 
@@ -400,7 +122,7 @@ void RunewordTab::UpdateSummary() {
 }
 
 void RunewordTab::Search(const std::string& text) {
-	query = ToLower(Trim(text));
+	search = ToLower(Trim(text));
 	list->SetScrollTop(0);
 	needsRefresh = true;
 }
@@ -418,25 +140,25 @@ std::string RunewordTab::GetSearchPlaceholder() {
 
 // Follows the scroll position as well as the rows, so it is read per frame.
 std::string RunewordTab::GetStatus() {
-	if (!recipesLoaded)
+	if (!catalogueLoaded)
 		return "Waiting for game data to finish loading...";
-	if (matches.empty())
-		return "No runewords match \"" + query + "\"";
+	if (results.empty())
+		return "No runewords match \"" + search + "\"";
 
 	char line[64];
 	if (list->GetMaxScrollTop() > 0) {
 		sprintf_s(line, sizeof(line), "%u - %u of %u runewords",
 			list->GetFirstVisibleRow() + 1, list->GetLastVisibleRow(),
-			(unsigned int)matches.size());
+			(unsigned int)results.size());
 	} else {
-		sprintf_s(line, sizeof(line), "%u runewords", (unsigned int)matches.size());
+		sprintf_s(line, sizeof(line), "%u runewords", (unsigned int)results.size());
 	}
 	return line;
 }
 
 // Enter picks the first match rather than typing a newline.
 void RunewordTab::OnSearchSubmitted() {
-	if (!matches.empty())
+	if (!results.empty())
 		list->SetSelectedRow(0);
 }
 
@@ -444,14 +166,15 @@ void RunewordTab::OnDraw() {
 	if (tab->GetXSize() != laidOutWidth || tab->GetYSize() != laidOutHeight)
 		ApplyLayout();
 
-	// MpqLoaded can fire before this tab exists.
-	if (!recipesLoaded && Tables::isInitialized()) {
-		StatDescriptions::Initialize();
-		BuildRecipes();
+	// The catalogues are read on the thread that read the tables, which can
+	// finish either before this tab exists or after it has drawn a frame.
+	if (!catalogueLoaded && Catalogue::Loaded()) {
+		catalogueLoaded = true;
+		needsRefresh = true;
 	}
 
 	if (needsRefresh) {
-		ApplyFilter();
+		RunQuery();
 		PushRows();
 		needsRefresh = false;
 	}

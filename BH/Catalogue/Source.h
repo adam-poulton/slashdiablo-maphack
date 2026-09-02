@@ -18,6 +18,25 @@
  */
 namespace Catalogue {
 
+	// The same source made on a different kind of base. Where a source can be
+	// made on a range of bases rather than on one, what it grants differs by
+	// kind: each rune of a runeword gives one set of bonuses in a weapon,
+	// another in a helm or body armour, and a third in a shield.
+	struct Variant {
+		// The kind of base, named as gems.txt names the columns of rune
+		// bonuses it gives each: "weapon", "helm", "shield".
+		std::string baseKind;
+
+		// What the bases of that kind are called where the source lists them,
+		// "Any Armor", which is how a line only this kind grants is labelled.
+		std::string label;
+
+		// The source's own properties and the kind's together, so a variant is
+		// the whole of what the source grants on a base of that kind.
+		std::vector<PropertyStats::Property> properties;
+		std::vector<std::string> lines;
+	};
+
 	// Fields a source has no answer for are left as they start: a runeword
 	// names no one base, and a set bonus asks for no level of its own.
 	struct Source {
@@ -32,7 +51,11 @@ namespace Catalogue {
 
 		std::string baseCode;		// the base item it is made on, "uap"
 		std::string baseName;		// "Shako"
-		std::string itemType;		// "Helm", from the base's item type
+		// What kind of base it is made on: "Helm" from the base's item type
+		// where it names one base, and every type it is allowed in where it
+		// names a range of them, down to the ones it is not allowed in:
+		// "Sword, Axe, Mace" or "Any Weapon (not Bow, Crossbow)".
+		std::string itemType;
 
 		// The set it belongs to, for a piece of one. The code is what the sets
 		// table calls the set, which is what a piece names it by; the name is
@@ -62,6 +85,18 @@ namespace Catalogue {
 
 		std::vector<std::string> lines;
 		std::vector<std::string> partialLines;
+
+		// What the source is made from, in the order the sockets take it: the
+		// rune codes of a runeword. Empty for anything made from nothing.
+		std::vector<std::string> ingredientCodes;
+
+		// What those are called, as the game lists a recipe: "Jah + Ith + Ber".
+		std::string ingredients;
+
+		// Every kind of base the source can be made on and what it grants in
+		// each. Empty for a source made on one base, where the properties are
+		// the whole of what it grants.
+		std::vector<Variant> variants;
 
 		Source() : requiredLevel(0), rarity(RarityNone) {};
 	};

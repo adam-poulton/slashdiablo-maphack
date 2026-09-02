@@ -44,32 +44,65 @@ static bool Satisfies(const Entry& entry, const Criterion& criterion,
 	if (criterion.stat.length() == 0)
 		return entry.searchKey.find(text) != std::string::npos;
 
-	// A stat nothing granted comes back as a range of zero to zero, which "less
-	// than five" would otherwise be satisfied by for every source in the index.
-	Range range;
-	range.stat = criterion.stat;
-	if (!StatDescriptions::TotalFor(entry.totals, criterion.stat,
-			range.low, range.high))
-		return false;
-	if (!Compares(criterion.comparator, criterion.value, range.low, range.high))
-		return false;
+	// The first kind of base that satisfies it answers, and the range reported
+	// is the one that kind rolls. A source that grants a stat in one kind and
+	// not in another still answers, which is the best roll read across the
+	// kinds a source can be made on.
+	for (unsigned int t = 0; t < entry.totals.size(); t++) {
+		// A stat nothing granted comes back as a range of zero to zero, which
+		// "less than five" would otherwise be satisfied by for every source in
+		// the index.
+		Range range;
+		range.stat = criterion.stat;
+		if (!StatDescriptions::TotalFor(entry.totals[t], criterion.stat,
+				range.low, range.high))
+			continue;
+		if (!Compares(criterion.comparator, criterion.value, range.low,
+				range.high))
+			continue;
 
-	ranges.push_back(range);
-	return true;
+		ranges.push_back(range);
+		return true;
+	}
+	return false;
+}
+
+// Everything the source can grant on one kind of base: what it grants whenever
+// it is worn, and the bonuses a count of set pieces unlocks. A stat that
+// arrives only with four pieces worn is one the source grants, and a criterion
+// asking for it has to find it.
+static std::vector<PropertyStats::Property> Granting(
+		const std::vector<PropertyStats::Property>& properties,
+		const std::vector<PropertyStats::Property>& partial) {
+	std::vector<PropertyStats::Property> granting = properties;
+	granting.insert(granting.end(), partial.begin(), partial.end());
+	return granting;
+}
+
+// What a source can grant, a set at a time. A source made on several kinds of
+// base grants something different in each, so each kind is added up on its own
+// and answers for itself.
+static std::vector<StatTotals> TotalsFor(const Catalogue::Source& source) {
+	std::vector<StatTotals> totals;
+	if (source.variants.empty()) {
+		totals.push_back(PropertyStats::Totals(
+			Granting(source.properties, source.partial)));
+		return totals;
+	}
+
+	for (unsigned int v = 0; v < source.variants.size(); v++) {
+		totals.push_back(PropertyStats::Totals(
+			Granting(source.variants[v].properties, source.partial)));
+	}
+	return totals;
 }
 
 void Register(const std::string& kind, const std::string& searchKey,
 		const Catalogue::Source& source) {
-	// Everything the source can grant, the bonuses a count of set pieces
-	// unlocks included: a stat that arrives only with four pieces worn is one
-	// the source grants, and a criterion asking for it has to find it.
-	std::vector<PropertyStats::Property> granting = source.properties;
-	granting.insert(granting.end(), source.partial.begin(), source.partial.end());
-
 	Entry entry;
 	entry.kind = kind;
 	entry.searchKey = searchKey;
-	entry.totals = PropertyStats::Totals(granting);
+	entry.totals = TotalsFor(source);
 	entry.source = &source;
 	entries.push_back(entry);
 }
