@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include "Catalogue/Catalogues.h"
+#include "Catalogue/RecipeCatalogue.h"
 #include "Catalogue/RunewordCatalogue.h"
 #include "Catalogue/SetCatalogue.h"
 #include "Catalogue/StatIndex.h"
@@ -28,11 +29,12 @@ namespace {
 
 const char* const kUnique = UniqueCatalogue::Kind;
 const char* const kRuneword = RunewordCatalogue::Kind;
+const char* const kRecipe = RecipeCatalogue::Kind;
 
 // The fixture holds four uniques, the eight pieces of two sets, those two sets'
-// own bonuses, and five runewords. A question about one catalogue is scoped to
-// its kind, so that what it asserts does not turn on which other catalogues the
-// fixture happens to carry.
+// own bonuses, five runewords, and eleven cube recipes. A question about one
+// catalogue is scoped to its kind, so that what it asserts does not turn on
+// which other catalogues the fixture happens to carry.
 Query Ask(const std::vector<Criterion>& criteria, const std::string& kind = "") {
 	TableFixture::Load();
 	Catalogue::Load();
@@ -86,6 +88,17 @@ TEST_CASE("every source of every catalogue is in the index") {
 		"Plague",
 		"Spirit",
 		"Splendor",
+		"Horadric Staff",
+		"To Tristram",
+		"Prismatic Amulet",
+		"Perfect Ruby",
+		"Rare Item",
+		"Hit Power Full Helm",
+		"Hel Rune",
+		"Socketed Normal Helm",
+		"Unsocketed Item",
+		"Exceptional Unique Any Armor",
+		"Repaired Weapon",
 	}));
 }
 
@@ -203,10 +216,56 @@ TEST_CASE("a query can be scoped to one kind") {
 	query.kind = RunewordCatalogue::Kind;
 	CHECK(StatIndex::Find(query).size() == 5);
 
+	query.kind = RecipeCatalogue::Kind;
+	CHECK(StatIndex::Find(query).size() == 11);
+
 	// A kind no catalogue registers, which is what every catalogue not yet
 	// written looks like.
 	query.kind = "affix";
 	CHECK(StatIndex::Find(query).empty());
+}
+
+// Which is what a panel is: its own kind and whatever the player typed. The
+// amulet a unique is made on and the amulet a recipe makes both carry the word,
+// and each panel is answered with only its own.
+TEST_CASE("a scoped query answers with only its own kind") {
+	CHECK(AnswersFrom(kUnique, { Criterion::OnText("amulet") }) ==
+		std::vector<std::string>({ "Mara's Kaleidoscope" }));
+	CHECK(AnswersFrom(kRecipe, { Criterion::OnText("amulet") }) ==
+		std::vector<std::string>({ "Prismatic Amulet" }));
+}
+
+TEST_CASE("a recipe is reachable by the words a player types about it") {
+	// What it is made from, which its own name never says.
+	CHECK(AnswersFrom(kRecipe, { Criterion::OnText("perfect skull") }) ==
+		std::vector<std::string>({ "Rare Item" }));
+
+	// The heading it sits under.
+	CHECK(AnswersFrom(kRecipe, { Criterion::OnText("upgrading") }) ==
+		std::vector<std::string>({ "Exceptional Unique Any Armor" }));
+
+	// A condition it is only allowed under, which is a note rather than a stat.
+	CHECK(AnswersFrom(kRecipe, { Criterion::OnText("ladder only") }) ==
+		std::vector<std::string>({ "Hel Rune" }));
+}
+
+TEST_CASE("a recipe answers a criterion on what its result is given") {
+	std::vector<Result> results = StatIndex::Find(
+		Ask({ Criterion::OnStat("fireresist", StatIndex::GreaterThan, 15) },
+			kRecipe));
+	REQUIRE(results.size() == 1);
+
+	const StatIndex::Entry& entry = *results[0].entry;
+	CHECK(entry.kind == RecipeCatalogue::Kind);
+	CHECK(entry.source == RecipeCatalogue::Find(
+		"1 perfect gem of each type + 1 amulet -> prismatic amulet"));
+	CHECK(entry.source->name == "Prismatic Amulet");
+
+	// The forced prefix rolls sixteen to twenty, so the range is part of the
+	// answer rather than the sixteen it is guaranteed.
+	REQUIRE(results[0].ranges.size() == 1);
+	CHECK(results[0].ranges[0].low == 16);
+	CHECK(results[0].ranges[0].high == 20);
 }
 
 TEST_CASE("an entry carries what the index was registered with") {

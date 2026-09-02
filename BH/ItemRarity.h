@@ -29,5 +29,11 @@ enum ItemRarity {
 // The colour the game draws an item of this rarity in.
 TextColor RarityColor(ItemRarity rarity);
 
+// The colour an item's name is drawn in where it stands among other text, which
+// is the colour the game gives it and gold wherever the game gives it none of
+// its own. A plain name is white in game, but so is everything around it in a
+// panel, and gold is what keeps a name reading as one.
+TextColor NameColor(ItemRarity rarity);
+
 // The rarity of one of the game's ITEM_QUALITY_* values.
 ItemRarity RarityFromQuality(unsigned int quality);

@@ -15,9 +15,9 @@ The string table is trimmed to the keys the fixtures can reach, which is every
 key ItemStatCost.txt names for a stat line or a grouped line, the skill names
 SkillDesc.txt points at, the class and skill tab labels, the name each base item
 kept is called by, the name each set, each piece of one and each runeword is
-called by, and the handful of keys the wording code names itself. Keys whose
-text carries a tab or a newline are dropped, since the fixture is one key to a
-line.
+called by, the name of every magic prefix and suffix, and the handful of keys
+the wording code names itself. Keys whose text carries a tab or a newline are
+dropped, since the fixture is one key to a line.
 """
 import csv
 import os
@@ -25,7 +25,9 @@ import sys
 
 import tbl
 
-# Read whole. These are what a property or an item type is looked up in.
+# Read whole. These are what a property or an item type is looked up in, and the
+# two a cube recipe names a forced affix in by the row it sits on, where trimming
+# would move every row a recipe points at.
 REFERENCE_TABLES = [
     'ItemStatCost.txt',
     'Properties.txt',
@@ -33,14 +35,17 @@ REFERENCE_TABLES = [
     'Skills.txt',
     'SkillDesc.txt',
     'ItemTypes.txt',
+    'MagicPrefix.txt',
+    'MagicSuffix.txt',
 ]
 
-# The runes the fixture runewords are made from, plus the Zod rune, which is the
-# base item a test reads for a name only the string table gets right. Both
-# Misc.txt, which holds a rune as a base item, and Gems.txt, which holds what it
-# grants in each kind of base, are trimmed to these.
-RUNE_CODES = ['r05', 'r06', 'r07', 'r09', 'r10', 'r11', 'r12', 'r17', 'r19',
-              'r22', 'r30', 'r31', 'r32', 'r33']
+# The runes the fixture runewords are made from and the fixture recipes name,
+# plus the Zod rune, which is the base item a test reads for a name only the
+# string table gets right. Both Misc.txt, which holds a rune as a base item, and
+# Gems.txt, which holds what it grants in each kind of base, are trimmed to
+# these, so that every rune in the fixture is in both.
+RUNE_CODES = ['r05', 'r06', 'r07', 'r08', 'r09', 'r10', 'r11', 'r12', 'r13',
+              'r14', 'r15', 'r17', 'r19', 'r22', 'r30', 'r31', 'r32', 'r33']
 
 # Read trimmed to the rows named here, which are the items under test. The base
 # items between them cover what a base can carry: each of the three tiers, one
@@ -53,6 +58,25 @@ SUBJECT_TABLES = {
         "Mara's Kaleidoscope",
         'Guardian Angel',
     ]),
+    # Between them these reach every way a recipe is worded: a heading read from
+    # what it makes and a heading read from what it does, a forced prefix, a
+    # crafted family with alternative bases, sockets and required levels added,
+    # a quest item, a portal, a rune, a row the file has not enabled, and a row
+    # a ladder is the condition of.
+    'CubeMain.txt': ('description', [
+        'Staff of Kings + Viper amulet -> Horadric Staff',
+        '1 perfect gem of each type + 1 amulet -> prismatic amulet',
+        '3 flawless rubies -> perfect ruby',
+        '6 perfect skulls + 1 rare item -> 1 low level rare item',
+        'magic full helm + jewel + rune 06 + perfect sapphire -> hitpower helm',
+        '3 rune 14 + 1 chipped emerald -> rune 15',
+        'r08 + r10 + 1 perfect sapphire + normal helm -> socketed helm',
+        'r07 + r13 + perfect diamond + basic unique armor -> exceptional unique armor',
+        'r09 + weapon -> repair',
+        'r15 + tsc + any socketed item -> unsocket (destroy gems)',
+        'r08 + jew + superior weapon -> tempered weapon',
+        'Pandemonium Finale key',
+    ]),
     'Weapons.txt': ('code', [
         'gsc',      # Grand Scepter, under Civerb's Cudgel
         'oba',      # Swirling Crystal, under Tal Rasha's Lidless Eye
@@ -62,6 +86,7 @@ SUBJECT_TABLES = {
         '7bk',      # Winged Knife, thrown and stacked
         '7vo',      # Colossus Voulge, two handed only
         '6lw',      # Hydra Bow, a durability the game never shows
+        'msf', 'hst',   # the two staves the Horadric Staff recipe names
     ]),
     'Armor.txt': ('code', [
         'cap',      # Cap, normal
@@ -72,10 +97,17 @@ SUBJECT_TABLES = {
         'zmb',      # Mesh Belt, under Tal Rasha's Fire-Spun Cloth
         'uth',      # Lacquered Plate, under Tal Rasha's Howling Wind
         'xsk',      # Death Mask, under Tal Rasha's Horadric Crest
+        # The crafted helm recipe and the two tiers it also allows
+        'fhl', 'xhl', 'uhl',
     ]),
     'Misc.txt': ('code', [
         'amu',      # Amulet, which carries no numbers at all
         'cm1',      # Small Charm, whose name only the string table gets right
+        # What the cube recipes name beyond the runes: the quest items, the
+        # gems and the skull, the jewel and the scroll.
+        'vip', 'dhn', 'bey', 'mbr',
+        'glr', 'gpr', 'gpb', 'gpg', 'gpv', 'gpw', 'gpy', 'gcg', 'skz',
+        'jew', 'tsc',
     ] + RUNE_CODES),
     # The runewords under test. Between them they reach each of the three kinds
     # of base a rune gives bonuses for, and one of them is allowed in two.
@@ -123,7 +155,12 @@ NAME_COLUMN = 'namestr'
 LITERAL_KEYS = ['ModStre8c', 'ModStre10b', 'strModEnhancedDamage',
                 'ItemStast1k', 'ItemStats1d', 'ItemStats1e', 'ItemStats1f',
                 'ItemStats1h', 'ItemStats1l', 'ItemStats1m', 'ItemStats1n',
-                'ItemStats1p', 'StrSkill106'] + \
+                'ItemStats1p', 'StrSkill106',
+                # The words a cube recipe is worded with: the states an item has
+                # to be in or comes out in, the qualities the game does write
+                # out, and the two portals it names.
+                'Socketable', 'Low Quality', 'Hiquality', 'strBSMagic',
+                'To The Moo Moo Farm', 'To Tristram'] + \
     ['StrSklTabItem%d' % i for i in range(1, 22)]
 
 
@@ -160,6 +197,9 @@ def wanted_keys(tables):
                     ('descstrpos', 'descstrneg', 'descstr2',
                      'dgrpstrpos', 'dgrpstrneg', 'dgrpstr2'))
     keys |= keys_in(tables, 'SkillDesc.txt', ('str name',))
+    # Both affix tables go in whole, so a recipe can force any row of either.
+    keys |= keys_in(tables, 'MagicPrefix.txt', ('Name',))
+    keys |= keys_in(tables, 'MagicSuffix.txt', ('Name',))
     keys |= keys_in(tables, 'CharStats.txt',
                     ('StrAllSkills', 'StrSkillTab1', 'StrSkillTab2',
                      'StrSkillTab3', 'StrClassOnly'))
