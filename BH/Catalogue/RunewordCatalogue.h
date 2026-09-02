@@ -33,6 +33,17 @@ namespace RunewordCatalogue {
 	// runeword. Valid until the game data is reloaded.
 	const Catalogue::Source* Find(const std::string& code);
 
+	// Which of the three kinds of base an item type belongs to, named as
+	// gems.txt names the columns of rune bonuses it gives each: "weapon",
+	// "helm", "shield". Answered by walking the item type's Equiv chain up to
+	// the root categories, and answered for every type, since the game gives
+	// the leftovers a weapon's bonuses.
+	//
+	// Public because the kind is what decides which of a source's variants a
+	// base is made under, which anything saying a source on a chosen base has
+	// to settle.
+	const char* BaseKind(const std::string& itemTypeCode);
+
 	// Whether the tables have been read. Sources() is empty both before the
 	// game data has loaded and where the tables carry no runewords at all, and
 	// this is what tells the two apart.

@@ -4,6 +4,7 @@
 #include "FilterContext.h"
 #include "ItemFacts.h"
 #include "ItemFilter.h"
+#include "RuleFixture.h"
 
 /*
  * Walking one list of rules.
@@ -16,45 +17,6 @@
  */
 
 namespace {
-
-// A list of rules that reads them the way the game does and owns them.
-class RuleList {
-public:
-	RuleList() {
-		settings.statMax = 512;
-		settings.skillMax = 512;
-	}
-
-	~RuleList() {
-		for (unsigned int i = 0; i < rules.size(); i++) {
-			for (unsigned int c = 0; c < rules[i]->conditions.size(); c++)
-				delete rules[i]->conditions[c];
-			delete rules[i];
-		}
-	}
-
-	// condition is a single token or empty for a rule that matches everything.
-	void Add(const std::string &condition, const std::string &action) {
-		// Reading a rule is not reentrant: the parser tracks whether the last
-		// thing it saw was an operand in a global. Every rule starts afresh.
-		LastConditionType = CT_None;
-
-		std::vector<Condition*> raw;
-		if (!condition.empty())
-			Condition::BuildConditions(raw, condition, settings);
-
-		std::string actionText = action;
-		Rule *rule = new Rule(raw, &actionText);
-		rule->action.index = (unsigned int)rules.size();
-		rules.push_back(rule);
-	}
-
-	const std::vector<Rule*>& Rules() const { return rules; }
-
-private:
-	std::vector<Rule*> rules;
-	ItemFilterSettings settings;
-};
 
 // An item every ILVL condition below can be compared against, and a world that
 // no condition below asks about.

@@ -111,6 +111,12 @@ namespace StatDescriptions {
 	void CollectTotals(const std::string& code, const std::string& param,
 			int min, int max, std::vector<StatTotal>& totals);
 
+	// The number the game knows a stat by, which is the ID its ItemStatCost row
+	// carries, or -1 for a name the tables do not carry. The property tables
+	// name a stat; an item's own stat list holds the number, so anything saying
+	// what the tables grant in the shape an item carries it needs this.
+	int StatId(const std::string& stat);
+
 	// The range a stat comes to across a set of totals. Absent stats come back
 	// as zero, which is what a caller wants: an item that does not grant it
 	// changes nothing.

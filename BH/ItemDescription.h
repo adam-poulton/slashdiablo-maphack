@@ -196,6 +196,11 @@ namespace ItemDescription {
 	// right by the stat lines.
 	Modifiers ReadModifiers(const std::vector<StatDescriptions::StatTotal>& totals);
 
+	// The defence a base comes to under the modifiers of whatever is made on
+	// it, which is what the game prints for the made item and what the item
+	// itself carries. Nothing where the base has no defence of its own.
+	Range Defense(const Base& base, const Modifiers& modifiers);
+
 	// One block of stat lines drawn in a single colour, under an optional
 	// heading. Blocks stay separate because the game keeps them separate: an
 	// item's own bonuses and its set's are not one list.
