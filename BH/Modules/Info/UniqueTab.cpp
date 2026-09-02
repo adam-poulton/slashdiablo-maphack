@@ -80,15 +80,12 @@ void UniqueTab::PushRows() {
 
 // ItemDescription orders and spaces the panel the way the game describes an
 // item; the tab only says what goes in it.
-std::vector<TooltipLine> UniqueTab::BuildSummaryLines(const StatIndex::Entry& entry) {
-	const Catalogue::Source& source = *entry.source;
+std::vector<TooltipLine> UniqueTab::BuildSummaryLines(const Catalogue::Source& source) {
 	TextColor color = RarityColor(source.rarity);
 
 	ItemDescription::Description item;
 	item.AddTitle(source.name, color);
-	// What the source's properties do to the numbers its base carries. The
-	// index already holds the totals they add up to.
-	item.AddBase(source.baseCode, color, ItemDescription::ReadModifiers(entry.totals));
+	item.AddBase(source.baseCode, color, source.modifiers);
 
 	// A unique can ask for a higher level than the base it is made on does.
 	if (source.requiredLevel > item.requirements.level)
@@ -112,7 +109,7 @@ void UniqueTab::UpdateSummary() {
 	}
 
 	if (row != shownSummary) {
-		summary->SetLines(BuildSummaryLines(*results[row].entry));
+		summary->SetLines(BuildSummaryLines(*results[row].entry->source));
 		shownSummary = row;
 	}
 

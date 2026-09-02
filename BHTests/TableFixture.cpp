@@ -42,6 +42,8 @@ void TableFixture::Load() {
 	LoadTable("SkillDesc.txt", Tables::SkillDesc);
 	LoadTable("ItemTypes.txt", Tables::ItemTypes);
 	LoadTable("UniqueItems.txt", Tables::UniqueItems);
+	LoadTable("Sets.txt", Tables::Sets);
+	LoadTable("SetItems.txt", Tables::SetItems);
 	LoadTable("Weapons.txt", Tables::Weapons);
 	LoadTable("Armor.txt", Tables::Armor);
 	LoadTable("Misc.txt", Tables::Misc);

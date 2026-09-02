@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include "../ItemDescription.h"
 #include "../ItemRarity.h"
 #include "../PropertyStats.h"
 
@@ -33,6 +34,12 @@ namespace Catalogue {
 		std::string baseName;		// "Shako"
 		std::string itemType;		// "Helm", from the base's item type
 
+		// The set it belongs to, for a piece of one. The code is what the sets
+		// table calls the set, which is what a piece names it by; the name is
+		// what the player is called it.
+		std::string setCode;
+		std::string setName;
+
 		// The level the source itself asks for, which can be higher than the
 		// one its base asks for. Zero where it asks for none.
 		int requiredLevel;
@@ -41,8 +48,20 @@ namespace Catalogue {
 		// would have to ask for.
 		ItemRarity rarity;
 
+		// What the source's own always-on properties do to the numbers its base
+		// carries. Worked out where the properties are read, so that nothing
+		// describing a source has to know which of them bear on its base.
+		ItemDescription::Modifiers modifiers;
+
+		// What it grants whenever it is worn, and what a count of set pieces
+		// unlocks, each of the latter carrying that count. The two are kept
+		// apart because the game keeps them apart: they are separate lines on
+		// the item, and only the always-on ones move the base's numbers.
 		std::vector<PropertyStats::Property> properties;
+		std::vector<PropertyStats::Property> partial;
+
 		std::vector<std::string> lines;
+		std::vector<std::string> partialLines;
 
 		Source() : requiredLevel(0), rarity(RarityNone) {};
 	};

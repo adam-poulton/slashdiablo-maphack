@@ -91,6 +91,7 @@
     <ClCompile Include="StatDescriptionTests.cpp" />
     <ClCompile Include="TableFixture.cpp" />
     <ClCompile Include="TableLookupTests.cpp" />
+    <ClCompile Include="SetCatalogueTests.cpp" />
     <ClCompile Include="StatIndexTests.cpp" />
     <ClCompile Include="UniqueCatalogueTests.cpp" />
     <!-- Sources under test. Only translation units that reference no D2 symbols
@@ -108,6 +109,7 @@
     <ClCompile Include="..\BH\ItemDescription.cpp" />
     <ClCompile Include="..\BH\TableReader.cpp" />
     <ClCompile Include="..\BH\Catalogue\Catalogues.cpp" />
+    <ClCompile Include="..\BH\Catalogue\SetCatalogue.cpp" />
     <ClCompile Include="..\BH\Catalogue\StatIndex.cpp" />
     <ClCompile Include="..\BH\Catalogue\UniqueCatalogue.cpp" />
     <ClCompile Include="..\BH\Modules\Item\ItemFilter.cpp" />

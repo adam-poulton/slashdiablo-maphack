@@ -35,7 +35,7 @@ class UniqueTab : public UIPanel {
 		void PushRows();
 
 		std::vector<Drawing::TooltipLine> BuildSummaryLines(
-				const StatIndex::Entry& entry);
+				const Catalogue::Source& source);
 		void UpdateSummary();
 
 	public:

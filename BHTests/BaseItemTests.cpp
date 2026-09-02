@@ -167,13 +167,13 @@ TEST_CASE("a base is named as the string table names it") {
 TEST_CASE("every base the tables carry is listed in the order they are read") {
 	TableFixture::Load();
 	const std::vector<const Base*>& bases = ItemDescription::AllBases();
-	// The bases the fixtures carry, in the order make_fixtures.py names them:
-	// six weapons, then four pieces of armour, then three of the miscellany.
+	// The bases the fixtures carry, in the order their tables hold them: eight
+	// weapons, then eight pieces of armour, then three of the miscellany.
 	// Adding one to SUBJECT_TABLES moves these, which is worth being told about.
-	REQUIRE(bases.size() == 13);
-	CHECK(bases[0]->code == "crs");
-	CHECK(bases[6]->code == "cap");
-	CHECK(bases[10]->code == "amu");
+	REQUIRE(bases.size() == 19);
+	CHECK(bases[0]->code == "gsc");
+	CHECK(bases[8]->code == "cap");
+	CHECK(bases[16]->code == "amu");
 }
 
 TEST_CASE("armour reads as a panel of its own") {

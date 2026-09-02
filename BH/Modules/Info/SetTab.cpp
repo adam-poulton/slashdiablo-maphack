@@ -1,17 +1,13 @@
 #include "SetTab.h"
-#include <algorithm>
-#include <map>
 #include "../../BH.h"
+#include "../../Catalogue/Catalogues.h"
+#include "../../Catalogue/SetCatalogue.h"
 #include "../../Common.h"
 #include "../../ItemDescription.h"
 #include "../../ItemRarity.h"
-#include "../../StatDescriptions.h"
-#include "../../TableReader.h"
+#include "../../StringUtil.h"
 
 using namespace Drawing;
-
-// Margins and the gaps between the three bands. Widths and the list height are
-// measured from the tab by ApplyLayout().
 
 // The piece takes the larger share: its name carries its set's name as well
 // ("Tal Rasha's Fine-Spun Cloth" against "Mesh Belt").
@@ -19,48 +15,11 @@ using namespace Drawing;
 #define ST_COL_BASE_WEIGHT	2
 #define ST_COL_GAP			4
 
-// How many groups of each shape the tables give a row.
-#define ST_OWN_COUNT		9	// prop1-9 on a set item
-#define ST_PARTIAL_COUNT	5	// aprop1a-5b on an item, PCode2a-5b on a set
-#define ST_FULL_COUNT		8	// FCode1-8 on a set
-
-// add func decides whether an item's aprop entries apply at all. Any other value,
-// blank included, means they never do whatever the file lists against them.
-#define ST_ADD_TOGETHER		1	// all of them, as soon as one other piece is worn
-#define ST_ADD_PROGRESSIVE	2	// aprop N at N+1 pieces
-
-// "index" doubles as the string table key in both tables. The table is preferred
-// because several pieces shipped under a working title the files still carry:
-// "Tal Rasha's Fire-Spun Cloth" in the file is "Fine-Spun" in game.
-static std::string TableName(const std::string& index) {
-	if (index.length() == 0)
-		return index;
-	std::string localized = StatDescriptions::GetString(index);
-	return (localized.length() > 0) ? localized : index;
-}
-
-// Every property group in both tables has this shape; only the column names and
-// the item count differ.
-static void ReadProperty(JSONObject* entry, const std::string& codeColumn,
-		const std::string& paramColumn, const std::string& minColumn,
-		const std::string& maxColumn, int itemCount,
-		std::vector<PropertyStats::Property>& into) {
-	PropertyStats::Property property;
-	property.code = Trim(entry->getString(codeColumn));
-	if (property.code.length() == 0)
-		return;
-	property.param = Trim(entry->getString(paramColumn));
-	property.min = atoi(entry->getString(minColumn).c_str());
-	property.max = atoi(entry->getString(maxColumn).c_str());
-	property.itemCount = itemCount;
-	into.push_back(property);
-}
-
 SetTab::SetTab(UI* ui) : UIPanel("Sets", ui),
 	shownSets(0),
 	foldOnPush(true),
 	shownSummary(-1),
-	setsLoaded(false),
+	catalogueLoaded(false),
 	needsRefresh(true) {
 
 	list = new Listhook(tab, UI_CONTENT_MARGIN, 0, 0, 0);
@@ -95,205 +54,46 @@ void SetTab::ApplyLayout() {
 	summary->SetMaxWidth(contentWidth);
 }
 
-void SetTab::MpqLoaded() {
-	StatDescriptions::Initialize();
-	BuildSets();
-	BuildItems();
-}
-
 std::vector<ChatCommand> SetTab::GetCommands() {
 	return { { "set", { "sets" }, "<search>", "Opens the Sets tab" } };
 }
 
-void SetTab::BuildSets() {
-	sets.clear();
-
-	for (int i = 0; i < Tables::Sets.size(); i++) {
-		JSONObject* entry = Tables::Sets.entryAt(i);
-		if (!entry)
-			continue;
-
-		std::string index = Trim(entry->getString("index"));
-		if (index.length() == 0)
-			continue;
-
-		SetRecord set;
-		set.name = TableName(index);
-		if (set.name.length() == 0)
-			continue;
-
-		// PCodeN unlocks at N pieces, two slots each. Only Trang-Oul's uses the
-		// second, for its three oskills.
-		for (int count = 2; count <= ST_PARTIAL_COUNT; count++) {
-			std::string n = std::to_string(count);
-			const char* slots[] = { "a", "b" };
-			for (int slot = 0; slot < 2; slot++) {
-				std::string s = slots[slot];
-				ReadProperty(entry, "PCode" + n + s, "PParam" + n + s,
-					"PMin" + n + s, "PMax" + n + s, count, set.partial);
-			}
-		}
-
-		for (int n = 1; n <= ST_FULL_COUNT; n++) {
-			std::string slot = std::to_string(n);
-			ReadProperty(entry, "FCode" + slot, "FParam" + slot,
-				"FMin" + slot, "FMax" + slot, 0, set.full);
-		}
-
-		sets.push_back(set);
-	}
-
-	std::sort(sets.begin(), sets.end(), [](const SetRecord& a, const SetRecord& b) {
-		return ToLower(a.name) < ToLower(b.name);
-	});
-}
-
-// Table order within a set is the game's own head to toe order.
-void SetTab::BuildItems() {
-	items.clear();
-	matches.clear();
-
-	std::map<std::string, int> setIndexByName;
-	for (unsigned int i = 0; i < sets.size(); i++)
-		setIndexByName[ToLower(sets[i].name)] = (int)i;
-
-	// Table order has to survive until the pieces are grouped.
-	std::vector<SetItemRecord> parsed;
-	for (int i = 0; i < Tables::SetItems.size(); i++) {
-		JSONObject* entry = Tables::SetItems.entryAt(i);
-		if (!entry)
-			continue;
-
-		std::string code = Trim(entry->getString("item"));
-		if (code.length() == 0)
-			continue;
-
-		SetItemRecord item;
-		item.code = code;
-		item.name = TableName(Trim(entry->getString("index")));
-		if (item.name.length() == 0)
-			continue;
-
-		item.setName = TableName(Trim(entry->getString("set")));
-		item.baseName = ItemDescription::BaseName(code);
-		item.requiredLevel = atoi(entry->getString("lvl req").c_str());
-
-		std::map<std::string, int>::iterator found =
-			setIndexByName.find(ToLower(item.setName));
-		if (found != setIndexByName.end())
-			item.setIndex = found->second;
-
-		// What makes a search for "amulet" work; the base's name rarely says.
-		const ItemDescription::Base* base = ItemDescription::FindBase(code);
-		if (base)
-			item.itemType = base->typeName;
-
-		for (int n = 1; n <= ST_OWN_COUNT; n++) {
-			std::string index = std::to_string(n);
-			ReadProperty(entry, "prop" + index, "par" + index,
-				"min" + index, "max" + index, 0, item.own);
-		}
-
-		// A blank add func is not merely a piece with no aprops listed: Civerb's
-		// Cudgel lists a per level damage bonus the game has never granted it.
-		int addFunc = atoi(entry->getString("add func").c_str());
-		if (addFunc == ST_ADD_TOGETHER || addFunc == ST_ADD_PROGRESSIVE) {
-			for (int n = 1; n <= ST_PARTIAL_COUNT; n++) {
-				std::string index = std::to_string(n);
-				// apropN counts pieces besides this one, so it unlocks at N + 1.
-				int count = (addFunc == ST_ADD_PROGRESSIVE) ? (n + 1) : 2;
-				const char* slots[] = { "a", "b" };
-				for (int slot = 0; slot < 2; slot++) {
-					std::string s = slots[slot];
-					ReadProperty(entry, "aprop" + index + s, "apar" + index + s,
-						"amin" + index + s, "amax" + index + s, count,
-						item.partial);
-				}
-			}
-		}
-
-		item.searchKey = ToLower(item.name + " " + item.baseName + " " +
-			item.itemType + " " + item.setName);
-		parsed.push_back(item);
-	}
-
-	// A piece whose set the sets table does not carry still goes in, at the end.
-	for (unsigned int i = 0; i < sets.size(); i++) {
-		for (unsigned int n = 0; n < parsed.size(); n++) {
-			if (parsed[n].setIndex == (int)i)
-				items.push_back(parsed[n]);
-		}
-	}
-	for (unsigned int n = 0; n < parsed.size(); n++) {
-		if (parsed[n].setIndex < 0)
-			items.push_back(parsed[n]);
-	}
-
-	setsLoaded = true;
-	needsRefresh = true;
-}
-
-void SetTab::LoadItemStats(SetItemRecord* item) {
-	if (item->statsLoaded)
-		return;
-	item->statsLoaded = true;
-	StatDescriptions::Initialize();
-
-	// A group at a time, not all at once: stats from different groups are
-	// separate lines on the item, and one pass would merge the belt's own
-	// "+60 Defense (2 Items)" with its set's "+150 Defense" into a single +210.
-	item->ownStats = PropertyStats::Lines(item->own);
-	item->partialStats = PropertyStats::CountedLines(item->partial);
-	item->modifiers = ItemDescription::ReadModifiers(
-		PropertyStats::Totals(item->own));
-}
-
-// Cached on the set, so pointing at each of Immortal King's six pieces in turn
-// renders its set bonus once.
-void SetTab::LoadSetStats(SetRecord* set) {
-	if (set->statsLoaded)
-		return;
-	set->statsLoaded = true;
-	StatDescriptions::Initialize();
-
-	set->partialStats = PropertyStats::CountedLines(set->partial);
-	set->fullStats = PropertyStats::Lines(set->full);
-}
-
-void SetTab::ApplyFilter() {
-	matches.clear();
-	for (unsigned int i = 0; i < items.size(); i++) {
-		if (query.empty() || items[i].searchKey.find(query) != std::string::npos)
-			matches.push_back(&items[i]);
-	}
+// One text criterion, scoped to the pieces of a set. An empty search is carried
+// by every source, which is what shows the whole list.
+void SetTab::RunQuery() {
+	StatIndex::Query query;
+	query.kind = SetCatalogue::Kind;
+	query.criteria.push_back(StatIndex::Criterion::OnText(search));
+	results = StatIndex::Find(query);
 }
 
 // Headings are driven off the rows rather than the data, so a filter that cuts a
 // set's first piece still names the set above whichever is now first.
 void SetTab::PushRows() {
-	unsigned int mostRows = (unsigned int)(matches.size() + sets.size());
+	unsigned int mostRows = (unsigned int)(2 * results.size());
 	std::vector<ListRow> rows;
 	rows.reserve(mostRows);
-	rowItems.clear();
-	rowItems.reserve(mostRows);
+	rowPieces.clear();
+	rowPieces.reserve(mostRows);
 	shownSets = 0;
 
-	for (unsigned int i = 0; i < matches.size(); i++) {
-		if (i == 0 || matches[i]->setName != matches[i - 1]->setName) {
-			rows.push_back(ListRow({ matches[i]->setName }, true));
-			rowItems.push_back(NULL);
+	for (unsigned int i = 0; i < results.size(); i++) {
+		const Catalogue::Source& piece = *results[i].entry->source;
+		if (i == 0 || piece.setName != results[i - 1].entry->source->setName) {
+			rows.push_back(ListRow({ piece.setName }, true));
+			rowPieces.push_back(NULL);
 			shownSets++;
 		}
 
-		rows.push_back(ListRow({ matches[i]->name, matches[i]->baseName }));
-		rowItems.push_back(matches[i]);
+		rows.push_back(ListRow({ piece.name, piece.baseName }));
+		rowPieces.push_back(&piece);
 	}
 
 	list->SetRows(rows);	// also clears the selection
 
 	// Not on open, which is usually before the game data has loaded, and not on a
 	// filtered list, which would leave every set it did not match unfolded.
-	if (foldOnPush && query.empty() && !rows.empty()) {
+	if (foldOnPush && search.empty() && !rows.empty()) {
 		list->FoldAllGroups();
 		foldOnPush = false;
 	}
@@ -302,32 +102,30 @@ void SetTab::PushRows() {
 
 // ItemDescription orders and spaces the panel the way the game describes an
 // item; the tab only says what goes in it.
-std::vector<TooltipLine> SetTab::BuildSummaryLines(SetItemRecord* item) {
-	TextColor color = RarityColor(RaritySet);
+std::vector<TooltipLine> SetTab::BuildSummaryLines(const Catalogue::Source& piece) {
+	TextColor color = RarityColor(piece.rarity);
 
-	ItemDescription::Description piece;
-	piece.AddTitle(item->name, color);
-	piece.AddBase(item->code, color, item->modifiers);
+	ItemDescription::Description item;
+	item.AddTitle(piece.name, color);
+	item.AddBase(piece.baseCode, color, piece.modifiers);
 
 	// A piece can ask for a higher level than the base it is made on does.
-	if (item->requiredLevel > piece.requirements.level)
-		piece.requirements.level = item->requiredLevel;
+	if (piece.requiredLevel > item.requirements.level)
+		item.requirements.level = piece.requiredLevel;
 
-	piece.AddStats(item->ownStats, Blue);
-	piece.AddStats(item->partialStats, color);
+	item.AddStats(piece.lines, Blue);
+	item.AddStats(piece.partialLines, color);
 
-	if (item->setIndex >= 0 && item->setIndex < (int)sets.size()) {
-		SetRecord* set = &sets[item->setIndex];
-		LoadSetStats(set);
-
+	const Catalogue::Source* set = SetCatalogue::FindBonus(piece.setCode);
+	if (set) {
 		// The set's other pieces are not listed: they are already on screen either
 		// side of the row, and a set as deep as Trang-Oul's would take the panel
 		// past the bottom of a 640x480 screen.
-		piece.AddSection(set->name, Gold, std::vector<std::string>(), color, true);
-		piece.AddSection("Partial Set Bonus", Gold, set->partialStats, color);
-		piece.AddSection("Complete Set Bonus", Gold, set->fullStats, color);
+		item.AddSection(set->name, Gold, std::vector<std::string>(), color, true);
+		item.AddSection("Partial Set Bonus", Gold, set->partialLines, color);
+		item.AddSection("Complete Set Bonus", Gold, set->lines, color);
 	}
-	return ItemDescription::Build(piece);
+	return ItemDescription::Build(item);
 }
 
 // Follows the mouse, falling back to the selection. Rebuilt only when the row
@@ -338,8 +136,8 @@ void SetTab::UpdateSummary() {
 		row = list->GetSelectedRow();
 
 	// A heading describes nothing: its bonuses are on every one of its pieces.
-	bool describable = IsActive() && row >= 0 && row < (int)rowItems.size() &&
-		rowItems[row] != NULL;
+	bool describable = IsActive() && row >= 0 && row < (int)rowPieces.size() &&
+		rowPieces[row] != NULL;
 	if (!describable) {
 		summary->SetActive(false);
 		shownSummary = -1;
@@ -347,11 +145,7 @@ void SetTab::UpdateSummary() {
 	}
 
 	if (row != shownSummary) {
-		// items owns the records; rowItems only points into it.
-		SetItemRecord* item = const_cast<SetItemRecord*>(rowItems[row]);
-		LoadItemStats(item);
-
-		summary->SetLines(BuildSummaryLines(item));
+		summary->SetLines(BuildSummaryLines(*rowPieces[row]));
 		shownSummary = row;
 	}
 
@@ -361,7 +155,7 @@ void SetTab::UpdateSummary() {
 }
 
 void SetTab::Search(const std::string& text) {
-	query = ToLower(Trim(text));
+	search = ToLower(Trim(text));
 	list->SetScrollTop(0);
 	needsRefresh = true;
 }
@@ -381,21 +175,21 @@ std::string SetTab::GetSearchPlaceholder() {
 // Counted in pieces and sets rather than rows: the list interleaves headings with
 // pieces, so "3 - 12 of 127" would be a range the user cannot check.
 std::string SetTab::GetStatus() {
-	if (!setsLoaded)
+	if (!catalogueLoaded)
 		return "Waiting for game data to finish loading...";
-	if (matches.empty())
-		return "No set items match \"" + query + "\"";
+	if (results.empty())
+		return "No set items match \"" + search + "\"";
 
 	char line[64];
 	sprintf_s(line, sizeof(line), "%u set items in %u set%s",
-		(unsigned int)matches.size(), shownSets, (shownSets == 1) ? "" : "s");
+		(unsigned int)results.size(), shownSets, (shownSets == 1) ? "" : "s");
 	return line;
 }
 
 // Row 0 is a heading, so enter takes the first row holding a piece.
 void SetTab::OnSearchSubmitted() {
-	for (unsigned int i = 0; i < rowItems.size(); i++) {
-		if (rowItems[i]) {
+	for (unsigned int i = 0; i < rowPieces.size(); i++) {
+		if (rowPieces[i]) {
 			list->SetSelectedRow((int)i);
 			break;
 		}
@@ -406,18 +200,18 @@ void SetTab::OnDraw() {
 	if (tab->GetXSize() != laidOutWidth || tab->GetYSize() != laidOutHeight)
 		ApplyLayout();
 
-	// MpqLoaded can fire before this tab exists.
-	if (!setsLoaded && Tables::isInitialized()) {
-		StatDescriptions::Initialize();
-		BuildSets();
-		BuildItems();
+	// The catalogues are read on the thread that read the tables, which can
+	// finish either before this tab exists or after it has drawn a frame.
+	if (!catalogueLoaded && Catalogue::Loaded()) {
+		catalogueLoaded = true;
+		needsRefresh = true;
 	}
 
 	if (needsRefresh) {
-		ApplyFilter();
 		// Suspended rather than cleared, so clearing the search restores the
 		// user's folds.
-		list->SetFoldingSuspended(!query.empty());
+		list->SetFoldingSuspended(!search.empty());
+		RunQuery();
 		PushRows();
 		needsRefresh = false;
 	}

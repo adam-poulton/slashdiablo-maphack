@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include "Catalogue/Catalogues.h"
+#include "Catalogue/SetCatalogue.h"
 #include "Catalogue/StatIndex.h"
 #include "Catalogue/UniqueCatalogue.h"
 #include "TableFixture.h"
@@ -24,13 +25,18 @@ using StatIndex::Result;
 
 namespace {
 
-// The fixture holds four uniques: Guardian Angel, Harlequin Crest, Mara's
-// Kaleidoscope and Skin of the Vipermagi, in that order.
-Query Ask(const std::vector<Criterion>& criteria) {
+const char* const kUnique = UniqueCatalogue::Kind;
+
+// The fixture holds four uniques, the eight pieces of two sets, and those two
+// sets' own bonuses. A question about one catalogue is scoped to its kind, so
+// that what it asserts does not turn on which other catalogues the fixture
+// happens to carry.
+Query Ask(const std::vector<Criterion>& criteria, const std::string& kind = "") {
 	TableFixture::Load();
 	Catalogue::Load();
 	REQUIRE(Catalogue::Loaded());
 	Query query;
+	query.kind = kind;
 	query.criteria = criteria;
 	return query;
 }
@@ -46,32 +52,50 @@ std::vector<std::string> Answers(const std::vector<Criterion>& criteria) {
 	return Names(StatIndex::Find(Ask(criteria)));
 }
 
+std::vector<std::string> AnswersFrom(const std::string& kind,
+		const std::vector<Criterion>& criteria) {
+	return Names(StatIndex::Find(Ask(criteria, kind)));
+}
+
 }  // namespace
 
+// In registration order, which is the order the catalogues are read in and,
+// within each, the order it lists its sources.
 TEST_CASE("every source of every catalogue is in the index") {
 	CHECK(Answers({}) == std::vector<std::string>({
 		"Guardian Angel",
 		"Harlequin Crest",
 		"Mara's Kaleidoscope",
 		"Skin of the Vipermagi",
+		"Civerb's Ward",
+		"Civerb's Icon",
+		"Civerb's Cudgel",
+		"Tal Rasha's Fine-Spun Cloth",
+		"Tal Rasha's Adjudication",
+		"Tal Rasha's Lidless Eye",
+		"Tal Rasha's Guardianship",
+		"Tal Rasha's Horadric Crest",
+		"Civerb's Vestments",
+		"Tal Rasha's Wrappings",
 	}));
 }
 
 TEST_CASE("a stat criterion is answered on the best roll") {
 	// Vipermagi rolls twenty to thirty five, Mara's twenty to thirty. Only the
 	// one that can reach thirty five answers.
-	CHECK(Answers({ Criterion::OnStat("fireresist", StatIndex::GreaterThan, 30) }) ==
+	CHECK(AnswersFrom(kUnique, { Criterion::OnStat("fireresist", StatIndex::GreaterThan, 30) }) ==
 		std::vector<std::string>({ "Skin of the Vipermagi" }));
 
 	// Both can reach twenty five, and Guardian Angel raises maximum resistances
 	// rather than resistances, which is a different stat.
-	CHECK(Answers({ Criterion::OnStat("fireresist", StatIndex::GreaterThan, 25) }) ==
+	CHECK(AnswersFrom(kUnique, { Criterion::OnStat("fireresist", StatIndex::GreaterThan, 25) }) ==
 		std::vector<std::string>({ "Mara's Kaleidoscope", "Skin of the Vipermagi" }));
 }
 
 TEST_CASE("a result reports the range the source rolls") {
 	std::vector<Result> results = StatIndex::Find(
-		Ask({ Criterion::OnStat("fireresist", StatIndex::GreaterThan, 30) }));
+		Ask({ Criterion::OnStat("fireresist", StatIndex::GreaterThan, 30) },
+			kUnique));
 	REQUIRE(results.size() == 1);
 	REQUIRE(results[0].ranges.size() == 1);
 	CHECK(results[0].ranges[0].stat == "fireresist");
@@ -82,37 +106,37 @@ TEST_CASE("a result reports the range the source rolls") {
 TEST_CASE("a stat a source does not grant answers nothing") {
 	// No source in the fixture converts damage to mana, and a comparator a zero
 	// would satisfy must not have a stat nobody grants answer it.
-	CHECK(Answers({ Criterion::OnStat("item_damagetomana", StatIndex::LessThan, 5) }).empty());
-	CHECK(Answers({ Criterion::OnStat("nosuchstat", StatIndex::EqualTo, 0) }).empty());
+	CHECK(AnswersFrom(kUnique, { Criterion::OnStat("item_damagetomana", StatIndex::LessThan, 5) }).empty());
+	CHECK(AnswersFrom(kUnique, { Criterion::OnStat("nosuchstat", StatIndex::EqualTo, 0) }).empty());
 }
 
 TEST_CASE("less than and equal to are answered on the roll that satisfies them") {
 	// Vipermagi's twenty to thirty five can roll under twenty five, and so can
 	// Mara's twenty to thirty.
-	CHECK(Answers({ Criterion::OnStat("fireresist", StatIndex::LessThan, 25) }) ==
+	CHECK(AnswersFrom(kUnique, { Criterion::OnStat("fireresist", StatIndex::LessThan, 25) }) ==
 		std::vector<std::string>({ "Mara's Kaleidoscope", "Skin of the Vipermagi" }));
 
 	// A value inside the range is one the source can roll exactly.
-	CHECK(Answers({ Criterion::OnStat("fireresist", StatIndex::EqualTo, 32) }) ==
+	CHECK(AnswersFrom(kUnique, { Criterion::OnStat("fireresist", StatIndex::EqualTo, 32) }) ==
 		std::vector<std::string>({ "Skin of the Vipermagi" }));
-	CHECK(Answers({ Criterion::OnStat("item_allskills", StatIndex::EqualTo, 2) }) ==
+	CHECK(AnswersFrom(kUnique, { Criterion::OnStat("item_allskills", StatIndex::EqualTo, 2) }) ==
 		std::vector<std::string>({ "Harlequin Crest", "Mara's Kaleidoscope" }));
 }
 
 TEST_CASE("a text criterion is matched against the search key") {
 	// The base under it, which the unique's own name never says.
-	CHECK(Answers({ Criterion::OnText("Shako") }) ==
+	CHECK(AnswersFrom(kUnique, { Criterion::OnText("Shako") }) ==
 		std::vector<std::string>({ "Harlequin Crest" }));
 
 	// The kind of thing that base is.
-	CHECK(Answers({ Criterion::OnText("amulet") }) ==
+	CHECK(AnswersFrom(kUnique, { Criterion::OnText("amulet") }) ==
 		std::vector<std::string>({ "Mara's Kaleidoscope" }));
 
 	// Typed in whatever case it comes to hand in.
-	CHECK(Answers({ Criterion::OnText("VIPERMAGI") }) ==
+	CHECK(AnswersFrom(kUnique, { Criterion::OnText("VIPERMAGI") }) ==
 		std::vector<std::string>({ "Skin of the Vipermagi" }));
 
-	CHECK(Answers({ Criterion::OnText("nothing named this") }).empty());
+	CHECK(AnswersFrom(kUnique, { Criterion::OnText("nothing named this") }).empty());
 
 	// A search box with nothing typed in it shows the whole list.
 	CHECK(Answers({ Criterion::OnText("") }) == Answers({}));
@@ -124,19 +148,19 @@ TEST_CASE("a text criterion is matched against the search key") {
 }
 
 TEST_CASE("several criteria must all be satisfied") {
-	CHECK(Answers({
+	CHECK(AnswersFrom(kUnique, {
 		Criterion::OnStat("item_allskills", StatIndex::GreaterThan, 1),
 		Criterion::OnStat("strength", StatIndex::GreaterThan, 1),
 	}) == std::vector<std::string>({ "Harlequin Crest", "Mara's Kaleidoscope" }));
 
 	// A stat and a piece of text together.
-	CHECK(Answers({
+	CHECK(AnswersFrom(kUnique, {
 		Criterion::OnStat("item_allskills", StatIndex::GreaterThan, 1),
 		Criterion::OnText("crest"),
 	}) == std::vector<std::string>({ "Harlequin Crest" }));
 
 	// One criterion no source satisfies leaves nothing.
-	CHECK(Answers({
+	CHECK(AnswersFrom(kUnique, {
 		Criterion::OnText("crest"),
 		Criterion::OnStat("fireresist", StatIndex::GreaterThan, 1),
 	}).empty());
@@ -146,7 +170,7 @@ TEST_CASE("several criteria must all be satisfied") {
 		Criterion::OnStat("strength", StatIndex::GreaterThan, 1),
 		Criterion::OnText("crest"),
 		Criterion::OnStat("item_magicbonus", StatIndex::GreaterThan, 1),
-	}));
+	}, kUnique));
 	REQUIRE(results.size() == 1);
 	REQUIRE(results[0].ranges.size() == 2);
 	CHECK(results[0].ranges[0].stat == "strength");
@@ -160,6 +184,12 @@ TEST_CASE("a query can be scoped to one kind") {
 	Query query = Ask({});
 	query.kind = UniqueCatalogue::Kind;
 	CHECK(StatIndex::Find(query).size() == 4);
+
+	// A set is two kinds of source: its pieces, and its own bonuses.
+	query.kind = SetCatalogue::Kind;
+	CHECK(StatIndex::Find(query).size() == 8);
+	query.kind = SetCatalogue::BonusKind;
+	CHECK(StatIndex::Find(query).size() == 2);
 
 	// A kind no catalogue registers, which is what every catalogue not yet
 	// written looks like.
@@ -188,11 +218,12 @@ TEST_CASE("what the totals leave out cannot be asked for") {
 	SUBCASE("an amount granted per character level") {
 		// Harlequin Crest grants one and a half life a level and nothing flat,
 		// so no criterion on life finds it however low the value asked for.
-		CHECK(Answers({ Criterion::OnStat("maxhp", StatIndex::GreaterThan, 0) }).empty());
+		CHECK(AnswersFrom(kUnique,
+			{ Criterion::OnStat("maxhp", StatIndex::GreaterThan, 0) }).empty());
 
 		// Not under the stat it is granted per level of either: the eighths it
 		// is held in are not an amount a criterion could be compared against.
-		CHECK(Answers({
+		CHECK(AnswersFrom(kUnique, {
 			Criterion::OnStat("item_tohit_demon_perlevel", StatIndex::GreaterThan, 0)
 		}).empty());
 	}
@@ -200,8 +231,61 @@ TEST_CASE("what the totals leave out cannot be asked for") {
 	// What the tables do name a stat for is reachable, which is what makes the
 	// two cases above exclusions rather than the index seeing nothing.
 	SUBCASE("a stat the tables name is reachable") {
-		CHECK(Answers({
+		CHECK(AnswersFrom(kUnique, {
 			Criterion::OnStat("item_fasterblockrate", StatIndex::GreaterThan, 0)
 		}) == std::vector<std::string>({ "Guardian Angel" }));
 	}
+}
+
+// User story 9: a stat that arrives only with four pieces worn is found by a
+// search that never names a piece.
+TEST_CASE("a set bonus answers for what its set grants") {
+	const std::string bonus = SetCatalogue::BonusKind;
+	const std::string piece = SetCatalogue::Kind;
+
+	SUBCASE("including a stat none of its pieces grants") {
+		// Wearing all three of Civerb's is the only way to have lightning
+		// resistance out of that set, so the set is what answers for it.
+		std::vector<Criterion> criteria = {
+			Criterion::OnText("civerb"),
+			Criterion::OnStat("lightresist", StatIndex::GreaterThan, 20),
+		};
+		CHECK(AnswersFrom(bonus, criteria) ==
+			std::vector<std::string>({ "Civerb's Vestments" }));
+		CHECK(AnswersFrom(piece, criteria).empty());
+	}
+
+	SUBCASE("and a bonus that arrives before the set is complete") {
+		CHECK(AnswersFrom(bonus, {
+			Criterion::OnStat("item_fastergethitrate", StatIndex::GreaterThan, 20)
+		}) == std::vector<std::string>({ "Tal Rasha's Wrappings" }));
+	}
+}
+
+TEST_CASE("a piece answers for what more of its set unlocks on it") {
+	// Civerb's Icon grants cold resistance only once a second piece is worn,
+	// and a search asking for it has to find the piece that grants it.
+	CHECK(AnswersFrom(SetCatalogue::Kind, {
+		Criterion::OnText("civerb's icon"),
+		Criterion::OnStat("coldresist", StatIndex::GreaterThan, 20),
+	}) == std::vector<std::string>({ "Civerb's Icon" }));
+}
+
+TEST_CASE("a piece is found by the set it belongs to") {
+	// Its set's name, which four of the five pieces' own names do not carry.
+	CHECK(AnswersFrom(SetCatalogue::Kind, { Criterion::OnText("wrappings") }) ==
+		std::vector<std::string>({
+			"Tal Rasha's Fine-Spun Cloth",
+			"Tal Rasha's Adjudication",
+			"Tal Rasha's Lidless Eye",
+			"Tal Rasha's Guardianship",
+			"Tal Rasha's Horadric Crest",
+		}));
+
+	std::vector<Result> results = StatIndex::Find(
+		Ask({ Criterion::OnText("civerb's ward") }, SetCatalogue::Kind));
+	REQUIRE(results.size() == 1);
+	CHECK(results[0].entry->searchKey ==
+		"civerb's ward large shield shield civerb's vestments");
+	CHECK(results[0].entry->source->setName == "Civerb's Vestments");
 }
