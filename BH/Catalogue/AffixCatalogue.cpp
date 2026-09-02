@@ -32,6 +32,60 @@ static std::string NameOf(const std::string& code) {
 	return (localized.length() > 0) ? localized : code;
 }
 
+bool ReadRow(Table& table, int row, Catalogue::Source& source) {
+	if (row < 0)
+		return false;
+	JSONObject* entry = table.entryAt(row);
+	if (!entry)
+		return false;
+
+	source.code = Trim(entry->getString("Name"));
+	if (source.code.length() == 0)
+		return false;
+
+	for (int n = 1; n <= kPropertyCount; n++) {
+		std::string index = std::to_string(n);
+		PropertyStats::Property property;
+		property.code = ToLower(Trim(entry->getString("mod" + index + "code")));
+		if (property.code.length() == 0)
+			continue;
+		property.param = Trim(entry->getString("mod" + index + "param"));
+		property.min = atoi(entry->getString("mod" + index + "min").c_str());
+		property.max = atoi(entry->getString("mod" + index + "max").c_str());
+		source.properties.push_back(property);
+	}
+	// The dividers the file is padded out with grant nothing, which is what
+	// leaves them out of the catalogue. An affix granting nothing would be one
+	// the game rolls and the player could not tell it had.
+	if (source.properties.empty())
+		return false;
+
+	source.name = NameOf(source.code);
+	// The kinds of base an affix rolls on, down to the ones it does not: "Any
+	// Armor, Ring, Amulet" or "Melee Weapon (not Wand, Orb)". The exclusions
+	// are the tables' own way of carving a kind out of a broader one, so
+	// leaving them off would say the affix rolls where it cannot.
+	source.itemType = ItemDescription::ReadTypes(*entry, kTypeCount,
+		kExcludedTypeCount).text;
+	source.level = atoi(entry->getString("level").c_str());
+	source.requiredLevel = atoi(entry->getString("levelreq").c_str());
+	// Magic is the only quality an affix is drawn in on its own. It also goes
+	// on rares and on crafted items, but there it shares the name with others
+	// and none of them colours it.
+	source.rarity = RarityMagic;
+	// Which class can carry it, where the affix is one only a class rolls. A
+	// note rather than part of what it rolls on, because the tables restrict a
+	// class affix by the class and not by the kinds of base: several of them
+	// roll on a charm anyone can pick up.
+	std::string classOnly = StatDescriptions::GetClassOnly(
+		ToLower(Trim(entry->getString("classspecific"))));
+	if (classOnly.length() > 0)
+		source.notes.push_back(classOnly);
+	source.lines = PropertyStats::Lines(source.properties);
+
+	return true;
+}
+
 static std::vector<Catalogue::Source> ReadRows(Table& table,
 		bool requireSpawnable) {
 	std::vector<Catalogue::Source> read;
@@ -43,51 +97,8 @@ static std::vector<Catalogue::Source> ReadRows(Table& table,
 			continue;
 
 		Catalogue::Source source;
-		source.code = Trim(entry->getString("Name"));
-		if (source.code.length() == 0)
-			continue;
-
-		for (int n = 1; n <= kPropertyCount; n++) {
-			std::string index = std::to_string(n);
-			PropertyStats::Property property;
-			property.code = ToLower(Trim(entry->getString("mod" + index + "code")));
-			if (property.code.length() == 0)
-				continue;
-			property.param = Trim(entry->getString("mod" + index + "param"));
-			property.min = atoi(entry->getString("mod" + index + "min").c_str());
-			property.max = atoi(entry->getString("mod" + index + "max").c_str());
-			source.properties.push_back(property);
-		}
-		// The dividers the file is padded out with grant nothing, which is what
-		// leaves them out of the catalogue. An affix granting nothing would be
-		// one the game rolls and the player could not tell it had.
-		if (source.properties.empty())
-			continue;
-
-		source.name = NameOf(source.code);
-		// The kinds of base an affix rolls on, down to the ones it does not:
-		// "Any Armor, Ring, Amulet" or "Melee Weapon (not Wand, Orb)". The
-		// exclusions are the tables' own way of carving a kind out of a broader
-		// one, so leaving them off would say the affix rolls where it cannot.
-		source.itemType = ItemDescription::ReadTypes(*entry, kTypeCount,
-			kExcludedTypeCount).text;
-		source.level = atoi(entry->getString("level").c_str());
-		source.requiredLevel = atoi(entry->getString("levelreq").c_str());
-		// Magic is the only quality an affix is drawn in on its own. It also
-		// goes on rares and on crafted items, but there it shares the name with
-		// others and none of them colours it.
-		source.rarity = RarityMagic;
-		// Which class can carry it, where the affix is one only a class rolls.
-		// A note rather than part of what it rolls on, because the tables
-		// restrict a class affix by the class and not by the kinds of base:
-		// several of them roll on a charm anyone can pick up.
-		std::string classOnly = StatDescriptions::GetClassOnly(
-			ToLower(Trim(entry->getString("classspecific"))));
-		if (classOnly.length() > 0)
-			source.notes.push_back(classOnly);
-		source.lines = PropertyStats::Lines(source.properties);
-
-		read.push_back(source);
+		if (ReadRow(table, i, source))
+			read.push_back(source);
 	}
 	return read;
 }
