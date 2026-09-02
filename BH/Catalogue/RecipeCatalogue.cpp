@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <map>
 #include <set>
+#include "AffixCatalogue.h"
 #include "../ItemDescription.h"
 #include "../ItemRarity.h"
 #include "../StatDescriptions.h"
@@ -12,11 +13,9 @@ namespace RecipeCatalogue {
 
 const char* const Kind = "recipe";
 
-// How many inputs and how many property entries CubeMain.txt gives each row,
-// and how many an affix carries in MagicPrefix.txt and MagicSuffix.txt.
+// How many inputs and how many property entries CubeMain.txt gives each row.
 static const int kInputCount = 7;
 static const int kPropertyCount = 5;
-static const int kAffixPropertyCount = 3;
 
 // What crafting rolls on top of the bonuses a recipe guarantees, and the item
 // level at which the roll will always be the maximum.
@@ -287,30 +286,19 @@ static std::string CodeName(const std::string& code) {
 	return (localized.length() > 0) ? localized : code;
 }
 
-// A forced prefix or suffix, by the row it sits on in its table.
-// CubeMain.txt names it by row rather than by name.
-// What an affix grants is on the same row, so it is collected here.
+// A forced prefix or suffix, by the row it sits on in its table. CubeMain.txt
+// names it by row rather than by name, and what the affix grants is on the same
+// row, so the affixes catalogue reads both and the properties are collected
+// onto the recipe here.
 static std::string ReadAffix(Table& table, int row,
 		std::vector<PropertyStats::Property>& properties) {
-	JSONObject* entry = table.entryAt(row);
-	if (!entry)
+	Catalogue::Source affix;
+	if (!AffixCatalogue::ReadRow(table, row, affix))
 		return "";
 
-	for (int n = 1; n <= kAffixPropertyCount; n++) {
-		std::string index = std::to_string(n);
-		PropertyStats::Property property;
-		property.code = ToLower(Trim(entry->getString("mod" + index + "code")));
-		if (property.code.length() == 0)
-			continue;
-		property.param = Trim(entry->getString("mod" + index + "param"));
-		property.min = atoi(entry->getString("mod" + index + "min").c_str());
-		property.max = atoi(entry->getString("mod" + index + "max").c_str());
-		properties.push_back(property);
-	}
-
-	std::string name = Trim(entry->getString("Name"));
-	std::string localized = StatDescriptions::GetString(name);
-	return (localized.length() > 0) ? localized : name;
+	properties.insert(properties.end(), affix.properties.begin(),
+		affix.properties.end());
+	return affix.name;
 }
 
 static void AppendWords(const CubeToken& token, const CubeWord* words, int count,

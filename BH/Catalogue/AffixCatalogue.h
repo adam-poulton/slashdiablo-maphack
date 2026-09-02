@@ -46,4 +46,12 @@ namespace AffixCatalogue {
 	// is a prefix or a suffix, so the caller is what decides that.
 	std::vector<Catalogue::Source> Read(Table& table);
 
+	// One affix, by the row it sits on in its table, or false where the row
+	// carries no affix for want of a name or of anything to grant. This is the
+	// one path from a row to what it grants and to what the player reads for
+	// it, and it is addressed by row because CubeMain.txt names a forced prefix
+	// or suffix that way. Read() leaves out the rows the game never rolls, so
+	// its own order says nothing about where a row sits.
+	bool ReadRow(Table& table, int row, Catalogue::Source& source);
+
 }
