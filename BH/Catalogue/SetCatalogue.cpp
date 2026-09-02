@@ -41,42 +41,66 @@ static std::string NameOf(const std::string& code) {
 	return (localized.length() > 0) ? localized : code;
 }
 
-// Every property group in both tables has this shape; only the column names and
-// the piece count differ.
-static void ReadProperty(const JSONObject* entry, const std::string& codeColumn,
-		const std::string& paramColumn, const std::string& minColumn,
-		const std::string& maxColumn, int itemCount,
-		std::vector<PropertyStats::Property>& into) {
+// The four columns one property is spread across. The tables name them
+// differently in every group, so what they are called travels together with
+// what is read out of them.
+//
+// low and high rather than min and max: windows.h leaves those defined as
+// macros, and a member named either of them does not compile.
+struct PropertyColumns {
+	std::string code;
+	std::string param;
+	std::string low;
+	std::string high;
+
+	PropertyColumns(const std::string& code, const std::string& param,
+			const std::string& low, const std::string& high) :
+		code(code), param(param), low(low), high(high) {};
+
+	// The same four with a group's number, and the slot within it where the
+	// group has two.
+	PropertyColumns At(const std::string& suffix) const {
+		return PropertyColumns(code + suffix, param + suffix, low + suffix,
+			high + suffix);
+	};
+};
+
+// Every property group in both tables has this shape; only the columns and the
+// piece count differ.
+static void ReadProperty(const JSONObject* entry, const PropertyColumns& columns,
+		int itemCount, std::vector<PropertyStats::Property>& into) {
 	PropertyStats::Property property;
-	property.code = Trim(entry->getString(codeColumn));
+	property.code = Trim(entry->getString(columns.code));
 	if (property.code.length() == 0)
 		return;
-	property.param = Trim(entry->getString(paramColumn));
-	property.min = atoi(entry->getString(minColumn).c_str());
-	property.max = atoi(entry->getString(maxColumn).c_str());
+	property.param = Trim(entry->getString(columns.param));
+	property.min = atoi(entry->getString(columns.low).c_str());
+	property.max = atoi(entry->getString(columns.high).c_str());
 	property.itemCount = itemCount;
 	into.push_back(property);
 }
 
-// The two slots each of a set's counted groups carries. Only Trang-Oul's uses
-// the second, for its three oskills.
+// The two slots each counted group carries. Only Trang-Oul's uses the second,
+// for its three oskills.
 static const char* const kSlots[] = { "a", "b" };
+static const int kSlotCount = sizeof(kSlots) / sizeof(kSlots[0]);
 
-static void ReadPartial(const JSONObject* entry, const char* const columns[],
+static void ReadPartial(const JSONObject* entry, const PropertyColumns& columns,
 		int index, int itemCount,
 		std::vector<PropertyStats::Property>& into) {
-	std::string n = std::to_string(index);
-	for (int slot = 0; slot < 2; slot++) {
-		std::string s = kSlots[slot];
-		ReadProperty(entry, columns[0] + n + s, columns[1] + n + s,
-			columns[2] + n + s, columns[3] + n + s, itemCount, into);
-	}
+	for (int slot = 0; slot < kSlotCount; slot++)
+		ReadProperty(entry, columns.At(std::to_string(index) + kSlots[slot]),
+			itemCount, into);
 }
+
+// What a set is worth wearing all of, and what a piece is worth on its own.
+static const PropertyColumns kFullColumns("FCode", "FParam", "FMin", "FMax");
+static const PropertyColumns kOwnColumns("prop", "par", "min", "max");
 
 // The two tables name their counted groups differently: a set's are PCode2a
 // through PMax5b, a piece's aprop1a through amax5b.
-static const char* const kSetColumns[] = { "PCode", "PParam", "PMin", "PMax" };
-static const char* const kPieceColumns[] = { "aprop", "apar", "amin", "amax" };
+static const PropertyColumns kSetColumns("PCode", "PParam", "PMin", "PMax");
+static const PropertyColumns kPieceColumns("aprop", "apar", "amin", "amax");
 
 std::vector<Catalogue::Source> ReadBonuses(Table& table) {
 	std::vector<Catalogue::Source> read;
@@ -99,11 +123,9 @@ std::vector<Catalogue::Source> ReadBonuses(Table& table) {
 		for (int count = 2; count <= kPartialCount; count++)
 			ReadPartial(entry, kSetColumns, count, count, source.partial);
 
-		for (int n = 1; n <= kFullCount; n++) {
-			std::string slot = std::to_string(n);
-			ReadProperty(entry, "FCode" + slot, "FParam" + slot,
-				"FMin" + slot, "FMax" + slot, 0, source.properties);
-		}
+		for (int n = 1; n <= kFullCount; n++)
+			ReadProperty(entry, kFullColumns.At(std::to_string(n)), 0,
+				source.properties);
 
 		source.lines = PropertyStats::Lines(source.properties);
 		source.partialLines = PropertyStats::CountedLines(source.partial);
@@ -143,11 +165,9 @@ std::vector<Catalogue::Source> ReadPieces(Table& table) {
 		if (base)
 			source.itemType = base->typeName;
 
-		for (int n = 1; n <= kOwnCount; n++) {
-			std::string slot = std::to_string(n);
-			ReadProperty(entry, "prop" + slot, "par" + slot,
-				"min" + slot, "max" + slot, 0, source.properties);
-		}
+		for (int n = 1; n <= kOwnCount; n++)
+			ReadProperty(entry, kOwnColumns.At(std::to_string(n)), 0,
+				source.properties);
 
 		// A blank add func is not merely a piece with no aprops listed: Civerb's
 		// Cudgel lists a per level damage bonus the game has never granted it.
@@ -204,9 +224,13 @@ static void Load() {
 	for (unsigned int i = 0; i < bonuses.size(); i++)
 		bonusByCode.insert(std::make_pair(bonuses[i].code, &bonuses[i]));
 
+	// Each set's pieces once, taken with whichever bonuses kept the code: a
+	// second set going by the same code would otherwise list them all again.
 	std::vector<Catalogue::Source> read = ReadPieces(Tables::SetItems);
-	for (unsigned int i = 0; i < bonuses.size(); i++)
-		AppendPieces(read, bonuses[i].code, pieces);
+	for (unsigned int i = 0; i < bonuses.size(); i++) {
+		if (bonusByCode[bonuses[i].code] == &bonuses[i])
+			AppendPieces(read, bonuses[i].code, pieces);
+	}
 
 	// A piece whose set the sets table does not carry still goes in, at the end.
 	for (unsigned int i = 0; i < read.size(); i++) {
