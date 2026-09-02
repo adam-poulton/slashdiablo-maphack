@@ -2,10 +2,14 @@ name	letter	transform	code	nummods	weaponMod1Code	weaponMod1Param	weaponMod1Min	
 Eth Rune	Eth	18	r05	1	reduce-ac		25	25									regen-mana		15	15									regen-mana		15	15								0
 Ith Rune	Ith	18	r06	1	dmg-max		9	9									dmg-to-mana		15	15									dmg-to-mana		15	15								0
 Tal Rune	Tal	18	r07	1	dmg-pois	125	154	154									res-pois		30	30									res-pois		35	35								0
+Ral Rune	Ral	18	r08	1	dmg-fire		5	30									res-fire		30	30									res-fire		35	35								0
 Ort Rune	Ort	18	r09	1	dmg-ltng		1	50									res-ltng		30	30									res-ltng		35	35								0
 Thul Rune	Thul	18	r10	1	dmg-cold	75	3	14									res-cold		30	30									res-cold		35	35								0
 Amn Rune	Amn	18	r11	1	lifesteal		7	7									thorns		14	14									thorns		14	14								0
 Sol Rune	Sol	18	r12	1	dmg-min		9	9									red-dmg		7	7									red-dmg		7	7								0
+Shael Rune	Shael	18	r13	1	swing2		20	20									balance2		20	20									block2		20	20								0
+Dol Rune	Dol	18	r14	1	howl		32	32									regen		7	7									regen		7	7								0
+Hel Rune	Hel	18	r15	1	ease		-20	-20									ease		-15	-15									ease		-15	-15								0
 Lum Rune	Lum	18	r17	1	enr		10	10									enr		10	10									enr		10	10								0
 Fal Rune	Fal	18	r19	1	str		10	10									str		10	10									str		10	10								0
 Um Rune	Um	18	r22	1	openwounds		25	25									res-all		15	15									res-all		22	22								0

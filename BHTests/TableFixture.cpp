@@ -44,6 +44,10 @@ void TableFixture::Load() {
 	LoadTable("UniqueItems.txt", Tables::UniqueItems);
 	LoadTable("Sets.txt", Tables::Sets);
 	LoadTable("SetItems.txt", Tables::SetItems);
+	LoadTable("CubeMain.txt", Tables::CubeMain);
+	// Whole, because a recipe names a forced affix by the row it sits on.
+	LoadTable("MagicPrefix.txt", Tables::MagicPrefix);
+	LoadTable("MagicSuffix.txt", Tables::MagicSuffix);
 	LoadTable("Weapons.txt", Tables::Weapons);
 	LoadTable("Armor.txt", Tables::Armor);
 	LoadTable("Misc.txt", Tables::Misc);

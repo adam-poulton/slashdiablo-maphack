@@ -22,6 +22,11 @@ TextColor RarityColor(ItemRarity rarity) {
 	return kRarityColors[rarity];
 }
 
+TextColor NameColor(ItemRarity rarity) {
+	TextColor color = RarityColor(rarity);
+	return (color == White) ? Gold : color;
+}
+
 ItemRarity RarityFromQuality(unsigned int quality) {
 	// Anything the game has added since is drawn as an ordinary item rather than
 	// read off the end of the table.

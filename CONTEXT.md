@@ -145,10 +145,27 @@ _Avoid_: search, filter, request
 
 **Kind**:
 What a catalogue calls itself where a kind of source is asked for: "unique",
-and later a word each for the set items, the runewords, the recipes, the bases
-and the affixes. The catalogue owns the word; the stat index only ever compares
+"set item", "set bonus", "runeword" and "recipe", and later a word each for the
+bases and the affixes. The catalogue owns the word; the stat index only ever compares
 it, which is what keeps the index ignorant of every kind there is.
 _Avoid_: type, category, class
+
+**Heading**:
+What a catalogue gathers its sources under where it has something to gather
+them by: the recipes are gathered under what they make and, where that says
+less, under what they do. A heading is the catalogue's, not the panel's, so a
+panel that shows one and a search that reads one agree without arranging
+anything for themselves. The list a panel draws it into calls the row a group,
+which is that class's own word for a row that folds and not a second word for
+this.
+_Avoid_: group, category, section
+
+**Note**:
+Something a source does that no stat line words, because the game shows it in
+the shape of the item instead: the sockets a recipe adds, the levels it costs,
+the conditions it is only allowed under. Read into words by the catalogue, and
+drawn after the stat lines.
+_Avoid_: remark, detail, extra
 
 **Entry**:
 One source as the stat index holds it: the kind that registered it, the search

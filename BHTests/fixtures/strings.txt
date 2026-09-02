@@ -3,14 +3,131 @@
 7cr	Phase Blade
 7gd	Colossus Blade
 7vo	Colossus Voulge
+Accursed	Cursing
+Acrobat's	Acrobatic
 AmaOnly	(Amazon Only)
+Amber	Amber
+Ambergris	Ambergris
+Angel's	Angel's
+Antimagic	Antimagic
+Arcadian	Arcadian
+Arch-Angel's	Arch-Angel's
+Archer's	Archer's
+Arcing	Arcing
+Argent	Argent
+Artificer's	Artisan's
 AssOnly	(Assassin Only)
+Assamic	Lunar
+Astral	Astral
+Athlete's	Athletic
+Aureolin	Aureolic
+Azure	Azure
+Bahamut's	Bahamut's
 BarOnly	(Barbarian Only)
+Berserker's	Berserker's
+Beryl	Beryl
+Blanched	Blanched
+Blank	Void
+Blazing	Blazing
+Blessed	Blessed
+Blighting	Blighting
+Bloody	Bloody
+Bone	Bone
+Boreal	Boreal
+Bowyer's	Bowyer's
+Bright	Bright
+Bronze	Bronze
+Brown	Brown
+Brutal	Brutal
+Burgundy	Burgundy
+Burly	Burly
+Burning	Burning
+Buzzing	Buzzing
+Calling	Calling
+Camphor	Camphor
+Captain's	Captain's
+Carbuncle	Carbuncle
+Caretaker's	Caretaker's
+Carmine	Carmine
+Celestial	Celestial
+Charged	Charged
+Chestnut	Chestnut
+Chilling	Chilling
+Chromatic	Chromatic
+Cinnabar	Cinnabar
 Civerb's Cudgel	Civerb's Cudgel
 Civerb's Icon	Civerb's Icon
 Civerb's Vestments	Civerb's Vestments
 Civerb's Ward	Civerb's Ward
+Cobalt	Cobalt
+Commander's	Commander's
+Communal	Communal
+Compact	Compact
+Consecrated	Consecrated
+Coral	Coral
+Corosive	Corrosive
+Crimson	Crimson
+Cruel	Cruel
+Cunning	Cunning
+Deadly	Deadly
+Dense	Dense
+Devious	Devious
+Diamond	Diamond
+Divine	Divine
+Dragon's	Dragon's
+Drake's	Drake's
 DruOnly	(Druid Only)
+Dun	Dun
+Eagleeye	Eagleeye
+Eburin	Eburine
+Echoing	Echoing
+Elysian	Elysian
+Ember	Fiery
+Emerald	Emerald
+Entrapping	Entrapping
+Envenomed	Foul
+Eocene	Righteous
+Expert's	Expert's
+Falconeye	Falconeye
+Fanatic	Fanatic
+Felicitous	Felicitous
+Feral	Feral
+Ferocious	Ferocious
+Fine	Fine
+Flaming	Flaming
+Fletcher's	Fletcher's
+Forked	Forked
+Fortified	Fortified
+Fortuitous	Fortuitous
+Freezing	Freezing
+Fungal	Fungal
+Furious	Furious
+Gaea's	Gaean
+Garnet	Garnet
+Glacial	Glacial
+Glimmering	Glimmering
+Glorious	Glorious
+Glowing	Glowing
+Godly	Godly
+Gold	Gold
+Golemlord's	Golemlord's
+Grandmaster's	Grandmaster's
+Graverobber's	Graverobber's
+Great Wyrm's	Great Wyrm's
+Gritty	Grinding
+Guardian's	Guardian's
+Gymnast's	Gymnastic
+Hallowed	Hallowed
+Harpoonist's	Harpoonist's
+Hawk Branded	Hawk Branded
+Hawkeye	Hawkeye
+Hexing	Hexing
+Hibernal	Hibernal
+Hierophant's	Hierophant's
+Hiquality	Superior
+Holy	Holy
+Howling	Howling
+Iron	Iron
 ItemExpansiveChanc1	%d%% Chance to cast level %d %s on striking
 ItemExpansiveChanc2	%d%% Chance to cast level %d %s when struck
 ItemExpansiveChancX	%d%% Chance to cast level %d %s on attack
@@ -23,6 +140,40 @@ ItemStats1l	One-Hand Damage:
 ItemStats1m	Two-Hand Damage:
 ItemStats1n	Throw Damage:
 ItemStats1p	Required Level:
+Ivory	Ivory
+Jacinth	Jacinth
+Jack's	Jack's
+Jade	Jade
+Jagged	Jagged
+Jester's	Jester's
+Jeweler's	Jeweler's
+Joker's	Joker's
+Keeper's	Keeper's
+Kenshi's	Kenshi's
+King's	King's
+Knave's	Knave's
+Knight's	Knight's
+Lancer's	Lancer's
+Lapis	Lapis
+Lapis Lazuli	Lapis Lazuli
+Lion Branded	Lion Branded
+Lizard's	Lizard's
+Lord's	Lord's
+Loud	Alarming
+Low Quality	Low Quality
+Lucky	Lucky
+Magekiller's	Magekiller's
+Maiden's	Maiden's
+Maroon	Maroon
+Marshal's	Marshal's
+Massive	Massive
+Master's	Master's
+Mechanist's	Mechanic's
+Mentalist's	Mentalist's
+Merciless	Merciless
+Meteoric	Meteoric
+Miocene	Enlightened
+Mnemonic	Mnemonic
 ModStr1a	to Strength
 ModStr1b	to Dexterity
 ModStr1c	to Vitality
@@ -157,13 +308,65 @@ ModitemskonKill	%d%% Chance to cast level %d %s when you Kill an Enemy
 ModitemskonLevel	%d%% Chance to cast level %d %s when you Level-Up
 Moditemskondeath	%d%% Chance to cast level %d %s when you Die
 Modstr2v	Enhanced Defense
+Monk's	Monk's
+Nature's	Natural
 NecOnly	(Necromancer Only)
+Necromancer's	Necromancer's
+Nickel	Nickel
+Noxious	Noxious
+Null	Null
+Ocher	Ocher
+Oligocene	Honorable
 PalOnly	(Paladin Only)
+Paleocene	Faithful
+Paradox	Paradox
+Pearl	Pearl
+Pestilent	Pestilent
+Platinum	Platinum
+Powered	Powered
+Preserver's	Preserver's
+Priest's	Priest's
+Prismatic	Prismatic
+Psychic	Psychic
+Pure	Pure
+Raging	Raging
+Rainbow	Rainbow
+Realgar	Realgar
+Red	Red
+Resonant	Resonant
+Robineye	Robineye
+Rose Branded	Rose Branded
+Ruby	Ruby
+Rugged	Rugged
 Runeword130	Spirit
 Runeword131	Splendor
 Runeword22	Delirium
 Runeword33	Enigma
 Runeword75	Lore
+Russet	Russet
+Rusty	Rusty
+Sacred	Sacred
+Saintly	Saintly
+Sanguinary	Sanguinary
+Sapphire	Sapphire
+Savage	Savage
+Scarlet	Scarlet
+Scintillating	Scintillating
+Scorching	Condensing
+Screaming	Screaming
+Sensei's	Sensei's
+Septic	Septic
+Serpent's	Serpent's
+Serrated	Serrated
+Shadow	Shadow
+Shaman's	Shaman's
+Sharp	Sharp
+Shimmering	Shimmering
+Shivering	Shivering
+Shocking	Shocking
+Shogukusha's	Shogukusha's
+Shouting	Howling
+Silver	Silver
 Skillname222	Raven
 Skillname223	Werewolf
 Skillname224	Werewolf
@@ -224,7 +427,23 @@ Skillname278	Blade Shield
 Skillname279	Venom
 Skillname280	Shadow Master
 Skillname281	Phoenix Strike
+Slayer's	Slayer's
+Smoking	Smoking
+Smoldering	Smoldering
+Snake's	Snake's
+Snowflake	Snowy
+Socketable	Socketed
+Soldier's	Soldier's
 SorOnly	(Sorceress Only)
+Sounding	Sounding
+Sparking	Sparking
+Sparroweye	Sparroweye
+Spearmaiden's	Spearmaiden's
+Spiritual	Spiritual
+Stalwart	Stalwart
+Static	Static
+Steel	Steel
+Stout	Stout
 StrSkill106	Attack Speed: 
 StrSklTabItem1	+%d to Javelin and Spear Skills
 StrSklTabItem10	+%d to Warcries
@@ -247,27 +466,372 @@ StrSklTabItem6	+%d to Summoning Skills
 StrSklTabItem7	+%d to Poison and Bone Skills
 StrSklTabItem8	+%d to Curses
 StrSklTabItem9	+%d to Summoning Skills
+Strange	Strange
+Strong	Strong
+Sturdy	Sturdy
+Summoner's	Summoner's
 Tal Rasha's Adjudication	Tal Rasha's Adjudication
 Tal Rasha's Fire-Spun Cloth	Tal Rasha's Fine-Spun Cloth
 Tal Rasha's Horadric Crest	Tal Rasha's Horadric Crest
 Tal Rasha's Howling Wind	Tal Rasha's Guardianship
 Tal Rasha's Lidless Eye	Tal Rasha's Lidless Eye
 Tal Rasha's Wrappings	Tal Rasha's Wrappings
+Tangerine	Tangerine
+Terra's	Terrene
+Thin	Thin
+Tin	Tin
+Tireless	Tireless
+To The Moo Moo Farm	To The Secret Cow Level
+To Tristram	To Tristram
+Toxic	Toxic
+Trainer's	Trainer's
+Trickster's	Trickster's
+Triumphant	Triumphant
+Trump	Fool's
+Turquoise	Turquoise
+Unearthly	Unearthly
+Valkyrie's	Valkyrie's
+Venomous	Venomous
+Vermillion	Vermilion
+Veteran's	Veteran's
+Vicious	Vicious
+Victorious	Victorious
+Vigorous	Vigorous
+Viridian	Viridian
+Visionary	Visionary
+Vodoun	Mojo
+Volcanic	Volcanic
+Vulpine	Vulpine
+Wailing	Wailing
+Warder's	Warden's
+Warrior's	Warrior's
+Weird	Weird
+Witch-hunter's	Witch-hunter's
+Wyrm's	Wyrm's
+Yelling	Yelling
+Zircon	Zircon
 amu	Amulet
+bey	Baal's Eye
 cap	Cap
 cm1	Small Charm
 crs	Crystal Sword
+dhn	Diablo's Horn
+fhl	Full Helm
+gcg	Chipped Emerald
+glr	Flawless Ruby
+gpb	Perfect Sapphire
+gpg	Perfect Emerald
+gpr	Perfect Ruby
+gpv	Perfect Amethyst
+gpw	Perfect Diamond
+gpy	Perfect Topaz
 gsc	Grand Scepter
+hst	Horadric Staff
 increaseswithplaylevelX	(Based on Character Level)
+jew	Jewel
 lrg	Large Shield
+mbr	Mephisto's Brain
+msf	Shaft of the Horadric Staff
 oba	Swirling Crystal
+of Absorption	of Absorption
+of Acceleration	of Acceleration
+of Accuracy	of Accuracy
+of Ages	of Ages
+of Alacrity	of Alacrity
+of Amelioration	of Amelioration
+of Amianthus	of Amianthus
+of Amplify Damage	of Amplify Damage
+of Anima	of Amicae
+of Anthrax	of Anthrax
+of Armageddon	of Armageddon
+of Atlus	of Atlas
+of Attraction	of Attract
+of Avarice	of Avarice
+of Balance	of Balance
+of Bashing	of Bashing
+of Battle Command	of Battle Command
+of Battle Cry	of Battle Cry
+of Battle Orders	of Battle Orders
+of Blaze	of Blaze
+of Blazing	of Blazing
+of Blessed Hammers	of Blessed Hammer
+of Blight	of Blight
+of Bliss	of Bliss
+of Blizzard	of Blizzard
+of Blizzards	of Blizzard
+of Blocking	of Blocking
+of Blood Golem Summoning	of Blood Golem
+of Bone Armor	of Bone Armor
+of Bone Imprisonment	of Bone Prison
+of Bone Spears	of Bone Spear
+of Bone Spirits	of Bone Spirit
+of Bone Walls	of Bone Wall
+of Brilliance	of Brilliance
+of Burning	of Burning
+of Butchery	of Butchery
+of Carnage	of Carnage
+of Chain Lightning	of Chain Lightning
+of Chance	of Chance
+of Charged Bolts	of Charged Bolt
+of Charged Shield	of Charged Bolt
+of Charged Strike	of Charged Strike
+of Chilling Armor	of Chilling Armor
+of Clay Golem Summoning	of Clay Golem
+of Cold Arrows	of Cold Arrow
+of Concentration	of Concentration
+of Confusion	of Confusion
+of Conversion	of Conversion
+of Coolness	of Coolness
+of Corpse Explosions	of Corpse Explosion
+of Craftsmanship	of Craftmanship
+of Cyclone Armor	of Cyclone Armor
+of Damage Amplification	of Amplify Damage
+of Daring	of Daring
+of Dawn	of Dawn
+of Decrepification	of Decrepify
+of Defiance	of Defiance
+of Deflecting	of Deflecting
+of Desire	of Desire
+of Dexterity	of Dexterity
+of Dim Vision	of Dim Vision
+of Ease	of Ease
+of Enchant	of Enchant
+of Enchantment	of Enchantment
+of Energy	of Energy
+of Energy Shield	of Energy Shield
+of Enlightenment	of Enlightenment
+of Ennui	of Ennui
+of Envy	of Envy
+of Equilibrium	of Equilibrium
+of Eruption	of Fissure
+of Evisceration	of Evisceration
+of Excellence	of Excellence
+of Exploding Arrows	of Exploding Arrow
+of Faith	of Faith
+of Fast Repair	of Restoration
+of Fending	of Fending
+of Fervor	of Fervor
+of Fire	of Fire
+of Fire Arrows	of Fire Arrow
+of Fire Ball	of Fire Ball
+of Fire Balls	of Fire Ball
+of Fire Bolts	of Fire Bolt
+of Fire Golem Summoning	of Fire Golem
+of Fire Quenching	of Quenching
+of Fire Wall	of Fire Wall
+of Fire Walls	of Fire Wall
+of Firebolts	of Firebolts
+of Firestorms	of Firestorms
+of Fist of the Heavens	of Fist of the Heavens
+of Flame	of Flame
+of Fortune	of Fortune
+of Freedom	of Freedom
+of Freezing Arrows	of Freezing Arrow
+of Frigidity	of Frigidity
+of Frost	of Frost
+of Frost Novas	of Frost Nova
+of Frost Shield	of Frost Shield
+of Frozen Armor	of Frozen Armor
+of Frozen Orb	of Frozen Orb
+of Frozen Orbs	of Frozen Orb
+of Glacial Spike	of Glacial Spike
+of Glacial Spikes	of Glacial Spike
+of Good Luck	of Good Luck
+of Gore	of Gore
+of Grace	of Grace
+of Grace and Power	of Grace and Power
+of Greed	of Greed
+of Grim Ward	of Grim Ward
+of Grounding	of Grounding
+of Guarding	of Guarding
+of Guided Arrows	of Guided Arrow
+of Haste	of Haste
+of Health	of Health
+of Holy Bolts	of Holy Bolt
+of Honor	of Honor
+of Hope	of Hope
+of Howling	of Howl
+of Hurricane	of Hurricane
+of Hydra Shield	of Hydra Shield
+of Hydras	of Hydra
+of Ice Arrows	of Ice Arrow
+of Ice Blast	of Ice Blast
+of Ice Blasts	of Ice Blast
+of Ice Bolts	of Ice Bolt
+of Icebolt	of Icebolt
+of Immolating Arrows	of Immolating Arrow
+of Impaling Strike	of Impaling Strike
+of Incineration	of Incineration
+of Incombustibility	of Inflammability
+of Inertia	of Inertia
+of Inner Sight	of Inner Sight
+of Insulation	of Insulation
+of Ire	of Ire
+of Iron Golem Creation	of Iron Golem
+of Iron Maiden	of Iron Maiden
+of Item Finding	of Find Item
+of Jabbing	of Jab
+of Joyfulness	of Joyfulness
+of Knowledge	of Knowledge
+of Life	of Life
+of Life Everlasting	of Life Everlasting
+of Life Tap	of Life Tap
+of Light	of Light
+of Lightning	of Lightning
+of Lightning Fury	of Lightning Fury
+of Lightning Javelin	of Lightning Javelin
+of Lightning Strike	of Lightning Strike
+of Lower Resistance	of Lower Resistance
+of Luck	of Luck
+of Magic Arrows	of Magic Arrow
+of Maiming	of Maiming
+of Malice	of Malice
+of Measure	of Measure
+of Memory	of Memory
+of Meteor	of Meteor
+of Meteors	of Meteor
+of Might	of Might
+of Molten Boulders	of Molten Boulder
+of Multiple Shot	of Multiple Shot
+of Negation	of Negation
+of Nirvana	of Nirvana
+of Nova	of Nova
+of Nova Shield	of Nova Shield
+of Novas	of Nova
+of Pacing	of Pacing
+of Passion	of Passion
+of Perfection	of Perfection
+of Performance	of Performance
+of Pestilence	of Pestilence
+of Piercing	of Piercing
+of Plague Jab	of Plague Jab
+of Poison Dagger	of Poison Dagger
+of Poison Explosion	of Poison Explosion
+of Poison Jab	of Poison Jab
+of Poison Novas	of Poison Nova
+of Potion Finding	of Find Potion
+of Power	of Power
+of Power Strike	of Power Strike
+of Precision	of Precision
+of Propogation	of Propogation
+of Prosperity	of Prosperity
+of Protection	of Protection
+of Puncturing	of Puncturing
+of Quality	of Quality
+of Quickness	of Quickness
+of Radiance	of Radiance
+of Raise Skeletal Mages	of Skeletal Mages
+of Raise Skeletons	of Raise Skeleton
+of Razors	of Razors
+of Readiness	of Readiness
+of Regeneration	of Regeneration
+of Regrowth	of Regrowth
+of Remedy	of Remedy
+of Replenishing	of Replenishing
+of Resistance	of Resistance
+of Revivification	of Revivification
+of Sacrifice	of Sacrifice
+of Self-Repair	of Self-Repair
+of Shiver Armor	of Shiver Armor
+of Shock	of Shock
+of Shouting	of Shout
+of Simplicity	of Simplicity
+of Skill	of Skill
+of Slaughter	of Slaughter
+of Slaying	of Slaying
+of Slow Missiles	of Slow Missile
+of Sorcery	of Sorcery
+of Speed	of Speed
+of Spikes	of Spikes
+of Spirit	of Spirit
+of Stability	of Stability
+of Static Field	of Static Field
+of Stoicism	of Stoicism
+of Storms	of Storms
+of Strength	of Strength
+of Stunning	of Stun
+of Substinence	of Sustenance
+of Sunlight	of Sunlight
+of Swiftness	of Swiftness
+of Swords	of Swords
+of Taunting	of Taunt
+of Teeth	of Teeth
+of Telekinesis	of Telekinesis
+of Teleport Shield	of Teleport Shield
+of Teleportation	of Teleportation
+of Terror	of Terror
+of Thawing	of Thawing
+of Thorns	of Thorns
+of Thunder	of Thunder
+of Thunder Storm	of Thunder Storm
+of Tornado	of Tornado
+of Transcendence	of Transcendence
+of Traveling	of Transportation
+of Truth	of Truth
+of Twister	of Twister
+of Vengeance	of Vengeance
+of Venom	of Venom
+of Vileness	of Vileness
+of Virility	of Virility
+of Vita	of Vita
+of Volcano	of Volcano
+of War Cry	of War Cry
+of Warding	of Warding
+of Warming	of Warming
+of Warmth	of Thawing
+of Weaken	of Weaken
+of Wealth	of Wealth
+of Winter	of Winter
+of Wizardry	of Wizardry
+of Worth	of Worth
+of Wrath	of Wrath
+of Zeal	of Zeal
+of the Apprentice	of the Apprentice
+of the Bat	of the Bat
+of the Bear	of the Bear
+of the Cobra	of the Cobra
+of the Colosuss	of the Colossus
+of the Dunes	of the Dunes
+of the Dynamo	of the Dynamo
+of the Efreeti	of the Efreeti
+of the Elements	of the Elements
+of the Elephant	of the Elephant
+of the Fox	of the Fox
+of the Giant	of the Giant
+of the Glacier	of the Glacier
+of the Icicle	of the Icicle
+of the Jackal	of the Jackal
+of the Kraken	of the Centaur
+of the Lamprey	of the Lamprey
+of the Leech	of the Leech
+of the Locust	of the Locust
+of the Magus	of the Magus
+of the Mammoth	of the Mammoth
+of the Mind	of the Mind
+of the Ox	of the Ox
+of the Phoenix	of the Phoenix
+of the Sentinel	of the Sentinel
+of the Sirocco	of the Scirocco
+of the Squid	of the Squid
+of the Sun	of the Sun
+of the Tiger	of the Tiger
+of the Titan	of the Titan
+of the Vampire	of the Vampire
+of the Whale	of the Whale
+of the Wolf	of the Wolf
+of the Wraith	of the Wraith
+of the Yeti	of the Yeti
 r05	Eth Rune
 r06	Ith Rune
 r07	Tal Rune
+r08	Ral Rune
 r09	Ort Rune
 r10	Thul Rune
 r11	Amn Rune
 r12	Sol Rune
+r13	Shael Rune
+r14	Dol Rune
+r15	Hel Rune
 r17	Lum Rune
 r19	Fal Rune
 r22	Um Rune
@@ -435,12 +999,18 @@ skillname97	Smite
 skillname98	Might
 skillname99	Prayer
 skillsname61	Fire Mastery
+skz	Perfect Skull
+strBSMagic	Magic
 strModAllResistances	All Resistances +%d
 strModEnhancedDamage	Enhanced damage
 strModMagicDamage	+%d magic damage
+tsc	Scroll of Town Portal
 uap	Shako
+uhl	Giant Conch
 uth	Lacquered Plate
+vip	Top of the Horadric Staff
 xea	Serpentskin Armor
+xhl	Basinet
 xlt	Templar Coat
 xsk	Death Mask
 zmb	Mesh Belt

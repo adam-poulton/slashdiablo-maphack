@@ -1,0 +1,3 @@
+description	ladder	min diff	input 1	input 2	input 3	output	lvl	plvl	ilvl	mod 1	mod 1 param	mod 1 min	mod 1 max	output b	output c
+Expansion															
+3 flawless rubies -> realm ruby			glr,qty=3			gpr									

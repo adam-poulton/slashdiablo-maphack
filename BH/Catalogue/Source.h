@@ -38,7 +38,8 @@ namespace Catalogue {
 	};
 
 	// Fields a source has no answer for are left as they start: a runeword
-	// names no one base, and a set bonus asks for no level of its own.
+	// names no one base, a set bonus asks for no level of its own, and a unique
+	// is made from nothing and sits under no heading.
 	struct Source {
 		// What the table it was read from calls it, which is what a lookup
 		// names it by. Independent of the language the client reads in, unlike
@@ -90,13 +91,26 @@ namespace Catalogue {
 		// rune codes of a runeword. Empty for anything made from nothing.
 		std::vector<std::string> ingredientCodes;
 
-		// What those are called, as the game lists a recipe: "Jah + Ith + Ber".
+		// What those are called, as the game lists a recipe: "Jah + Ith + Ber",
+		// "3 Flawless Ruby". Empty for anything made from nothing.
 		std::string ingredients;
 
 		// Every kind of base the source can be made on and what it grants in
 		// each. Empty for a source made on one base, where the properties are
 		// the whole of what it grants.
 		std::vector<Variant> variants;
+
+		// The heading it sits under where its catalogue gathers its sources up,
+		// as "Gem" gathers the recipes that make one. Empty where a catalogue
+		// lists its sources flat, and where what gathers them is a thing in its
+		// own right instead, as a set is for its pieces.
+		std::string heading;
+
+		// What it does beyond granting the stats its lines word: the sockets it
+		// adds, the levels it costs, the conditions it is only allowed under.
+		// Said in words because the game says them in the shape of the item
+		// instead, so there is no stat line for them to be part of.
+		std::vector<std::string> notes;
 
 		Source() : requiredLevel(0), rarity(RarityNone) {};
 	};

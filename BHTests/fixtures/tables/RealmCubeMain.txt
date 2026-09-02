@@ -1,0 +1,4 @@
+description	enabled	ladder	min diff	input 1	input 2	input 3	output	lvl	plvl	ilvl	mod 1	mod 1 param	mod 1 min	mod 1 max	output b	output c
+Expansion																
+3 perfect rubies + 1 amulet -> realm amulet	1		1	gpr,qty=3	amu		amu,mag				str		25	25	gpr	
+unfinished realm recipe				gpr			cap									
