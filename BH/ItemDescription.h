@@ -5,6 +5,8 @@
 #include "Drawing/Advanced/Tooltiphook/TooltipLine.h"
 #include "StatDescriptions.h"
 
+class JSONObject;
+
 /*
  * Builds the panel of text that describes an item, in the order and the wording
  * the game itself uses: the names at the top, then what the base item is worth,
@@ -141,6 +143,23 @@ namespace ItemDescription {
 	// What an item type code is called ("armo" -> "Any Armor"), from
 	// ItemTypes.txt. Falls back to the code.
 	std::string TypeName(const std::string& code);
+
+	// The kinds of base a table row names: the ones a source applies to, and
+	// the ones carved back out of them. Rows across the tables name these in
+	// the same two column families, differing only in how many of each they
+	// carry.
+	struct ItemTypes {
+		std::vector<std::string> codes;		// the included types, in table order
+		std::vector<std::string> names;		// what each of those is called
+		std::string text;					// "Melee Weapon (not Wand, Orb)"
+	};
+
+	// What a row's itype and etype columns come to, read up to the counts the
+	// row carries. A kind a row names twice, which some of the tables do, is
+	// worded once, since the second says nothing the first did not. A row
+	// carving kinds out of nothing carves nothing, so the exclusions are only
+	// worded where there is a kind for them to narrow.
+	ItemTypes ReadTypes(JSONObject& entry, int typeCount, int excludedTypeCount);
 
 	// What a tier is called. The game never writes one out anywhere, so the
 	// words are ours, and a tier of none has none.

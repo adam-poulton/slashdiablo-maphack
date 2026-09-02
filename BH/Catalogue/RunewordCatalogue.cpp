@@ -264,26 +264,11 @@ static std::vector<Catalogue::Source> ReadRows(Table& table,
 		source.requiredLevel = LevelForRunes(source.ingredientCodes);
 		source.rarity = RarityRuneword;
 
-		std::vector<std::string> types;
-		for (int n = 1; n <= kTypeCount; n++) {
-			std::string code = Trim(entry->getString("itype" +
-				std::to_string(n)));
-			if (code.length() == 0)
-				continue;
-			types.push_back(ItemDescription::TypeName(code));
-			AddVariant(source.variants, code, types.back());
-		}
-		source.itemType = Join(types, ", ");
-
-		std::vector<std::string> excluded;
-		for (int n = 1; n <= kExcludedTypeCount; n++) {
-			std::string code = Trim(entry->getString("etype" +
-				std::to_string(n)));
-			if (code.length() > 0)
-				excluded.push_back(ItemDescription::TypeName(code));
-		}
-		if (!excluded.empty())
-			source.itemType += " (not " + Join(excluded, ", ") + ")";
+		ItemDescription::ItemTypes types = ItemDescription::ReadTypes(*entry,
+			kTypeCount, kExcludedTypeCount);
+		source.itemType = types.text;
+		for (unsigned int n = 0; n < types.codes.size(); n++)
+			AddVariant(source.variants, types.codes[n], types.names[n]);
 
 		for (int n = 1; n <= kPropertyCount; n++) {
 			std::string suffix = std::to_string(n);

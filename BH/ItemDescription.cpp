@@ -1,4 +1,5 @@
 #include "ItemDescription.h"
+#include <algorithm>
 #include <map>
 #include "StatDescriptions.h"
 #include "StringUtil.h"
@@ -269,6 +270,37 @@ std::string TypeName(const std::string& code) {
 			return name;
 	}
 	return code;
+}
+
+// The kinds of base one of the two columns of them names, in table order and
+// without a repeat of one already named. The codes are kept alongside the names
+// for a caller that needs the type itself and not only what it is called.
+static void AppendTypes(JSONObject& entry, const char* column, int count,
+		std::vector<std::string>& names, std::vector<std::string>* codes) {
+	for (int n = 1; n <= count; n++) {
+		std::string code = Trim(entry.getString(column + std::to_string(n)));
+		if (code.length() == 0)
+			continue;
+		std::string name = TypeName(code);
+		if (std::find(names.begin(), names.end(), name) != names.end())
+			continue;
+		names.push_back(name);
+		if (codes)
+			codes->push_back(code);
+	}
+}
+
+ItemTypes ReadTypes(JSONObject& entry, int typeCount, int excludedTypeCount) {
+	ItemTypes types;
+	AppendTypes(entry, "itype", typeCount, types.names, &types.codes);
+
+	std::vector<std::string> excluded;
+	AppendTypes(entry, "etype", excludedTypeCount, excluded, NULL);
+
+	types.text = Join(types.names, ", ");
+	if (types.text.length() > 0 && !excluded.empty())
+		types.text += " (not " + Join(excluded, ", ") + ")";
+	return types;
 }
 
 // Which stat moves which number. Going by the stat a property writes rather than
