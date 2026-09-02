@@ -168,6 +168,12 @@ static const DamagePair kDamagePairs[] = {
 	{ "coldmindam", "coldmaxdam" },
 };
 
+// The three letter codes the item tables restrict a class item by, in the order
+// CharStats.txt lists the classes they name.
+const char* const kClassCodes[] = {
+	"ama", "sor", "nec", "pal", "bar", "dru", "ass"
+};
+
 // CharStats.txt lists the classes in the order the class skill properties number
 // them, with an "Expansion" divider row partway down that is not a class.
 JSONObject* CharClass(int index) {
@@ -418,6 +424,16 @@ std::string GetString(const std::string& key) {
 		return "";
 	std::map<std::string, std::string>::iterator it = strings.find(key);
 	return (it == strings.end()) ? "" : it->second;
+}
+
+std::string GetClassOnly(const std::string& classCode) {
+	for (unsigned int i = 0; i < (sizeof(kClassCodes) / sizeof(kClassCodes[0])); i++) {
+		if (classCode.compare(kClassCodes[i]) != 0)
+			continue;
+		JSONObject* charClass = CharClass((int)i);
+		return charClass ? GetString(charClass->getString("StrClassOnly")) : "";
+	}
+	return "";
 }
 
 std::string GetSkillName(const std::string& idOrName) {

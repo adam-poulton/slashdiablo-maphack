@@ -1,0 +1,5 @@
+Name	spawnable	level	levelreq	mod1code	mod1param	mod1min	mod1max	mod2code	mod2param	mod2min	mod2max	itype1	itype2	etype1	add
+Expansion															
+															
+Realmish	1	5	3	str		10	20					weap		bow	
+Withdrawn	0	9	7	dex		1	3					armo			

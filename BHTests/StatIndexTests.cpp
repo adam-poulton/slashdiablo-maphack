@@ -1,6 +1,7 @@
 #include "doctest.h"
 #include <string>
 #include <vector>
+#include "Catalogue/AffixCatalogue.h"
 #include "Catalogue/BaseItemCatalogue.h"
 #include "Catalogue/Catalogues.h"
 #include "Catalogue/RecipeCatalogue.h"
@@ -32,11 +33,13 @@ const char* const kUnique = UniqueCatalogue::Kind;
 const char* const kRuneword = RunewordCatalogue::Kind;
 const char* const kRecipe = RecipeCatalogue::Kind;
 const char* const kBase = BaseItemCatalogue::Kind;
+const char* const kPrefix = AffixCatalogue::PrefixKind;
+const char* const kSuffix = AffixCatalogue::SuffixKind;
 
 // The fixture holds four uniques, the eight pieces of two sets, those two sets'
-// own bonuses, five runewords, eleven cube recipes, and every base item the
-// other four needed to be read at all. A question about one
-// catalogue is scoped to its kind, so that what it asserts does not turn on
+// own bonuses, five runewords, eleven cube recipes, every base item the other
+// four needed to be read at all, and both affix tables whole. A question about
+// one catalogue is scoped to its kind, so that what it asserts does not turn on
 // which other catalogues the fixture happens to carry.
 Query Ask(const std::vector<Criterion>& criteria, const std::string& kind = "") {
 	TableFixture::Load();
@@ -104,13 +107,20 @@ TEST_CASE("every source of every catalogue is in the index") {
 		"Repaired Weapon",
 	});
 
-	// The bases are read last, and there is one for every row the other four
-	// catalogues needed in the base tables. They are named in
-	// BaseItemCatalogueTests rather than a second time here; what this asserts
-	// is that all of them arrive, after the recipes and in their own order.
+	// The bases and then the affixes, each a list too long to name and each
+	// named in its own catalogue's tests. What this asserts is that all of them
+	// arrive, after the recipes and in their own order.
 	std::vector<std::string> bases = AnswersFrom(kBase, {});
 	CHECK(bases.size() == 50);
 	expected.insert(expected.end(), bases.begin(), bases.end());
+
+	std::vector<std::string> prefixes = AnswersFrom(kPrefix, {});
+	CHECK(prefixes.size() == 587);
+	expected.insert(expected.end(), prefixes.begin(), prefixes.end());
+
+	std::vector<std::string> suffixes = AnswersFrom(kSuffix, {});
+	CHECK(suffixes.size() == 574);
+	expected.insert(expected.end(), suffixes.begin(), suffixes.end());
 
 	CHECK(Answers({}) == expected);
 }
@@ -240,9 +250,16 @@ TEST_CASE("a query can be scoped to one kind") {
 	query.kind = BaseItemCatalogue::Kind;
 	CHECK(StatIndex::Find(query).size() == 50);
 
+	// The affixes are two kinds of source rather than one, so that a prefix is
+	// not mistaken for a suffix any more than for a unique.
+	query.kind = AffixCatalogue::PrefixKind;
+	CHECK(StatIndex::Find(query).size() == 587);
+	query.kind = AffixCatalogue::SuffixKind;
+	CHECK(StatIndex::Find(query).size() == 574);
+
 	// A kind no catalogue registers, which is what every catalogue not yet
 	// written looks like.
-	query.kind = "affix";
+	query.kind = "gem";
 	CHECK(StatIndex::Find(query).empty());
 }
 
@@ -424,4 +441,61 @@ TEST_CASE("a runeword is reached by the runes it is made from") {
 		std::vector<std::string>({ "Enigma" }));
 	CHECK(AnswersFrom(kRuneword, { Criterion::OnText("any shield") }) ==
 		std::vector<std::string>({ "Spirit", "Splendor" }));
+}
+
+// User story: what grants a stat is asked without knowing what kind of thing
+// could grant it, and the affixes answer alongside every other kind under the
+// criteria every other kind is answered by.
+TEST_CASE("a prefix and a suffix are found by one criterion on the stat they share") {
+	std::vector<Result> results = StatIndex::Find(
+		Ask({ Criterion::OnStat("firemaxdam", StatIndex::EqualTo, 55) }));
+
+	REQUIRE(results.size() == 2);
+	CHECK(results[0].entry->kind == kPrefix);
+	CHECK(results[0].entry->source->name == "Fiery");
+	CHECK(results[1].entry->kind == kSuffix);
+	CHECK(results[1].entry->source->name == "of Incineration");
+
+	// The range is the answer, not the fifty five that was asked for.
+	REQUIRE(results[0].ranges.size() == 1);
+	REQUIRE(results[1].ranges.size() == 1);
+	CHECK(results[0].ranges[0].low == 31);
+	CHECK(results[0].ranges[0].high == 60);
+	CHECK(results[1].ranges[0].low == 21);
+	CHECK(results[1].ranges[0].high == 75);
+}
+
+TEST_CASE("an affix is reachable by the words a player types about it") {
+	// What the player reads rather than what the table keys it by, and the
+	// kinds of base it rolls on, which its name never says.
+	CHECK(AnswersFrom(kPrefix, {
+		Criterion::OnText("fiery"),
+		Criterion::OnStat("firemaxdam", StatIndex::GreaterThan, 59),
+	}) == std::vector<std::string>({ "Fiery" }));
+
+	CHECK(AnswersFrom(kSuffix, {
+		Criterion::OnText("large charm"),
+		Criterion::OnStat("maxhp", StatIndex::GreaterThan, 45),
+	}) == std::vector<std::string>({ "of Vita" }));
+}
+
+TEST_CASE("an affix restricted to one class is found by that class") {
+	// The restriction is a note, and a note is part of the search key, so the
+	// class reaches an affix whose own name never says it.
+	std::vector<Result> results = StatIndex::Find(Ask({
+		Criterion::OnText("amazon only"),
+		Criterion::OnText("fletcher"),
+	}, kPrefix));
+
+	REQUIRE(results.size() == 2);
+	for (unsigned int i = 0; i < results.size(); i++) {
+		CHECK(results[i].entry->source->notes ==
+			std::vector<std::string>({ "(Amazon Only)" }));
+	}
+
+	// And an affix anyone can roll is not swept up with them.
+	CHECK(AnswersFrom(kPrefix, {
+		Criterion::OnText("amazon only"),
+		Criterion::OnText("bahamut"),
+	}).empty());
 }

@@ -26,8 +26,9 @@ import sys
 import tbl
 
 # Read whole. These are what a property or an item type is looked up in, and the
-# two a cube recipe names a forced affix in by the row it sits on, where trimming
-# would move every row a recipe points at.
+# two the affixes catalogue is read out of, which a cube recipe also names a
+# forced affix in by the row it sits on, where trimming would move every row a
+# recipe points at.
 REFERENCE_TABLES = [
     'ItemStatCost.txt',
     'Properties.txt',
@@ -197,7 +198,8 @@ def wanted_keys(tables):
                     ('descstrpos', 'descstrneg', 'descstr2',
                      'dgrpstrpos', 'dgrpstrneg', 'dgrpstr2'))
     keys |= keys_in(tables, 'SkillDesc.txt', ('str name',))
-    # Both affix tables go in whole, so a recipe can force any row of either.
+    # Both affix tables go in whole, so every affix is named and a recipe can
+    # force any row of either.
     keys |= keys_in(tables, 'MagicPrefix.txt', ('Name',))
     keys |= keys_in(tables, 'MagicSuffix.txt', ('Name',))
     keys |= keys_in(tables, 'CharStats.txt',
