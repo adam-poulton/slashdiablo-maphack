@@ -363,7 +363,7 @@ void Maphack::OnLoad() {
 	Settings::AddToggle(GetName(), Settings::Category::Map, "Remove Shake", "Remove shake",
 		&Toggles["Remove Shake"], "Stops the screen shaking.");
 
-	Settings::AddHeading(GetName(), Settings::Category::Map, "Monster colours");
+	Settings::AddHeading(GetName(), Settings::Category::Map, "Monster colors");
 	Settings::AddColor(GetName(), Settings::Category::Map, "Monster Color: Normal", "Normal",
 		&monsterColors["Normal"], "", "Show Monsters");
 	Settings::AddColor(GetName(), Settings::Category::Map, "Monster Color: Minion", "Minion",
@@ -373,7 +373,7 @@ void Maphack::OnLoad() {
 	Settings::AddColor(GetName(), Settings::Category::Map, "Monster Color: Boss", "Boss",
 		&monsterColors["Boss"], "", "Show Monsters");
 
-	Settings::AddHeading(GetName(), Settings::Category::Map, "Missile colours");
+	Settings::AddHeading(GetName(), Settings::Category::Map, "Missile colors");
 	Settings::AddColor(GetName(), Settings::Category::Map, "Missile Color: Player", "Player",
 		&missileColors["Player"], "", "Show Missiles");
 	Settings::AddColor(GetName(), Settings::Category::Map, "Missile Color: Neutral", "Neutral",

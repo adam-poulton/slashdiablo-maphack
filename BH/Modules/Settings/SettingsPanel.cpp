@@ -81,9 +81,9 @@ static const struct {
 	const char* category;
 	const char* heading;
 } SectionOrder[] = {
-	{ Settings::Category::Map, "Path colours" },
-	{ Settings::Category::Map, "Monster colours" },
-	{ Settings::Category::Map, "Missile colours" },
+	{ Settings::Category::Map, "Path colors" },
+	{ Settings::Category::Map, "Monster colors" },
+	{ Settings::Category::Map, "Missile colors" },
 
 };
 
