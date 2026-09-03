@@ -93,9 +93,17 @@ The project builds with MSBuild from `BH.sln`, targeting C++17 with the v142
 msbuild /t:BH:Rebuild /p:Configuration=Release BH.sln
 ```
 
-Opening `BH.sln` in Visual Studio and building the `BH` project in Release does
-the same thing. To stamp the build with a commit SHA the way CI does, pass
-`/p:CustomDefinitions="SHA=<sha>"`.
+Drop `:Rebuild` to build incrementally, which is what you want while iterating on
+a change:
+
+```
+msbuild /t:BH /p:Configuration=Release /p:Platform=Win32 BH.sln
+```
+
+`msbuild` is on the PATH once Visual Studio is installed; otherwise run it from a
+Developer Command Prompt. Opening `BH.sln` in Visual Studio and building the `BH`
+project in Release does the same thing. To stamp the build with a commit SHA the
+way CI does, pass `/p:CustomDefinitions="SHA=<sha>"`.
 
 BH reads the game's data tables out of the Diablo II MPQ archives at run time.
 [tools/mpq](tools/mpq) has a small extractor for pulling those same files out on
