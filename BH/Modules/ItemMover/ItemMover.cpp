@@ -41,22 +41,21 @@ std::string POTIONS[] = { "hp", "mp", "rv" };
 DWORD idBookId;
 DWORD unidItemId;
 
-// Returns false when no matching tome is carried.
-static bool AllTomesAboveThreshold(UnitAny *unit, const char *tomeCode, unsigned int threshold) {
+// True when nothing in the inventory has room for the scroll: every matching tome
+// is above the threshold, or no matching tome is carried at all.
+static bool NoTomeWantsScroll(UnitAny *unit, const char *tomeCode, unsigned int threshold) {
 	if (!unit || !unit->pInventory)
 		return false;
-	bool foundTome = false;
 	for (UnitAny *pItem = unit->pInventory->pFirstItem; pItem; pItem = pItem->pItemData->pNextInvItem) {
 		if (pItem->pItemData->ItemLocation != STORAGE_INVENTORY)
 			continue;
 		char* code = D2COMMON_GetItemText(pItem->dwTxtFileNo)->szCode;
 		if (code[0] != tomeCode[0] || code[1] != tomeCode[1] || code[2] != tomeCode[2])
 			continue;
-		foundTome = true;
 		if ((unsigned int)D2COMMON_GetUnitStat(pItem, STAT_AMMOQUANTITY, 0) <= threshold)
 			return false;
 	}
-	return foundTome;
+	return true;
 }
 
 namespace {
@@ -111,7 +110,7 @@ bool ReadItemPacket(const BYTE* packet, ItemFacts* item) {
 }  // namespace
 
 // "Hide Redundant Scrolls": true for a town portal/identify scroll that lands while
-// every matching tome is still above the visibility threshold.
+// no carried tome has room for it.
 static bool IsRedundantScroll(BYTE *packet) {
 	ItemFacts item = {};
 	ItemFactsPacket::PacketStats stats(item);
@@ -128,7 +127,7 @@ static bool IsRedundantScroll(BYTE *packet) {
 	} else {
 		return false;
 	}
-	return AllTomesAboveThreshold(D2CLIENT_GetPlayerUnit(), tomeCode, Item::GetScrollVisibilityThreshold());
+	return NoTomeWantsScroll(D2CLIENT_GetPlayerUnit(), tomeCode, Item::GetScrollVisibilityThreshold());
 }
 
 bool ItemMover::Init() {

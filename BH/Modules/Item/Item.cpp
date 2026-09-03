@@ -245,7 +245,7 @@ void Item::RegisterSettings() {
 		"The highest tier that is still pinged.");
 	Settings::AddToggle(GetName(), Settings::Category::Filter, "Hide Redundant Scrolls", "Hide redundant scrolls",
 		&Toggles["Hide Redundant Scrolls"],
-		"Hides scrolls on the ground once you are carrying enough of them.");
+		"Hides scrolls on the ground once you are carrying enough of them, or no tome to hold them.");
 	Settings::AddNumber(GetName(), Settings::Category::Filter, "Scroll Visibility Threshold", "Hidden scroll threshold",
 		&scrollVisibilityThreshold, MAX_SCROLL_VISIBILITY_THRESHOLD,
 		"How many scrolls you have to be carrying before the rest are hidden.",
