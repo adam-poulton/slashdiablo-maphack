@@ -63,6 +63,11 @@ static DWORD mSkipQuestMessage = 1;
 
 DrawDirective automapDraw(true, DEFAULT_MINIMAP_GHOST);
 
+// The resistance a monster needs before its automap dot is marked as resisting.
+// Immunities are marked at 100 whatever this says, so anything above 100 leaves
+// the immunity letters and nothing else, which is what this asks for.
+#define DEFAULT_MONSTER_RESISTANCE_THRESHOLD 1000
+
 Maphack::Maphack() : Module("Maphack") {
 	revealType = MaphackRevealAct;
 	ResetRevealed();
@@ -75,7 +80,7 @@ Maphack::Maphack() : Module("Maphack") {
 	monsterColors["Champion"] = 0x91;
 	monsterColors["Boss"] = 0x84;
 
-	monsterResistanceThreshold = 99;
+	monsterResistanceThreshold = DEFAULT_MONSTER_RESISTANCE_THRESHOLD;
 	lkLinesColor = 105;
 
 	automapOffsetX = 0;
@@ -97,7 +102,8 @@ void Maphack::LoadConfig() {
 
 void Maphack::ReadConfig() {
 	BH::config->ReadInt("Reveal Mode", revealType, MaphackRevealAct);
-	BH::config->ReadInt("Show Monster Resistance", monsterResistanceThreshold, 99);
+	BH::config->ReadInt("Show Monster Resistance", monsterResistanceThreshold,
+		DEFAULT_MONSTER_RESISTANCE_THRESHOLD);
 	BH::config->ReadInt("LK Chest Lines", lkLinesColor, 105);
 
 
