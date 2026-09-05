@@ -2,10 +2,16 @@
 #include "../Module.h"
 #include <regex>
 
-// Ceiling on the join wait, in milliseconds. A minute is far longer than any
-// game takes to open; it is here to keep a mistyped value from leaving the client
-// waiting on a game that is never coming.
-#define MAX_FAIL_TO_JOIN 4000
+// The join wait, in milliseconds, and what one notch of its slider moves. The
+// floor is the point below which the wait is shorter than loading into a game
+// that is opening normally: any lower and the client gives up on every join, and
+// the settings window cannot be opened from the lobby to put it back.
+//
+// The ceiling is the longest wait worth offering, since a game that has not
+// opened by then is not going to.
+#define MIN_FAIL_TO_JOIN	1000
+#define MAX_FAIL_TO_JOIN	4000
+#define STEP_FAIL_TO_JOIN	500
 
 struct Control;
 

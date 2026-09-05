@@ -31,15 +31,16 @@ namespace Settings {
 		KindEnum,		// an index into a list of options
 		KindColor,
 		KindNumber,		// a number typed into a box
+		KindSlider,		// a number dragged along a rail
 		KindText,		// a line of text typed into a box
 		KindNote,		// no value at all: something the panel has to say
 		KindHeading,	// a rule across the panel, naming the settings below it
 	};
 
 	// Which value pointer means anything follows from the kind. The hotkey, enum,
-	// colour and number kinds all address an unsigned int, which is what the
-	// controls behind them take, so they share one pointer rather than having
-	// four that are the same type.
+	// colour, number and slider kinds all address an unsigned int, which is what
+	// the controls behind them take, so they share one pointer rather than having
+	// five that are the same type.
 	struct Descriptor {
 		std::string owner;		// module name, for telling it what changed
 		std::string category;	// which tab the setting lands under
@@ -54,11 +55,15 @@ namespace Settings {
 		unsigned int* intValue;
 		std::string* textValue;				// KindText
 		std::vector<std::string> options;	// KindEnum
-		unsigned int numberMax;				// KindNumber, 0 for no ceiling
+		unsigned int numberMax;				// KindNumber/KindSlider ceiling, 0 for none
+		unsigned int numberMin;				// KindSlider floor
+		unsigned int numberStep;			// KindSlider, what one notch moves
+		std::string unit;					// KindSlider, written after the value
 		unsigned int textMax;				// KindText, characters, 0 for no limit
 
 		Descriptor() : kind(KindBool), boolValue(NULL), toggleValue(NULL),
-			intValue(NULL), textValue(NULL), numberMax(0), textMax(0) {};
+			intValue(NULL), textValue(NULL), numberMax(0), numberMin(0),
+			numberStep(1), textMax(0) {};
 	};
 
 	// Registration. The order settings are registered in is the order they are
@@ -92,6 +97,23 @@ namespace Settings {
 	// it cannot use.
 	void AddNumber(std::string owner, std::string category, std::string key,
 		std::string label, unsigned int* value, unsigned int max = 0,
+		std::string help = "", std::string parent = "");
+
+	// A number that can only ever be one of the values on its rail, which is what
+	// makes it the kind to reach for wherever a value outside the range would
+	// leave the setting unusable: a box finds out what was typed after the fact,
+	// a slider cannot be given a value the module cannot act on.
+	//
+	// The step is what one notch of the wheel, one arrow key and one position on
+	// the rail are all worth. A range that does not divide evenly by it still
+	// reaches its maximum: the last notch is a short one rather than the rail
+	// stopping below the top of the range.
+	//
+	// The unit is written after the value, so the number on screen says what it
+	// is without the label having to carry it.
+	void AddSlider(std::string owner, std::string category, std::string key,
+		std::string label, unsigned int* value, unsigned int min,
+		unsigned int max, unsigned int step, std::string unit = "",
 		std::string help = "", std::string parent = "");
 
 	// A line of text, of the kind Config::ReadString() reads: a game name, a

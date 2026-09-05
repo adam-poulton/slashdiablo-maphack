@@ -89,6 +89,7 @@
     <ClCompile Include="RuleWalkTests.cpp" />
     <ClCompile Include="ItemFactsCatalogueTests.cpp" />
     <ClCompile Include="StampedCacheTests.cpp" />
+    <ClCompile Include="SliderRangeTests.cpp" />
     <ClCompile Include="PropertyStatsTests.cpp" />
     <ClCompile Include="StatDescriptionTests.cpp" />
     <ClCompile Include="TableFixture.cpp" />

@@ -60,6 +60,12 @@ using namespace Drawing;
 #define SETTINGS_NUMBER_WIDTH	44
 #define SETTINGS_TEXT_WIDTH		120
 
+// The rail and the value written after it. Wider than the other controls because
+// what it has to show is a position along a range rather than a value on its own:
+// at the enum's width the stops on a rail of half a dozen of them sit too close
+// together to aim at.
+#define SETTINGS_SLIDER_WIDTH	150
+
 // A note is something to read rather than something to change, so it is drawn in
 // the colour the old tabs used for the same kind of text. The cap on lines bounds
 // how many Texthooks a note is built from; a note longer than that is cut rather
@@ -424,6 +430,13 @@ void SettingsPanel::BuildCategory(HookGroup* content, const std::string& categor
 					NumberBoxWidth(setting->numberMax),
 					"%u", setting->intValue ? *setting->intValue : 0);
 				((Inputhook*)row.control)->SetCompact(true);
+				break;
+
+			case Settings::KindSlider:
+				row.label = new Texthook(content, 0, 0, "%s", setting->label.c_str());
+				row.control = new Sliderhook(content, 0, 0, SETTINGS_SLIDER_WIDTH,
+					setting->intValue, setting->numberMin, setting->numberMax,
+					setting->numberStep, setting->unit);
 				break;
 
 			case Settings::KindText:
@@ -1212,9 +1225,32 @@ bool SettingsPanel::OnKey(bool up, BYTE key) {
 		// Folding from the keyboard, as the sets panel does it. Left on a setting
 		// goes out to its heading and shuts it, so there is always a way back out
 		// of a section without reaching for the mouse.
+		//
+		// A slider takes these keys for itself: nudging the value is what left and
+		// right mean on a rail, and it is the only way to set one without the
+		// mouse. The way out of its section is still left on the heading above it,
+		// or home.
 		case VK_LEFT:
 		case VK_RIGHT: {
-			if (!FoldingActive() || focusRow < 0)
+			if (focusRow < 0)
+				return false;
+
+			// Only while there is a value to move: a slider its parent has switched
+			// off does nothing when dragged, so the keys go back to folding the
+			// section rather than being swallowed by a control that is inert.
+			bool slid = rows[focusRow].setting &&
+				rows[focusRow].setting->kind == Settings::KindSlider &&
+				rows[focusRow].enabled && FocusPosition() >= 0;
+			if (slid) {
+				if (!up) {
+					Sliderhook* slider = (Sliderhook*)rows[focusRow].control;
+					if (slider)
+						slider->Step((key == VK_LEFT) ? -1 : 1);
+				}
+				return true;
+			}
+
+			if (!FoldingActive())
 				return false;
 			if (up)
 				return true;
