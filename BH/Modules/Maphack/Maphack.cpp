@@ -96,9 +96,9 @@ void Maphack::LoadConfig() {
 }
 
 void Maphack::ReadConfig() {
-	BH::config->ReadInt("Reveal Mode", revealType, 0);
-	BH::config->ReadInt("Show Monster Resistance", monsterResistanceThreshold, 0);
-	BH::config->ReadInt("LK Chest Lines", lkLinesColor, 0);
+	BH::config->ReadInt("Reveal Mode", revealType, MaphackRevealAct);
+	BH::config->ReadInt("Show Monster Resistance", monsterResistanceThreshold, 99);
+	BH::config->ReadInt("LK Chest Lines", lkLinesColor, 105);
 
 
 	BH::config->ReadAssoc("Missile Color", missileColors);

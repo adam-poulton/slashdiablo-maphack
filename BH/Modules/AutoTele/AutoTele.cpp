@@ -51,12 +51,14 @@ void AutoTele::LoadConfig() {
 	BH::config->ReadKey("Other Tele", "VK_NUMPAD1", OtherKey);
 	BH::config->ReadKey("Waypoint Tele", "VK_NUMPAD2", WPKey);
 	BH::config->ReadKey("Prev Tele", "VK_NUMPAD3", PrevKey);
-	BH::config->ReadInt("Path Color", Colors[0], 0);
-	BH::config->ReadInt("Next Color", Colors[1], 0);
-	BH::config->ReadInt("Other Color", Colors[2], 0);
-	BH::config->ReadInt("WP Color", Colors[3], 0);
-	BH::config->ReadInt("Prev Color", Colors[4], 0);
-	BH::config->ReadInt("Other Extra Color", Colors[5], 0);
+	// Palette indices, one per line the module draws. 0x61 is the path itself; the
+	// rest mark where a teleport would land.
+	BH::config->ReadInt("Path Color", Colors[0], 0x61);
+	BH::config->ReadInt("Next Color", Colors[1], 0x97);
+	BH::config->ReadInt("Other Color", Colors[2], 0x0A);
+	BH::config->ReadInt("WP Color", Colors[3], 0x84);
+	BH::config->ReadInt("Prev Color", Colors[4], 0x5B);
+	BH::config->ReadInt("Other Extra Color", Colors[5], 0xA8);
 }
 
 void AutoTele::OnAutomapDraw() {

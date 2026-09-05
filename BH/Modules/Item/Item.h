@@ -57,6 +57,10 @@ struct UnitAny;
 #define TOME_MAX_SCROLLS 20
 #define MAX_SCROLL_VISIBILITY_THRESHOLD (TOME_MAX_SCROLLS - 1)
 
+// No tier of its own, so run details ping at whatever the item ping level is.
+// Signed, since it has to be a value no tier can be.
+#define TRACKER_PING_LEVEL_UNSET (-1)
+
 class Item : public Module {
 	private:
 		static map<std::string, Toggle> Toggles;
@@ -65,7 +69,7 @@ class Item : public Module {
 		static UnitAny* viewingUnit;
 		static unsigned int filterLevelSetting;
 		static unsigned int pingLevelSetting;
-		static unsigned int trackerPingLevelSetting;
+		static int trackerPingLevelSetting;
 		static int statRangeColor;
 		static unsigned int scrollVisibilityThreshold;
 
@@ -103,7 +107,10 @@ class Item : public Module {
 
 		static unsigned int GetFilterLevel() { return filterLevelSetting; }
 		static unsigned int GetPingLevel() { return pingLevelSetting; }
-		static unsigned int GetTrackerPingLevel() { return trackerPingLevelSetting >= 0 ? trackerPingLevelSetting : pingLevelSetting; }
+		static unsigned int GetTrackerPingLevel() {
+			return (trackerPingLevelSetting >= 0) ?
+				(unsigned int)trackerPingLevelSetting : pingLevelSetting;
+		}
 		static unsigned int GetScrollVisibilityThreshold() { return scrollVisibilityThreshold; }
 
 };

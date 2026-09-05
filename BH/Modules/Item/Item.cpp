@@ -63,7 +63,7 @@ map<std::string, Toggle> Item::Toggles;
 unordered_set<string> Item::no_ilvl_codes;
 unsigned int Item::filterLevelSetting = 0;
 unsigned int Item::pingLevelSetting = 0;
-unsigned int Item::trackerPingLevelSetting = -1;
+int Item::trackerPingLevelSetting = TRACKER_PING_LEVEL_UNSET;
 int Item::statRangeColor = TextColor::DarkGreen;
 unsigned int Item::scrollVisibilityThreshold = MAX_SCROLL_VISIBILITY_THRESHOLD;
 UnitAny* Item::viewingUnit;
@@ -145,9 +145,11 @@ void Item::LoadConfig() {
 	BH::config->ReadToggle("Hide Redundant Scrolls", "None", false, Toggles["Hide Redundant Scrolls"]);
 	BH::config->ReadInt("Filter Level", filterLevelSetting, 0);
 	BH::config->ReadInt("Ping Level", pingLevelSetting, 0);
-	BH::config->ReadInt("Run Details Ping Level", trackerPingLevelSetting, 0);
-	BH::config->ReadInt("Stat Range Color", statRangeColor, 0);
-	BH::config->ReadInt("Scroll Visibility Threshold", scrollVisibilityThreshold, 0);
+	BH::config->ReadInt("Run Details Ping Level", trackerPingLevelSetting,
+		TRACKER_PING_LEVEL_UNSET);
+	BH::config->ReadInt("Stat Range Color", statRangeColor, TextColor::DarkGreen);
+	BH::config->ReadInt("Scroll Visibility Threshold", scrollVisibilityThreshold,
+		MAX_SCROLL_VISIBILITY_THRESHOLD);
 	if (scrollVisibilityThreshold > MAX_SCROLL_VISIBILITY_THRESHOLD)
 		scrollVisibilityThreshold = MAX_SCROLL_VISIBILITY_THRESHOLD;
 	ItemCapture::LoadConfig();

@@ -31,8 +31,7 @@ void Gamefilter::OnLoad() {
 		destoryGameList->Install();
 		listRefresh->Install();
 	}
-	refreshTime = 1500;
-	BH::config->ReadInt("GameListRefresh", refreshTime, 0);
+	BH::config->ReadInt("GameListRefresh", refreshTime, 1500);
 
 	showDiff = &bools["Show Difficulty"];
 	*showDiff = true;

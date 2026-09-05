@@ -465,7 +465,7 @@ void ItemMover::LoadConfig() {
 	BH::config->ReadKey("Use Mana Potion", "VK_NUMPADSUBTRACT", ManaKey);
 	BH::config->ReadKey("Use Rejuv Potion", "VK_NUMPADDIVIDE", JuvKey);
 
-	BH::config->ReadInt("Low TP Warning", tp_warn_quantity, 0);
+	BH::config->ReadInt("Low TP Warning", tp_warn_quantity, 3);
 }
 
 void ItemMover::OnLoad() {
