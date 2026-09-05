@@ -7,6 +7,7 @@
 #include "../../MPQReader.h"
 #include "../../D2Version.h"
 #include "../../D2Helpers.h"
+#include "../Settings/SettingsRegistry.h"
 #include <time.h>
 #include <iomanip>
 #include <numeric>
@@ -15,6 +16,16 @@
 using namespace Drawing;
 
 map<std::string, Toggle> ScreenInfo::Toggles;
+
+// How many decimal places the experience meter writes its percentages to. One
+// place is already finer than a single kill moves the number by; three is where
+// the digits stop meaning anything at the width the meter is drawn to.
+#define MIN_EXP_PRECISION		1
+#define MAX_EXP_PRECISION		3
+#define STEP_EXP_PRECISION		1
+#define DEFAULT_EXP_PRECISION	3
+
+static unsigned int expPrecision = DEFAULT_EXP_PRECISION;
 
 void ScreenInfo::OnLoad() {
 	LoadConfig();
@@ -31,6 +42,16 @@ void ScreenInfo::OnLoad() {
 	L"Might", L"Prayer", L"Resist Fire", L"Holy Fire", L"Thorns", L"Defiance", L"Resist Cold", L"Blessed Aim", L"Vigor", L"Resist Lightning", L"Concentration", L"Holy Freeze", L"Cleansing", L"Holy Shock", L"Sanctuary", L"Meditation", L"Fanaticism", L"Redemption", L"Conviction", L"Salvation", 
 	L"Amplify Damage", L"Weaken", L"Decrepify", L"Lower Resist", L"Poisoned", L"Frozen"	};
 	
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Experience Meter",
+		"Experience meter", &Toggles["Experience Meter"],
+		"Shows how far through the level the character is, what this game has "
+		"added to that, and experience per second.");
+	Settings::AddSlider(GetName(), Settings::Category::Map, "Experience Meter Precision",
+		"Decimals", &expPrecision,
+		MIN_EXP_PRECISION, MAX_EXP_PRECISION, STEP_EXP_PRECISION, "",
+		"How many decimal places the experience meter writes its percentages to.",
+		"Experience Meter");
+
 	bhText = new Texthook(OutOfGame, 795, 6, "%s", About::Lines()[0].c_str());
 	bhText->SetAlignment(Right);
 	bhText->SetColor(Gold);
@@ -75,7 +96,15 @@ void ScreenInfo::OnLoad() {
 }
 
 void ScreenInfo::LoadConfig() {
-	BH::config->ReadToggle("Experience Meter", "VK_NUMPAD7", false, Toggles["Experience Meter"]);
+	BH::config->ReadToggle("Experience Meter", "VK_NUMPAD7", true, Toggles["Experience Meter"]);
+
+	// Held to the range on load: the value is written into a format string every
+	// frame the meter is up, whether or not the settings window is ever opened.
+	BH::config->ReadInt("Experience Meter Precision", expPrecision, DEFAULT_EXP_PRECISION);
+	if (expPrecision < MIN_EXP_PRECISION)
+		expPrecision = MIN_EXP_PRECISION;
+	if (expPrecision > MAX_EXP_PRECISION)
+		expPrecision = MAX_EXP_PRECISION;
 
 	BH::config->ReadArray("AutomapInfo", automapInfo);
 	
@@ -441,7 +470,8 @@ void ScreenInfo::OnDraw() {
 	FormattedXPPerSec(xpPerSec, currentExpPerSecond);
 
 	if (Toggles["Experience Meter"].state) {
-		sprintf_s(sExp, "%00.3f%% (%s%00.3f%%) [%s]", pExp, currentExpGainPct >= 0 ? "+" : "", currentExpGainPct, xpPerSec);
+		sprintf_s(sExp, "%.*f%% (%s%.*f%%) [%s]", (int)expPrecision, pExp,
+			currentExpGainPct >= 0 ? "+" : "", (int)expPrecision, currentExpGainPct, xpPerSec);
 		Texthook::Draw((*p_D2CLIENT_ScreenSizeX / 2) - 100, *p_D2CLIENT_ScreenSizeY - 60, Center, 6, White, "%s", sExp);
 	}
 
