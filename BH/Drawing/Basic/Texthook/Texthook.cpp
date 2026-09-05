@@ -158,7 +158,7 @@ void Texthook::OnDraw() {
 	unsigned int drawColor = color;
 	if (!IsEnabled())
 		drawColor = disabledColor;
-	else if (InRange(*p_D2CLIENT_MouseX, *p_D2CLIENT_MouseY) && GetHoverColor() != Disabled)
+	else if (InRange(Hook::GetMouseX(), Hook::GetMouseY()) && GetHoverColor() != Disabled)
 		drawColor = hoverColor;
 
 	DWORD oldFont = D2WIN_SetTextSize(font);

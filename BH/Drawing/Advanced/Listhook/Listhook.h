@@ -144,6 +144,12 @@ namespace Drawing {
 			unsigned int foldWidth;
 			unsigned int markerWidth;
 			int selectedRow;	// -1 when nothing is selected
+
+			// The row a click landed on, kept until whoever cares takes it. Rows
+			// are reported rather than acted on because a list does not know what
+			// clicking one of its rows is supposed to mean.
+			int clickedRow;
+			int rightClickedRow;
 			bool draggingThumb;	// scrollbar thumb held by the mouse
 			int thumbGrabOffset;	// where in the thumb it was grabbed, in pixels
 
@@ -305,11 +311,28 @@ namespace Drawing {
 			// The row under the mouse, or -1 if the mouse is elsewhere.
 			int GetHoveredRow();
 
+			// The row a click activated, and -1 where there has been no click
+			// since it was last asked. Taken rather than read, so one click is
+			// acted on exactly once however often the caller looks.
+			//
+			// Separate from the selection, which a click also moves: a caller
+			// wanting to know that a row was clicked cannot tell that from the
+			// selection, since clicking the selected row again clears it and
+			// clicking the same row twice changes nothing about it.
+			int TakeClickedRow();
+			int TakeRightClickedRow();
+
 			// True while the scrollbar thumb is being dragged, in which case the
 			// list is following the mouse and clicks belong to the scrollbar.
 			bool IsScrolling() { return draggingThumb; };
 
 			bool OnLeftClick(bool up, unsigned int x, unsigned int y);
+			bool OnRightClick(bool up, unsigned int x, unsigned int y);
+
+			// Which row is under a point, or -1 for the header, the scrollbar,
+			// the empty space past the last row, or anywhere outside the list.
+			// Rows are numbered as supplied to SetRows().
+			int RowAt(unsigned int x, unsigned int y);
 			bool OnMouseWheel(int notches, unsigned int x, unsigned int y);
 			void OnDraw();
 	};

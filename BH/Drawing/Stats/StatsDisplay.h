@@ -43,6 +43,9 @@ namespace Drawing {
 			unsigned int GetXSize() { return xSize; };
 			unsigned int GetYSize() { return ySize; };
 			bool IsActive() { return active; };
+
+			// Only ever drawn inside a game: what it shows is a character's.
+			HookVisibility GetVisibility() { return InGame; };
 			bool IsMinimized() { return minimized; };
 
 			bool InRange(unsigned int x, unsigned int y);

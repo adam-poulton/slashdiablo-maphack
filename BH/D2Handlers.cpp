@@ -7,7 +7,7 @@
 
 void GameDraw() {
 	__raise BH::moduleManager->OnDraw();
-	Drawing::UI::Draw();
+	Drawing::UI::Draw(Drawing::InGame);
 	Drawing::StatsDisplay::Draw();
 	Drawing::Hook::Draw(Drawing::InGame);
 }
@@ -18,7 +18,11 @@ void GameAutomapDraw() {
 
 void OOGDraw() {
 	Drawing::Hook::Draw(Drawing::OutOfGame);
+	// The modules before the windows, as GameDraw() does it. A window is drawn
+	// from whatever its panels last laid out, so a panel that has not been given
+	// its frame yet is one drawn before it has any columns, any rows or any size.
 	__raise BH::moduleManager->OnOOGDraw();
+	Drawing::UI::Draw(Drawing::OutOfGame);
 }
  
 void GameLoop() {
@@ -42,21 +46,50 @@ DWORD WINAPI GameThread(VOID* lpvoid) {
 	}
 }
 
+// Whether the character that follows the last key belongs to one of our controls.
+//
+// Blocking a keydown is not enough to keep the key out of the game. The menus'
+// own boxes are typed into by WM_CHAR, and TranslateMessage posts that character
+// from the keydown before the keydown is ever dispatched, so the character is
+// already on its way when we decide to swallow the key it came from. A key one of
+// our controls took has to take its character with it.
+static bool charBelongsToHook = false;
+
 LONG WINAPI GameWindowEvent(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
 	bool blockEvent = false;
-	int mouseX = (*p_D2CLIENT_MouseX);
-	int mouseY = (*p_D2CLIENT_MouseY);
 
-	// UI windows and the stats display are only drawn from GameDraw(), so they
-	// must not take clicks outside a game or they would eat menu input while
-	// nothing is on screen. Basic hooks handle their own out-of-game visibility.
+	if (uMsg == WM_CHAR || uMsg == WM_SYSCHAR) {
+		if (charBelongsToHook)
+			return NULL;
+	}
+
+	// Which screen the message arrived on. Everything drawn says which screen it
+	// is drawn on, and answers input on that screen and no other, so a window
+	// laid out for a game cannot take a click on the login screen and a panel
+	// laid out for the login screen cannot take one in a game.
 	bool inGame = D2CLIENT_GetPlayerUnit() != NULL;
+	Drawing::HookVisibility screen = inGame ? Drawing::InGame : Drawing::OutOfGame;
+
+	// Outside a game D2Client is not running its input loop, so the position
+	// everything is hit tested against is never updated and every click lands
+	// wherever the cursor last was inside a game. The window is told where the
+	// cursor is by every mouse message it gets, so that is where it is taken
+	// from instead. In a game the game's own position still answers.
+	if (!inGame &&
+			(uMsg == WM_MOUSEMOVE || uMsg == WM_LBUTTONDOWN || uMsg == WM_LBUTTONUP ||
+			 uMsg == WM_RBUTTONDOWN || uMsg == WM_RBUTTONUP)) {
+		Drawing::Hook::SetMousePosition((int)(short)LOWORD(lParam),
+			(int)(short)HIWORD(lParam));
+	}
+
+	int mouseX = Drawing::Hook::GetMouseX();
+	int mouseY = Drawing::Hook::GetMouseY();
 
 	if (uMsg == WM_LBUTTONDOWN) {
-		if (Drawing::Hook::LeftClick(false, mouseX, mouseY))
+		if (Drawing::Hook::LeftClick(screen, false, mouseX, mouseY))
 			blockEvent = true;
-		if (inGame && Drawing::UI::LeftClick(false, mouseX, mouseY))
+		if (Drawing::UI::LeftClick(screen, false, mouseX, mouseY))
 			blockEvent = true;
 		if (inGame && Drawing::StatsDisplay::Click(false, mouseX, mouseY))
 			blockEvent = true;
@@ -64,9 +97,9 @@ LONG WINAPI GameWindowEvent(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 	}
 
 	if (uMsg == WM_LBUTTONUP) {
-		if (Drawing::Hook::LeftClick(true, mouseX, mouseY))
+		if (Drawing::Hook::LeftClick(screen, true, mouseX, mouseY))
 			blockEvent = true;
-		if (inGame && Drawing::UI::LeftClick(true, mouseX, mouseY))
+		if (Drawing::UI::LeftClick(screen, true, mouseX, mouseY))
 			blockEvent = true;
 		if (inGame && Drawing::StatsDisplay::Click(true, mouseX, mouseY))
 			blockEvent = true;
@@ -74,9 +107,9 @@ LONG WINAPI GameWindowEvent(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 	}
 
 	if (uMsg == WM_RBUTTONDOWN) {
-		if (Drawing::Hook::RightClick(false, mouseX, mouseY))
+		if (Drawing::Hook::RightClick(screen, false, mouseX, mouseY))
 			blockEvent = true;
-		if (inGame && Drawing::UI::RightClick(false, mouseX, mouseY))
+		if (Drawing::UI::RightClick(screen, false, mouseX, mouseY))
 			blockEvent = true;
 		if (inGame && Drawing::StatsDisplay::Click(false, mouseX, mouseY))
 			blockEvent = true;
@@ -84,9 +117,9 @@ LONG WINAPI GameWindowEvent(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 	}
 
 	if (uMsg == WM_RBUTTONUP) {
-		if (Drawing::Hook::RightClick(true, mouseX, mouseY))
+		if (Drawing::Hook::RightClick(screen, true, mouseX, mouseY))
 			blockEvent = true;
-		if (inGame && Drawing::UI::RightClick(true, mouseX, mouseY))
+		if (Drawing::UI::RightClick(screen, true, mouseX, mouseY))
 			blockEvent = true;
 		if (inGame && Drawing::StatsDisplay::Click(true, mouseX, mouseY))
 			blockEvent = true;
@@ -97,26 +130,44 @@ LONG WINAPI GameWindowEvent(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 		// The wheel arrives in multiples of WHEEL_DELTA. The position it reports is in screen coordinates,
 		// so use the game's cursor position like every other handler here.
 		int notches = (int)(short)HIWORD(wParam) / WHEEL_DELTA;
-		if (notches != 0 && Drawing::Hook::MouseWheel(notches, mouseX, mouseY))
+		if (notches != 0 && Drawing::Hook::MouseWheel(screen, notches, mouseX, mouseY))
 			blockEvent = true;
 	}
 
-	// Only allow BH hotkeys when game and chat box is closed
-	if (D2CLIENT_GetPlayerUnit() && !D2CLIENT_GetUIState(UI_CHAT_CONSOLE)) {
+	// In a game, nothing is offered a key while the chat box is open, which is
+	// what keeps a typed message out of the hotkeys. Out of a game there is no
+	// chat box, and no hotkey either: only what is drawn on the screen in front
+	// of the player answers, which is how a panel on the login screen comes to be
+	// typed into without the game's own boxes losing anything.
+	//
+	// BH's window procedure runs before the game's and returns without calling it
+	// when something takes the key, so a control of ours out of a game really does
+	// take the keystroke out of the game's hands. That is only safe because the
+	// controls stand down while the game's own box has the caret.
+	bool typing = inGame && D2CLIENT_GetUIState(UI_CHAT_CONSOLE);
+	if (!typing) {
 		if (uMsg == WM_KEYDOWN) {
-			if (Drawing::Hook::KeyClick(false, wParam, lParam))
+			// Set either way: a key nothing took leaves its character to the
+			// game, and a key taken a moment ago must not go on swallowing
+			// characters it had nothing to do with.
+			charBelongsToHook = Drawing::Hook::KeyClick(screen, false, wParam, lParam);
+			if (charBelongsToHook)
 				return NULL;
-			if (Drawing::StatsDisplay::KeyClick(false, wParam, lParam))
-				return NULL;
-			__raise BH::moduleManager->OnKey(false, wParam, lParam, &blockEvent);
+			if (inGame) {
+				if (Drawing::StatsDisplay::KeyClick(false, wParam, lParam))
+					return NULL;
+				__raise BH::moduleManager->OnKey(false, wParam, lParam, &blockEvent);
+			}
 		}
 
 		if (uMsg == WM_KEYUP) {
-			if (Drawing::Hook::KeyClick(true, wParam, lParam))
+			if (Drawing::Hook::KeyClick(screen, true, wParam, lParam))
 				return NULL;
-			if (Drawing::StatsDisplay::KeyClick(true, wParam, lParam))
-				return NULL;
-			__raise BH::moduleManager->OnKey(true, wParam, lParam, &blockEvent);
+			if (inGame) {
+				if (Drawing::StatsDisplay::KeyClick(true, wParam, lParam))
+					return NULL;
+				__raise BH::moduleManager->OnKey(true, wParam, lParam, &blockEvent);
+			}
 		}
 	}
 

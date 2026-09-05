@@ -150,8 +150,8 @@ void Colorhook::OnDraw() {
 		//Draw title
 		Texthook::Draw(360, 186, false, 0, White, "Choose Color");
 		int col = 1, boxX1, boxX2, boxY1, boxY2;
-		int mX = (*p_D2CLIENT_MouseX);
-		int mY = (*p_D2CLIENT_MouseY);
+		int mX = Hook::GetMouseX();
+		int mY = Hook::GetMouseY();
 		for (int n = 1, row = 1; n <= 255; n++, row++) {
 			if (row == 16) {
 				col++;
@@ -179,7 +179,7 @@ void Colorhook::OnDraw() {
 		DWORD size = D2WIN_SetTextSize(0);
 		wchar_t* wText = AnsiToUnicode(GetText().c_str());
 		unsigned int drawColor = IsEnabled() ?
-			(InRange(*p_D2CLIENT_MouseX, *p_D2CLIENT_MouseY) ?
+			(InRange(Hook::GetMouseX(), Hook::GetMouseY()) ?
 				hoverColor : textColor) :
 			disabledColor;
 		D2WIN_DrawText(wText, GetX() + COLOR_SWATCH_WIDTH, GetY() + GetYSize(),

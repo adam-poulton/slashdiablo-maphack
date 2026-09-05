@@ -13,6 +13,10 @@ namespace Drawing {
 
 			const std::string& GetName() { return name; };
 
+			// The tab, and every hook built into it, is on whichever screen its
+			// window is.
+			HookVisibility GetVisibility() { return ui->GetVisibility(); };
+
 			unsigned int GetX() { return ui->GetX(); };
 			unsigned int GetY() { return ui->GetY() + ui->GetChromeAboveHeight(); };
 			unsigned int GetXSize() { return ui->GetXSize(); };
@@ -36,7 +40,9 @@ namespace Drawing {
 			// window that isn't on screen must not report an active tab.
 			bool IsActive() { return ui->IsVisible() && ui->GetActiveTab() == this && !ui->IsMinimized(); };
 
-			bool IsHovering(unsigned int x, unsigned int y) { return x >= GetTabX() && y >= GetTabY() && x <= (GetTabX() + GetTabSize()) && y <= (GetTabY() + TAB_HEIGHT); };
+			// A tab with no row to be drawn in is nowhere, and must not claim the
+			// strip of panel that would otherwise be under it.
+			bool IsHovering(unsigned int x, unsigned int y) { return ui->GetTabBandHeight() > 0 && x >= GetTabX() && y >= GetTabY() && x <= (GetTabX() + GetTabSize()) && y <= (GetTabY() + TAB_HEIGHT); };
 
 			void OnDraw();
 	};

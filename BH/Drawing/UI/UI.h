@@ -66,6 +66,7 @@ namespace Drawing {
 			unsigned int GetXSize();
 			unsigned int GetYSize();
 			bool IsActive();
+			HookVisibility GetVisibility();
 	};
 
 	class UI : public HookGroup {
@@ -77,6 +78,10 @@ namespace Drawing {
 			unsigned int dragX, dragY;//Position where we grabbed it.
 			unsigned int startX, startY;//Position where we grabbed it.
 			bool resizable;//Whether the window offers a resize grip at all
+
+			// Which screen this window is drawn and clicked on. A window says
+			// nothing about it and is a window for inside a game.
+			HookVisibility visibility;
 			bool resizing;//Corner grip held by the mouse
 			unsigned int resizeGrabX, resizeGrabY;//Corner to grab point, in pixels
 			std::string name;//Name of the UI, as drawn in its title bar
@@ -128,6 +133,7 @@ namespace Drawing {
 			// measure text, so both belong on the draw thread.
 			void LayoutChrome();
 			void DrawChrome();
+			void DrawFooterRule();
 
 			// Follows the mouse while the grip is held, and draws the grip.
 			void DragResizeTo(unsigned int mouseX, unsigned int mouseY);
@@ -206,21 +212,33 @@ namespace Drawing {
 
 			unsigned int GetFooterBandHeight();
 
+			// The tab row, which a window with one panel does not have: a single
+			// tab labelled with the panel's name, under a title bar carrying the
+			// window's, says the same thing twice and costs the panel a strip of
+			// height to say it in.
+			unsigned int GetTabBandHeight() { return (Tabs.size() > 1) ? TAB_HEIGHT : 0; };
+
 			// Everything the window draws above and below its panels, which is
 			// what a tab has to measure itself against.
-			unsigned int GetChromeAboveHeight() { return TITLE_BAR_HEIGHT + TAB_HEIGHT + GetSearchBandHeight(); };
+			unsigned int GetChromeAboveHeight() { return TITLE_BAR_HEIGHT + GetTabBandHeight() + GetSearchBandHeight(); };
 			unsigned int GetChromeBelowHeight() { return GetFooterBandHeight(); };
 
+			// Which screen the window belongs to, and every hook built into it
+			// with it. In a game unless the window says otherwise, which is what
+			// every window but the login panel wants.
+			HookVisibility GetVisibility() { return visibility; };
+			void SetVisibility(HookVisibility screen) { Lock(); visibility = screen; Unlock(); };
+
 			void OnDraw();
-			static void Draw();
+			static void Draw(HookVisibility screen);
 
 			static void Sort(UI* zero);
 
 			bool OnLeftClick(bool up, unsigned int mouseX, unsigned int mouseY);
-			static bool LeftClick(bool up, unsigned int mouseX, unsigned int mouseY);
+			static bool LeftClick(HookVisibility screen, bool up, unsigned int mouseX, unsigned int mouseY);
 
 			bool OnRightClick(bool up, unsigned int mouseX, unsigned int mouseY);
-			static bool RightClick(bool up, unsigned int mouseX, unsigned int mouseY);
+			static bool RightClick(HookVisibility screen, bool up, unsigned int mouseX, unsigned int mouseY);
 
 			// Whether the window can be resized by dragging its corner. Off by
 			// default: a window whose contents are laid out to a fixed size would
@@ -240,6 +258,12 @@ namespace Drawing {
 			// raise its own minimum, for contents needing more room than the
 			// shared default leaves.
 			void SetMinSize(unsigned int minX, unsigned int minY);
+
+			// Pins the window to one size and takes away the grip. A size
+			// remembered from UI.ini is overridden rather than honoured: a window
+			// laid out to fit its contents has one right size, and a size left
+			// over from when it could be dragged is not it.
+			void SetFixedSize(unsigned int width, unsigned int height);
 			unsigned int GetMinXSize();
 			unsigned int GetMinYSize();
 

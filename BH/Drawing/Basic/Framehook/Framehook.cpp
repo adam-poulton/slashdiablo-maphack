@@ -4,6 +4,41 @@
 
 using namespace Drawing;
 
+namespace {
+
+// The ornate border is D2Client's own, drawn from the panel art a game loads.
+// Outside a game there is no such art and the call reads it anyway, so it is
+// only made where there is a game to have loaded it.
+bool GameBorderAvailable() {
+	return D2CLIENT_GetPlayerUnit() != NULL;
+}
+
+// What is drawn in its place: the same rectangle, edged a pixel at a time. A
+// window on the login screen still reads as a window, without the flourish.
+void DrawPlainEdges(unsigned int x, unsigned int y, unsigned int xSize,
+		unsigned int ySize, BoxTrans trans) {
+	if (xSize == 0 || ySize == 0)
+		return;
+	const unsigned int edge = 0xD0;
+	D2GFX_DrawRectangle(x, y, x + xSize, y + 1, edge, trans);
+	D2GFX_DrawRectangle(x, y + ySize - 1, x + xSize, y + ySize, edge, trans);
+	D2GFX_DrawRectangle(x, y, x + 1, y + ySize, edge, trans);
+	D2GFX_DrawRectangle(x + xSize - 1, y, x + xSize, y + ySize, edge, trans);
+}
+
+}  // namespace
+
+void Framehook::DrawBorder(unsigned int x, unsigned int y, unsigned int xSize,
+		unsigned int ySize, BoxTrans trans) {
+	if (GameBorderAvailable()) {
+		RECT pRect = { static_cast<long>(x), static_cast<long>(y),
+			static_cast<long>(x + xSize), static_cast<long>(y + ySize) };
+		Framehook::DrawRectStub(&pRect);
+		return;
+	}
+	DrawPlainEdges(x, y, xSize, ySize, trans);
+}
+
 /* Basic Hook Initializer
  *		Used for just drawing basic framees on screen.
  */
@@ -110,9 +145,8 @@ void Framehook::OnDraw() {
 		return;
 
 	Lock();
-	RECT pRect  = {static_cast<long>(GetX()), static_cast<long>(GetY()), static_cast<long>(GetX() + GetXSize()), static_cast<long>(GetY() + GetYSize())};
 	D2GFX_DrawRectangle(GetX(), GetY(), GetX() + GetXSize(), GetY() + GetYSize(), GetColor(), GetTransparency());
-	Framehook::DrawRectStub(&pRect);
+	Framehook::DrawBorder(GetX(), GetY(), GetXSize(), GetYSize(), GetTransparency());
 	Unlock();
 }
 
@@ -145,8 +179,7 @@ bool Framehook::OnRightClick(bool up, unsigned int x, unsigned int y) {
 }
 
 bool Framehook::Draw(unsigned int x, unsigned int y, unsigned int xSize, unsigned int ySize, unsigned int color, BoxTrans trans) {
-	RECT pRect  = { static_cast<long>(x), static_cast<long>(y), static_cast<long>(x + xSize), static_cast<long>(y + ySize)};
 	D2GFX_DrawRectangle(x, y, x + xSize, y + ySize, color, trans);
-	Framehook::DrawRectStub(&pRect);
+	Framehook::DrawBorder(x, y, xSize, ySize, trans);
 	return true;
 }

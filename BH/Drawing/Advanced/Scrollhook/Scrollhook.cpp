@@ -36,6 +36,10 @@ bool ScrollContent::IsActive() {
 	return box->IsActive();
 }
 
+HookVisibility ScrollContent::GetVisibility() {
+	return box->GetScreen();
+}
+
 Scrollhook::Scrollhook(HookVisibility visibility, unsigned int x, unsigned int y,
 		unsigned int xSize, unsigned int ySize) :
 	Hook(visibility, x, y), xSize(xSize), ySize(ySize), scrollRow(0),
@@ -293,7 +297,7 @@ void Scrollhook::OnDraw() {
 	// There is no mouse move event to hang a drag off, so the thumb catches up
 	// with the cursor here, once per frame.
 	if (draggingThumb)
-		DragThumbTo((*p_D2CLIENT_MouseY));
+		DragThumbTo(Hook::GetMouseY());
 	ClampScroll();
 	ApplyRowVisibility();
 
@@ -306,7 +310,7 @@ void Scrollhook::OnDraw() {
 	// Only when there is something to scroll, so a short panel is left clean.
 	if (GetMaxScrollRow() > 0) {
 		bool lit = draggingThumb ||
-			InScrollbar((*p_D2CLIENT_MouseX), (*p_D2CLIENT_MouseY));
+			InScrollbar(Hook::GetMouseX(), Hook::GetMouseY());
 		Scrollbar::Draw(GetX() + xSize - Scrollbar::Width(), ScrollTrackTop(),
 			ScrollTrackHeight(), ThumbTop(), ThumbHeight(), lit);
 	}

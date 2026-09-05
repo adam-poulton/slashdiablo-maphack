@@ -44,7 +44,7 @@ bool Keyhook::OnLeftClick(bool up, unsigned int x, unsigned int y) {
 void Keyhook::OnDraw() {
 	KeyCode keyCode = GetKeyCode(GetKey());
 	string prefix = "";
-	bool IsInRange = InRange(*p_D2CLIENT_MouseX, *p_D2CLIENT_MouseY);
+	bool IsInRange = InRange(Hook::GetMouseX(), Hook::GetMouseY());
 	unsigned int textColor = IsEnabled() ? (IsInRange ? Tan : Gold) : DISABLED_TEXT_COLOR;
 	if (name.length() > 0) {
 		if(IsInRange)

@@ -29,6 +29,9 @@ unsigned int UIChrome::GetYSize() { return ui->GetYSize(); }
 // stop taking it while the window is collapsed or hidden.
 bool UIChrome::IsActive() { return ui->IsVisible() && !ui->IsMinimized(); }
 
+// The chrome is on whichever screen its window is.
+HookVisibility UIChrome::GetVisibility() { return ui->GetVisibility(); }
+
 UI::UI(std::string name, unsigned int xSize, unsigned int ySize) :
 		UI(name, name, xSize, ySize) {
 }
@@ -40,6 +43,7 @@ UI::UI(std::string name, std::string configKey, unsigned int xSize, unsigned int
 	x = y = 0;
 	this->xSize = this->ySize = 0;
 	active = minimized = dragged = visible = false;
+	visibility = InGame;
 	dragX = dragY = startX = startY = 0;
 	resizable = resizing = false;
 	resizeGrabX = resizeGrabY = 0;
@@ -169,6 +173,20 @@ void UI::SetMinSize(unsigned int minX, unsigned int minY) {
 	Lock();
 	minXOverride = minX;
 	minYOverride = minY;
+	Unlock();
+}
+
+void UI::SetFixedSize(unsigned int width, unsigned int height) {
+	SetResizable(false);
+	Lock();
+	xSize = width;
+	ySize = height;
+	// Nothing left to resolve: the size is the one asked for, whatever the canvas
+	// turns out to be and whatever UI.ini remembers.
+	askedXSize = width;
+	askedYSize = height;
+	sizeResolved = true;
+	sizeRemembered = false;
 	Unlock();
 }
 
@@ -337,6 +355,9 @@ void UI::LayoutChrome() {
 			(chromeHeight - FOOTER_BAND_HEIGHT - UI_CONTENT_MARGIN) : 0;
 		footerLeft->SetBaseY(footerY);
 		footerRight->SetBaseY(footerY);
+		// Held clear of the corner only where there is a grip drawn over it. A
+		// fixed window has none, and the inset would read as a ragged right edge.
+		footerRight->SetBaseX(IsResizable() ? RESIZE_GRIP_SIZE : 0);
 		if (footerAction) {
 			// After what the window says about itself, whose width does not change.
 			footerAction->SetBaseX(footerLeft->GetXSize() + FOOTER_ACTION_GAP);
@@ -350,8 +371,18 @@ void UI::LayoutChrome() {
 void UI::DrawChrome() {
 	if (!chrome)
 		return;
+	DrawFooterRule();
 	for (list<Hook*>::iterator it = chrome->Hooks.begin(); it != chrome->Hooks.end(); it++)
 		(*it)->OnDraw();
+}
+
+// A line between the panel and the footer, so that what the window says about
+// itself does not read as one more row of whatever the panel is listing.
+void UI::DrawFooterRule() {
+	if (!footerLeft)
+		return;
+	unsigned int ruleY = GetY() + GetYSize() - GetFooterBandHeight();
+	Boxhook::Draw(chrome->GetX(), ruleY, chrome->GetXSize(), 1, Grey, BTNormal);
 }
 
 void UI::SetResizing(bool state, bool write_file) {
@@ -400,7 +431,7 @@ void UI::DrawResizeGrip() {
 
 	unsigned int right = GetX() + GetXSize(), bottom = GetY() + GetYSize();
 	bool lit = resizing ||
-		InResizeGrip((*p_D2CLIENT_MouseX), (*p_D2CLIENT_MouseY));
+		InResizeGrip(Hook::GetMouseX(), Hook::GetMouseY());
 
 	for (unsigned int row = 0; row < 3; row++) {
 		for (unsigned int col = 0; col + row < 3; col++) {
@@ -417,61 +448,63 @@ void UI::OnDraw() {
 		int xSize = Texthook::GetTextSize(GetName(), 0).x + 8;
 
 		if (IsDragged()) {
-			int newX = (*p_D2CLIENT_MouseX) - dragX;
-			int newY = (*p_D2CLIENT_MouseY) - dragY;
+			int newX = Hook::GetMouseX() - dragX;
+			int newY = Hook::GetMouseY() - dragY;
+			int screenWidth = (int)Hook::GetScreenWidth();
+			int screenHeight = (int)Hook::GetScreenHeight();
 
 			if (newX < 0)
 				newX = 0;
 
-			if ((newX + xSize + 2) > (int)Hook::GetScreenWidth())
-				newX = Hook::GetScreenWidth() - xSize - 2;
+			if (screenWidth > 0 && (newX + xSize + 2) > screenWidth)
+				newX = screenWidth - xSize - 2;
 
 			if (newY < 2)
 				newY = 2;
 
-			if ((newY + TITLE_BAR_HEIGHT) > (int)Hook::GetScreenHeight())
-				newY = Hook::GetScreenHeight() - TITLE_BAR_HEIGHT;
+			if (screenHeight > 0 && (newY + TITLE_BAR_HEIGHT) > screenHeight)
+				newY = screenHeight - TITLE_BAR_HEIGHT;
 
-			*p_D2CLIENT_MouseX = newX + dragX;
-			*p_D2CLIENT_MouseY = newY + dragY;
+			Hook::SetMousePosition(newX + dragX, newY + dragY);
 			SetMinimizedX(newX);
 			SetMinimizedY(newY);
 		}
 		int yPos = GetMinimizedY();
-		int inPos = InPos((*p_D2CLIENT_MouseX), (*p_D2CLIENT_MouseY), GetMinimizedX(), yPos, xSize, TITLE_BAR_HEIGHT);
+		int inPos = InPos(Hook::GetMouseX(), Hook::GetMouseY(), GetMinimizedX(), yPos, xSize, TITLE_BAR_HEIGHT);
 		Framehook::Draw(GetMinimizedX(), yPos, xSize, TITLE_BAR_HEIGHT, 0, BTOneHalf);
 		Texthook::Draw(GetMinimizedX() + 4, yPos + 3, false, 0, (inPos?Silver:White), GetName());
 	} else {
 		if (IsDragged()) {
-			int newX = (*p_D2CLIENT_MouseX) - dragX;
-			int newY = (*p_D2CLIENT_MouseY) - dragY;
+			int newX = Hook::GetMouseX() - dragX;
+			int newY = Hook::GetMouseY() - dragY;
+			int screenWidth = (int)Hook::GetScreenWidth();
+			int screenHeight = (int)Hook::GetScreenHeight();
 
 			if (newX < 0)
 				newX = 0;
 
-			if ((newX + GetXSize() + 2) > Hook::GetScreenWidth())
-				newX = Hook::GetScreenWidth() - GetXSize() - 2;
+			if (screenWidth > 0 && (newX + (int)GetXSize() + 2) > screenWidth)
+				newX = screenWidth - (int)GetXSize() - 2;
 
 			if (newY < 2)
 				newY = 2;
 
-			if ((newY + GetYSize()) > Hook::GetScreenHeight())
-				newY = Hook::GetScreenHeight() - GetYSize();
+			if (screenHeight > 0 && (newY + (int)GetYSize()) > screenHeight)
+				newY = screenHeight - (int)GetYSize();
 
-			*p_D2CLIENT_MouseX = newX + dragX;
-			*p_D2CLIENT_MouseY = newY + dragY;
+			Hook::SetMousePosition(newX + dragX, newY + dragY);
 			SetX(newX);
 			SetY(newY);
 		}
 		// There is no mouse move event to hang a resize off, so the corner
 		// catches up with the cursor here, once per frame.
 		if (IsResizing())
-			DragResizeTo((*p_D2CLIENT_MouseX), (*p_D2CLIENT_MouseY));
+			DragResizeTo(Hook::GetMouseX(), Hook::GetMouseY());
 
 		LayoutChrome();
 		Framehook::Draw(GetX(), GetY(), GetXSize(), GetYSize(), 0, (IsActive()?BTNormal:BTOneHalf));
 		Framehook::Draw(GetX(), GetY(), GetXSize(), TITLE_BAR_HEIGHT, 0, BTNormal);
-		Texthook::Draw(GetX() + 4, GetY () + 3, false, 0, InTitle((*p_D2CLIENT_MouseX), (*p_D2CLIENT_MouseY))?Silver:White, GetName());
+		Texthook::Draw(GetX() + 4, GetY () + 3, false, 0, InTitle(Hook::GetMouseX(), Hook::GetMouseY())?Silver:White, GetName());
 		for (list<UITab*>::iterator it = Tabs.begin(); it != Tabs.end(); it++)
 			(*it)->OnDraw();
 		DrawChrome();
@@ -577,7 +610,7 @@ bool UI::OnLeftClick(bool up, unsigned int mouseX, unsigned int mouseY) {
 	if (IsMinimized()) {
 		int yPos = GetMinimizedY();
 		int xSize = Texthook::GetTextSize(GetName(), 0).x + 8;
-		int inPos = InPos((*p_D2CLIENT_MouseX), (*p_D2CLIENT_MouseY), GetMinimizedX(), yPos, xSize, TITLE_BAR_HEIGHT);
+		int inPos = InPos(Hook::GetMouseX(), Hook::GetMouseY(), GetMinimizedX(), yPos, xSize, TITLE_BAR_HEIGHT);
 		if (inPos /*&& GetAsyncKeyState(VK_CONTROL)*/) 
 		{
 			if(GetAsyncKeyState(VK_CONTROL))
@@ -695,19 +728,27 @@ bool ZSortDraw (UI* one, UI* two) {
 	return one->GetZOrder() > two->GetZOrder();
 }
 
-void UI::Draw() {
+// Drawn once per screen, and only the windows that belong to the screen being
+// drawn. Called from the in game draw and from the out of game one both, which
+// is what lets a window be laid out on the login screen.
+void UI::Draw(HookVisibility screen) {
 	UIs.sort(ZSortDraw);
 	for (list<UI*>::iterator it = UIs.begin(); it!=UIs.end(); ++it) {
 			(*it)->Lock();
-			(*it)->OnDraw();
+			if ((*it)->GetVisibility() == screen)
+				(*it)->OnDraw();
 			(*it)->Unlock();
 	}
 }	
 
-bool UI::LeftClick(bool up, unsigned int mouseX, unsigned int mouseY) {
+bool UI::LeftClick(HookVisibility screen, bool up, unsigned int mouseX, unsigned int mouseY) {
 	UIs.sort(ZSortClick);
 	for (list<UI*>::iterator it = UIs.begin(); it!=UIs.end(); ++it) {
 		(*it)->Lock();
+		if ((*it)->GetVisibility() != screen) {
+			(*it)->Unlock();
+			continue;
+		}
 		if ((*it)->OnLeftClick(up, mouseX, mouseY)) {
 			(*it)->Unlock();
 			return true;
@@ -717,10 +758,14 @@ bool UI::LeftClick(bool up, unsigned int mouseX, unsigned int mouseY) {
 	return false;
 }
 
-bool UI::RightClick(bool up, unsigned int mouseX, unsigned int mouseY) {
+bool UI::RightClick(HookVisibility screen, bool up, unsigned int mouseX, unsigned int mouseY) {
 	UIs.sort(ZSortClick);
 	for (list<UI*>::iterator it = UIs.begin(); it!=UIs.end(); ++it) {
 		(*it)->Lock();
+		if ((*it)->GetVisibility() != screen) {
+			(*it)->Unlock();
+			continue;
+		}
 		if ((*it)->OnRightClick(up, mouseX, mouseY)) {
 			(*it)->Unlock();
 			return true;

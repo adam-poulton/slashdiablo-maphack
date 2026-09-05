@@ -41,7 +41,8 @@ Hook(visibility, x, y), xSize(xSize), ySize(ySize), font(0), scrollTop(0), heade
 groupColor(Gold), groupHoverColor(White), groupIndent(LIST_GROUP_INDENT),
 hasGroups(false), unfoldWidth(0), foldWidth(0), markerWidth(0),
 foldingSuspended(false),
-selectedRow(-1), draggingThumb(false), thumbGrabOffset(0) {
+selectedRow(-1), clickedRow(-1), rightClickedRow(-1),
+draggingThumb(false), thumbGrabOffset(0) {
 }
 
 Listhook::Listhook(HookGroup* group, unsigned int x, unsigned int y, unsigned int xSize, unsigned int ySize) :
@@ -49,7 +50,8 @@ Hook(group, x, y), xSize(xSize), ySize(ySize), font(0), scrollTop(0), headerColo
 groupColor(Gold), groupHoverColor(White), groupIndent(LIST_GROUP_INDENT),
 hasGroups(false), unfoldWidth(0), foldWidth(0), markerWidth(0),
 foldingSuspended(false),
-selectedRow(-1), draggingThumb(false), thumbGrabOffset(0) {
+selectedRow(-1), clickedRow(-1), rightClickedRow(-1),
+draggingThumb(false), thumbGrabOffset(0) {
 }
 
 void Listhook::SetSize(unsigned int newXSize, unsigned int newYSize) {
@@ -95,6 +97,9 @@ void Listhook::SetRows(const std::vector<ListRow>& newRows) {
 	RebuildShown();
 	Layout();
 	selectedRow = -1;
+	// A click nobody took is a click on a row that no longer means what it did.
+	clickedRow = -1;
+	rightClickedRow = -1;
 	ClampScroll();
 	Unlock();
 }
@@ -516,16 +521,52 @@ void Listhook::MoveSelection(int delta) {
 	Unlock();
 }
 
-int Listhook::GetHoveredRow() {
+int Listhook::RowAt(unsigned int x, unsigned int y) {
 	unsigned int top = GetY() + GetHeaderHeight();
-	unsigned int mouseX = (*p_D2CLIENT_MouseX), mouseY = (*p_D2CLIENT_MouseY);
-	if (mouseX < GetX() || mouseX > GetX() + GetContentWidth() || mouseY < top)
+	if (x < GetX() || x > GetX() + GetContentWidth() || y < top)
 		return -1;
-	unsigned int offset = (mouseY - top) / GetRowHeight();
+	unsigned int offset = (y - top) / GetRowHeight();
 	if (offset >= GetVisibleRows())
 		return -1;
 	unsigned int position = GetFirstVisibleRow() + offset;
 	return (position < shown.size()) ? (int)shown[position] : -1;
+}
+
+int Listhook::GetHoveredRow() {
+	return RowAt(Hook::GetMouseX(), Hook::GetMouseY());
+}
+
+int Listhook::TakeClickedRow() {
+	Lock();
+	int row = clickedRow;
+	clickedRow = -1;
+	Unlock();
+	return row;
+}
+
+int Listhook::TakeRightClickedRow() {
+	Lock();
+	int row = rightClickedRow;
+	rightClickedRow = -1;
+	Unlock();
+	return row;
+}
+
+// The right button says nothing about the selection, the folding or the view: it
+// reports which row it landed on and leaves what that means to the caller. A
+// press outside the list is not the list's, so it is not taken.
+bool Listhook::OnRightClick(bool up, unsigned int x, unsigned int y) {
+	if (!IsActive())
+		return false;
+	if (RowAt(x, y) < 0)
+		return false;
+	if (!up)
+		return true;
+
+	Lock();
+	rightClickedRow = RowAt(x, y);
+	Unlock();
+	return true;
 }
 
 // Kept at least a row tall so there is always something to grab, however long
@@ -629,6 +670,9 @@ bool Listhook::OnLeftClick(bool up, unsigned int x, unsigned int y) {
 	// Clicking the selected row again lets go of it, so a selection can be
 	// dropped without leaving the list or having to clear the search.
 	SetSelectedRow((selectedRow == (int)index) ? -1 : (int)index);
+	Lock();
+	clickedRow = (int)index;
+	Unlock();
 	return true;
 }
 
@@ -692,7 +736,7 @@ void Listhook::OnDraw() {
 	// There is no mouse move event to hang a drag off, so the thumb catches up
 	// with the cursor here, once per frame.
 	if (draggingThumb)
-		DragThumbTo((*p_D2CLIENT_MouseY));
+		DragThumbTo(Hook::GetMouseY());
 	unsigned int contentWidth = GetContentWidth();
 	unsigned int y = GetY();
 
@@ -763,7 +807,7 @@ void Listhook::OnDraw() {
 	// we are. Only drawn when there is something to scroll, so a short list is
 	// left clean.
 	if (GetMaxScrollTop() > 0) {
-		bool lit = draggingThumb || InScrollbar((*p_D2CLIENT_MouseX), (*p_D2CLIENT_MouseY));
+		bool lit = draggingThumb || InScrollbar(Hook::GetMouseX(), Hook::GetMouseY());
 		Scrollbar::Draw(GetX() + xSize - Scrollbar::Width(), ScrollTrackTop(),
 			ScrollTrackHeight(), ScrollThumbTop(), ScrollThumbHeight(), lit);
 	}
