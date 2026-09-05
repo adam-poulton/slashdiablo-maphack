@@ -90,6 +90,19 @@ namespace Settings {
 		Add(descriptor);
 	}
 
+	void AddSlider(std::string owner, std::string category, std::string key,
+			std::string label, unsigned int* value, unsigned int min,
+			unsigned int max, unsigned int step, std::string unit,
+			std::string help, std::string parent) {
+		Descriptor descriptor = Common(KindSlider, owner, category, key, label, help, parent);
+		descriptor.intValue = value;
+		descriptor.numberMin = min;
+		descriptor.numberMax = max;
+		descriptor.numberStep = step;
+		descriptor.unit = unit;
+		Add(descriptor);
+	}
+
 	void AddText(std::string owner, std::string category, std::string key,
 			std::string label, std::string* value, unsigned int maxLength,
 			std::string help, std::string parent) {
@@ -174,6 +187,7 @@ namespace Settings {
 			case KindEnum:
 			case KindColor:
 			case KindNumber:
+			case KindSlider:
 				if (descriptor.intValue)
 					snapshot.a = *descriptor.intValue;
 				break;
@@ -204,6 +218,7 @@ namespace Settings {
 			case KindEnum:
 			case KindColor:
 			case KindNumber:
+			case KindSlider:
 				if (descriptor.intValue)
 					*descriptor.intValue = snapshot.a;
 				break;

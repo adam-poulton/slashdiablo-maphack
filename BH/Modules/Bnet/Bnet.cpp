@@ -58,9 +58,9 @@ void Bnet::OnLoad() {
 		&defaultDesc, 0,
 		"Filled into the description box when there is no last one to put back.");
 
-	Settings::AddNumber(GetName(), Settings::Category::Lobby, "Fail To Join", "Fail to join (ms)",
-		&failToJoin, MAX_FAIL_TO_JOIN,
-		"How long to wait for a game to open before the client says it failed to join. 0 leaves the game's own wait alone.");
+	Settings::AddSlider(GetName(), Settings::Category::Lobby, "Fail To Join", "Fail to join after",
+		&failToJoin, MIN_FAIL_TO_JOIN, MAX_FAIL_TO_JOIN, STEP_FAIL_TO_JOIN, " ms",
+		"How long to wait for a game to open before the client says it failed to join.");
 
 	showLastGame = &bools["Autofill Last Game"];
 	*showLastGame = true;
@@ -74,7 +74,7 @@ void Bnet::OnLoad() {
 	keepDesc = &bools["Autofill Description"];
 	*keepDesc = true;
 
-	failToJoin = 4000;
+	failToJoin = MAX_FAIL_TO_JOIN;
 	LoadConfig();
 }
 
@@ -84,6 +84,22 @@ void Bnet::LoadConfig() {
 	BH::config->ReadBoolean("Autofill Next Game", *nextInstead);
 	BH::config->ReadBoolean("Autofill Description", *keepDesc);
 	BH::config->ReadInt("Fail To Join", failToJoin);
+
+	// Config::ReadInt yields zero for a key the file does not have, and the wait
+	// used to be a box in which zero meant leave the client's own wait alone. Both
+	// read as no wait having been chosen, and the longest one is what to fall back
+	// on, being the closest to the wait the client would have used.
+	if (failToJoin == 0)
+		failToJoin = MAX_FAIL_TO_JOIN;
+
+	// Held to the range here and not only by the slider: an old file can name a
+	// wait shorter than loading into a game that is opening normally, which gives
+	// up on every join, and the settings window opens only in game - so the value
+	// has to be made usable whether or not that window is ever reached.
+	if (failToJoin < MIN_FAIL_TO_JOIN)
+		failToJoin = MIN_FAIL_TO_JOIN;
+	if (failToJoin > MAX_FAIL_TO_JOIN)
+		failToJoin = MAX_FAIL_TO_JOIN;
 
 	// Used to prefill the create/join boxes when there is no previous game to fall back on
 	BH::config->ReadString("Default Game Name", defaultName);
@@ -131,7 +147,7 @@ void Bnet::InstallPatches() {
 		gameDesc->Install();
 	}
 
-	if (failToJoin > 0 && !D2CLIENT_GetPlayerUnit())
+	if (!D2CLIENT_GetPlayerUnit())
 		ftjPatch->Install();
 }
 

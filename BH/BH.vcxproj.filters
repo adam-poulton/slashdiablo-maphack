@@ -15,6 +15,7 @@
     <ClCompile Include="Drawing\Advanced\Checkhook\Checkhook.cpp" />
     <ClCompile Include="Drawing\Advanced\Colorhook\Colorhook.cpp" />
     <ClCompile Include="Drawing\Advanced\Combohook\Combohook.cpp" />
+    <ClCompile Include="Drawing\Advanced\Sliderhook\Sliderhook.cpp" />
     <ClCompile Include="Drawing\Advanced\Inputhook\Inputhook.cpp" />
     <ClCompile Include="Drawing\Advanced\Keyhook\Keyhook.cpp" />
     <ClCompile Include="Drawing\Advanced\Listhook\Listhook.cpp" />
@@ -91,6 +92,8 @@
     <ClInclude Include="Drawing\Advanced\Checkhook\Checkhook.h" />
     <ClInclude Include="Drawing\Advanced\Colorhook\Colorhook.h" />
     <ClInclude Include="Drawing\Advanced\Combohook\Combohook.h" />
+    <ClInclude Include="Drawing\Advanced\Sliderhook\Sliderhook.h" />
+    <ClInclude Include="Drawing\Advanced\Sliderhook\SliderRange.h" />
     <ClInclude Include="Drawing\Advanced\Inputhook\Inputhook.h" />
     <ClInclude Include="Drawing\Advanced\Keyhook\Keyhook.h" />
     <ClInclude Include="Drawing\Advanced\Listhook\Listhook.h" />

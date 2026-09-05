@@ -14,6 +14,7 @@
 #include "Drawing\Advanced\Keyhook\Keyhook.h"
 #include "Drawing\Advanced\Listhook\Listhook.h"
 #include "Drawing\Advanced\Scrollhook\Scrollhook.h"
+#include "Drawing\Advanced\Sliderhook\Sliderhook.h"
 #include "Drawing\Advanced\Tooltiphook\Tooltiphook.h"
 
 #include "Drawing\UI\UI.h"

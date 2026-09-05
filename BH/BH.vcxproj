@@ -191,6 +191,7 @@ if defined D2Path (
     <ClCompile Include="Modules\Settings\SettingsWindow.cpp" />
     <ClCompile Include="Drawing\Basic\Scrollbar\Scrollbar.cpp" />
     <ClCompile Include="Drawing\Advanced\Scrollhook\Scrollhook.cpp" />
+    <ClCompile Include="Drawing\Advanced\Sliderhook\Sliderhook.cpp" />
     <ClCompile Include="Modules\ModuleManager.cpp" />
     <ClCompile Include="Modules\Party\Party.cpp" />
     <ClCompile Include="Modules\Info\InfoWindow.cpp" />
@@ -292,6 +293,8 @@ if defined D2Path (
     <ClInclude Include="Modules\Settings\SettingsWindow.h" />
     <ClInclude Include="Drawing\Basic\Scrollbar\Scrollbar.h" />
     <ClInclude Include="Drawing\Advanced\Scrollhook\Scrollhook.h" />
+    <ClInclude Include="Drawing\Advanced\Sliderhook\Sliderhook.h" />
+    <ClInclude Include="Drawing\Advanced\Sliderhook\SliderRange.h" />
     <ClInclude Include="Modules\Window\UIPanel.h" />
     <ClInclude Include="Modules\ModuleManager.h" />
     <ClInclude Include="Modules\Party\Party.h" />
