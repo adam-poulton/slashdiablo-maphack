@@ -52,7 +52,16 @@ static BOOL fSkipMessageReq = 0;
 static DWORD mSkipMessageTimer = 0;
 static DWORD mSkipQuestMessage = 1;
 
-DrawDirective automapDraw(true, 5);
+// How many frames the automap drawing is reused before it is worked out again.
+// The floor is one: the drawing is the whole automap, and redrawing it every
+// frame costs more than anything it can show is worth. The ceiling is where the
+// monsters on it visibly lag behind where they are.
+#define MIN_MINIMAP_GHOST		1
+#define MAX_MINIMAP_GHOST		10
+#define STEP_MINIMAP_GHOST		1
+#define DEFAULT_MINIMAP_GHOST	5
+
+DrawDirective automapDraw(true, DEFAULT_MINIMAP_GHOST);
 
 Maphack::Maphack() : Module("Maphack") {
 	revealType = MaphackRevealAct;
@@ -195,7 +204,19 @@ void Maphack::ReadConfig() {
 	BH::config->ReadToggle("Skip NPC Quest Messages", "None", true, Toggles["Skip NPC Quest Messages"]);
 
 	BH::config->ReadToggle("Show Normal Monsters", "None", true, Toggles["Show Normal Monsters"]);
-	BH::config->ReadInt("Minimap Max Ghost", automapDraw.maxGhost, 0);
+	BH::config->ReadInt("Minimap Max Ghost", automapDraw.maxGhost,
+		DEFAULT_MINIMAP_GHOST);
+
+	// Zero is not a position on the rail. It reads as no number of frames having
+	// been chosen, which the default answers; anything else is held to the range,
+	// since the value is acted on every frame whether or not the settings window
+	// is ever opened.
+	if (automapDraw.maxGhost == 0)
+		automapDraw.maxGhost = DEFAULT_MINIMAP_GHOST;
+	if (automapDraw.maxGhost < MIN_MINIMAP_GHOST)
+		automapDraw.maxGhost = MIN_MINIMAP_GHOST;
+	if (automapDraw.maxGhost > MAX_MINIMAP_GHOST)
+		automapDraw.maxGhost = MAX_MINIMAP_GHOST;
 
 	BH::config->ReadInt("Automap Offset X", automapOffsetX, 0);
 	BH::config->ReadInt("Automap Offset Y", automapOffsetY, 0);
@@ -362,6 +383,13 @@ void Maphack::OnLoad() {
 		&Toggles["Infravision"], "Lights monsters up as infravision does.");
 	Settings::AddToggle(GetName(), Settings::Category::Map, "Remove Shake", "Remove shake",
 		&Toggles["Remove Shake"], "Stops the screen shaking.");
+
+	Settings::AddSlider(GetName(), Settings::Category::Map, "Minimap Max Ghost",
+		"Minimap ghost frames", &automapDraw.maxGhost,
+		MIN_MINIMAP_GHOST, MAX_MINIMAP_GHOST, STEP_MINIMAP_GHOST, "",
+		"How many frames the automap drawing is reused before it is worked out "
+		"again. Higher costs less to draw and lets what is on the automap lag "
+		"further behind where it actually is.");
 
 	Settings::AddHeading(GetName(), Settings::Category::Map, "Monster colors");
 	Settings::AddColor(GetName(), Settings::Category::Map, "Monster Color: Normal", "Normal",
