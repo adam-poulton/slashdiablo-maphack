@@ -30,7 +30,6 @@ class WindowModule : public Module {
 		bool searchEveryPanel;	// every panel filters, not just the one in front
 		bool focusSearchOnOpen;
 
-		void CheckOpenState();
 		void CyclePanel(int delta);
 
 		// Brings the search box and the footer up to date, and hands the panels
@@ -43,6 +42,11 @@ class WindowModule : public Module {
 
 	protected:
 		std::map<std::string, Toggle> Toggles;
+
+		// Tells the panels the window has appeared or gone away. Driven by
+		// OnLoop() for a window inside a game; a window drawn out of one has no
+		// loop to be driven by and calls this itself.
+		void CheckOpenState();
 
 		// Builds the window. Called from the subclass's OnLoad before any panel
 		// is added, since a panel measures itself against the window.

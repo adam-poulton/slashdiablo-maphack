@@ -7,6 +7,8 @@ namespace Drawing {
 	// HookGroups allow use of the basic hooks(Line,Text,Box,Frame)
 	//	in more advanced hooks(Input,UI,Button) that require
 	//	multiple basic hooks.
+	enum HookVisibility {InGame,OutOfGame,Automap,Perm,Group};
+
 	class Hook;
 	class HookGroup {
 		public:
@@ -16,13 +18,17 @@ namespace Drawing {
 			virtual unsigned int GetXSize() = 0;
 			virtual unsigned int GetYSize() = 0;
 			virtual bool IsActive() = 0;
+
+			// Which screen the group is on, which is the screen every hook in it
+			// is on: a hook in a group carries Group rather than a screen of its
+			// own, so this is the only thing that can answer for it.
+			virtual HookVisibility GetVisibility() = 0;
 	};
 
 	// What a control draws itself in while it is switched off. One value, so that
 	// a panel full of controls disabled together looks disabled together.
 	#define DISABLED_TEXT_COLOR	Grey
 
-	enum HookVisibility {InGame,OutOfGame,Automap,Perm,Group};
 	enum BoxTrans {BTThreeFourths, BTOneHalf, BTOneFourth, BTWhite, BTBlack, BTNormal, BTScreen, BTHighlight, BTFull};
 	enum {None=0, Center=1, Right=2, Top=4};
 
@@ -40,6 +46,11 @@ namespace Drawing {
 			//capture is held here rather than in each hook: it is a property of
 			//the gesture and not of any one control.
 			static Hook* pressedHook;
+
+			// The cursor, as the window procedure last reported it. Only read
+			// outside a game, where nothing else keeps it.
+			static int oogMouseX;
+			static int oogMouseY;
 			HookVisibility visibility;//When we should show the hook.
 			unsigned int x, y, z;//Hooks screen coordinates and the z-order.
 			CRITICAL_SECTION crit;//Critical Section so we don't have race conditions.
@@ -101,6 +112,15 @@ namespace Drawing {
 
 			//Returns when the hook will be visible
 			HookVisibility GetVisibility();
+
+			// Which screen the hook is really on: its own, or its group's where it
+			// is in one. A hook built into a group carries Group and nothing that
+			// names a screen, so this is what has to be asked instead.
+			HookVisibility GetScreen();
+
+			// Whether the hook answers input that arrived on that screen. A hook
+			// that is drawn everywhere answers everywhere.
+			bool AnswersOn(HookVisibility screen);
 
 			//Sets when the hook will be visible
 			void SetVisibility(HookVisibility newVisibility);
@@ -180,14 +200,31 @@ namespace Drawing {
 			static void Draw(HookVisibility type);
 
 			//Static function to check if we interacted with any hooks.
-			static bool LeftClick(bool up, unsigned int x, unsigned int y);
-			static bool RightClick(bool up, unsigned int x, unsigned int y);
-			static bool KeyClick(bool bUp, BYTE bKey, LPARAM lParam);
-			static bool MouseWheel(int notches, unsigned int x, unsigned int y);
+			// Every dispatcher is told which screen the input arrived on and
+			// offers it only to the hooks that are on that screen. Without it a
+			// hook laid out for a game answers a click on the login screen, where
+			// it is not drawn and cannot be seen.
+			static bool LeftClick(HookVisibility screen, bool up, unsigned int x, unsigned int y);
+			static bool RightClick(HookVisibility screen, bool up, unsigned int x, unsigned int y);
+			static bool KeyClick(HookVisibility screen, bool bUp, BYTE bKey, LPARAM lParam);
+			static bool MouseWheel(HookVisibility screen, int notches, unsigned int x, unsigned int y);
 
 			//Misc Hook Functions needed
 			static unsigned int GetScreenHeight();
 			static unsigned int GetScreenWidth();
+
+			// Where the cursor is, in the coordinates everything here is drawn
+			// and hit tested in.
+			//
+			// In a game that is the game's own position, which the drag code
+			// writes to as well as reads. Out of a game D2Client is not running
+			// its input loop and never updates it, so the position is tracked
+			// from the window's own mouse messages instead. Asking here rather
+			// than reading the game's variable is what lets one control work on
+			// both screens.
+			static int GetMouseX();
+			static int GetMouseY();
+			static void SetMousePosition(int x, int y);
 			static void ScreenToAutomap(POINT* ptPos, int x, int y);
 			static void AutomapToScreen(POINT* ptPos, int x, int y);
 

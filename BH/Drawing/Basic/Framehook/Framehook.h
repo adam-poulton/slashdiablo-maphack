@@ -5,6 +5,11 @@
 namespace Drawing {
 	class Framehook : public Hook {
 		private:
+			// ASM stub jumping into D2Client's border drawing, which reads panel
+			// art that only a game loads. Private because calling it outside one
+			// faults: DrawBorder is what everything asks instead.
+			static DWORD _fastcall DrawRectStub(RECT *pRect);
+
 			unsigned int color;//Color of the frame hook 0-255.
 			unsigned int xSize, ySize;//Size of the frame hook.
 			BoxTrans transparency;//Type of transparency.
@@ -41,8 +46,12 @@ namespace Drawing {
 			//Set the frame transparency.
 			void SetTransparency(BoxTrans trans);
 
-			//ASM Stub to move eax to ecx.
-			static DWORD _fastcall Framehook::DrawRectStub(RECT *pRect);
+			// The border around a rectangle: the game's own where there is a game
+			// to have loaded the art it is drawn from, and a plain edge where
+			// there is not. The one place that distinction is made, so that no
+			// caller has to know there is one and none can forget.
+			static void DrawBorder(unsigned int x, unsigned int y,
+				unsigned int xSize, unsigned int ySize, BoxTrans trans);
 
 			//Draw the text.
 			void OnDraw();

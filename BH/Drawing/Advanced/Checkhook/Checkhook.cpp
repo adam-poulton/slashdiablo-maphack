@@ -180,7 +180,7 @@ void Checkhook::OnDraw() {
 	unsigned int checkColor = White;
 	if (!IsEnabled()) {
 		drawColor = checkColor = disabledColor;
-	} else if (InRange(*p_D2CLIENT_MouseX, *p_D2CLIENT_MouseY) && GetHoverColor() != Disabled) {
+	} else if (InRange(Hook::GetMouseX(), Hook::GetMouseY()) && GetHoverColor() != Disabled) {
 		drawColor = hoverColor;
 		checkColor = hoverColor;
 	}

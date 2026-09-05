@@ -1,4 +1,4 @@
-project(BH)
+﻿project(BH)
 
 set(SOURCE_FILES "AsyncDrawBuffer.cpp"
                  "BH.cpp"
@@ -36,6 +36,13 @@ set(CATALOGUE_SOURCES "Catalogue/AffixCatalogue.cpp"
                       "Catalogue/UniqueCatalogue.cpp")
 
 set(MODULE_SOURCES "Modules/Module.cpp"
+                   "Modules/Accounts/AccountClaim.cpp"
+                   "Modules/Accounts/AccountPanel.cpp"
+                   "Modules/Accounts/AccountRows.cpp"
+                   "Modules/Accounts/Accounts.cpp"
+                   "Modules/Accounts/AccountFile.cpp"
+                   "Modules/Accounts/AccountStore.cpp"
+                   "Modules/Accounts/LoginScreen.cpp"
                    "Modules/ModuleManager.cpp"
                    "Modules/AutoTele/AutoTele.cpp"
                    "Modules/Bnet/Bnet.cpp"
@@ -80,5 +87,6 @@ set(DRAWING_SOURCES "Drawing/Hook.cpp"
 
 set(SOURCE_FILES ${SOURCE_FILES} ${CATALOGUE_SOURCES} ${MODULE_SOURCES} ${DRAWING_SOURCES})
 add_library(BH ${SOURCE_FILES})
-target_include_directories(BH PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/cpp-lru-cache/include)
+target_include_directories(BH PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/cpp-lru-cache/include
+                                   ${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty)
 target_link_libraries(BH ${STORM_LIBRARY} Shlwapi)

@@ -43,7 +43,7 @@
   <PropertyGroup>
     <OutDir>$(SolutionDir)Tests\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)Tests\obj\$(Configuration)\</IntDir>
-    <IncludePath>$(IncludePath);..\ThirdParty\doctest;..\BH;..\BH\Modules\Item</IncludePath>
+    <IncludePath>$(IncludePath);..\ThirdParty\doctest;..\ThirdParty;..\BH;..\BH\Modules\Item</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -88,6 +88,11 @@
     <ClCompile Include="RuleFixture.cpp" />
     <ClCompile Include="RuleWalkTests.cpp" />
     <ClCompile Include="ItemFactsCatalogueTests.cpp" />
+    <ClCompile Include="AccountStoreTests.cpp" />
+    <ClCompile Include="AccountFileTests.cpp" />
+    <ClCompile Include="AccountClaimTests.cpp" />
+    <ClCompile Include="LoginScreenTests.cpp" />
+    <ClCompile Include="AccountRowsTests.cpp" />
     <ClCompile Include="StampedCacheTests.cpp" />
     <ClCompile Include="SliderRangeTests.cpp" />
     <ClCompile Include="PropertyStatsTests.cpp" />
@@ -108,6 +113,11 @@
          are stood up from fixtures instead. -->
     <ClCompile Include="..\BH\BitReader.cpp" />
     <ClCompile Include="..\BH\StringUtil.cpp" />
+    <ClCompile Include="..\BH\Modules\Accounts\AccountStore.cpp" />
+    <ClCompile Include="..\BH\Modules\Accounts\AccountFile.cpp" />
+    <ClCompile Include="..\BH\Modules\Accounts\AccountClaim.cpp" />
+    <ClCompile Include="..\BH\Modules\Accounts\LoginScreen.cpp" />
+    <ClCompile Include="..\BH\Modules\Accounts\AccountRows.cpp" />
     <ClCompile Include="..\BH\Modules\Item\CaptureFormat.cpp" />
     <ClCompile Include="..\BH\Modules\Item\ItemFactsCatalogue.cpp" />
     <ClCompile Include="..\BH\Modules\Item\ItemFactsPacket.cpp" />

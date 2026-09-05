@@ -259,7 +259,7 @@ void StatsDisplay::OnDraw() {
 		pRect.bottom = y + GetYSize();
 
 		Drawing::Boxhook::Draw(GetX(),GetY(), GetXSize(), GetYSize(), White, Drawing::BTBlack);
-		Drawing::Framehook::DrawRectStub(&pRect);
+		Drawing::Framehook::DrawBorder(GetX(), GetY(), GetXSize(), GetYSize(), Drawing::BTBlack);
 
 		Texthook::Draw(column1, (y += 8), None, 6, Gold,
 				"Name:\377c0 %s",

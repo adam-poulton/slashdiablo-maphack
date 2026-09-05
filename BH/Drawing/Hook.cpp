@@ -8,6 +8,8 @@ using namespace std;
 
 std::list<Hook*> Hook::Hooks;
 Hook* Hook::pressedHook = NULL;
+int Hook::oogMouseX = 0;
+int Hook::oogMouseY = 0;
 
 /* Basic Hook Initializer
  *		Used for just drawing basic things on screen.
@@ -323,6 +325,27 @@ unsigned int Hook::GetScreenWidth() {
 	return *p_D2CLIENT_ScreenSizeX;
 }
 
+int Hook::GetMouseX() {
+	return D2CLIENT_GetPlayerUnit() ? (int)(*p_D2CLIENT_MouseX) : oogMouseX;
+}
+
+int Hook::GetMouseY() {
+	return D2CLIENT_GetPlayerUnit() ? (int)(*p_D2CLIENT_MouseY) : oogMouseY;
+}
+
+// In a game the game's own position is moved, which is what pins the cursor to
+// the point a window was grabbed by. Out of one there is nothing to move but
+// what we keep ourselves.
+void Hook::SetMousePosition(int x, int y) {
+	if (D2CLIENT_GetPlayerUnit()) {
+		*p_D2CLIENT_MouseX = x;
+		*p_D2CLIENT_MouseY = y;
+		return;
+	}
+	oogMouseX = x;
+	oogMouseY = y;
+}
+
 /* Hook::ScreenToAutomap(int x, int y)
  *	Returns converted coordinates from screen to automap.
  */
@@ -382,7 +405,27 @@ void Hook::Draw(HookVisibility type) {
  *	same hook the release. A click activates a control only when both ends of the
  *	gesture landed on it: releasing anywhere else cancels.
  */
-bool Hook::LeftClick(bool up, unsigned int x, unsigned int y) {
+// Which screen the hook is really on. A hook in a group has no screen of its
+// own: the group it was built into is what is shown or hidden, so the group
+// answers for it. A group with nothing owning it answers for itself.
+HookVisibility Hook::GetScreen() {
+	if (visibility == Group && group)
+		return group->GetVisibility();
+	return visibility;
+}
+
+bool Hook::AnswersOn(HookVisibility screen) {
+	HookVisibility mine = GetScreen();
+	// Drawn on every screen, so answering on every screen.
+	if (mine == Perm)
+		return true;
+	// The automap is only ever drawn inside a game.
+	if (mine == Automap)
+		return screen == InGame;
+	return mine == screen;
+}
+
+bool Hook::LeftClick(HookVisibility screen, bool up, unsigned int x, unsigned int y) {
 	Hooks.sort(ZSort);
 	if (Colorhook::current) {
 		// The open picker takes the whole gesture, so there is nothing to pair.
@@ -410,7 +453,7 @@ bool Hook::LeftClick(bool up, unsigned int x, unsigned int y) {
 	// An open dropdown hangs over the hooks laid out below it, and has to be
 	// offered the press ahead of them for the same reason it is drawn over them.
 	Hook* front = Combohook::current;
-	if (front && front->IsActive() && front->IsEnabled() &&
+	if (front && front->IsActive() && front->IsEnabled() && front->AnswersOn(screen) &&
 			front->OnLeftClick(false, x, y)) {
 		pressedHook = front;
 		block = true;
@@ -419,6 +462,8 @@ bool Hook::LeftClick(bool up, unsigned int x, unsigned int y) {
 	// an open dropdown shuts - but only the first to claim it holds the gesture.
 	for (HookIterator it = Hooks.begin(); it != Hooks.end(); ++it) {
 		if ((*it) == front || !(*it)->IsActive() || !(*it)->IsEnabled())
+			continue;
+		if (!(*it)->AnswersOn(screen))
 			continue;
 		if ((*it)->OnLeftClick(false, x, y)) {
 			if (!pressedHook)
@@ -432,7 +477,7 @@ bool Hook::LeftClick(bool up, unsigned int x, unsigned int y) {
 /* Hook::RightClick(bool up, unsigned int x, unsigned int y)
  *	Calls the Right Click handlers and blocks click if needed.
  */
-bool Hook::RightClick(bool up, unsigned int x, unsigned int y) {
+bool Hook::RightClick(HookVisibility screen, bool up, unsigned int x, unsigned int y) {
 	Hooks.sort(ZSort);
 	bool block = false;
 	if (Colorhook::current) {
@@ -440,7 +485,7 @@ bool Hook::RightClick(bool up, unsigned int x, unsigned int y) {
 		return true;
 	}
 	for (HookIterator it = Hooks.begin(); it!=Hooks.end(); ++it)
-		if ((*it)->IsActive() && (*it)->IsEnabled())
+		if ((*it)->IsActive() && (*it)->IsEnabled() && (*it)->AnswersOn(screen))
 			if ((*it)->OnRightClick(up, x, y))
 				block = true;
 	return block;
@@ -450,10 +495,10 @@ bool Hook::RightClick(bool up, unsigned int x, unsigned int y) {
  *	Offers the wheel to the hooks, front to back. Unlike a click, only one hook
  *	acts on it: scrolling two things at once with one gesture is never wanted.
  */
-bool Hook::MouseWheel(int notches, unsigned int x, unsigned int y) {
+bool Hook::MouseWheel(HookVisibility screen, int notches, unsigned int x, unsigned int y) {
 	Hooks.sort(ZSort);
 	for (HookIterator it = Hooks.begin(); it!=Hooks.end(); ++it)
-		if ((*it)->IsActive() && (*it)->IsEnabled())
+		if ((*it)->IsActive() && (*it)->IsEnabled() && (*it)->AnswersOn(screen))
 			if ((*it)->OnMouseWheel(notches, x, y))
 				return true;
 	return false;
@@ -462,11 +507,11 @@ bool Hook::MouseWheel(int notches, unsigned int x, unsigned int y) {
 /* Hook::KeyClick(bool bUp, BYTE bKey, LPARAM lParam)
  *	Calls the Key Click handlers and blocks click if needed.
  */
-bool Hook::KeyClick(bool bUp, BYTE bKey, LPARAM lParam) {
+bool Hook::KeyClick(HookVisibility screen, bool bUp, BYTE bKey, LPARAM lParam) {
 	Hooks.sort(ZSort);
 	bool block = false;
 	for (HookIterator it = Hooks.begin(); it!=Hooks.end(); ++it)
-		if ((*it)->IsActive() && (*it)->IsEnabled())
+		if ((*it)->IsActive() && (*it)->IsEnabled() && (*it)->AnswersOn(screen))
 			if ((*it)->OnKey(bUp, bKey, lParam))
 				block = true;
 	return block;

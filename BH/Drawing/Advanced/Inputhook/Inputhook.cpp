@@ -205,9 +205,9 @@ unsigned int Inputhook::GetCharacterLimit() {
 	 POINT textSize = Texthook::GetTextSize(GetText().substr(textPos, GetCursorPosition() - textPos), GetFont());
 
 	 //Draw the outline box!
-	 RECT pRect  = {static_cast<long>(GetX()), static_cast<long>(GetY()), static_cast<long>(GetX() + GetXSize()), static_cast<long>(GetY() + boxHeight)};
-	 D2GFX_DrawRectangle(GetX(), GetY(), GetX() + GetXSize(), GetY() + boxHeight, 0, focused ? BTFull : BTOneHalf);
-	 Framehook::DrawRectStub(&pRect);
+	 BoxTrans boxTrans = focused ? BTFull : BTOneHalf;
+	 D2GFX_DrawRectangle(GetX(), GetY(), GetX() + GetXSize(), GetY() + boxHeight, 0, boxTrans);
+	 Framehook::DrawBorder(GetX(), GetY(), GetXSize(), boxHeight, boxTrans);
 	 //An empty box shows its hint instead, always dimmed so it doesn't read as
 	 //text that is really in the box.
 	 if (text.length() == 0 && placeholder.length() > 0) {

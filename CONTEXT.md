@@ -3,7 +3,8 @@
 A Diablo II mod that judges every item the game shows or is about to show, and
 decides what the player sees of it. Most of the language below is the item
 filter's, which is where most of the project's own vocabulary lives. The rest is
-the catalogue's, which is what the game's own tables are read into.
+the catalogue's, which is what the game's own tables are read into, and the
+little that is neither belongs to what BH keeps for the player between games.
 
 ## Language
 
@@ -204,3 +205,36 @@ One source that answered a query, and the range it rolls for each stat criterion
 that was asked. The range is part of the answer rather than a detail of it: an
 amount a source can roll is not one it will.
 _Avoid_: match, hit, answer
+
+### Signing in
+
+**Account**:
+A name and the password that goes with it, kept so that the player does not have
+to type either. The project's own word for what it holds, not the game's word for
+what the realm knows: the realm has an account whether or not BH keeps one.
+_Avoid_: credential, login, profile, entry
+
+**Roster**:
+What the accounts are kept in, one roster to an account. The player's own axis,
+whatever it happens to be: hardcore and softcore, mains and mules, ladder and
+not. Nothing to do with the game's roster of party members, which the code calls
+a roster unit.
+
+The player is shown the word **label** instead, everywhere: the box types a
+label, and the accounts in no roster are headed "No label". A roster is a thing
+accounts are kept in, which is what the code has to talk about; labelling one is
+what the player does, and there is nothing to be kept in until they have. The
+two words are deliberate and this is where the difference is written down.
+_Avoid_: group, stable, folder, tag
+
+**Favourite**:
+An account the player reaches for often, kept above the rosters rather than
+inside one. An account is a favourite or it is not; nothing is ranked.
+_Avoid_: pinned, starred, bookmark
+
+**Claim**:
+What one client holds on an account for as long as it is signed in as it, so
+that another client can see the account is in use before signing in as it too.
+Advice and never a refusal: a client that died leaves the realm believing it is
+still signed in, and signing in again is the way out of that.
+_Avoid_: lock, lease, reservation, session

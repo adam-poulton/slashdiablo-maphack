@@ -75,7 +75,7 @@ void Combohook::OnDraw() {
 	Texthook::Draw(GetX() + COMBO_PADDING_X, GetY() + COMBO_PADDING_TOP, 0, GetFont(),
 		valueColor, options.at(GetSelectedIndex()));
 	Texthook::Draw(GetX() + GetXSize() - COMBO_ARROW_GAP, GetY() + COMBO_PADDING_TOP, 0, GetFont(),
-		IsEnabled() ? (InHook((*p_D2CLIENT_MouseX), (*p_D2CLIENT_MouseY))||active?Tan:Gold)
+		IsEnabled() ? (InHook(Hook::GetMouseX(), Hook::GetMouseY())||active?Tan:Gold)
 			: DISABLED_TEXT_COLOR, "v");
 	// The open list is not drawn here; see DrawOpenList().
 }
@@ -91,8 +91,8 @@ void Combohook::DrawOpenList() {
 
 	Framehook::Draw(GetX(), GetListY(), GetXSize(),
 		(unsigned int)options.size() * GetYSize(), 0, BTNormal);
-	unsigned int mouseX = (*p_D2CLIENT_MouseX);
-	unsigned int mouseY = (*p_D2CLIENT_MouseY);
+	unsigned int mouseX = Hook::GetMouseX();
+	unsigned int mouseY = Hook::GetMouseY();
 	unsigned int n = 0;
 	for (vector<string>::iterator it = options.begin(); it < options.end(); it++,n++) {
 		unsigned int optionY = GetOptionY(n);

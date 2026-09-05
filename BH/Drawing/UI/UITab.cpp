@@ -27,7 +27,15 @@ unsigned int UITab::GetTabPos() {
 }
 
 void UITab::OnDraw() {
-	bool isHovering = IsHovering((*p_D2CLIENT_MouseX), (*p_D2CLIENT_MouseY));
+	// A window with one panel draws no tab row, so the panel's contents are all
+	// there is to draw.
+	if (ui->GetTabBandHeight() == 0) {
+		for(std::list<Hook*>::iterator it = Hooks.begin(); it != Hooks.end(); it++)
+			(*it)->OnDraw();
+		return;
+	}
+
+	bool isHovering = IsHovering(Hook::GetMouseX(), Hook::GetMouseY());
 
 	if (IsActive())
 		for(std::list<Hook*>::iterator it = Hooks.begin(); it != Hooks.end(); it++)

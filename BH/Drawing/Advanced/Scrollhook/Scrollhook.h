@@ -25,6 +25,10 @@ namespace Drawing {
 			unsigned int GetXSize();
 			unsigned int GetYSize();
 			bool IsActive();
+
+			// Whatever the box itself is on, which for a box inside a panel is
+			// whatever that panel's window is on.
+			HookVisibility GetVisibility();
 	};
 
 	// A vertically scrolling box that other hooks live inside, for contents taller
