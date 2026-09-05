@@ -18,7 +18,9 @@ class AutoTele : public Module {
 	private:
 		std::map<string, Toggle> Toggles;
 		unsigned int NextKey, OtherKey, WPKey, PrevKey;
-		unsigned int Colors[6];
+		// Zeroed so the array is never read before the config is, and given its real
+		// palette indices when it is.
+		unsigned int Colors[6] = {};
 
 		int Try;
 		POINT End;

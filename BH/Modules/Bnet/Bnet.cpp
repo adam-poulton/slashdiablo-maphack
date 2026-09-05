@@ -83,7 +83,7 @@ void Bnet::LoadConfig() {
 	BH::config->ReadBoolean("Autofill Last Password", *showLastPass);
 	BH::config->ReadBoolean("Autofill Next Game", *nextInstead);
 	BH::config->ReadBoolean("Autofill Description", *keepDesc);
-	BH::config->ReadInt("Fail To Join", failToJoin);
+	BH::config->ReadInt("Fail To Join", failToJoin, MAX_FAIL_TO_JOIN);
 
 	// Config::ReadInt yields zero for a key the file does not have, and the wait
 	// used to be a box in which zero meant leave the client's own wait alone. Both

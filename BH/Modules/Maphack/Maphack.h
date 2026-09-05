@@ -27,7 +27,6 @@ class Maphack : public Module {
 		int automapOffsetX, automapOffsetY;
 		bool automapOriginPatched;
 		unsigned int revealType;
-		unsigned int maxGhostSelection;
 		bool revealedGame, revealedAct[6], revealedLevel[255];
 		std::map<string, string> MonsterColors;
 		std::map<string, string> SuperUniqueColors;
