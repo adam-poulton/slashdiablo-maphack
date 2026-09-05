@@ -32,7 +32,7 @@ void Gamefilter::OnLoad() {
 		listRefresh->Install();
 	}
 	refreshTime = 1500;
-	BH::config->ReadInt("GameListRefresh", refreshTime);
+	BH::config->ReadInt("GameListRefresh", refreshTime, 0);
 
 	showDiff = &bools["Show Difficulty"];
 	*showDiff = true;

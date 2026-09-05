@@ -87,9 +87,9 @@ void Maphack::LoadConfig() {
 }
 
 void Maphack::ReadConfig() {
-	BH::config->ReadInt("Reveal Mode", revealType);
-	BH::config->ReadInt("Show Monster Resistance", monsterResistanceThreshold);
-	BH::config->ReadInt("LK Chest Lines", lkLinesColor);
+	BH::config->ReadInt("Reveal Mode", revealType, 0);
+	BH::config->ReadInt("Show Monster Resistance", monsterResistanceThreshold, 0);
+	BH::config->ReadInt("LK Chest Lines", lkLinesColor, 0);
 
 
 	BH::config->ReadAssoc("Missile Color", missileColors);
@@ -195,10 +195,10 @@ void Maphack::ReadConfig() {
 	BH::config->ReadToggle("Skip NPC Quest Messages", "None", true, Toggles["Skip NPC Quest Messages"]);
 
 	BH::config->ReadToggle("Show Normal Monsters", "None", true, Toggles["Show Normal Monsters"]);
-	BH::config->ReadInt("Minimap Max Ghost", automapDraw.maxGhost);
+	BH::config->ReadInt("Minimap Max Ghost", automapDraw.maxGhost, 0);
 
-	BH::config->ReadInt("Automap Offset X", automapOffsetX);
-	BH::config->ReadInt("Automap Offset Y", automapOffsetY);
+	BH::config->ReadInt("Automap Offset X", automapOffsetX, 0);
+	BH::config->ReadInt("Automap Offset Y", automapOffsetY, 0);
 	ApplyAutomapOriginPatch();
 }
 

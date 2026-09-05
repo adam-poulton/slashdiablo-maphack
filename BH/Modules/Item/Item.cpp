@@ -143,11 +143,11 @@ void Item::LoadConfig() {
 	BH::config->ReadToggle("Suppress Invalid Stats", "None", false, Toggles["Suppress Invalid Stats"]);
 	BH::config->ReadToggle("Always Show Item Stat Ranges", "None", true, Toggles["Always Show Item Stat Ranges"]);
 	BH::config->ReadToggle("Hide Redundant Scrolls", "None", false, Toggles["Hide Redundant Scrolls"]);
-	BH::config->ReadInt("Filter Level", filterLevelSetting);
-	BH::config->ReadInt("Ping Level", pingLevelSetting);
-	BH::config->ReadInt("Run Details Ping Level", trackerPingLevelSetting);
-	BH::config->ReadInt("Stat Range Color", statRangeColor);
-	BH::config->ReadInt("Scroll Visibility Threshold", scrollVisibilityThreshold);
+	BH::config->ReadInt("Filter Level", filterLevelSetting, 0);
+	BH::config->ReadInt("Ping Level", pingLevelSetting, 0);
+	BH::config->ReadInt("Run Details Ping Level", trackerPingLevelSetting, 0);
+	BH::config->ReadInt("Stat Range Color", statRangeColor, 0);
+	BH::config->ReadInt("Scroll Visibility Threshold", scrollVisibilityThreshold, 0);
 	if (scrollVisibilityThreshold > MAX_SCROLL_VISIBILITY_THRESHOLD)
 		scrollVisibilityThreshold = MAX_SCROLL_VISIBILITY_THRESHOLD;
 	ItemCapture::LoadConfig();

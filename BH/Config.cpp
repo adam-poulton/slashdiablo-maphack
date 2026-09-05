@@ -186,11 +186,11 @@ bool Config::ReadBoolean(std::string key, bool& value) {
 /* ReadInt(std::string key, int value)
 *	Reads in a decimal or hex(which is converted to decimal) from the key-pair.
 */
-int Config::ReadInt(std::string key, int& value) {
+int Config::ReadInt(std::string key, int& value, int defaultValue) {
 	//Check if configuration value exists
 	if (contents.find(key) == contents.end()) {
 		contents[key].key = key;
-		contents[key].value = value;
+		contents[key].value = to_string(defaultValue);
 	}
 
 	contents[key].type = CTInt;
@@ -208,11 +208,11 @@ int Config::ReadInt(std::string key, int& value) {
 /* ReadInt(std::string key, int value)
 *	Reads in a decimal or hex(which is converted to decimal) from the key-pair.
 */
-unsigned int Config::ReadInt(std::string key, unsigned int& value) {
+unsigned int Config::ReadInt(std::string key, unsigned int& value, unsigned int defaultValue) {
 	//Check if configuration value exists
 	if (contents.find(key) == contents.end()) {
 		contents[key].key = key;
-		contents[key].value = value;
+		contents[key].value = to_string(defaultValue);
 	}
 
 	contents[key].type = CTInt;

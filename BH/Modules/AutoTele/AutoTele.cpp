@@ -51,12 +51,12 @@ void AutoTele::LoadConfig() {
 	BH::config->ReadKey("Other Tele", "VK_NUMPAD1", OtherKey);
 	BH::config->ReadKey("Waypoint Tele", "VK_NUMPAD2", WPKey);
 	BH::config->ReadKey("Prev Tele", "VK_NUMPAD3", PrevKey);
-	BH::config->ReadInt("Path Color", Colors[0]);
-	BH::config->ReadInt("Next Color", Colors[1]);
-	BH::config->ReadInt("Other Color", Colors[2]);
-	BH::config->ReadInt("WP Color", Colors[3]);
-	BH::config->ReadInt("Prev Color", Colors[4]);
-	BH::config->ReadInt("Other Extra Color", Colors[5]);
+	BH::config->ReadInt("Path Color", Colors[0], 0);
+	BH::config->ReadInt("Next Color", Colors[1], 0);
+	BH::config->ReadInt("Other Color", Colors[2], 0);
+	BH::config->ReadInt("WP Color", Colors[3], 0);
+	BH::config->ReadInt("Prev Color", Colors[4], 0);
+	BH::config->ReadInt("Other Extra Color", Colors[5], 0);
 }
 
 void AutoTele::OnAutomapDraw() {

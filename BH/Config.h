@@ -68,8 +68,13 @@ public:
 	//Functions to read values from the configuration
 	bool				ReadBoolean(std::string key, bool& value);
 	std::string			ReadString(std::string key, std::string& value);
-	int					ReadInt(std::string key, int& value);
-	unsigned int    	ReadInt(std::string key, unsigned int& value);
+
+	// The default is passed rather than taken from what the variable happens to
+	// hold, and is not optional: a caller that has one has to say so, and one that
+	// does not has to say that too. A number read from a file the user can edit is
+	// exactly where a default that silently did not apply would go unnoticed.
+	int					ReadInt(std::string key, int& value, int defaultValue);
+	unsigned int    	ReadInt(std::string key, unsigned int& value, unsigned int defaultValue);
 	unsigned int		ReadKey(std::string key, std::string toggle, unsigned int &value);
 	Toggle				ReadToggle(std::string key, std::string toggle, bool defaultState, Toggle& value);
 	std::vector<string> ReadArray(std::string key, std::vector<string>& value);
