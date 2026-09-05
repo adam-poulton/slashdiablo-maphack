@@ -31,6 +31,13 @@
     <ClCompile Include="Drawing\UI\UITab.cpp" />
     <ClCompile Include="ItemRarity.cpp" />
     <ClCompile Include="JSONObject.cpp" />
+    <ClCompile Include="Modules\Accounts\AccountClaim.cpp" />
+    <ClCompile Include="Modules\Accounts\AccountPanel.cpp" />
+    <ClCompile Include="Modules\Accounts\AccountRows.cpp" />
+    <ClCompile Include="Modules\Accounts\Accounts.cpp" />
+    <ClCompile Include="Modules\Accounts\AccountFile.cpp" />
+    <ClCompile Include="Modules\Accounts\LoginScreen.cpp" />
+    <ClCompile Include="Modules\Accounts\AccountStore.cpp" />
     <ClCompile Include="Modules\AutoTele\AutoTele.cpp" />
     <ClCompile Include="Modules\Bnet\Bnet.cpp" />
     <ClCompile Include="Modules\ChatColor\ChatColor.cpp" />
@@ -117,6 +124,13 @@
     <ClInclude Include="Modules\AutoTele\ATIncludes\SyncObj.h" />
     <ClInclude Include="Modules\AutoTele\ATIncludes\TeleportPath.h" />
     <ClInclude Include="Modules\AutoTele\ATIncludes\Vectors.h" />
+    <ClInclude Include="Modules\Accounts\AccountClaim.h" />
+    <ClInclude Include="Modules\Accounts\AccountPanel.h" />
+    <ClInclude Include="Modules\Accounts\AccountRows.h" />
+    <ClInclude Include="Modules\Accounts\Accounts.h" />
+    <ClInclude Include="Modules\Accounts\AccountFile.h" />
+    <ClInclude Include="Modules\Accounts\AccountStore.h" />
+    <ClInclude Include="Modules\Accounts\LoginScreen.h" />
     <ClInclude Include="Modules\AutoTele\AutoTele.h" />
     <ClInclude Include="Modules\Bnet\Bnet.h" />
     <ClInclude Include="Modules\ChatColor\ChatColor.h" />

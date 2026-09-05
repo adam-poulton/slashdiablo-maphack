@@ -3,6 +3,7 @@
 #include "Modules\ModuleManager.h"
 #include "Modules\Module.h"
 
+#include "Modules\Accounts\Accounts.h"
 #include "Modules\Maphack\Maphack.h"
 #include "Modules\ScreenInfo\ScreenInfo.h"
 #include "Modules\Gamefilter\Gamefilter.h"

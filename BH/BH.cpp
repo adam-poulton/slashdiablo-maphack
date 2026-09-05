@@ -125,6 +125,7 @@ void BH::Initialize()
 	new Maphack();
 	new ChatColor();
 	new GambleRefresh();
+	new AccountsWindow();
 	new InfoWindow();
 	new SettingsWindow();
 
