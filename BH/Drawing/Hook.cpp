@@ -347,8 +347,8 @@ void Hook::SetMousePosition(int x, int y) {
 	oogMouseY = y;
 }
 
-/* Hook::ScreenToAutomap(int x, int y)
- *	Returns converted coordinates from screen to automap.
+/* Hook::ScreenToAutomap(POINT* ptPos, int x, int y)
+ *	Writes the automap coordinates the given screen coordinates convert to.
  */
 void Hook::ScreenToAutomap(POINT* ptPos, int x, int y) {
 	x *= 32; y *= 32;
@@ -360,9 +360,9 @@ void Hook::ScreenToAutomap(POINT* ptPos, int x, int y) {
 	}
 }
 
-/* Hook::ScreenToAutomapPrecise(double x, double y)
- *	Returns converted coordinates from screen to automap, keeping the fraction
- *	of a subtile the position carries.
+/* Hook::ScreenToAutomapPrecise(POINT* ptPos, double x, double y)
+ *	Writes the automap coordinates the given screen coordinates convert to,
+ *	keeping the fraction of a subtile the position carries.
  */
 void Hook::ScreenToAutomapPrecise(POINT* ptPos, double x, double y) {
 	x *= 32; y *= 32;
@@ -375,8 +375,8 @@ void Hook::ScreenToAutomapPrecise(POINT* ptPos, double x, double y) {
 	}
 }
 
-/* Hook::AutomapToScreen(int x, int y)
- *	Returns converted coordinates from automap to screen.
+/* Hook::AutomapToScreen(POINT* ptPos, int x, int y)
+ *	Writes the screen coordinates the given automap coordinates convert to.
  */
 void Hook::AutomapToScreen(POINT* ptPos, int x, int y) {
 	ptPos->x = x; ptPos->y = y;
