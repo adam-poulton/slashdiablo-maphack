@@ -24,6 +24,7 @@ class Maphack : public Module {
 	private:
 		int monsterResistanceThreshold;
 		int lkLinesColor;
+		unsigned int experienceRangeColor;
 		int automapOffsetX, automapOffsetY;
 		bool automapOriginPatched;
 		unsigned int revealType;

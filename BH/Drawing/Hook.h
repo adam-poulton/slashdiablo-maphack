@@ -226,6 +226,12 @@ namespace Drawing {
 			static int GetMouseY();
 			static void SetMousePosition(int x, int y);
 			static void ScreenToAutomap(POINT* ptPos, int x, int y);
+
+			// The same projection for a position that falls between subtiles.
+			// A subtile is worth several automap pixels, so a shape worked out
+			// in world space keeps its curve here instead of stepping from one
+			// subtile to the next.
+			static void ScreenToAutomapPrecise(POINT* ptPos, double x, double y);
 			static void AutomapToScreen(POINT* ptPos, int x, int y);
 
 	};

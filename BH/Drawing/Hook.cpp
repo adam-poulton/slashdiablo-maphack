@@ -2,6 +2,7 @@
 #include "Advanced/Colorhook/Colorhook.h"
 #include "Advanced/Combohook/Combohook.h"
 #include "../D2Ptrs.h"
+#include <cmath>
 
 using namespace Drawing;
 using namespace std;
@@ -346,8 +347,8 @@ void Hook::SetMousePosition(int x, int y) {
 	oogMouseY = y;
 }
 
-/* Hook::ScreenToAutomap(int x, int y)
- *	Returns converted coordinates from screen to automap.
+/* Hook::ScreenToAutomap(POINT* ptPos, int x, int y)
+ *	Writes the automap coordinates the given screen coordinates convert to.
  */
 void Hook::ScreenToAutomap(POINT* ptPos, int x, int y) {
 	x *= 32; y *= 32;
@@ -359,8 +360,23 @@ void Hook::ScreenToAutomap(POINT* ptPos, int x, int y) {
 	}
 }
 
-/* Hook::AutomapToScreen(int x, int y)
- *	Returns converted coordinates from automap to screen.
+/* Hook::ScreenToAutomapPrecise(POINT* ptPos, double x, double y)
+ *	Writes the automap coordinates the given screen coordinates convert to,
+ *	keeping the fraction of a subtile the position carries.
+ */
+void Hook::ScreenToAutomapPrecise(POINT* ptPos, double x, double y) {
+	x *= 32; y *= 32;
+	double divisor = (double)(*(INT*)p_D2CLIENT_Divisor);
+	ptPos->x = (LONG)lround((x - y) / 2 / divisor) - (*p_D2CLIENT_Offset).x + 8;
+	ptPos->y = (LONG)lround((x + y) / 4 / divisor) - (*p_D2CLIENT_Offset).y - 8;
+	if (D2CLIENT_GetAutomapSize()) {
+		--ptPos->x;
+		ptPos->y += 5;
+	}
+}
+
+/* Hook::AutomapToScreen(POINT* ptPos, int x, int y)
+ *	Writes the screen coordinates the given automap coordinates convert to.
  */
 void Hook::AutomapToScreen(POINT* ptPos, int x, int y) {
 	ptPos->x = x; ptPos->y = y;
