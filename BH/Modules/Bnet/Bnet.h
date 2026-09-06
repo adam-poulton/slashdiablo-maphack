@@ -13,6 +13,22 @@
 #define MAX_FAIL_TO_JOIN	4000
 #define STEP_FAIL_TO_JOIN	500
 
+// How long the lobby holds the notice that a join failed, and what one notch of
+// its slider moves. The client counts a notice down once per pass of the lobby
+// loop rather than by elapsed time, so a notice does not run out while the
+// window is in the background, and joining on several accounts in turn waits
+// out the notice on each of them.
+//
+// The stock length is the ceiling; the floor is the shortest notice still long
+// enough to see, since nothing turns on the notice being read. The default is
+// near that floor: long enough to read why the join ended, short enough not to
+// be waited out.
+#define STOCK_JOIN_NOTICE	600
+#define MIN_JOIN_NOTICE		30
+#define MAX_JOIN_NOTICE		STOCK_JOIN_NOTICE
+#define STEP_JOIN_NOTICE	30
+#define DEFAULT_JOIN_NOTICE	90
+
 struct Control;
 
 class Bnet : public Module {
@@ -23,6 +39,7 @@ class Bnet : public Module {
 		static bool* nextInstead;
 		static bool* keepDesc;
 		static unsigned int failToJoin;
+		static unsigned int joinNotice;
 		static std::string lastName;
 		static std::string lastPass;
 		static std::string lastDesc;
@@ -53,6 +70,7 @@ class Bnet : public Module {
 		static VOID __fastcall NextPassPatch(Control* box, BOOL(__stdcall *FunCallBack)(Control*, DWORD, DWORD));
 		static VOID __fastcall GameDescPatch(Control* box, BOOL(__stdcall *FunCallBack)(Control*, DWORD, DWORD));
 		static void RemovePassPatch();
+		static void SetJoinNotice();
 
 		static std::string GetDefaultGameName() { return defaultName; }
 		static std::string GetDefaultPassword() { return defaultPass; }
@@ -60,4 +78,5 @@ class Bnet : public Module {
 };
 
 void FailToJoin_Interception();
+void JoinNotice_Interception();
 void RemovePass_Interception();

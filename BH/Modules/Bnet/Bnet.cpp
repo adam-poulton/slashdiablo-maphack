@@ -3,7 +3,18 @@
 #include "../../D2Ptrs.h"
 #include "../../BH.h"
 
+// Where D2Client 1.13c keeps the countdown on the notice the lobby is showing and
+// the id of that notice. Reached by offset because only joinNoticePatch below
+// knows they are there, and only on the version that patch is installed on.
+#define NOTICE_FRAMES_113C	0x11C3D0
+#define NOTICE_ID_113C		0x119938
+
+// The id the client sets for "failed to join game". Every other notice, the ones
+// a lost connection raises among them, keeps the length the client wanted.
+#define NOTICE_FAILED_TO_JOIN	6
+
 unsigned int Bnet::failToJoin;
+unsigned int Bnet::joinNotice;
 bool* Bnet::showLastGame;
 bool* Bnet::showLastPass;
 bool* Bnet::nextInstead;
@@ -29,6 +40,12 @@ Patch* nextPass2 = new Patch(Call, D2MULTI, { 0x14A46, 0xB624 }, (int)Bnet::Next
 Patch* gameDesc = new Patch(Call, D2MULTI, { 0x14D8F, 0xB64F }, (int)Bnet::GameDescPatch, 5);
 
 Patch* ftjPatch = new Patch(Call, D2CLIENT, { 0x4363E, 0x443FE }, (int)FailToJoin_Interception, 6);
+
+// Stands in for the store that starts the countdown on a lobby notice. Only the
+// 1.13c store has been found, and a patch with no offset for the running version
+// is not installed, so on 1.13d a notice keeps the length the client gives it.
+Patch* joinNoticePatch = new Patch(Call, D2CLIENT, { 0x4358B, 0 }, (int)JoinNotice_Interception, 10);
+
 Patch* removePass = new Patch(Call, D2MULTI, { 0x1250, 0x1AD0 }, (int)RemovePass_Interception, 5);
 
 void Bnet::OnLoad() {
@@ -61,6 +78,9 @@ void Bnet::OnLoad() {
 	Settings::AddSlider(GetName(), Settings::Category::Lobby, "Fail To Join", "Fail to join after",
 		&failToJoin, MIN_FAIL_TO_JOIN, MAX_FAIL_TO_JOIN, STEP_FAIL_TO_JOIN, " ms",
 		"How long to wait for a game to open before the client says it failed to join.");
+	Settings::AddSlider(GetName(), Settings::Category::Lobby, "Join Notice", "Hold failed to join for",
+		&joinNotice, MIN_JOIN_NOTICE, MAX_JOIN_NOTICE, STEP_JOIN_NOTICE, " frames",
+		"How long the failed to join notice is displayed, in frames.");
 
 	showLastGame = &bools["Autofill Last Game"];
 	*showLastGame = true;
@@ -75,6 +95,7 @@ void Bnet::OnLoad() {
 	*keepDesc = true;
 
 	failToJoin = MAX_FAIL_TO_JOIN;
+	joinNotice = DEFAULT_JOIN_NOTICE;
 	LoadConfig();
 }
 
@@ -100,6 +121,14 @@ void Bnet::LoadConfig() {
 		failToJoin = MIN_FAIL_TO_JOIN;
 	if (failToJoin > MAX_FAIL_TO_JOIN)
 		failToJoin = MAX_FAIL_TO_JOIN;
+
+	// Held to the range for the same reason as the wait above: the slider cannot
+	// offer a value outside it, but a file can name one.
+	BH::config->ReadInt("Join Notice", joinNotice, DEFAULT_JOIN_NOTICE);
+	if (joinNotice < MIN_JOIN_NOTICE)
+		joinNotice = MIN_JOIN_NOTICE;
+	if (joinNotice > MAX_JOIN_NOTICE)
+		joinNotice = MAX_JOIN_NOTICE;
 
 	// Used to prefill the create/join boxes when there is no previous game to fall back on
 	BH::config->ReadString("Default Game Name", defaultName);
@@ -147,8 +176,10 @@ void Bnet::InstallPatches() {
 		gameDesc->Install();
 	}
 
-	if (!D2CLIENT_GetPlayerUnit())
+	if (!D2CLIENT_GetPlayerUnit()) {
 		ftjPatch->Install();
+		joinNoticePatch->Install();
+	}
 }
 
 void Bnet::RemovePatches() {
@@ -163,6 +194,7 @@ void Bnet::RemovePatches() {
 	gameDesc->Remove();
 
 	ftjPatch->Remove();
+	joinNoticePatch->Remove();
 	removePass->Remove();
 }
 
@@ -317,4 +349,26 @@ void __declspec(naked) FailToJoin_Interception()
 		cmp esi, Bnet::failToJoin;
 		ret;
 	}
+}
+
+void __declspec(naked) JoinNotice_Interception()
+{
+	/*
+	Starts the countdown on the notice the lobby is about to show, in place of the
+	store the client would have made.
+	*/
+	__asm
+	{
+		PUSHAD
+		CALL [Bnet::SetJoinNotice]
+		POPAD
+		RET
+	}
+}
+
+void Bnet::SetJoinNotice() {
+	DWORD* frames = (DWORD*)Patch::GetDllOffset(D2CLIENT, NOTICE_FRAMES_113C);
+	DWORD* notice = (DWORD*)Patch::GetDllOffset(D2CLIENT, NOTICE_ID_113C);
+
+	*frames = (*notice == NOTICE_FAILED_TO_JOIN) ? joinNotice : STOCK_JOIN_NOTICE;
 }
