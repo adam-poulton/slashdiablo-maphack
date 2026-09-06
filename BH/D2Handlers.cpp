@@ -2,6 +2,7 @@
 #include "BH.h"
 #include "D2Stubs.h"
 #include "Constants.h"
+#include "D2Version.h"
 
 #include <iterator>
 
@@ -29,6 +30,26 @@ void GameLoop() {
 	__raise BH::moduleManager->OnLoop();
 }
 
+// Storm paces its asynchronous archive reads against a byte budget, sleeping out
+// the rest of an interval whenever it has read its quantum early. Fog sets that
+// budget to 256KB/s, a figure sized for a CD-ROM drive.
+//
+// Leaving a game is where the cap hurts. D2Client's teardown walks every cached
+// cell context and waits, with no timeout, on each read still in flight, so the
+// exit is paced by the budget rather than by any work: the client burns no CPU
+// for the seconds it takes. The more of a level's artwork is still in flight the
+// longer it lasts, which is why large, graphically varied levels stall worst.
+//
+// A budget of zero takes Storm's unpaced path. The interval it would sleep is
+// derived from the budget, and the branch that sleeps cannot be reached once
+// that interval is zero.
+static void LiftStormReadThrottle() {
+	// Only 1.13c's Storm is known to number this export 284.
+	if (D2Version::GetGameVersionID() != VERSION_113c)
+		return;
+	STORM_SetAsyncReadRate(0);
+}
+
 DWORD WINAPI GameThread(VOID* lpvoid) {
 	bool inGame = false;
 	while(true) {
@@ -39,6 +60,9 @@ DWORD WINAPI GameThread(VOID* lpvoid) {
 			BH::oogDraw->Install();
 		} else if (D2CLIENT_GetPlayerUnit() && !inGame) {
 			inGame = true;
+			// Fog sets the budget while the game starts up, which is after we are
+			// injected, so it has to be lifted again from inside a game.
+			LiftStormReadThrottle();
 			__raise BH::moduleManager->OnGameJoin();
 			BH::oogDraw->Remove();
 		}

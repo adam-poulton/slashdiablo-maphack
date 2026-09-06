@@ -61,6 +61,11 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
   subtiles a monster's death has to be within for the party to share its
   experience. Off by default; the colour is `Experience Range Color` in
   `BH_settings.cfg`, and both are on the Map tab of the settings UI.
+* Fix Save and Exit freezing the client for several seconds, worst in large or
+  graphically varied levels such as Halls of Vaught and Pit Level 2. The game caps
+  its background archive reads at 256KB/s, and leaving a game waits on every read
+  still outstanding, so the exit was paced by that cap rather than by any work.
+  1.13c only.
 
 # Release Notes for 1.9.11g (2026-08-19)
 * Add `Monster Curses` option (`BH_settings.cfg`, default `True, None`) to mark
