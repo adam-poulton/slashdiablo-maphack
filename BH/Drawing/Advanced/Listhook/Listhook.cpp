@@ -659,10 +659,11 @@ bool Listhook::OnLeftClick(bool up, unsigned int x, unsigned int y) {
 		return true;
 	}
 
-	// The heading takes the selection too, so carrying on by keyboard starts from
-	// the heading the mouse just used.
+	// Folding is all a heading does under the mouse. The selection says where the
+	// keyboard is, and a mouse that has moved on leaves nothing behind it: a
+	// heading left selected by a click reads as still being pointed at long after
+	// the cursor has gone.
 	if (rows[index].group) {
-		SetSelectedRow((int)index);
 		ToggleGroup((int)index);
 		return true;
 	}
