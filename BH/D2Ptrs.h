@@ -491,6 +491,16 @@ FUNCPTR(FOG, mpqOpenFile, uint32_t __fastcall, (char* path, void** buffer), -101
 FUNCPTR(FOG, mpqCloseFile, uint32_t __fastcall, (void* mpq_file), -10103, -10103)
 FUNCPTR(FOG, mpqReadFile, uint32_t __fastcall, (void* mpq_file, uint8_t* buffer, uint32_t nb_to_read, uint32_t* nb_read, int, int, int), -10104, -10104)
 FUNCPTR(FOG, mpqGetFileSize, uint32_t __fastcall, (void* mpq_file, uintptr_t* to_reset), -10105, -10105)
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// Storm Functions
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+// The byte budget Storm paces its asynchronous archive reads against. Zero means
+// no pacing at all. See LiftStormReadThrottle in D2Handlers.cpp.
+FUNCPTR(STORM, SetAsyncReadRate, void __stdcall, (DWORD bytesPerSecond), -284, -284)
+
+////////////////////////////////////////////////////////////////////////////////////////////////
 // D2Win Functions
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
