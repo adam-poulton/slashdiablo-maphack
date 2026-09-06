@@ -149,9 +149,15 @@ void AccountPanel::ApplyColumns() {
 	// a column of its own: a column at a fixed offset is either wasted width on
 	// every row that has nothing to say or off the end of a narrow panel, and
 	// this panel is narrow. Both lift under the mouse, the whole row being one
-	// thing to click, and to different colours so the two stay told apart.
-	columns.push_back(ListColumn("", 0, 1, 0, White, Gold));
-	columns.push_back(ListColumn("", 0, 0, AP_IN_USE_GAP, Grey, Tan, true));
+	// thing to click, and each to the brighter shade of its own colour so the
+	// two stay told apart and the lift reads as one gesture.
+	//
+	// Names rest below white so that white is left to mean the mouse, as it does
+	// on the headings above them and in every other list in the game. Gold is
+	// kept for the headings and the actions under the list, which are gold
+	// whether or not anything is being pointed at.
+	columns.push_back(ListColumn("", 0, 1, 0, Tan, White));
+	columns.push_back(ListColumn("", 0, 0, AP_IN_USE_GAP, Grey, Silver, true));
 	list->SetColumns(columns);
 }
 
