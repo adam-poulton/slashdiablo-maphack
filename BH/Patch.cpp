@@ -48,12 +48,17 @@ bool Patch::Install() {
 	if (IsInstalled())
 		return true;
 
+	// Select an offset based on D2 version
+	int offset = *(&offsets._113c + D2Version::GetGameVersionID());
+
+	// A patch with no offset for the running version has nothing to say on it.
+	// Zero cannot be a real offset: the base of the module is not code.
+	if (offset == 0)
+		return false;
+
 	//Initalize variables for the exactly commands we are injecting.
 	BYTE* code = new BYTE[length];
 	DWORD protect;
-
-	// Select an offset based on D2 version
-	int offset = *(&offsets._113c + D2Version::GetGameVersionID());
 
 	//Get the proper address that we are patching
 	int address = GetDllOffset(dll, offset);
