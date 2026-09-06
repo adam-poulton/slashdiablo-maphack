@@ -14,6 +14,7 @@
 #include "../Item/Item.h"
 #include "../../AsyncDrawBuffer.h"
 #include "../ScreenInfo/ScreenInfo.h"
+#include <cmath>
 
 #pragma optimize( "", off)
 
@@ -68,6 +69,38 @@ DrawDirective automapDraw(true, DEFAULT_MINIMAP_GHOST);
 // the immunity letters and nothing else, which is what this asks for.
 #define DEFAULT_MONSTER_RESISTANCE_THRESHOLD 1000
 
+// How close a party member has to be to a monster's death to be given a share of
+// its experience, in subtiles. The game compares the squared distance between the
+// two against 0x1900, which is 80 squared; 80 subtiles is roughly two screens at
+// the resolution the game was written for.
+#define EXPERIENCE_RANGE_SUBTILES 80
+
+#define DEFAULT_EXPERIENCE_RANGE_COLOR 0x84
+
+// The ring is taken as points on a circle in world space and projected one at a
+// time, so it carries the automap's isometric squash at either zoom. It is drawn
+// broken rather than solid to keep it apart from the level's own walls, and the
+// dash period divides the segment count so the pattern closes where it began.
+static void DrawExperienceRange(int centerX, int centerY, unsigned int color) {
+	const double pi = 3.14159265358979323846;
+	const int segments = 72;
+	const int dashPeriod = 6, dashLength = 4;
+	const double step = 2 * pi / segments;
+
+	for (int i = 0; i < segments; i++) {
+		if (i % dashPeriod >= dashLength)
+			continue;
+		POINT from, to;
+		Drawing::Hook::ScreenToAutomapPrecise(&from,
+			centerX + EXPERIENCE_RANGE_SUBTILES * cos(step * i),
+			centerY + EXPERIENCE_RANGE_SUBTILES * sin(step * i));
+		Drawing::Hook::ScreenToAutomapPrecise(&to,
+			centerX + EXPERIENCE_RANGE_SUBTILES * cos(step * (i + 1)),
+			centerY + EXPERIENCE_RANGE_SUBTILES * sin(step * (i + 1)));
+		Drawing::Linehook::Draw(from.x, from.y, to.x, to.y, color);
+	}
+}
+
 Maphack::Maphack() : Module("Maphack") {
 	revealType = MaphackRevealAct;
 	ResetRevealed();
@@ -82,6 +115,7 @@ Maphack::Maphack() : Module("Maphack") {
 
 	monsterResistanceThreshold = DEFAULT_MONSTER_RESISTANCE_THRESHOLD;
 	lkLinesColor = 105;
+	experienceRangeColor = DEFAULT_EXPERIENCE_RANGE_COLOR;
 
 	automapOffsetX = 0;
 	automapOffsetY = 0;
@@ -210,6 +244,9 @@ void Maphack::ReadConfig() {
 	BH::config->ReadToggle("Skip NPC Quest Messages", "None", true, Toggles["Skip NPC Quest Messages"]);
 
 	BH::config->ReadToggle("Show Normal Monsters", "None", true, Toggles["Show Normal Monsters"]);
+	BH::config->ReadToggle("Show Experience Range", "None", false, Toggles["Show Experience Range"]);
+	BH::config->ReadInt("Experience Range Color", experienceRangeColor,
+		DEFAULT_EXPERIENCE_RANGE_COLOR);
 	BH::config->ReadInt("Minimap Max Ghost", automapDraw.maxGhost,
 		DEFAULT_MINIMAP_GHOST);
 
@@ -369,6 +406,13 @@ void Maphack::OnLoad() {
 		&Toggles["Show Normal Monsters"],
 		"Marks ordinary monsters as well as the ones worth stopping for.",
 		"Show Monsters");
+
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Experience Range", "Experience range",
+		&Toggles["Show Experience Range"],
+		"Rings your icon at the distance a monster's death has to be within for "
+		"the party to share its experience.");
+	Settings::AddColor(GetName(), Settings::Category::Map, "Experience Range Color", "Range color",
+		&experienceRangeColor, "", "Show Experience Range");
 
 	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Missiles", "Show missiles",
 		&Toggles["Show Missiles"], "Marks missiles in flight on the automap.");
@@ -559,6 +603,16 @@ void Maphack::OnAutomapDraw() {
 		Drawing::Hook::ScreenToAutomap(&MyPos,
 			D2CLIENT_GetUnitX(D2CLIENT_GetPlayerUnit()),
 			D2CLIENT_GetUnitY(D2CLIENT_GetPlayerUnit()));
+
+		if (Toggles["Show Experience Range"].state) {
+			int myX = D2CLIENT_GetUnitX(player);
+			int myY = D2CLIENT_GetUnitY(player);
+			unsigned int rangeColor = experienceRangeColor;
+			automapBuffer.push([myX, myY, rangeColor]()->void {
+				DrawExperienceRange(myX, myY, rangeColor);
+			});
+		}
+
 		for (Room1* room1 = player->pAct->pRoom1; room1; room1 = room1->pRoomNext) {
 			for (UnitAny* unit = room1->pUnitFirst; unit; unit = unit->pListNext) {
 				//POINT automapLoc;
