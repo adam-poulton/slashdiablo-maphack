@@ -4,6 +4,7 @@
 #include <utility>
 #include "../../Common.h"
 #include "../../D2Ptrs.h"
+#include "../../Drawing/GroupStyle.h"
 
 using namespace Drawing;
 
@@ -15,23 +16,16 @@ using namespace Drawing;
 // of something rather than as another row.
 #define SETTINGS_HEADING_HEIGHT	20
 #define SETTINGS_HEADING_TOP	8
-#define SETTINGS_HEADING_COLOR	Gold
-#define SETTINGS_HEADING_HOVER	Tan
 
 // Between the tab and the section on a heading, while a search is crossing the
 // tabs. A result says where it lives by what is written above it, which is also
 // where the room for it is: the right of a row belongs to the control.
 #define SETTINGS_HEADING_SEPARATOR	" / "
 
-// What a heading is folded and unfolded with, and how many settings it is hiding.
-// The markers share a column as wide as the wider of them, so the label does not
-// move as it is folded. The count is only drawn where there is something to
-// count: a heading over nothing but notes has no number worth showing.
-#define SETTINGS_FOLDED			"+"
-#define SETTINGS_UNFOLDED		"-"
-#define SETTINGS_MARKER_GAP		3
-#define SETTINGS_COUNT_GAP		4
-#define SETTINGS_COUNT_COLOR	Grey
+// A heading is drawn the way GroupStyle draws one - a dim fold marker in a column
+// of its own, the label after it, how many settings it is hiding while it is
+// folded, and its rows indented in from its text - so a section reads as the
+// headings in the info and accounts windows do.
 
 // How far a setting that depends on another sits in from it.
 #define SETTINGS_INDENT			12
@@ -48,6 +42,10 @@ using namespace Drawing;
 // same thing, and hovering one row while another is focused reads as two focused
 // rows. Where the mouse is resting on the focused row the focus colour is what is
 // drawn, since the mouse is about to move on and the keyboard is not.
+//
+// A heading is the exception, being lit the same way whether it is focused or
+// hovered: the band its bar draws is what tells the two apart, as it does behind
+// a list's selected row.
 #define SETTINGS_FOCUS_COLOR	White
 
 // Focus on a setting that its parent has switched off. Still grey, because it
@@ -151,6 +149,16 @@ static std::vector<const Settings::Descriptor*> InSectionOrder(
 SettingsHeadingBar::SettingsHeadingBar(HookGroup* group, SettingsPanel* panel,
 		unsigned int row) :
 	Boxhook(group, 0, 0, 0, 0), panel(panel), row(row) {
+	SetColor(0);
+	SetTransparency(UI_GROUP_FOCUS_BAND);
+}
+
+// The band, and only under the heading the keyboard is on. Every other frame the
+// bar is nothing but the target a click lands on.
+void SettingsHeadingBar::OnDraw() {
+	if (!panel->IsRowFocused(row))
+		return;
+	Boxhook::OnDraw();
 }
 
 // On the release, as every other control in the panel acts. Folding relays the
@@ -315,15 +323,15 @@ void SettingsPanel::AddHeadingRow(HookGroup* content, const std::string& categor
 	if (setting) {
 		row.bar = new SettingsHeadingBar(content, this, (unsigned int)rows.size());
 		row.marker = new Texthook(content, 0, 0, "");
-		row.marker->SetColor(SETTINGS_HEADING_COLOR);
+		row.marker->SetColor(UI_GROUP_DIM_COLOR);
 		row.count = new Texthook(content, 0, 0, "");
-		row.count->SetColor(SETTINGS_COUNT_COLOR);
+		row.count->SetColor(UI_GROUP_DIM_COLOR);
 	}
 
 	// Set as it is laid out, since what a heading reads as depends on whether a
 	// search is running.
 	row.label = new Texthook(content, 0, 0, "");
-	row.label->SetColor(SETTINGS_HEADING_COLOR);
+	row.label->SetColor(UI_GROUP_COLOR);
 
 	rows.push_back(row);
 }
@@ -522,8 +530,11 @@ void SettingsPanel::ToggleHeading(unsigned int row) {
 	// The heading that was clicked stays where it was clicked, so the section
 	// opens under the cursor rather than the panel jumping. Not a reset to the
 	// top: a fold is the same list, unlike a new query.
+	//
+	// Where the keyboard ends up is the caller's: a key that folds a section is on
+	// the heading afterwards, while a mouse that has folded one leaves nothing
+	// behind it, the way a list leaves a heading it was clicked on unselected.
 	scrollToRow = (int)row;
-	focusRow = (int)row;
 	ApplyFilter();
 }
 
@@ -611,12 +622,11 @@ static RowMetrics MeasureRow(Hook* const* hooks, unsigned int count) {
 	return metrics;
 }
 
-// Both markers, at the font every control in the panel draws in. Measured as the
-// panel is laid out rather than once, since the font is not the panel's to fix.
+// The column both markers share, at the font every control in the panel draws in.
+// Measured as the panel is laid out rather than once, since the font is not the
+// panel's to fix.
 void SettingsPanel::MeasureMarkers() {
-	unsigned int shut = (unsigned int)Texthook::GetTextSize(SETTINGS_FOLDED, 0).x;
-	unsigned int open = (unsigned int)Texthook::GetTextSize(SETTINGS_UNFOLDED, 0).x;
-	markerWidth = (shut > open) ? shut : open;
+	markerWidth = GroupMarkerColumn(0);
 }
 
 void SettingsPanel::Relayout() {
@@ -647,10 +657,24 @@ void SettingsPanel::Relayout() {
 	unsigned int contentWidth = box->GetContentWidth();
 	MeasureMarkers();
 
+	// What is under a heading sits in from the heading's own text, as the rows
+	// under a list's heading do.
+	unsigned int under = GroupLabelOffset(markerWidth) + UI_GROUP_INDENT;
+	int openHeading = -1;	// the heading the rows now being laid out are under
+
 	for (unsigned int position = 0; position < shown.size(); position++) {
 		Row& row = rows[shown[position]];
 		bool heading = row.heading;
 		bool note = (row.setting && row.setting->kind == Settings::KindNote);
+		if (heading)
+			openHeading = (int)shown[position];
+
+		// A row whose heading is not on screen starts at the edge: a tab's own
+		// settings are under a heading that only names them in a search, and
+		// indenting them under a heading nobody can see would read as an indent
+		// for nothing.
+		unsigned int left = row.indent +
+			((!heading && row.headingRow == openHeading) ? under : 0);
 
 		// Before it is measured: what a heading reads as decides how wide it is,
 		// and the count that follows a folded one is placed against that width.
@@ -666,8 +690,8 @@ void SettingsPanel::Relayout() {
 		// lines are worked out here rather than when it was built.
 		std::vector<std::string> lines;
 		if (note) {
-			unsigned int room = (contentWidth > row.indent) ?
-				(contentWidth - row.indent) : 0;
+			unsigned int room = (contentWidth > left) ?
+				(contentWidth - left) : 0;
 			lines = WrapText(row.setting->label, room, 0);
 			if (lines.size() > row.noteLines.size())
 				lines.resize(row.noteLines.size());
@@ -696,7 +720,7 @@ void SettingsPanel::Relayout() {
 			for (unsigned int line = 0; line < lines.size(); line++) {
 				Texthook* text = row.noteLines[line];
 				text->SetText("%s", lines[line].c_str());
-				text->SetBaseX(row.indent);
+				text->SetBaseX(left);
 				text->SetBaseY(rowY + (line * SETTINGS_NOTE_LINE));
 				box->AddToRow(index, text);
 			}
@@ -710,8 +734,9 @@ void SettingsPanel::Relayout() {
 
 		// A heading carries its own furniture, and only while it folds: during a
 		// search it is a plain label, since a marker beside a heading that will not
-		// answer a click would be saying something untrue.
-		unsigned int headingX = row.indent;
+		// answer a click would be saying something untrue. The label still starts
+		// past the empty column, so nothing moves as a search comes and goes.
+		unsigned int headingX = left + GroupLabelOffset(markerWidth);
 		if (heading && row.bar && FoldingActive()) {
 			row.bar->SetBaseX(0);
 			row.bar->SetBaseY(rowY);
@@ -720,20 +745,17 @@ void SettingsPanel::Relayout() {
 			box->AddToRow(index, row.bar);
 
 			row.marker->SetText("%s", IsHeadingFolded(row) ?
-				SETTINGS_FOLDED : SETTINGS_UNFOLDED);
+				UI_GROUP_FOLDED : UI_GROUP_UNFOLDED);
 			// Centred in the column the two markers share, so neither sits off to
 			// one side of the other.
-			unsigned int own = row.marker->GetXSize();
-			row.marker->SetBaseX(row.indent +
-				((markerWidth > own) ? ((markerWidth - own) / 2) : 0));
+			row.marker->SetBaseX(left +
+				GroupMarkerOffset(row.marker->GetXSize(), markerWidth));
 			row.marker->SetBaseY(rowY + SETTINGS_HEADING_TOP);
 			box->AddToRow(index, row.marker);
-
-			headingX = row.indent + markerWidth + SETTINGS_MARKER_GAP;
 		}
 
 		if (named) {
-			named->SetBaseX(heading ? headingX : row.indent);
+			named->SetBaseX(heading ? headingX : left);
 			named->SetBaseY(heading ? (rowY + SETTINGS_HEADING_TOP) :
 				(textY - named->GetTextInset()));
 			box->AddToRow(index, named);
@@ -742,10 +764,10 @@ void SettingsPanel::Relayout() {
 		// Only where it is folded, and only where there is something to count: a
 		// heading over nothing but notes would otherwise read [0].
 		if (heading && row.count && FoldingActive() && IsHeadingFolded(row)) {
-			unsigned int hidden = SettingsUnder((int)shown[position]);
-			if (hidden > 0) {
-				row.count->SetText("[%u]", hidden);
-				row.count->SetBaseX(headingX + named->GetXSize() + SETTINGS_COUNT_GAP);
+			std::string hidden = GroupCountText(SettingsUnder((int)shown[position]));
+			if (!hidden.empty()) {
+				row.count->SetText("%s", hidden.c_str());
+				row.count->SetBaseX(headingX + named->GetXSize() + UI_GROUP_COUNT_GAP);
 				row.count->SetBaseY(rowY + SETTINGS_HEADING_TOP);
 				box->AddToRow(index, row.count);
 			}
@@ -898,7 +920,7 @@ void SettingsPanel::ApplyFocusColors() {
 		TextColor hover = SETTINGS_LABEL_HOVER;
 		if (heading) {
 			resting = (row.bar && Over(row.bar)) ?
-				SETTINGS_HEADING_HOVER : SETTINGS_HEADING_COLOR;
+				UI_GROUP_HOVER_COLOR : UI_GROUP_COLOR;
 			hover = resting;
 		}
 		TextColor off = DISABLED_TEXT_COLOR;
@@ -909,10 +931,6 @@ void SettingsPanel::ApplyFocusColors() {
 		}
 
 		ColorName(named, row.setting->kind, resting, hover, off);
-
-		// The marker reads as part of the label, so it goes wherever the label goes.
-		if (heading && row.marker)
-			row.marker->SetColor(resting);
 	}
 }
 
@@ -1265,7 +1283,11 @@ bool SettingsPanel::OnKey(bool up, BYTE key) {
 						return true;		// already shut, and nowhere further out
 					ToggleHeading((unsigned int)focusRow);
 				} else if (row.headingRow >= 0) {
-					ToggleHeading((unsigned int)row.headingRow);
+					// Out to the heading rather than being let go of, so folding
+					// and unfolding are both reachable from where the key left it.
+					int above = row.headingRow;
+					focusRow = above;
+					ToggleHeading((unsigned int)above);
 				}
 			} else if (heading) {
 				if (IsHeadingFolded(row))

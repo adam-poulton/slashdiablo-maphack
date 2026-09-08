@@ -264,6 +264,7 @@ if defined D2Path (
     <ClInclude Include="Drawing\Basic\Framehook\Framehook.h" />
     <ClInclude Include="Drawing\Basic\Linehook\Linehook.h" />
     <ClInclude Include="Drawing\Basic\Texthook\Texthook.h" />
+    <ClInclude Include="Drawing\GroupStyle.h" />
     <ClInclude Include="Drawing\Hook.h" />
     <ClInclude Include="Drawing\Stats\StatsDisplay.h" />
     <ClInclude Include="Drawing\UI\UI.h" />

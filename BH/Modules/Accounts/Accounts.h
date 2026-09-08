@@ -12,7 +12,9 @@
 // binding nobody set.
 #define ACCOUNTS_TOGGLE_NAME	"Accounts Window"
 
-// What the player switches the feature on and off by, in the lobby settings.
+// What the player switches the feature on and off by, in the lobby settings. The
+// key is what a config already written holds, so it keeps the panel's old name
+// however the setting is labelled.
 #define ACCOUNTS_SETTING_KEY	"Accounts Panel"
 
 // The accounts BH keeps, and the panel that signs in with them.

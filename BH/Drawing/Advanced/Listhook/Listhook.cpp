@@ -2,6 +2,7 @@
 #include "../../Basic/Scrollbar/Scrollbar.h"
 #include "../../Basic/Boxhook/Boxhook.h"
 #include "../../../D2Ptrs.h"
+#include "../../GroupStyle.h"
 
 using namespace std;
 using namespace Drawing;
@@ -10,22 +11,9 @@ using namespace Drawing;
 #define LIST_HEADER_GAP		4
 #define LIST_ELLIPSIS		".."
 
-// How far the rows under a heading sit in from its text.
-#define LIST_GROUP_INDENT	8
-
-// The marker gets a column of its own rather than being pasted onto the front of
-// the label: the two markers are not the same width in the game's fonts, so
-// pasting them on shifted the whole heading sideways on every fold. The column is
-// measured from the markers so it holds the wider at any font, and each is centred
-// in it so both states sit in the same place.
-//
-// The marker and the count keep the dim colour throughout, so they read as
-// controls rather than as the first and last characters of the heading.
-#define LIST_GROUP_MARKER_GAP	3
-#define LIST_GROUP_COUNT_GAP	4
-#define LIST_GROUP_DIM_COLOR	Grey
-#define LIST_GROUP_UNFOLDED		"-"
-#define LIST_GROUP_FOLDED		"+"
+// A group row is a heading, and what a heading looks like - its markers, its
+// colours, the column the marker sits in and how far its rows are indented - is
+// GroupStyle's, shared with every other panel that folds things away.
 
 // The scrollbar sits in a gutter on the right, kept clear of the columns whether
 // or not there is anything to scroll. How it looks and where its thumb goes are
@@ -38,7 +26,8 @@ static unsigned int FontHeight(unsigned int font) {
 
 Listhook::Listhook(HookVisibility visibility, unsigned int x, unsigned int y, unsigned int xSize, unsigned int ySize) :
 Hook(visibility, x, y), xSize(xSize), ySize(ySize), font(0), scrollTop(0), headerColor(Gold),
-groupColor(Gold), groupHoverColor(White), groupIndent(LIST_GROUP_INDENT),
+groupColor(UI_GROUP_COLOR), groupHoverColor(UI_GROUP_HOVER_COLOR),
+groupIndent(UI_GROUP_INDENT),
 hasGroups(false), unfoldWidth(0), foldWidth(0), markerWidth(0),
 foldingSuspended(false),
 selectedRow(-1), clickedRow(-1), rightClickedRow(-1),
@@ -47,7 +36,8 @@ draggingThumb(false), thumbGrabOffset(0) {
 
 Listhook::Listhook(HookGroup* group, unsigned int x, unsigned int y, unsigned int xSize, unsigned int ySize) :
 Hook(group, x, y), xSize(xSize), ySize(ySize), font(0), scrollTop(0), headerColor(Gold),
-groupColor(Gold), groupHoverColor(White), groupIndent(LIST_GROUP_INDENT),
+groupColor(UI_GROUP_COLOR), groupHoverColor(UI_GROUP_HOVER_COLOR),
+groupIndent(UI_GROUP_INDENT),
 hasGroups(false), unfoldWidth(0), foldWidth(0), markerWidth(0),
 foldingSuspended(false),
 selectedRow(-1), clickedRow(-1), rightClickedRow(-1),
@@ -129,19 +119,18 @@ void Listhook::MeasureMarkers() {
 		unfoldWidth = foldWidth = markerWidth = 0;
 		return;
 	}
-	unfoldWidth = (unsigned int)Texthook::GetTextSize(LIST_GROUP_UNFOLDED, font).x;
-	foldWidth = (unsigned int)Texthook::GetTextSize(LIST_GROUP_FOLDED, font).x;
+	unfoldWidth = (unsigned int)Texthook::GetTextSize(UI_GROUP_UNFOLDED, font).x;
+	foldWidth = (unsigned int)Texthook::GetTextSize(UI_GROUP_FOLDED, font).x;
 	markerWidth = (unfoldWidth > foldWidth) ? unfoldWidth : foldWidth;
 }
 
 // Zero without headings, so nothing is indented for a marker never drawn.
 unsigned int Listhook::GroupLabelX() {
-	return hasGroups ? (markerWidth + LIST_GROUP_MARKER_GAP) : 0;
+	return hasGroups ? GroupLabelOffset(markerWidth) : 0;
 }
 
 unsigned int Listhook::GroupMarkerX(unsigned int row) {
-	unsigned int width = IsFolded(row) ? foldWidth : unfoldWidth;
-	return (markerWidth > width) ? ((markerWidth - width) / 2) : 0;
+	return GroupMarkerOffset(IsFolded(row) ? foldWidth : unfoldWidth, markerWidth);
 }
 
 // An unlabelled heading cannot have been folded: there is nothing to key it on.
@@ -163,7 +152,7 @@ unsigned int Listhook::GroupRowCount(unsigned int row) {
 std::string Listhook::GroupMarker(unsigned int row) {
 	if (foldingSuspended || !rows[row].group || rows[row].cells.empty())
 		return "";
-	return IsFolded(row) ? LIST_GROUP_FOLDED : LIST_GROUP_UNFOLDED;
+	return IsFolded(row) ? UI_GROUP_FOLDED : UI_GROUP_UNFOLDED;
 }
 
 std::string Listhook::GroupLabel(unsigned int row) {
@@ -174,10 +163,7 @@ std::string Listhook::GroupLabel(unsigned int row) {
 std::string Listhook::GroupCount(unsigned int row) {
 	if (!IsFolded(row))
 		return "";
-	unsigned int count = GroupRowCount(row);
-	if (count == 0)
-		return "";
-	return "[" + std::to_string(count) + "]";
+	return GroupCountText(GroupRowCount(row));
 }
 
 void Listhook::RebuildShown() {
@@ -395,13 +381,13 @@ void Listhook::FitRows() {
 			std::string count = GroupCount(r);
 			unsigned int taken = GroupLabelX();
 			if (count.length() > 0) {
-				taken += LIST_GROUP_COUNT_GAP +
+				taken += UI_GROUP_COUNT_GAP +
 					(unsigned int)Texthook::GetTextSize(count, font).x;
 			}
 			unsigned int width = (content > taken) ? (content - taken) : 0;
 
 			std::string label = FitCell(GroupLabel(r), width);
-			groupCountX[r] = GroupLabelX() + LIST_GROUP_COUNT_GAP +
+			groupCountX[r] = GroupLabelX() + UI_GROUP_COUNT_GAP +
 				(unsigned int)Texthook::GetTextSize(label, font).x;
 			cells.push_back(label);
 			cells.push_back(count);
@@ -769,7 +755,7 @@ void Listhook::OnDraw() {
 			std::string marker = GroupMarker(r);
 			if (marker.length() > 0) {
 				Texthook::Draw(GetX() + GroupMarkerX(r), y, None, font,
-					LIST_GROUP_DIM_COLOR, "%s", marker.c_str());
+					UI_GROUP_DIM_COLOR, "%s", marker.c_str());
 			}
 			if (fitted[r].size() > 0 && fitted[r][0].length() > 0) {
 				Texthook::Draw(GetX() + GroupLabelX(), y, None, font, color, "%s",
@@ -777,7 +763,7 @@ void Listhook::OnDraw() {
 			}
 			if (fitted[r].size() > 1 && fitted[r][1].length() > 0) {
 				Texthook::Draw(GetX() + groupCountX[r], y, None, font,
-					LIST_GROUP_DIM_COLOR, "%s", fitted[r][1].c_str());
+					UI_GROUP_DIM_COLOR, "%s", fitted[r][1].c_str());
 			}
 			continue;
 		}
