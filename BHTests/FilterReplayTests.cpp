@@ -259,6 +259,12 @@ TEST_CASE("every recorded decision is reached again") {
 		if (!reader.Read(&buffer[0], &facts))
 			continue;	// the game did not judge what it could not read either
 
+		// Where it landed. The game works this out from the item's position
+		// against the rooms it holds, which a recording has no copy of, so the
+		// answer it reached is recorded alongside the item.
+		facts.areaId = (unsigned int)r.Number("areaId");
+		facts.areaLevel = (unsigned int)r.Number("areaLevel");
+
 		// The world it landed in.
 		RecordedCharStats charStats((unsigned int)r.Number("charLevel"));
 		FilterContext context = {};
@@ -266,8 +272,6 @@ TEST_CASE("every recorded decision is reached again") {
 		context.charLevel = (unsigned int)r.Number("charLevel");
 		context.charFlags = (unsigned int)r.Number("charFlags");
 		context.difficulty = (unsigned int)r.Number("difficulty");
-		context.areaId = (unsigned int)r.Number("areaId");
-		context.areaLevel = (unsigned int)r.Number("areaLevel");
 		context.filterLevel = (unsigned int)header.Number("filterLevel");
 		context.charStats = &charStats;
 

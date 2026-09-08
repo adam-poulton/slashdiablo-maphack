@@ -1149,16 +1149,15 @@ void AddCondition::Init() {
 	}
 }
 
-// Only an item lying in the world has an area to speak of, and for those the
-// character's area is the area the item is in.
+// Only an item lying in the world has an area to speak of.
 bool AreaLevelCondition::Match(const ItemFacts &facts, const FilterContext &context,
 		Condition *arg1, Condition *arg2) const {
-	return facts.ground && IntegerCompare(context.areaLevel, operation, areaLevel);
+	return facts.ground && IntegerCompare(facts.areaLevel, operation, areaLevel);
 }
 
 bool AreaIdCondition::Match(const ItemFacts &facts, const FilterContext &context,
 		Condition *arg1, Condition *arg2) const {
-	return facts.ground && IntegerCompare(context.areaId, operation, areaId);
+	return facts.ground && IntegerCompare(facts.areaId, operation, areaId);
 }
 
 // The affix level a craft rolled at, worked out from the item's level and the

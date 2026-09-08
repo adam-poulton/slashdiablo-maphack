@@ -44,6 +44,12 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
   answer they gave before you levelled up or changed area. Items already seen were
   judged again only on rejoining the game; they are now judged again when your level
   or your area changes.
+* Fix `AREAID` and `AREALVL` reading the area you came from for the first items of an
+  area you have just entered, so that a rule hiding items outside town let the first
+  drop of the area through and then named it `[blocked]`. The area is now the one the
+  item is lying in, taken from the item itself, rather than the one the character is
+  standing in: the first drop packets of an area arrive before the client has moved
+  your character into it. Captures record the item's area for the same reason.
 * Item filtering is now always ordered, and the `Ordered Item Filtering` setting is
   gone. Whether a hide rule (a blank label) hides an item depends on whether it was
   written before or after the rules that name it, which is what lets a single

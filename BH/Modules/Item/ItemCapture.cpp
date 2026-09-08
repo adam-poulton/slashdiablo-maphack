@@ -234,13 +234,11 @@ void RecordDrop(const unsigned char* packet, const ItemFacts& item,
 
 	/*
 	 * The world as it stood when the item landed. All of this moves while
-	 * playing: the character walks between areas, gains levels, and a capture
-	 * may run across more than one game, so it belongs to the item rather than
-	 * to the header.
+	 * playing: the character gains levels, and a capture may run across more
+	 * than one game, so it belongs to the item rather than to the header.
 	 *
 	 * The character's flags are recorded whole rather than unpacked, because
-	 * that word is what PLAYERTYPE reads a bit out of and what decides whether
-	 * an area's level is read from the expansion column.
+	 * that word is what PLAYERTYPE reads a bit out of.
 	 */
 	UnitAny* player = D2CLIENT_GetPlayerUnit();
 	if (player) {
@@ -251,11 +249,14 @@ void RecordDrop(const unsigned char* packet, const ItemFacts& item,
 	drop.Add("difficulty", (long long)D2CLIENT_GetDifficulty());
 	if (p_D2LAUNCH_BnData && *p_D2LAUNCH_BnData)
 		drop.Add("charFlags", (long long)(*p_D2LAUNCH_BnData)->nCharFlags);
-	drop.Add("areaId", (long long)GetPlayerArea());
-	// Worked out from the area and the difficulty against the game's own level
-	// table, and recorded rather than the table, since it is the whole of what
-	// AREALVL asks for.
-	drop.Add("areaLevel", (long long)GetCurrentAreaLevel());
+	/*
+	 * Where the item landed, worked out from its position against the rooms the
+	 * client holds, and that area's level for the difficulty. The level is
+	 * recorded rather than the table it was read from, since it is the whole of
+	 * what AREALVL asks for.
+	 */
+	drop.Add("areaId", (long long)item.areaId);
+	drop.Add("areaLevel", (long long)item.areaLevel);
 
 	drop.Add("keepIndex", (long long)outcome.keepIndex);
 	drop.Add("ignoreIndex", (long long)outcome.ignoreIndex);

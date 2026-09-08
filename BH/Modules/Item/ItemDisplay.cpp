@@ -99,13 +99,17 @@ void ResetItemVerdicts() {
  *
  * A verdict is kept against the item it was reached about, and an item is not
  * the only thing a rule reads. CLVL and CRAFTALVL ask how far the character has
- * got and AREAID and AREALVL ask where they are standing, so an item judged
- * before a level-up or in the last area was judged against something that is no
- * longer true.
+ * got, so an item judged before a level-up was judged against something that is
+ * no longer true.
  *
- * Only those two are looked at because they are the only ones that can change
- * while a game is being played. Which class is playing, the character flags and
- * the difficulty are fixed for a game, and the filter level is a setting, which
+ * The area is watched as well, though AREAID and AREALVL read the item's own
+ * area rather than the character's: an item first seen while the client was
+ * still moving the character between areas has no room to be found in, and
+ * would otherwise keep the nothing that was made of it.
+ *
+ * Only these are looked at because they are the only ones that can change while
+ * a game is being played. Which class is playing, the character flags and the
+ * difficulty are fixed for a game, and the filter level is a setting, which
  * already forgets everything when it is changed.
  *
  * Once a frame rather than once an item: reading the world for every item would

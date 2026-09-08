@@ -613,6 +613,12 @@ void ItemMover::OnGamePacketRecv(BYTE* packet, bool* block) {
 				ItemFactsPacket::PacketStats stats(item);
 				item.stats = &stats;
 				bool success = ReadItemPacket(packet, &item);
+				// Where the item landed, which the packet gives as a position
+				// and the rules ask for as an area.
+				if (success && item.ground) {
+					item.areaId = GetAreaAtPosition(item.x, item.y);
+					item.areaLevel = GetAreaLevel(item.areaId);
+				}
 				// The world the item landed in, read once for all the rules.
 				LiveContext context;
 				//PrintText(1, "Item packet: %s, %s, %X, %d, %d", item.name.c_str(), item.code, item.attrs->flags, item.sockets, GetDefense(&item));
