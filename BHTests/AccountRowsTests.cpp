@@ -138,6 +138,34 @@ TEST_CASE("a heading is never in use") {
 	}
 }
 
+TEST_CASE("the favourites heading is the only row marked as the favourites") {
+	AccountStore store;
+	store.Save("main", "p");
+	store.Save("mule", "p");
+	store.SetRoster("mule", "hardcore");
+	store.SetFavourite("main", true);
+
+	std::vector<AccountRow> rows = BuildAccountRows(store, kNoneInUse);
+	REQUIRE(Labels(rows) == "[Favourites]|main|[hardcore]|mule");
+	CHECK(rows[0].favourites);
+	CHECK_FALSE(rows[1].favourites);
+	CHECK_FALSE(rows[2].favourites);
+	CHECK_FALSE(rows[3].favourites);
+}
+
+TEST_CASE("a label named after the favourites is not the favourites") {
+	AccountStore store;
+	store.Save("main", "p");
+	store.Save("mule", "p");
+	store.SetRoster("main", "Favourites");
+	store.SetRoster("mule", "hardcore");
+
+	std::vector<AccountRow> rows = BuildAccountRows(store, kNoneInUse);
+	REQUIRE(Labels(rows) == "[Favourites]|main|[hardcore]|mule");
+	for (unsigned int i = 0; i < rows.size(); i++)
+		CHECK_FALSE(rows[i].favourites);
+}
+
 TEST_CASE("a heading stands for no account") {
 	AccountStore store;
 	store.Save("main", "p");

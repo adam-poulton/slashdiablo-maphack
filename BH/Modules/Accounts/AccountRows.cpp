@@ -16,6 +16,9 @@ const char* const kNoRosterHeading = "No label";
 struct Section {
 	std::string heading;
 	std::vector<Account> accounts;
+	bool favourites;
+
+	Section() : favourites(false) {}
 };
 
 void AddAccounts(std::vector<AccountRow>& rows, const std::vector<Account>& accounts,
@@ -41,6 +44,7 @@ std::vector<AccountRow> BuildAccountRows(const AccountStore& store,
 		Section section;
 		section.heading = kFavouritesHeading;
 		section.accounts = favourites;
+		section.favourites = true;
 		sections.push_back(section);
 	}
 
@@ -69,6 +73,7 @@ std::vector<AccountRow> BuildAccountRows(const AccountStore& store,
 			AccountRow heading;
 			heading.label = sections[i].heading;
 			heading.heading = true;
+			heading.favourites = sections[i].favourites;
 			rows.push_back(heading);
 		}
 		AddAccounts(rows, sections[i].accounts, inUse);
