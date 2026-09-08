@@ -48,8 +48,8 @@ _Avoid_: item data, item info, properties
 
 **Filter context**:
 Everything a condition can ask that is not about the item: which class is
-playing, how far they have got, the difficulty, where they are standing, how
-much they have asked to hide.
+playing, how far they have got, the difficulty, how much they have asked to
+hide. Where the item is lying is an item fact, not one of these.
 _Avoid_: environment, state, world state
 
 **Live item**:

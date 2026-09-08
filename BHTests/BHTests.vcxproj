@@ -87,6 +87,7 @@
     <ClCompile Include="FilterReplayTests.cpp" />
     <ClCompile Include="RuleFixture.cpp" />
     <ClCompile Include="RuleWalkTests.cpp" />
+    <ClCompile Include="AreaConditionTests.cpp" />
     <ClCompile Include="ItemFactsCatalogueTests.cpp" />
     <ClCompile Include="AccountStoreTests.cpp" />
     <ClCompile Include="AccountFileTests.cpp" />

@@ -123,6 +123,21 @@ struct ItemFacts {
 	unsigned int id;
 	unsigned int x;
 	unsigned int y;
+
+	/*
+	 * Which area the item is lying in, and that area's monster level for the
+	 * difficulty, which is what AREAID and AREALVL compare against. Zero for an
+	 * item that is not on the ground at all, which is why those conditions read
+	 * `ground` before they compare anything.
+	 *
+	 * Belongs to the item rather than to the character because the two are not
+	 * the same thing at the moment it matters: the first drop packets of an
+	 * area arrive before the client has moved the character into it, so a
+	 * character read for its area answers with the one they came from.
+	 */
+	unsigned int areaId;
+	unsigned int areaLevel;
+
 	unsigned int amount;
 	unsigned int prefix;
 	unsigned int suffix;

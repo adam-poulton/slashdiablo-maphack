@@ -63,10 +63,13 @@ private:
 	FilterContext context;
 };
 
-// The class the filter is running on, and the monster level of the area the
-// character is standing in.
+// The class the filter is running on.
 unsigned int GetCurrentCharClass();
-unsigned int GetCurrentAreaLevel();
+
+// The area a point in the world belongs to, and an area's monster level for the
+// difficulty being played. Both are zero for an area the client does not hold.
+unsigned int GetAreaAtPosition(unsigned int x, unsigned int y);
+unsigned int GetAreaLevel(unsigned int areaId);
 
 // How many of an item's sockets are filled.
 unsigned int GetUsedSockets(UnitAny *item);

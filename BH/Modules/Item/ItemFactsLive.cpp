@@ -54,8 +54,7 @@ unsigned int GetCurrentCharClass() {
 	return (*p_D2LAUNCH_BnData)->nCharClass;
 }
 
-unsigned int GetCurrentAreaLevel() {
-	DWORD areaId = GetPlayerArea();
+unsigned int GetAreaLevel(unsigned int areaId) {
 	sgptDataTable* dataTable = *p_D2COMMON_sgptDataTable;
 	if (areaId == 0 || !dataTable || !dataTable->pLevelsTxt || areaId >= dataTable->dwLevelsRecs) {
 		return 0;
@@ -66,6 +65,35 @@ unsigned int GetCurrentAreaLevel() {
 		return levelTxt->wMonLvlEx[difficulty];
 	}
 	return levelTxt->wMonLvl[difficulty];
+}
+
+/*
+ * The area a point in the world belongs to.
+ *
+ * Asked of the rooms the client holds rather than of the character, because a
+ * drop packet is read before the character has been moved into the area its
+ * items belong to, and the rooms holding those items are already there. Every
+ * room of the act is walked because an act's levels are laid out side by side
+ * in one coordinate space, so the room owning the point settles which level it
+ * is and no two rooms can both own it.
+ */
+unsigned int GetAreaAtPosition(unsigned int x, unsigned int y) {
+	UnitAny* player = D2CLIENT_GetPlayerUnit();
+	if (!player || !player->pAct || !player->pAct->pMisc)
+		return 0;
+
+	// Rooms are measured in tiles, a unit's position in subtiles.
+	DWORD tileX = x / 5;
+	DWORD tileY = y / 5;
+	for (Level* level = player->pAct->pMisc->pLevelFirst; level;
+			level = level->pNextLevel) {
+		for (Room2* room = level->pRoom2First; room; room = room->pRoom2Next) {
+			if (tileX >= room->dwPosX && tileX < room->dwPosX + room->dwSizeX &&
+					tileY >= room->dwPosY && tileY < room->dwPosY + room->dwSizeY)
+				return level->dwLevelNo;
+		}
+	}
+	return 0;
 }
 
 /*
@@ -82,8 +110,6 @@ LiveContext::LiveContext() : playerStats(D2CLIENT_GetPlayerUnit()), context() {
 	context.charFlags = (p_D2LAUNCH_BnData && *p_D2LAUNCH_BnData) ?
 		(*p_D2LAUNCH_BnData)->nCharFlags : 0;
 	context.difficulty = D2CLIENT_GetDifficulty();
-	context.areaId = GetPlayerArea();
-	context.areaLevel = GetCurrentAreaLevel();
 	context.filterLevel = Item::GetFilterLevel();
 	context.charStats = &playerStats;
 }
@@ -120,6 +146,19 @@ LiveItem::LiveItem(UnitAny* item)
 	// conditions test before they compare one.
 	facts.ground = item->dwMode == ITEM_MODE_ON_GROUND ||
 		item->dwMode == ITEM_MODE_BEING_DROPPED;
+
+	// Taken from the room holding the item rather than the one holding the
+	// character, so that it is the same answer the item's own drop packet was
+	// judged against.
+	if (facts.ground) {
+		// An item's path declares only its own position; the room sits where
+		// every unit's path keeps it.
+		Path* path = item->pPath;
+		if (path && path->pRoom1 && path->pRoom1->pRoom2 &&
+				path->pRoom1->pRoom2->pLevel)
+			facts.areaId = path->pRoom1->pRoom2->pLevel->dwLevelNo;
+		facts.areaLevel = GetAreaLevel(facts.areaId);
+	}
 
 	const char* code = D2COMMON_GetItemText(item->dwTxtFileNo)->szCode;
 	for (int i = 0; i < 3; i++) {
