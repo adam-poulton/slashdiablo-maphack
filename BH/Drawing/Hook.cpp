@@ -312,18 +312,41 @@ bool Hook::InRange(unsigned int x, unsigned int y) {
 		y < GetY() + GetYSize());
 }
 
+// The size of the canvas the menus are drawn on: one of the two resolutions the
+// game itself can be set to, whatever resolution a mod renders a game at.
+// D2Gfx's mode is what names it, and unlike D2Client's resolution it answers on
+// the menus. Mode 0 is 640x480; every other mode takes the 800x600 the menus
+// have been drawn at since the game gained a second resolution.
+static void GetMenuCanvas(unsigned int* width, unsigned int* height) {
+	if (D2GFX_GetScreenSize() == 0) {
+		*width = 640;
+		*height = 480;
+		return;
+	}
+	*width = 800;
+	*height = 600;
+}
+
 /* Hook::GetScreenHeight()
- *	Returns the height of the screen.
+ *	Returns the height of the canvas the current screen is drawn on.
  */
 unsigned int Hook::GetScreenHeight() {
-	return *p_D2CLIENT_ScreenSizeY;
+	if (D2CLIENT_GetPlayerUnit())
+		return *p_D2CLIENT_ScreenSizeY;
+	unsigned int width = 0, height = 0;
+	GetMenuCanvas(&width, &height);
+	return height;
 }
 
 /* Hook::GetScreenWidth()
- *	Returns the width of the screen.
+ *	Returns the width of the canvas the current screen is drawn on.
  */
 unsigned int Hook::GetScreenWidth() {
-	return *p_D2CLIENT_ScreenSizeX;
+	if (D2CLIENT_GetPlayerUnit())
+		return *p_D2CLIENT_ScreenSizeX;
+	unsigned int width = 0, height = 0;
+	GetMenuCanvas(&width, &height);
+	return width;
 }
 
 int Hook::GetMouseX() {

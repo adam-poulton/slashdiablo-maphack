@@ -209,7 +209,15 @@ namespace Drawing {
 			static bool KeyClick(HookVisibility screen, bool bUp, BYTE bKey, LPARAM lParam);
 			static bool MouseWheel(HookVisibility screen, int notches, unsigned int x, unsigned int y);
 
-			//Misc Hook Functions needed
+			// The canvas the current screen is drawn on, which is what a
+			// position or a size is clamped against.
+			//
+			// In a game that is the game's resolution. Out of one it is the
+			// menus', which is not the same number: D2Client's resolution
+			// describes a loaded game, so before the first game it still holds
+			// the game's smallest and after one it holds whatever that game
+			// rendered at, which a resolution mod makes larger than the menus
+			// ever are.
 			static unsigned int GetScreenHeight();
 			static unsigned int GetScreenWidth();
 
