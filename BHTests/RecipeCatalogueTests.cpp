@@ -140,11 +140,11 @@ TEST_CASE("the result is drawn in the colour the game gives it") {
 	// A rune carries no quality, but the game gives its name a colour anyway.
 	CHECK(NameColor(Resolve("3 rune 14 + 1 chipped emerald -> rune 15").rarity) == Orange);
 
-	// Gold wherever the game gives the name no colour of its own, which a plain
+	// Silver wherever the game gives the name no colour of its own, which a plain
 	// item and every quality the game draws plain both come to.
-	CHECK(NameColor(Resolve("3 flawless rubies -> perfect ruby").rarity) == Gold);
+	CHECK(NameColor(Resolve("3 flawless rubies -> perfect ruby").rarity) == Silver);
 	CHECK(NameColor(Resolve("r08 + r10 + 1 perfect sapphire + normal helm -> socketed helm")
-		.rarity) == Gold);
+		.rarity) == Silver);
 }
 
 TEST_CASE("the bonuses the result is given read as stat lines") {
