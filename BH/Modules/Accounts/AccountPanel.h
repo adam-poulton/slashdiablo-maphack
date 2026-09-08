@@ -50,18 +50,14 @@ class AccountPanel : public UIPanel {
 		Drawing::Listhook* list;
 		Drawing::Boxhook* rule;
 
-		// The band below the list, with an account in hand: what is in hand, a
-		// way out, the roster it is kept in, and the two things that can be done
-		// to it.
-		Drawing::Texthook* inHandLabel;
-		Drawing::Texthook* doneAction;
+		// The band below the list, with an account in hand, in row order.
 		Drawing::Inputhook* rosterBox;
-		Drawing::Texthook* rosterHint;
+		Drawing::Texthook* inHandLabel;
 		Drawing::Texthook* favouriteAction;
 		Drawing::Texthook* forgetAction;
+		Drawing::Texthook* doneAction;
 
-		// The same band with nothing in hand: how to take one in hand, what the
-		// game's boxes are holding, and the offer to keep it.
+		// The same band with nothing in hand, row for row.
 		Drawing::Texthook* hintLabel;
 		Drawing::Texthook* captureLabel;
 		Drawing::Texthook* keepAction;
@@ -80,6 +76,9 @@ class AccountPanel : public UIPanel {
 		bool laidOut;
 		bool needsRefresh;
 
+		// Whether the groups are still owed their one collapse.
+		bool foldOnPush;
+
 		// Set where enter was heard, and acted on by the next draw. Keys arrive
 		// from the window procedure rather than from the draw, and finishing an
 		// edit rereads the file and relists the rows.
@@ -89,6 +88,10 @@ class AccountPanel : public UIPanel {
 		// changed: setting text measures it, and the band is asked every frame.
 		std::string drawnInHand;
 		bool drawnForgetAsked;
+
+		// Marking a favourite leaves every other compared field the same - the
+		// same account in hand, as many kept - so the band needs this to notice.
+		bool drawnFavourite;
 		std::string drawnTyped;
 		unsigned int drawnPasswordLength;
 		unsigned int drawnCount;
@@ -99,6 +102,12 @@ class AccountPanel : public UIPanel {
 		void ApplyLayout();
 		void ApplyColumns();
 		void PushRows();
+
+		// Run in this order after the rows are listed: the collapse must not shut
+		// the group the reveal is about to open.
+		void FoldGroups();
+		void RevealInHand();
+
 		void TakeInHand(const std::string& accountName);
 		void CommitAndClose();
 		void UpdateBand();

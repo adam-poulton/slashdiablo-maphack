@@ -201,8 +201,22 @@ unsigned int Inputhook::GetCharacterLimit() {
 	 TextColor textColor = !IsEnabled() ? (TextColor)DISABLED_TEXT_COLOR :
 		 (focused ? GetFocusedColor() : GetColor());
 
-	 //Current text width
-	 POINT textSize = Texthook::GetTextSize(GetText().substr(textPos, GetCursorPosition() - textPos), GetFont());
+	 //The run of the text on screen: from the first character drawn, for as many
+	 //as fit. Every offset below is measured against this run and clamped into
+	 //it - substr and insert throw past the end, and the offsets being unsigned,
+	 //a subtraction that overshoots wraps rather than going negative.
+	 unsigned int shownFrom = (textPos < text.length()) ? textPos : (unsigned int)text.length();
+	 unsigned int shownLength = (unsigned int)text.length() - shownFrom;
+	 if (shownLength > GetCharacterLimit())
+		 shownLength = GetCharacterLimit();
+
+	 //A cursor outside the shown run belongs at whichever edge it is past, or
+	 //the caret draws outside its own box.
+	 unsigned int caretAt = GetCursorPosition();
+	 caretAt = (caretAt < shownFrom) ? 0 : (caretAt - shownFrom);
+	 if (caretAt > shownLength)
+		 caretAt = shownLength;
+	 POINT textSize = Texthook::GetTextSize(text.substr(shownFrom, caretAt), GetFont());
 
 	 //Draw the outline box!
 	 BoxTrans boxTrans = focused ? BTFull : BTOneHalf;
@@ -220,20 +234,28 @@ unsigned int Inputhook::GetCharacterLimit() {
 		 D2WIN_SetTextSize(placeholderFont);
 	 }
 
-	 string drawnText = text;
-
 	 //Draw the text in!
-	 int len = drawnText.length() - textPos;
-	 if (len > (int)GetCharacterLimit())
-		len = GetCharacterLimit();
-	drawnText = drawnText.substr(textPos, len);
-
+	 string drawnText = text.substr(shownFrom, shownLength);
 
 	 if (IsSelected()) {
-		 //Reset to the base color rather than always to white, so an unfocused
-		 //box stays dimmed after the selected run.
-		 drawnText.insert(GetSelectionPosition() + GetSelectionLength(), InlineColorCode(textColor));
-		 drawnText.insert(GetSelectionPosition(), "\377c9");
+		 //Selection offsets are kept against the whole text, so both ends come
+		 //into the shown run before anything is inserted at them.
+		 unsigned int from = GetSelectionPosition();
+		 unsigned int to = from + GetSelectionLength();
+		 from = (from < shownFrom) ? 0 : (from - shownFrom);
+		 to = (to < shownFrom) ? 0 : (to - shownFrom);
+		 if (from > shownLength)
+			 from = shownLength;
+		 if (to > shownLength)
+			 to = shownLength;
+		 //None of the selection is on screen, so there is nothing to mark up.
+		 if (to > from) {
+			 //Reset to the base color rather than always to white, so an unfocused
+			 //box stays dimmed after the selected run. The later mark goes in
+			 //first, so that inserting it does not move the earlier one.
+			 drawnText.insert(to, InlineColorCode(textColor));
+			 drawnText.insert(from, "\377c9");
+		 }
 	 }
 
 

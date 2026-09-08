@@ -13,7 +13,12 @@ struct AccountRow {
 	bool inUse;				// claimed by a client, heading rows never are
 	bool favourite;
 
-	AccountRow() : heading(false), inUse(false), favourite(false) {}
+	// The heading over the favourites. A player can name a label "Favourites"
+	// too, so the section is told from the label by this and not by what it says.
+	bool favourites;
+
+	AccountRow() : heading(false), inUse(false), favourite(false),
+		favourites(false) {}
 };
 
 // Every line the panel draws, in the order it draws them: the favourites, then

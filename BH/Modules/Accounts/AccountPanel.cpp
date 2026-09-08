@@ -13,8 +13,12 @@ using namespace Drawing;
 #define AP_ROW_GAP			4	// between the band's own rows
 #define AP_BAND_BOTTOM_PAD	5	// last row to the foot of the panel
 #define AP_ACTION_GAP		14	// between two things to click on one row
-#define AP_ROSTER_BOX_W		96
 #define AP_IN_USE_GAP		4	// account name to what is said after it
+
+// What the label box is built at, before there is a panel to ask how wide it is.
+// ApplyLayout gives it the real width. Wider than the padding it subtracts, so
+// GetCharacterLimit() cannot underflow if anything draws first.
+#define AP_ROSTER_BOX_SEED	96
 
 namespace {
 
@@ -67,8 +71,10 @@ AccountPanel::AccountPanel(UI* ui, AccountActions* actions) :
 		forgetAsked(false),
 		laidOut(false),
 		needsRefresh(true),
+		foldOnPush(true),
 		commitRequested(false),
 		drawnForgetAsked(false),
+		drawnFavourite(false),
 		drawnPasswordLength(0),
 		drawnCount(0),
 		laidOutWidth(0),
@@ -86,30 +92,25 @@ AccountPanel::AccountPanel(UI* ui, AccountActions* actions) :
 	rule->SetColor(Grey);
 	rule->SetTransparency(BTNormal);
 
+	// Not gold, which is for what can be clicked. This only names the account
+	// the actions below it act on.
 	inHandLabel = new Texthook(tab, UI_CONTENT_MARGIN, 0, "");
-	inHandLabel->SetColor(Gold);
+	inHandLabel->SetColor(Silver);
 	inHandLabel->SetActive(false);
 
 	doneAction = new Texthook(tab, UI_CONTENT_MARGIN, 0, "Done");
 	doneAction->SetAlignment(Right);
-	doneAction->SetColor(Grey);
-	doneAction->SetHoverColor(White);
+	doneAction->SetColor(Gold);
+	doneAction->SetHoverColor(Tan);
 	doneAction->SetLeftCallback(OnDoneClicked, this);
 	doneAction->SetActive(false);
 
-	rosterBox = new Inputhook(tab, UI_CONTENT_MARGIN, 0, AP_ROSTER_BOX_W, "");
+	rosterBox = new Inputhook(tab, UI_CONTENT_MARGIN, 0, AP_ROSTER_BOX_SEED, "");
 	// Label, not roster, which is the word for it everywhere the player reads it.
 	rosterBox->SetPlaceholder("Label");
 	rosterBox->SetSelectOnFocus(true);
 	rosterBox->SetCompact(true);
 	rosterBox->SetActive(false);
-
-	// Nothing about a box says that what is typed in it is kept by enter rather
-	// than as it is typed, so the box says it.
-	rosterHint = new Texthook(tab, UI_CONTENT_MARGIN + AP_ROSTER_BOX_W + AP_ACTION_GAP,
-		0, "Enter saves");
-	rosterHint->SetColor(Grey);
-	rosterHint->SetActive(false);
 
 	favouriteAction = new Texthook(tab, UI_CONTENT_MARGIN, 0, "");
 	favouriteAction->SetColor(Gold);
@@ -149,14 +150,13 @@ void AccountPanel::ApplyColumns() {
 	// a column of its own: a column at a fixed offset is either wasted width on
 	// every row that has nothing to say or off the end of a narrow panel, and
 	// this panel is narrow. Both lift under the mouse, the whole row being one
-	// thing to click, and each to the brighter shade of its own colour so the
-	// two stay told apart and the lift reads as one gesture.
+	// thing to click, and each one rung brighter so the two stay told apart and
+	// the lift reads as one gesture.
 	//
-	// Names rest below white so that white is left to mean the mouse, as it does
-	// on the headings above them and in every other list in the game. Gold is
-	// kept for the headings and the actions under the list, which are gold
-	// whether or not anything is being pointed at.
-	columns.push_back(ListColumn("", 0, 1, 0, Tan, White));
+	// The panel spends four colours and each means one thing: gold is something
+	// to click, white is the mouse, silver is an account name at rest, and grey
+	// is text there is nothing to do with.
+	columns.push_back(ListColumn("", 0, 1, 0, Silver, White));
 	columns.push_back(ListColumn("", 0, 0, AP_IN_USE_GAP, Grey, Silver, true));
 	list->SetColumns(columns);
 }
@@ -176,7 +176,7 @@ void AccountPanel::ApplyLayout() {
 	// The last row clears the bottom of the tab, which is where the window draws
 	// the line above its footer.
 	unsigned int bandHeight = AP_RULE_GAP_ABOVE + 1 + AP_RULE_GAP_BELOW +
-		textHeight + AP_ROW_GAP + boxHeight + AP_ROW_GAP + textHeight +
+		boxHeight + AP_ROW_GAP + textHeight + AP_ROW_GAP + textHeight +
 		AP_BAND_BOTTOM_PAD;
 	unsigned int spent = AP_LIST_TOP_GAP + bandHeight;
 	unsigned int listHeight = (laidOutHeight > spent) ? (laidOutHeight - spent) : 0;
@@ -188,23 +188,27 @@ void AccountPanel::ApplyLayout() {
 	rule->SetBaseY(ruleY);
 	rule->SetXSize(contentWidth);
 
+	// The box has this row to itself and takes all of it: the label cannot be
+	// scrolled, so width is the only thing deciding how much of it can be read.
+	// The text standing in its place with nothing in hand is centred on the
+	// box's line, both states of the band being the same height.
 	unsigned int firstRow = ruleY + 1 + AP_RULE_GAP_BELOW;
-	inHandLabel->SetBaseY(firstRow);
-	doneAction->SetBaseY(firstRow);
-	hintLabel->SetBaseY(firstRow);
-
-	// The middle row is as tall as the box, so the text that shares it with the
-	// box sits on the box's centre line rather than at its top.
-	unsigned int secondRow = firstRow + textHeight + AP_ROW_GAP;
-	unsigned int centred = secondRow + ((boxHeight > textHeight) ?
+	unsigned int centred = firstRow + ((boxHeight > textHeight) ?
 		((boxHeight - textHeight) / 2) : 0);
-	rosterBox->SetBaseY(secondRow);
-	rosterHint->SetBaseY(centred);
-	captureLabel->SetBaseY(centred);
+	rosterBox->SetBaseY(firstRow);
+	rosterBox->SetXSize(contentWidth);
+	hintLabel->SetBaseY(centred);
 
-	unsigned int thirdRow = secondRow + boxHeight + AP_ROW_GAP;
+	// The account the band is about, from hand or from the game's own boxes.
+	unsigned int secondRow = firstRow + boxHeight + AP_ROW_GAP;
+	inHandLabel->SetBaseY(secondRow);
+	captureLabel->SetBaseY(secondRow);
+
+	// Everything clickable on one row, so no action stands on its own.
+	unsigned int thirdRow = secondRow + textHeight + AP_ROW_GAP;
 	favouriteAction->SetBaseY(thirdRow);
 	forgetAction->SetBaseY(thirdRow);
+	doneAction->SetBaseY(thirdRow);
 	keepAction->SetBaseY(thirdRow);
 }
 
@@ -236,6 +240,43 @@ void AccountPanel::PushRows() {
 	// client, leaving the band nothing to act on.
 	if (!inHand.empty() && actions->Accounts().Find(inHand) == NULL)
 		TakeInHand(std::string());
+
+	FoldGroups();
+	RevealInHand();
+}
+
+// Once, on the first push with anything in it. Rows are pushed again for every
+// mark, label and account kept, so refolding each time would shut a group under
+// the player as they worked in it.
+//
+// A first push with no headings spends the fold anyway, which is what leaves a
+// label made later arriving open.
+void AccountPanel::FoldGroups() {
+	if (!foldOnPush || rows.empty())
+		return;
+	foldOnPush = false;
+
+	for (unsigned int i = 0; i < rows.size(); i++) {
+		if (rows[i].heading && !rows[i].favourites)
+			list->SetGroupFolded((int)i, true);
+	}
+}
+
+// A no-op after a right click, that row having been on screen to click. It is
+// for the times the panel took an account in hand itself: one just kept, or one
+// whose favourite mark just moved it into a folded label.
+void AccountPanel::RevealInHand() {
+	if (inHand.empty())
+		return;
+
+	for (unsigned int i = 0; i < rows.size(); i++) {
+		if (rows[i].heading || rows[i].account != inHand)
+			continue;
+		int group = list->GetGroupRowFor((int)i);
+		if (group >= 0)
+			list->SetGroupFolded(group, false);
+		return;
+	}
 }
 
 // Keeps whatever label was typed and lets the account go. The label is only
@@ -269,14 +310,18 @@ void AccountPanel::UpdateBand() {
 	std::string typed = Trim(actions->TypedAccountName());
 	unsigned int passwordLength = actions->TypedPasswordLength();
 
+	bool favourite = (held != NULL && held->favourite);
+
 	unsigned int kept = actions->Accounts().Count();
-	bool bandChanged = (inHand != drawnInHand || forgetAsked != drawnForgetAsked);
+	bool bandChanged = (inHand != drawnInHand || forgetAsked != drawnForgetAsked ||
+		favourite != drawnFavourite);
 	bool captureChanged = (typed != drawnTyped || passwordLength != drawnPasswordLength);
 	if (!bandChanged && !captureChanged && kept == drawnCount)
 		return;
 
 	drawnInHand = inHand;
 	drawnForgetAsked = forgetAsked;
+	drawnFavourite = favourite;
 	drawnTyped = typed;
 	drawnPasswordLength = passwordLength;
 	drawnCount = kept;
@@ -284,7 +329,6 @@ void AccountPanel::UpdateBand() {
 	inHandLabel->SetActive(editing);
 	doneAction->SetActive(editing);
 	rosterBox->SetActive(editing);
-	rosterHint->SetActive(editing);
 	favouriteAction->SetActive(editing);
 	forgetAction->SetActive(editing);
 
@@ -296,7 +340,7 @@ void AccountPanel::UpdateBand() {
 
 	if (editing) {
 		inHandLabel->SetText("%s", held->name.c_str());
-		favouriteAction->SetText(held->favourite ? "Unfavourite" : "Favourite");
+		favouriteAction->SetText(favourite ? "Unfavourite" : "Favourite");
 		forgetAction->SetText(forgetAsked ? "Forget?" : "Forget");
 		forgetAction->SetColor(forgetAsked ? Red : Gold);
 		// Placed against what the favourite line says, which changes with it.
@@ -328,7 +372,7 @@ void AccountPanel::UpdateBand() {
 	}
 
 	std::string stars(passwordLength, '*');
-	captureLabel->SetColor(White);
+	captureLabel->SetColor(Silver);
 	captureLabel->SetText("%s  %s", typed.c_str(), stars.c_str());
 	const Account* known = actions->Accounts().Find(typed);
 	keepAction->SetText(known ? "Save new password" : "Save this account");
