@@ -24,7 +24,7 @@ TextColor RarityColor(ItemRarity rarity) {
 
 TextColor NameColor(ItemRarity rarity) {
 	TextColor color = RarityColor(rarity);
-	return (color == White) ? Gold : color;
+	return (color == White) ? Silver : color;
 }
 
 ItemRarity RarityFromQuality(unsigned int quality) {

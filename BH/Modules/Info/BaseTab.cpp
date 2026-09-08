@@ -22,7 +22,9 @@ BaseTab::BaseTab(UI* ui) : UIPanel("Bases", ui),
 
 	list = new Listhook(tab, UI_CONTENT_MARGIN, 0, 0, 0);
 	std::vector<ListColumn> columns;
-	columns.push_back(ListColumn("", 0, BT_COL_NAME_WEIGHT, 0, White, White));
+	// A base is a plain item, which the game draws white; the list keeps white
+	// for the row the mouse is on and draws the name silver below it.
+	columns.push_back(ListColumn("", 0, BT_COL_NAME_WEIGHT, 0, Silver, White));
 	columns.push_back(ListColumn("", 0, BT_COL_TIER_WEIGHT, BT_COL_GAP, Grey, White));
 	list->SetColumns(columns);
 	list->SetGroupColor(Gold);

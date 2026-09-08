@@ -26,9 +26,9 @@ RecipeTab::RecipeTab(UI* ui) : UIPanel("Recipes", ui),
 	//
 	// A recipe makes whatever quality of item it makes, so the result's colour
 	// comes from the row rather than from the column. Items that would render
-	// white are made gold to allow for white on hover.
+	// white are made silver to allow for white on hover.
 	std::vector<ListColumn> columns;
-	columns.push_back(ListColumn("", 0, 1, 0, Gold, White));
+	columns.push_back(ListColumn("", 0, 1, 0, Silver, White));
 	columns.push_back(ListColumn("", 0, 0, RC_COL_GAP, Grey, White, true));
 	list->SetColumns(columns);
 	list->SetGroupColor(Gold);
