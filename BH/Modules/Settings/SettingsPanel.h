@@ -9,9 +9,13 @@
 class SettingsPanel;
 
 // The bar across a heading, and the whole of what a click on the heading lands
-// on. Invisible - the heading's own text is all that is drawn - but the full
-// width of the panel, so the target is one predictable line rather than however
-// wide the label happened to be.
+// on. The full width of the panel, so the target is one predictable line rather
+// than however wide the label happened to be.
+//
+// Draws nothing but the band behind the heading the keyboard is on, which is what
+// tells that heading apart from whichever one is under the mouse: both are lit
+// the same way, so the band is the difference. The same band a list draws behind
+// its selected row.
 class SettingsHeadingBar : public Drawing::Boxhook {
 	private:
 		SettingsPanel* panel;
@@ -20,7 +24,7 @@ class SettingsHeadingBar : public Drawing::Boxhook {
 		SettingsHeadingBar(Drawing::HookGroup* group, SettingsPanel* panel,
 			unsigned int row);
 
-		void OnDraw() {};
+		void OnDraw();
 		bool OnLeftClick(bool up, unsigned int x, unsigned int y);
 };
 
@@ -240,6 +244,10 @@ class SettingsPanel : public UIPanel {
 
 		// Called by the bar across a heading, which is the hook the click lands on.
 		void ToggleHeading(unsigned int row);
+
+		// Whether the keyboard is on the row, which is what the bar across a
+		// heading draws its band for.
+		bool IsRowFocused(unsigned int row) { return focusRow == (int)row; };
 
 		std::string GetSearchPlaceholder();
 		std::string GetStatus();

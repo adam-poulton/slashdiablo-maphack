@@ -46,9 +46,10 @@ AccountsWindow::~AccountsWindow() {
 
 void AccountsWindow::OnLoad() {
 	Settings::AddBool(GetName(), Settings::Category::Lobby, ACCOUNTS_SETTING_KEY,
-		"Accounts panel", &showPanel,
-		"Lists the accounts you have kept on the login screen, to sign in with "
-		"one click. Switched off, nothing is drawn there and nothing is read.");
+		"Account manager", &showPanel,
+		"Lists the accounts you have kept, on the login screen: click one to sign "
+		"in, right click one to label it, favourite it or forget it. Switched "
+		"off, nothing is drawn there and nothing is read.");
 
 	LoadConfig();
 
