@@ -44,6 +44,7 @@ namespace Drawing {
 
 			bool OnLeftClick(bool up, unsigned int x, unsigned int y);
 			bool OnRightClick(bool up, unsigned int x, unsigned int y);
+			bool OnKey(bool up, BYTE key, LPARAM lParam);
 			void OnDraw();
 
 			unsigned int GetXSize();
