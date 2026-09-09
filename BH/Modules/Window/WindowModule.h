@@ -64,6 +64,16 @@ class WindowModule : public Module {
 		void SetSearchEveryPanel(bool every) { searchEveryPanel = every; };
 		void SetFocusSearchOnOpen(bool focus) { focusSearchOnOpen = focus; };
 
+		// Offers the key that summons the window as a setting, under the heading
+		// the panel hotkeys share. Called from the subclass's OnLoad, and only by
+		// a window there is a point in binding: one that appears by itself has no
+		// key to offer.
+		//
+		// The hotkey alone and not the toggle it belongs to, whose state is
+		// whether the window is on screen this moment.
+		void RegisterToggleKey(std::string category, std::string label,
+			std::string help);
+
 		// The commands the window answers itself, as opposed to those its panels
 		// answer. Merged with the panels' by GetCommands().
 		virtual std::vector<ChatCommand> GetOwnCommands() {

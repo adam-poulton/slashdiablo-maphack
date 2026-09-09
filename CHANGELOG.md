@@ -72,6 +72,15 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
   its background archive reads at 256KB/s, and leaving a game waits on every read
   still outstanding, so the exit was paced by that cap rather than by any work.
   1.13c only.
+* The keys that open the info window (`Info Window`, default numpad 9), the
+  character stats screen (`Character Stats`, default 8) and the settings window
+  itself (`Show Settings`, default numpad 8) can be rebound from the settings UI,
+  under `Panel hotkeys` on the Input tab, rather than only by editing
+  `BH_settings.cfg`. The settings window is still reached by typing `.settings`
+  in chat, whatever its key is set to.
+* The reload hotkey (`Reload Config`, default numpad 0) is on the Input tab of the
+  settings UI too, with `Ctrl+R Reload Config` shown beneath it as the second
+  binding for the same reload. Both keep their defaults: numpad 0 and ctrl-R.
 
 # Release Notes for 1.9.11g (2026-08-19)
 * Add `Monster Curses` option (`BH_settings.cfg`, default `True, None`) to mark

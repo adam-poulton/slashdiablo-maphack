@@ -25,6 +25,20 @@ unsigned int SettingsWindow::CategoryCount() {
 void SettingsWindow::OnLoad() {
 	LoadConfig();
 
+	// Before the window's own key, so it lands among the tab's own settings
+	// rather than under the panel hotkeys: reloading summons no panel.
+	Settings::AddKey(GetName(), Settings::Category::Input, "Reload Config",
+		"Reload config", &reloadConfig,
+		"Reads BH.cfg and BH_settings.cfg again and applies whatever changed, "
+		"without restarting the game.");
+	Settings::AddBool(GetName(), Settings::Category::Input,
+		"Ctrl+R Reload Config", "Ctrl-R also reloads", &legacyReloadConfigHotkey,
+		"A second binding to reload the config.", "Reload Config");
+
+	RegisterToggleKey(Settings::Category::Input, "Settings window",
+		"Opens this window. Bound to nothing, it is still reached by typing "
+		".settings in chat.");
+
 	// "Settings" rather than the version string. The title bar says which window
 	// this is, which matters now there is more than one of them; the version goes
 	// in the footer, where there is room for it and it does not change what
