@@ -24,6 +24,13 @@ namespace Settings {
 		const char* const Lobby = "Lobby";
 	}
 
+	// Headings that more than one module registers under. Two modules naming the
+	// same heading make one section of it, which holds only while they spell it
+	// identically.
+	namespace Heading {
+		const char* const PanelHotkeys = "Panel hotkeys";
+	}
+
 	enum Kind {
 		KindBool,		// a bool on its own, checkbox
 		KindToggle,		// a Toggle: a checkbox and the hotkey that flips it

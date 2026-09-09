@@ -9,7 +9,8 @@ switch to it, `Tab` / `Shift + Tab` to cycle or use the chat commands.
 ## Opening it
 
 `Info Window: True, VK_NUMPAD9` in `BH_settings.cfg` enables the window and sets
-the hotkey. Defaults are on and numpad 9.
+the hotkey. Defaults are on and numpad 9. The hotkey is also bindable from the
+settings window, under **Panel hotkeys** on the Input tab.
 
 * Press the hotkey to open the window, and again to close it.
 * **Escape closes it** while it is open, instead of opening the game menu.

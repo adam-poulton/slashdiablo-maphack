@@ -4,6 +4,7 @@
 #include "../Basic/Boxhook/Boxhook.h"
 #include "../../D2Ptrs.h"
 #include "../../BH.h"
+#include "../../Modules/Settings/SettingsRegistry.h"
 
 using namespace Drawing;
 
@@ -140,7 +141,20 @@ StatsDisplay::StatsDisplay(std::string name) {
 	SetActive(true);
 	SetMinimized(true);
 
+	// Not in LoadConfig, which runs again every time the panel is opened: a key
+	// bound in the settings window and not yet saved would be put back to what
+	// the file says by the very press that used it.
 	BH::config->ReadKey("Character Stats", "VK_8", statsKey);
+
+	// Owned by the display and not by a module, so no module is told when the
+	// key changes. Nothing has to be: it is read out of the variable as it is
+	// pressed.
+	Settings::AddHeading(GetName(), Settings::Category::Input,
+		Settings::Heading::PanelHotkeys);
+	Settings::AddKey(GetName(), Settings::Category::Input, "Character Stats",
+		"Character stats", &statsKey,
+		"Opens the panel of breakpoints, resistances and damage for your character.");
+
 	display = this;
 }
 

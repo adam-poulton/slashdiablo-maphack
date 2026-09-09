@@ -3,6 +3,7 @@
 #include "../../Common.h"
 #include "../../D2Helpers.h"
 #include "../../TableReader.h"
+#include "../Settings/SettingsRegistry.h"
 
 using namespace Drawing;
 
@@ -14,6 +15,9 @@ using namespace Drawing;
 
 void InfoWindow::OnLoad() {
 	LoadConfig();
+
+	RegisterToggleKey(Settings::Category::Input, "Info window",
+		"Opens the window of runewords, uniques, sets, recipes and bases.");
 
 	CreateUI("Info", "Info", INFO_WINDOW_WIDTH, INFO_WINDOW_HEIGHT);
 

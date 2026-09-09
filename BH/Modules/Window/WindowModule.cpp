@@ -1,6 +1,7 @@
 #include "WindowModule.h"
 #include "../../BH.h"
 #include "../../Common.h"
+#include "../Settings/SettingsRegistry.h"
 
 using namespace Drawing;
 
@@ -47,6 +48,17 @@ void WindowModule::AddPanel(UIPanel* panel) {
 
 void WindowModule::LoadConfig() {
 	BH::config->ReadToggle(toggleName, toggleDefaultKey, true, Toggles[toggleName]);
+}
+
+// The heading comes with the key rather than being asked for separately, so a
+// window offering its key cannot land outside the group the others are in.
+void WindowModule::RegisterToggleKey(std::string category, std::string label,
+		std::string help) {
+	Settings::AddHeading(GetName(), category, Settings::Heading::PanelHotkeys);
+	// The same Toggle the config was read through, so what is bound here is what
+	// is written back out and what OnKey() answers to.
+	Settings::AddKey(GetName(), category, toggleName, label,
+		&Toggles[toggleName].toggle, help);
 }
 
 void WindowModule::MpqLoaded() {

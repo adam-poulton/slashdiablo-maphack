@@ -88,6 +88,7 @@ static const struct {
 	{ Settings::Category::Map, "Path colors" },
 	{ Settings::Category::Map, "Monster colors" },
 	{ Settings::Category::Map, "Missile colors" },
+	{ Settings::Category::Input, Settings::Heading::PanelHotkeys },
 
 };
 
@@ -113,24 +114,46 @@ static std::vector<const Settings::Descriptor*> InSectionOrder(
 	std::vector<const Settings::Descriptor*> settings =
 		Settings::InCategory(category);
 
-	// A section runs from a heading to the next one. A module that registers into
-	// a tab another module has already put a heading in starts a section of its own
-	// rather than landing under that heading, which is why the owner changing also
-	// breaks the run: a module's settings say nothing about a heading it never saw.
+	// A section runs from a heading to the next one, and every module that names
+	// that heading adds to the same one.
 	typedef std::pair<int, std::vector<const Settings::Descriptor*> > Section;
 	std::vector<Section> sections;
+
+	// Which section each heading started, so a heading registered twice is one
+	// section with one heading row.
+	std::map<std::string, unsigned int> headed;
+
 	std::string owner;
+	unsigned int current = 0;
 	for (unsigned int i = 0; i < settings.size(); i++) {
 		bool heading = (settings[i]->kind == Settings::KindHeading);
-		if (sections.empty() || heading || settings[i]->owner.compare(owner) != 0) {
-			// Below every rank a heading can have, so an unheaded run stays above the
-			// sections however those are ordered.
-			int rank = heading ? SectionRank(category, settings[i]->label) : -1;
-			sections.push_back(Section(rank,
+		if (heading) {
+			std::map<std::string, unsigned int>::iterator existing =
+				headed.find(settings[i]->label);
+			if (existing != headed.end()) {
+				// The heading itself is dropped: the section already has one.
+				current = existing->second;
+				owner = settings[i]->owner;
+				continue;
+			}
+			sections.push_back(Section(SectionRank(category, settings[i]->label),
 				std::vector<const Settings::Descriptor*>()));
+			current = (unsigned int)sections.size() - 1;
+			headed[settings[i]->label] = current;
+		} else if (sections.empty() || settings[i]->owner.compare(owner) != 0) {
+			// A module that registers into a tab another module has already put a
+			// heading in starts a section of its own rather than landing under that
+			// heading, which is why the owner changing breaks the run: a module's
+			// settings say nothing about a heading it never saw.
+			//
+			// Ranked below every heading, so an unheaded run stays above the
+			// sections however those are ordered.
+			sections.push_back(Section(-1,
+				std::vector<const Settings::Descriptor*>()));
+			current = (unsigned int)sections.size() - 1;
 		}
 		owner = settings[i]->owner;
-		sections.back().second.push_back(settings[i]);
+		sections[current].second.push_back(settings[i]);
 	}
 
 	std::stable_sort(sections.begin(), sections.end(),
