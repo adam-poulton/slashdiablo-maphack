@@ -120,6 +120,18 @@ bool Colorhook::OnRightClick(bool up, unsigned int x, unsigned int y) {
 	return false;
 }
 
+/* Escape closes the picker and leaves the colour as it was, as it closes every
+ * other interface of ours. Taken on the release, and the press swallowed with
+ * it, so the window the picker was opened from doesn't close on the same key.
+ */
+bool Colorhook::OnKey(bool up, BYTE key, LPARAM lParam) {
+	if (Colorhook::current != this || key != VK_ESCAPE)
+		return false;
+	if (up)
+		Colorhook::current = NULL;
+	return true;
+}
+
 /* GetXSize()
  *	Returns how long the text is.
  */
@@ -174,7 +186,7 @@ void Colorhook::OnDraw() {
 			D2GFX_DrawLine(457 + szLines[x][0], 380 + szLines[x][1], 457 + szLines[x + 1][0], 380 + szLines[x + 1][1], curColor, -1);
 		//Draw instructions
 		Texthook::Draw(320, 384, false, 0, White, "Left Click - Select");
-		Texthook::Draw(320, 368, false, 0, White, "Right Click - Close");
+		Texthook::Draw(320, 368, false, 0, White, "Right Click / Esc - Close");
 	} else {
 		DWORD size = D2WIN_SetTextSize(0);
 		wchar_t* wText = AnsiToUnicode(GetText().c_str());

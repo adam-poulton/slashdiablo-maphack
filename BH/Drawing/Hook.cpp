@@ -549,6 +549,10 @@ bool Hook::MouseWheel(HookVisibility screen, int notches, unsigned int x, unsign
 bool Hook::KeyClick(HookVisibility screen, bool bUp, BYTE bKey, LPARAM lParam) {
 	Hooks.sort(ZSort);
 	bool block = false;
+	// The open picker covers the screen, so it hears the key before the hooks it
+	// is drawn over, as it does with a click.
+	if (Colorhook::current && Colorhook::current->OnKey(bUp, bKey, lParam))
+		return true;
 	for (HookIterator it = Hooks.begin(); it!=Hooks.end(); ++it)
 		if ((*it)->IsActive() && (*it)->IsEnabled() && (*it)->AnswersOn(screen))
 			if ((*it)->OnKey(bUp, bKey, lParam))
