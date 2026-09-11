@@ -16,6 +16,8 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
   `Light radius`, `Infravision`, `Remove weather`, `Remove shake` and the
   `Experience meter`. The `Map` tab is now the automap and nothing else. No config
   keys changed, so existing `BH_settings.cfg` files need no edit.
+* The stash export is now reachable from the settings UI, under `Stash export` on the
+  Input tab
 * Add the account manager (`Accounts Panel` in `BH_settings.cfg`, default on), a panel
   drawn on the login screen listing the accounts you have saved. Add a new entry by
   entering your details as you normally would and then click 'Save new password'.
