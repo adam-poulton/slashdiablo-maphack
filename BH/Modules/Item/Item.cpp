@@ -48,19 +48,21 @@
 #include "../../D2Ptrs.h"
 #include "../../D2Strings.h"
 #include "../../BH.h"
+#include "../../FilterSource.h"
 #include "../../D2Stubs.h"
 #include "ItemDisplay.h"
 #include "ItemCapture.h"
 #include "ItemFactsLive.h"
 #include "../../MPQInit.h"
 #include "lrucache.hpp"
+#include <algorithm>
 
 ItemsTxtStat* GetAllStatModifier(ItemsTxtStat* pStats, int nStats, int nStat, ItemsTxtStat* pOrigin);
 ItemsTxtStat* GetItemsTxtStatByMod(ItemsTxtStat* pStats, int nStats, int nStat, int nStatParam);
 RunesTxt* GetRunewordTxtById(int rwId);
 
 map<std::string, Toggle> Item::Toggles;
-unordered_set<string> Item::no_ilvl_codes;
+unsigned int Item::filterSourceSetting = 0;
 unsigned int Item::filterLevelSetting = 0;
 unsigned int Item::pingLevelSetting = 0;
 int Item::trackerPingLevelSetting = TRACKER_PING_LEVEL_UNSET;
@@ -113,6 +115,8 @@ void ResetCaches() {
 }
 
 void Item::OnSettingsChanged(const vector<string>& keys) {
+	if (std::find(keys.begin(), keys.end(), "Item Filter") != keys.end())
+		ApplyFilterSource();
 	ResetPatches();
 	ResetCaches();
 	ItemCapture::SettingsChanged();
@@ -132,7 +136,6 @@ void Item::OnGameJoin() {
 }
 
 void Item::LoadConfig() {
-	BH::config->ReadToggle("Show ILvl", "None", true, Toggles["Show iLvl"]);
 	BH::config->ReadToggle("Always Show Items", "None", false, Toggles["Always Show Items"]);
 	BH::config->ReadToggle("Advanced Item Display", "None", false, Toggles["Advanced Item Display"]);
 	BH::config->ReadToggle("Item Drop Notifications", "None", false, Toggles["Item Drop Notifications"]);
@@ -143,6 +146,7 @@ void Item::LoadConfig() {
 	BH::config->ReadToggle("Suppress Invalid Stats", "None", false, Toggles["Suppress Invalid Stats"]);
 	BH::config->ReadToggle("Always Show Item Stat Ranges", "None", true, Toggles["Always Show Item Stat Ranges"]);
 	BH::config->ReadToggle("Hide Redundant Scrolls", "None", false, Toggles["Hide Redundant Scrolls"]);
+	RefreshFilterSources();
 	BH::config->ReadInt("Filter Level", filterLevelSetting, 0);
 	BH::config->ReadInt("Ping Level", pingLevelSetting, 0);
 	BH::config->ReadInt("Run Details Ping Level", trackerPingLevelSetting,
@@ -154,8 +158,6 @@ void Item::LoadConfig() {
 		scrollVisibilityThreshold = MAX_SCROLL_VISIBILITY_THRESHOLD;
 	ItemCapture::LoadConfig();
 
-	LoadNoIlvlCodes();
-
 	ItemDisplay::UninitializeItemRules();
 
 	//InitializeMPQData();
@@ -163,21 +165,32 @@ void Item::LoadConfig() {
 	BH::config->ReadKey("Show Players Gear", "VK_0", showPlayer);
 }
 
-void Item::LoadNoIlvlCodes() {
-	// this method does not support saving back to the file
-	vector<pair<string, string>> no_ilvls;
+// The folder is read again rather than remembered, so a filter dropped in beside
+// the others is there to be chosen after a reload without restarting the game.
+void Item::RefreshFilterSources() {
+	std::vector<std::string> sources = FilterSource::Options(BH::itemFilterSource);
+	Settings::SetOptions(GetName(), "Item Filter", sources);
 
-	BH::itemConfig->ReadMapList("No Item Level", no_ilvls);
-
-	no_ilvl_codes.clear();
-
-	string buf;
-	for (auto & entry: no_ilvls) {
-		stringstream ss(entry.second);
-		while (ss >> buf) {
-			no_ilvl_codes.insert(buf);
+	filterSourceSetting = 0;
+	for (unsigned int i = 0; i < sources.size(); i++) {
+		if (sources[i].compare(BH::itemFilterSource) == 0) {
+			filterSourceSetting = i;
+			break;
 		}
 	}
+}
+
+void Item::ApplyFilterSource() {
+	std::vector<std::string> sources = FilterSource::Options(BH::itemFilterSource);
+	if (filterSourceSetting >= sources.size())
+		return;
+	if (sources[filterSourceSetting].compare(BH::itemFilterSource) == 0)
+		return;
+
+	BH::SelectItemFilter(sources[filterSourceSetting]);
+	// Dropped rather than reread here: the caller puts the rules back once the
+	// rest of what a settings change resets has been reset.
+	ItemDisplay::UninitializeItemRules();
 }
 
 void Item::ResetPatches() {
@@ -210,41 +223,32 @@ void Item::ResetPatches() {
 // Whichever of the input box and the config value changed last wins, so the box follows a
 // config reload. Non-numeric text is ignored, leaving a half-typed box harmless.
 void Item::RegisterSettings() {
-	Settings::AddToggle(GetName(), Settings::Category::Items, "Always Show Items",
-		"Always show ground items", &Toggles["Always Show Items"],
-		"Keeps ground item names on screen without having to hold the show items key.");
-	Settings::AddToggle(GetName(), Settings::Category::Items, "Advanced Item Display",
+	Settings::AddToggle(GetName(), Settings::Category::Filter, "Advanced Item Display",
 		"Advanced item display", &Toggles["Advanced Item Display"],
-		"Applies the item display rules from BH.cfg.");
-	Settings::AddToggle(GetName(), Settings::Category::Items, "Show ILvl", "Show iLvl",
-		&Toggles["Show iLvl"], "Shows the item level in the description.",
-		"Advanced Item Display");
-	Settings::AddToggle(GetName(), Settings::Category::Items, "Always Show Item Stat Ranges",
-		"Show item stat ranges", &Toggles["Always Show Item Stat Ranges"],
-		"Shows the range each variable stat could have rolled.");
-	Settings::AddToggle(GetName(), Settings::Category::Items, "Suppress Invalid Stats", "Suppress invalid stats",
-		&Toggles["Suppress Invalid Stats"],
-		"Hides stat lines the game cannot describe rather than showing them raw.");
-
-	Settings::AddHeading(GetName(), Settings::Category::Items, "Notifications");
-	Settings::AddToggle(GetName(), Settings::Category::Items, "Item Drop Notifications", "Item drop notifications",
-		&Toggles["Item Drop Notifications"], "Says in chat when an item drops.");
-	Settings::AddToggle(GetName(), Settings::Category::Items, "Item Close Notifications", "Item close notifications",
-		&Toggles["Item Close Notifications"], "Says in chat when an item is nearby.");
-	Settings::AddToggle(GetName(), Settings::Category::Items, "Item Detailed Notifications",
-		"Item detailed notifications", &Toggles["Item Detailed Notifications"],
-		"Includes what is on the item rather than only its name.");
-	Settings::AddToggle(GetName(), Settings::Category::Items, "Verbose Notifications", "Verbose notifications",
-		&Toggles["Verbose Notifications"],
-		"Says whether a notification was from an item dropping or coming into range.");
-
+		"Applies the item display rules from the filter source, and shows the item "
+		"and affix level in an item's properties.");
+	Settings::AddEnum(GetName(), Settings::Category::Filter, "Item Filter", "Filter source",
+		&filterSourceSetting, FilterSource::Options(BH::itemFilterSource),
+		"Which file the item display rules are read from: the one BH ships with, "
+		"or any .cfg in the filters folder.");
 	Settings::AddEnum(GetName(), Settings::Category::Filter, "Filter Level", "Filter level",
 		&filterLevelSetting,
 		{ "0 - None", "1 - Minimal", "2 - Moderate", "3 - Aggressive" },
-		"How much of what drops is hidden, defined in the filter file BH.cfg.");
+		"How much of what drops is hidden, as the filter source defines it.");
 	Settings::AddEnum(GetName(), Settings::Category::Filter, "Ping Level", "Ping tiers <=",
 		&pingLevelSetting, { "0", "1", "2", "3", "4", "5", "6" },
 		"The highest tier that is still pinged.");
+
+	Settings::AddToggle(GetName(), Settings::Category::Filter, "Always Show Items",
+		"Always show ground items", &Toggles["Always Show Items"],
+		"Keeps ground item names on screen without having to hold the show items key.");
+	Settings::AddToggle(GetName(), Settings::Category::Filter, "Always Show Item Stat Ranges",
+		"Show item stat ranges", &Toggles["Always Show Item Stat Ranges"],
+		"Shows the range each variable stat could have rolled.");
+	Settings::AddToggle(GetName(), Settings::Category::Filter, "Suppress Invalid Stats", "Suppress invalid stats",
+		&Toggles["Suppress Invalid Stats"],
+		"Hides stat lines the game cannot describe rather than showing them raw.");
+
 	Settings::AddToggle(GetName(), Settings::Category::Filter, "Hide Redundant Scrolls", "Hide redundant scrolls",
 		&Toggles["Hide Redundant Scrolls"],
 		"Hides scrolls on the ground once you are carrying enough of them, or no tome to hold them.");
@@ -252,6 +256,18 @@ void Item::RegisterSettings() {
 		&scrollVisibilityThreshold, MAX_SCROLL_VISIBILITY_THRESHOLD,
 		"How many scrolls you have to be carrying before the rest are hidden.",
 		"Hide Redundant Scrolls");
+
+	Settings::AddHeading(GetName(), Settings::Category::Filter, Settings::Heading::Notifications);
+	Settings::AddToggle(GetName(), Settings::Category::Filter, "Item Drop Notifications", "Item drop notifications",
+		&Toggles["Item Drop Notifications"], "Says in chat when an item drops.");
+	Settings::AddToggle(GetName(), Settings::Category::Filter, "Item Close Notifications", "Item close notifications",
+		&Toggles["Item Close Notifications"], "Says in chat when an item is nearby.");
+	Settings::AddToggle(GetName(), Settings::Category::Filter, "Item Detailed Notifications",
+		"Item detailed notifications", &Toggles["Item Detailed Notifications"],
+		"Includes what is on the item rather than only its name.");
+	Settings::AddToggle(GetName(), Settings::Category::Filter, "Verbose Notifications", "Verbose notifications",
+		&Toggles["Verbose Notifications"],
+		"Says whether a notification was from an item dropping or coming into range.");
 
 	Settings::AddKey(GetName(), Settings::Category::Input, "Show Players Gear", "Show player's gear",
 		&showPlayer, "Shows the gear of the player your cursor is over.");
@@ -449,8 +465,8 @@ void __stdcall Item::OnProperties(wchar_t * wTxt)
 	int alvl = GetAffixLevel(ilvl, (BYTE)uInfo.attrs->qualityLevel, uInfo.attrs->magicLevel);
 	int quality = pItem->pItemData->dwQuality;
 	// Add alvl
-	if (Toggles["Advanced Item Display"].state && Toggles["Show iLvl"].state
-			&& ilvl != alvl 
+	if (Toggles["Advanced Item Display"].state
+			&& ilvl != alvl
 			&& (quality == ITEM_QUALITY_MAGIC || quality == ITEM_QUALITY_RARE || quality == ITEM_QUALITY_CRAFT)) {
 		int aLen = wcslen(wTxt);
 		swprintf_s(wTxt + aLen, MAXLEN - aLen,
@@ -460,11 +476,7 @@ void __stdcall Item::OnProperties(wchar_t * wTxt)
 	}
 
 	// Add ilvl
-	if (Toggles["Advanced Item Display"].state &&
-			Toggles["Show iLvl"].state &&
-			ilvl > 1 &&
-			no_ilvl_codes.count(uInfo.itemCode) == 0)
-	{
+	if (Toggles["Advanced Item Display"].state && ilvl > 1) {
 		int aLen = wcslen(wTxt);
 		swprintf_s(wTxt + aLen, MAXLEN - aLen,
 				L"%sItem Level: %d\n",

@@ -73,6 +73,25 @@ namespace Settings {
 		Add(descriptor);
 	}
 
+	// The version is only bumped when the options actually differ, so a module
+	// that refreshes them on every config reload does not make the settings window
+	// rebuild itself for nothing.
+	void SetOptions(std::string owner, std::string key,
+			std::vector<std::string> options) {
+		std::vector<Descriptor>& all = Store();
+		for (unsigned int i = 0; i < all.size(); i++) {
+			if (all[i].kind != KindEnum)
+				continue;
+			if (all[i].owner.compare(owner) != 0 || all[i].key.compare(key) != 0)
+				continue;
+			if (all[i].options == options)
+				return;
+			all[i].options = options;
+			VersionRef()++;
+			return;
+		}
+	}
+
 	void AddColor(std::string owner, std::string category, std::string key,
 			std::string label, unsigned int* value, std::string help,
 			std::string parent) {

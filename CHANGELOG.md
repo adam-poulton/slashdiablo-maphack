@@ -5,6 +5,12 @@ All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
 in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
 
 # Release Notes for 1.9.11h (Unreleased)
+* Add `Item Filter` (`BH_settings.cfg`, default `BH (default)`), choosing which file the
+  item display rules are read from. `BH (default)` is `BH.cfg`; every other option is a
+  `.cfg` in the `filters` folder beside it, named by its file name. Chosen as
+  `Filter source` on the Filter tab of the settings UI, and applied without a restart.
+  A filter that cannot be read falls back to `BH.cfg` without the choice being forgotten.
+  See [Advanced Item Display](docs/Advanced-Item-Display.md).
 * Add an in-game reference window with a responsive interface.
   Open it with numpad 9 or `.info`.
   Searchable tab for runewords, unique items, set items and Horadric Cube
@@ -17,7 +23,7 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
 * Fix BH windows swallowing mouse clicks in menus and lobby under certain circumstances.
 * Add `Scroll Visibility Threshold` option (`BH_settings.cfg`, default `19`) so ground
   scrolls can stay hidden until a tome drops to a chosen quantity, instead of only while
-  every tome is completely full. Editable from the Item tab of the settings UI.
+  every tome is completely full. Editable from the Filter tab of the settings UI.
 * Remove the legacy item name options `Alt Item Style`, `Color Mod`,
   `Shorten Item Names`, `Show Ethereal`, `Show Sockets` and `Show Rune Numbers`.
   Item names are now customised only through
@@ -26,8 +32,17 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
   keys are ignored. The docs show the display rules that reproduce short scroll
   and potion names, socket counts, ethereality and rune numbers.
 * `Advanced Item Display` now takes effect as soon as it is toggled rather than
-  needing a restart, and `Show iLvl` is shown beneath it in the settings UI since
-  it does nothing on its own.
+  needing a restart, and is the first setting on the Filter tab of the settings
+  UI, above the filter it applies.
+* Fold the Items tab of the settings UI into the Filter tab. Everything it held
+  decided what you see of an item, which is what the Filter tab is for, and the
+  quest drop warning joins the notifications there. No config keys changed.
+* Remove the `Show ILvl` option. The item level, and the affix level where it
+  differs, are part of an item's properties whenever `Advanced Item Display` is
+  on. Configs that set the key need no change - it is ignored.
+* Remove the `No Item Level` filter key, which named item codes to leave the item
+  level off. It was never documented and no shipped filter used it. Filters that
+  set it need no change - the key is ignored.
 * Relabel `Always Show Items` as "Always show items on the ground" and
   `Always Show Item Stat Ranges` as "Show item stat ranges" in the settings UI.
   The config keys are unchanged.

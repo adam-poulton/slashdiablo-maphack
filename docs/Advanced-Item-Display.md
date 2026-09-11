@@ -1,8 +1,14 @@
 ﻿By enabling the "Advanced Item Display" configuration parameter, you can customize exactly how items are displayed. It is the only mechanism for customizing item names: with it disabled, items are named exactly as the game names them.
 
-One other parameter works alongside it rather than being superseded by it. "Show iLvl" adds the item level and affix level to an item's properties, and needs "Advanced Item Display" enabled to do so.
+It also adds the item level, and the affix level where that differs, to an item's properties.
 
-To use Advanced Item Display, you will configure one or more rules in BH.cfg. Each rule looks like this:
+## Where the rules are read from
+
+The rules ship in BH.cfg, beside BH_settings.cfg. To keep more than one filter, put each as its own `.cfg` in a `filters` folder next to them, and choose between them with "Filter source" on the Filter tab of the settings window. A filter is named by its file name without the extension, so `filters\Grail.cfg` is offered as "Grail"; BH.cfg itself is "BH (default)". The choice is saved as `Item Filter` in BH_settings.cfg.
+
+A chosen filter that cannot be read - the file is gone, or it holds no `ItemDisplay` rules - falls back to BH.cfg, and says so in game. The name is kept either way, so a filter that is missing today is still selected once it is back. `.reload` rereads both the settings and the filter, and picks up filters added to the folder since the game started.
+
+To use Advanced Item Display, you will configure one or more rules in your filter. Each rule looks like this:
 
     ItemDisplay[ ...CONDITIONS... ]: ACTIONS
 
@@ -421,7 +427,7 @@ Above, the description will be "Heart of the Oak: KoVexPulThul (best base)" for 
 
 ## Native ilvl display (as of BH 1.9.9)
 
-The item level is now displayed within the item properties. Similarly, affix level is shown for magic, rare, and crafted quality items. Affix level is only shown if it is different than item level. Additionally, the user must set "Advanced Item Display" and "Show iLvl" for these features to be active. Below shows some rare gloves with item level and affix level display.
+The item level is now displayed within the item properties. Similarly, affix level is shown for magic, rare, and crafted quality items. Affix level is only shown if it is different than item level. Both are shown whenever "Advanced Item Display" is on. Below shows some rare gloves with item level and affix level display.
 
 ![image](https://user-images.githubusercontent.com/39288882/77383136-54b90400-6d3f-11ea-91d8-554a44c610a3.png)
 

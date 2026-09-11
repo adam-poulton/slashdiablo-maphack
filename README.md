@@ -80,7 +80,9 @@ fire while in game with the chat box closed.
 
 Configuration is split across two files, both shipped in
 [Packaging](Packaging): `BH_settings.cfg` for settings, and `BH.cfg` for
-advanced item display rules.
+advanced item display rules. Further filters go in a `filters` folder beside
+them, one `.cfg` each, and are chosen from the Filter tab of the settings
+window. See [Advanced Item Display](docs/Advanced-Item-Display.md).
 
 Another example config can be found in [planqi/bh_config](https://github.com/planqi/bh_config).
 
