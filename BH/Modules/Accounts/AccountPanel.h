@@ -79,6 +79,10 @@ class AccountPanel : public UIPanel {
 		// Whether the groups are still owed their one collapse.
 		bool foldOnPush;
 
+		// When the claims other clients hold were last asked about, so that the
+		// list is not asked on every frame.
+		unsigned long lastClaimPoll;
+
 		// Set where enter was heard, and acted on by the next draw. Keys arrive
 		// from the window procedure rather than from the draw, and finishing an
 		// edit rereads the file and relists the rows.
@@ -102,6 +106,12 @@ class AccountPanel : public UIPanel {
 		void ApplyLayout();
 		void ApplyColumns();
 		void PushRows();
+
+		// Asks again which accounts other clients hold, and lists the rows again
+		// where the answer moved. On a timer rather than every frame: a client
+		// signing in or out says nothing to the others, so the only way to notice
+		// is to look.
+		void PollClaims();
 
 		// Run in this order after the rows are listed: the collapse must not shut
 		// the group the reveal is about to open.

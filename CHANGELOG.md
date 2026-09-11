@@ -1,4 +1,4 @@
-﻿Changelog
+Changelog
 =========
 
 All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
