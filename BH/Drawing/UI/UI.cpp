@@ -359,10 +359,8 @@ void UI::LayoutChrome() {
 		// fixed window has none, and the inset would read as a ragged right edge.
 		footerRight->SetBaseX(IsResizable() ? RESIZE_GRIP_SIZE : 0);
 		if (footerAction) {
-			// After what the window says about itself, whose width does not change,
-			// and on the margin when it has nothing to say.
-			unsigned int saidWidth = footerLeft->GetXSize();
-			footerAction->SetBaseX(saidWidth > 0 ? saidWidth + FOOTER_ACTION_GAP : 0);
+			// After what the window says about itself, whose width does not change.
+			footerAction->SetBaseX(footerLeft->GetXSize() + FOOTER_ACTION_GAP);
 			footerAction->SetBaseY(footerY);
 		}
 	}
