@@ -65,6 +65,10 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
   item is lying in, taken from the item itself, rather than the one the character is
   standing in: the first drop packets of an area arrive before the client has moved
   your character into it. Captures record the item's area for the same reason.
+* Fix `AREAID` and `AREALVL` never matching an item lying in the world, so that an item
+  a rule kept only by its area was let through by the filter and then named `[blocked]`
+  on the ground. The area is now read from where the item lies, by the same walk of the
+  rooms the item's drop packet was judged by.
 * Item filtering is now always ordered, and the `Ordered Item Filtering` setting is
   gone. Whether a hide rule (a blank label) hides an item depends on whether it was
   written before or after the rules that name it, which is what lets a single

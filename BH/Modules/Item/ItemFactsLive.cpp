@@ -147,16 +147,16 @@ LiveItem::LiveItem(UnitAny* item)
 	facts.ground = item->dwMode == ITEM_MODE_ON_GROUND ||
 		item->dwMode == ITEM_MODE_BEING_DROPPED;
 
-	// Taken from the room holding the item rather than the one holding the
-	// character, so that it is the same answer the item's own drop packet was
-	// judged against.
-	if (facts.ground) {
-		// An item's path declares only its own position; the room sits where
-		// every unit's path keeps it.
-		Path* path = item->pPath;
-		if (path && path->pRoom1 && path->pRoom1->pRoom2 &&
-				path->pRoom1->pRoom2->pLevel)
-			facts.areaId = path->pRoom1->pRoom2->pLevel->dwLevelNo;
+	/*
+	 * Worked out from where the item lies, by the same walk of the rooms the
+	 * item's own drop packet was judged by, so that the two cannot disagree.
+	 * An item's path is an ItemPath, which carries its position and none of
+	 * what a Path keeps at the offsets beyond it, so the room a Path holds
+	 * cannot be read off one.
+	 */
+	if (facts.ground && item->pItemPath) {
+		facts.areaId = GetAreaAtPosition(item->pItemPath->dwPosX,
+			item->pItemPath->dwPosY);
 		facts.areaLevel = GetAreaLevel(facts.areaId);
 	}
 
