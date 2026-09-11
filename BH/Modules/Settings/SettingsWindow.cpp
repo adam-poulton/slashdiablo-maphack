@@ -39,9 +39,9 @@ void SettingsWindow::OnLoad() {
 		".settings in chat.");
 
 	// "Settings" rather than the version string. The title bar says which window
-	// this is, which matters now there is more than one of them; the version goes
-	// in the footer, where there is room for it and it does not change what
-	// section of UI.ini the geometry is remembered under.
+	// this is, which matters now there is more than one of them; the version
+	// follows it as a subtitle, which does not change what section of UI.ini the
+	// geometry is remembered under.
 	CreateUI("Settings", "Settings", SETTINGS_WINDOW_WIDTH, SETTINGS_WINDOW_HEIGHT);
 
 	GetUI()->EnableSearch("Search all settings by name");
@@ -62,7 +62,9 @@ void SettingsWindow::OnLoad() {
 	// inside UI itself, which meant collapsing any window at all wrote them.
 	GetUI()->SetOnMinimized([]() -> void { Settings::Persist(); });
 
-	GetUI()->SetFooterLeft(About::Version());
+	// The title already says BH is what this window belongs to, so the number
+	// alone goes beside it.
+	GetUI()->SetSubtitle(About::VersionNumber());
 }
 
 void SettingsWindow::LoadConfig() {

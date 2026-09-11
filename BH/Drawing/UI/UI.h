@@ -29,6 +29,7 @@ namespace Drawing {
 	#define FOOTER_BAND_GAP		6	// contents to footer line
 	#define FOOTER_BAND_HEIGHT	8	// the footer line itself
 	#define FOOTER_ACTION_GAP	10	// between what the window says and what it offers
+	#define TITLE_SUBTITLE_GAP	6	// title bar name to the subtitle beside it
 
 	// A window that has never been sized takes a share of the canvas rather than
 	// a fixed number of pixels. What the game reports is its own render
@@ -85,6 +86,7 @@ namespace Drawing {
 			bool resizing;//Corner grip held by the mouse
 			unsigned int resizeGrabX, resizeGrabY;//Corner to grab point, in pixels
 			std::string name;//Name of the UI, as drawn in its title bar
+			std::string subtitle;//Drawn after the name, in grey, when there is one
 			std::string configKey;//Section of UI.ini the window is remembered under
 			UITab* currentTab;//Current tab open at the time.
 			CRITICAL_SECTION crit;//Critical section
@@ -128,6 +130,12 @@ namespace Drawing {
 			// Takes a share of the canvas the first time there is a canvas to take
 			// a share of, for a window UI.ini had no size for.
 			void ResolveDefaultSize();
+
+			// The width of the title bar's text, and the drawing of it. A
+			// collapsed window is as wide as its text, so both its frame and its
+			// hit box are measured from the first of these.
+			unsigned int TitleTextWidth();
+			void DrawTitleText(unsigned int x, unsigned int y, bool hovered);
 
 			// Places the bands against the current size, and draws them. Both
 			// measure text, so both belong on the draw thread.
@@ -176,6 +184,13 @@ namespace Drawing {
 			void SetMinimized(bool newState);
 			void SetVisible(bool newState);
 			void SetName(std::string newName) { Lock(); name = newName;  Unlock(); };
+
+			// A note after the title, in grey so it reads as something about the
+			// window rather than as part of its name. Drawn collapsed as well as
+			// open, so that what it says - a version, for one - is on any
+			// screenshot of the window without anyone having to go looking.
+			std::string GetSubtitle() { return subtitle; };
+			void SetSubtitle(std::string text) { Lock(); subtitle = text; Unlock(); };
 			void SetDragged(bool state, bool write_file); // only write config to file if write_file is true
 			void SetDragged(bool state); // never writes the config file
 			void SetZOrder(unsigned int newZ) { Lock(); zOrder = newZ; Unlock(); };

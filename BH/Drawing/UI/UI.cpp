@@ -359,8 +359,10 @@ void UI::LayoutChrome() {
 		// fixed window has none, and the inset would read as a ragged right edge.
 		footerRight->SetBaseX(IsResizable() ? RESIZE_GRIP_SIZE : 0);
 		if (footerAction) {
-			// After what the window says about itself, whose width does not change.
-			footerAction->SetBaseX(footerLeft->GetXSize() + FOOTER_ACTION_GAP);
+			// After what the window says about itself, whose width does not change,
+			// and on the margin when it has nothing to say.
+			unsigned int saidWidth = footerLeft->GetXSize();
+			footerAction->SetBaseX(saidWidth > 0 ? saidWidth + FOOTER_ACTION_GAP : 0);
 			footerAction->SetBaseY(footerY);
 		}
 	}
@@ -441,11 +443,32 @@ void UI::DrawResizeGrip() {
 	}
 }
 
+// What the title bar reads: the name, and the subtitle after it when there is
+// one.
+unsigned int UI::TitleTextWidth() {
+	unsigned int width = Texthook::GetTextSize(GetName(), 0).x;
+	if (subtitle.length() > 0)
+		width += TITLE_SUBTITLE_GAP + Texthook::GetTextSize(subtitle, 0).x;
+	return width;
+}
+
+// The subtitle stays grey while the name lights up under the cursor: it says
+// something about the window rather than being part of what the bar offers.
+void UI::DrawTitleText(unsigned int x, unsigned int y, bool hovered) {
+	Texthook::Draw(x, y, false, 0, hovered ? Silver : White, GetName());
+	if (subtitle.length() > 0) {
+		// The text is passed as an argument rather than as the format string,
+		// since a subtitle carries whatever the window has to say about itself.
+		Texthook::Draw(x + Texthook::GetTextSize(GetName(), 0).x + TITLE_SUBTITLE_GAP,
+			y, false, 0, Grey, "%s", subtitle.c_str());
+	}
+}
+
 void UI::OnDraw() {
 	if (!IsVisible()) return;
 	EnsureInBounds();
 	if (IsMinimized()) {
-		int xSize = Texthook::GetTextSize(GetName(), 0).x + 8;
+		int xSize = TitleTextWidth() + 8;
 
 		if (IsDragged()) {
 			int newX = Hook::GetMouseX() - dragX;
@@ -472,7 +495,7 @@ void UI::OnDraw() {
 		int yPos = GetMinimizedY();
 		int inPos = InPos(Hook::GetMouseX(), Hook::GetMouseY(), GetMinimizedX(), yPos, xSize, TITLE_BAR_HEIGHT);
 		Framehook::Draw(GetMinimizedX(), yPos, xSize, TITLE_BAR_HEIGHT, 0, BTOneHalf);
-		Texthook::Draw(GetMinimizedX() + 4, yPos + 3, false, 0, (inPos?Silver:White), GetName());
+		DrawTitleText(GetMinimizedX() + 4, yPos + 3, inPos != 0);
 	} else {
 		if (IsDragged()) {
 			int newX = Hook::GetMouseX() - dragX;
@@ -504,7 +527,7 @@ void UI::OnDraw() {
 		LayoutChrome();
 		Framehook::Draw(GetX(), GetY(), GetXSize(), GetYSize(), 0, (IsActive()?BTNormal:BTOneHalf));
 		Framehook::Draw(GetX(), GetY(), GetXSize(), TITLE_BAR_HEIGHT, 0, BTNormal);
-		Texthook::Draw(GetX() + 4, GetY () + 3, false, 0, InTitle(Hook::GetMouseX(), Hook::GetMouseY())?Silver:White, GetName());
+		DrawTitleText(GetX() + 4, GetY() + 3, InTitle(Hook::GetMouseX(), Hook::GetMouseY()));
 		for (list<UITab*>::iterator it = Tabs.begin(); it != Tabs.end(); it++)
 			(*it)->OnDraw();
 		DrawChrome();
@@ -530,7 +553,7 @@ void UI::EnsureInBounds() {
 		// A collapsed window is only as wide as its title bar, so clamping it
 		// against the full window width would drag wide windows back off their
 		// saved position every frame.
-		unsigned int titleWidth = Texthook::GetTextSize(GetName(), 0).x + 8;
+		unsigned int titleWidth = TitleTextWidth() + 8;
 		if (titleWidth < screenWidth && GetMinimizedX() + titleWidth > screenWidth)
 			SetMinimizedX(screenWidth - titleWidth);
 		if (TITLE_BAR_HEIGHT < screenHeight && GetMinimizedY() + TITLE_BAR_HEIGHT > screenHeight)
@@ -609,7 +632,7 @@ bool UI::OnLeftClick(bool up, unsigned int mouseX, unsigned int mouseY) {
 	}
 	if (IsMinimized()) {
 		int yPos = GetMinimizedY();
-		int xSize = Texthook::GetTextSize(GetName(), 0).x + 8;
+		int xSize = TitleTextWidth() + 8;
 		int inPos = InPos(Hook::GetMouseX(), Hook::GetMouseY(), GetMinimizedX(), yPos, xSize, TITLE_BAR_HEIGHT);
 		if (inPos /*&& GetAsyncKeyState(VK_CONTROL)*/) 
 		{
