@@ -1,14 +1,18 @@
 #pragma once
 
-#define VERSION "BH 1.9.11h"
+#define VERSION "1.9.11h"
 
 #ifdef SHA
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
-#define BH_VERSION VERSION "." TOSTRING(SHA)
+#define BH_VERSION_NUMBER VERSION "." TOSTRING(SHA)
 #else
-#define BH_VERSION VERSION
+#define BH_VERSION_NUMBER VERSION
 #endif
+
+// The version as it is quoted back to the user, product name and all. Anywhere
+// the name is already on screen wants BH_VERSION_NUMBER instead.
+#define BH_VERSION "BH " BH_VERSION_NUMBER
 
 
 #define CODE_PAGE 1252 // windows-1252	ANSI Latin 1; Western European (Windows)

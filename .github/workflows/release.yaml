@@ -24,11 +24,11 @@ jobs:
       id: version
       run: |
         $line = Select-String -Path BH/Constants.h -Pattern '^#define VERSION "(.+)"' | Select-Object -First 1
-        $version = $line.Matches[0].Groups[1].Value
-        "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-        # The changelog and the archive name use the bare number, without the
-        # "BH " that the in-game version string carries.
-        "number=$($version -replace '^BH\s+', '')" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        $number = $line.Matches[0].Groups[1].Value
+        # The changelog and the archive name use the bare number; the release is
+        # named the way the version reads in game, product name and all.
+        "number=$number" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        "version=BH $number" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
     - name: Build the release archive
       # One download holding everything a user needs: the DLL, the configs, the

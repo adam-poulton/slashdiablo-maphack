@@ -8,6 +8,10 @@ namespace About {
 		return BH_VERSION;
 	}
 
+	std::string VersionNumber() {
+		return BH_VERSION_NUMBER;
+	}
+
 	std::string Branch() {
 		return "planqi Resurgence/Slash branch";
 	}
