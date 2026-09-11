@@ -15,6 +15,12 @@ using namespace Drawing;
 #define AP_ACTION_GAP		14	// between two things to click on one row
 #define AP_IN_USE_GAP		4	// account name to what is said after it
 
+// How often the claims other clients hold are asked about again, in
+// milliseconds. Slow enough that a panel left open costs nothing, and quick
+// enough that another client signing in marks the account here while the player
+// is still reading the list.
+#define AP_CLAIM_POLL_MS	500
+
 // What the label box is built at, before there is a panel to ask how wide it is.
 // ApplyLayout gives it the real width. Wider than the padding it subtracts, so
 // GetCharacterLimit() cannot underflow if anything draws first.
@@ -72,6 +78,7 @@ AccountPanel::AccountPanel(UI* ui, AccountActions* actions) :
 		laidOut(false),
 		needsRefresh(true),
 		foldOnPush(true),
+		lastClaimPoll(0),
 		commitRequested(false),
 		drawnForgetAsked(false),
 		drawnFavourite(false),
@@ -245,6 +252,28 @@ void AccountPanel::PushRows() {
 	RevealInHand();
 }
 
+// The marks go stale on their own: a client signing in or out says nothing to the
+// others, so the only way to learn of it is to ask again. Asking opens and closes
+// a mutex per account, which is cheap rather than free, hence the timer.
+//
+// The rows are listed again only where an answer moved, so a panel with nothing
+// signing in around it is left alone.
+void AccountPanel::PollClaims() {
+	unsigned long now = (unsigned long)GetTickCount();
+	if (lastClaimPoll != 0 && (now - lastClaimPoll) < AP_CLAIM_POLL_MS)
+		return;
+	lastClaimPoll = now;
+
+	for (unsigned int i = 0; i < rows.size(); i++) {
+		if (rows[i].heading)
+			continue;
+		if (actions->InUse(rows[i].account) != rows[i].inUse) {
+			PushRows();
+			return;
+		}
+	}
+}
+
 // Once, on the first push with anything in it. Rows are pushed again for every
 // mark, label and account kept, so refolding each time would shut a group under
 // the player as they worked in it.
@@ -390,6 +419,8 @@ void AccountPanel::OnDraw() {
 	if (needsRefresh) {
 		needsRefresh = false;
 		PushRows();
+	} else {
+		PollClaims();
 	}
 
 	// A left click signs in as the account it landed on, and is the whole of

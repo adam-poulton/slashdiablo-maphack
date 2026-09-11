@@ -30,6 +30,22 @@ std::string ReadControl(Control* box) {
 	return said;
 }
 
+// Who the realm says this client is signed in as, and nothing at all where it
+// says nobody: on the login screen, out of a realm, or before a sign-in has been
+// answered. What the realm itself holds rather than what was typed at it, so a
+// sign-in that was refused claims no account.
+std::string SignedInAccount() {
+	BnetData* realm = p_D2LAUNCH_BnData ? *p_D2LAUNCH_BnData : NULL;
+	if (!realm)
+		return std::string();
+
+	const char* said = realm->szAccountName;
+	unsigned int length = 0;
+	while (length < sizeof(realm->szAccountName) && said[length])
+		length++;
+	return std::string(said, length);
+}
+
 void WriteControl(Control* box, const std::string& text) {
 	if (!box)
 		return;
@@ -114,14 +130,13 @@ void AccountsWindow::OnOOGDraw() {
 	if (nowOnLoginScreen != onLoginScreen) {
 		onLoginScreen = nowOnLoginScreen;
 		if (onLoginScreen) {
-			// Back at the login screen, so this client is signed in as nothing
-			// and holds no account against the others.
-			claim.Drop();
 			// Another client may have kept an account since this one last looked,
 			// and backing out to the login screen is what asks again.
 			Reread();
 		}
 	}
+
+	HoldSignedInAccount();
 
 	Toggles[ACCOUNTS_TOGGLE_NAME].state = onLoginScreen;
 	GetUI()->SetVisible(onLoginScreen);
@@ -131,6 +146,28 @@ void AccountsWindow::OnOOGDraw() {
 	// and not this window's. Called from here rather than from OnDraw() because
 	// this is the one window drawn outside a game.
 	WindowModule::OnDraw();
+}
+
+// The claim follows the realm rather than the act of signing in, which is what
+// lets an account typed into the game's own boxes be marked as in use alongside
+// one clicked in the panel. It also means a sign-in that failed claims nothing,
+// there being no account the realm says this client is.
+void AccountsWindow::HoldSignedInAccount() {
+	// Switched off, nothing of this feature runs, claims included. The login
+	// screen holds no claim either, whatever the realm was last told: what it
+	// says of a client sitting there is stale, and a stale claim is an account
+	// the other clients are told to keep off for nothing.
+	std::string signedIn = (showPanel && !onLoginScreen) ?
+		SignedInAccount() : std::string();
+	if (signedIn.empty()) {
+		claim.Drop();
+		return;
+	}
+
+	// Told apart without regard to case, as the realm tells account names apart,
+	// so that the claim is not taken again every frame for the same account.
+	if (!claim.Held() || ToLower(claim.Name()) != ToLower(Trim(signedIn)))
+		claim.Take(signedIn);
 }
 
 bool AccountsWindow::InUse(const std::string& accountName) {
@@ -160,10 +197,8 @@ bool AccountsWindow::SignIn(const Account& account) {
 	PostMessage(window, WM_KEYDOWN, VK_RETURN, 0);
 	PostMessage(window, WM_KEYUP, VK_RETURN, 0);
 
-	// Held from here, so that another client sees the account as in use for as
-	// long as this one is past the login screen. Let go of when the login screen
-	// comes back, however it comes back.
-	claim.Take(account.name);
+	// Nothing is claimed here. Whether this worked is the realm's answer to give,
+	// and HoldSignedInAccount takes the claim once it has given it.
 	return true;
 }
 

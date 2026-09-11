@@ -36,8 +36,8 @@ class AccountsWindow : public WindowModule, public AccountActions {
 		// never the thing that is saved. AccountFile's header says why.
 		AccountStore accounts;
 
-		// Held while this client is past the login screen as an account, so that
-		// another client can see the account is in use.
+		// Held while the realm says this client is signed in as an account, so
+		// that another client can see the account is in use.
 		AccountClaim claim;
 
 		bool onLoginScreen;		// as of the last frame drawn
@@ -48,6 +48,12 @@ class AccountsWindow : public WindowModule, public AccountActions {
 		bool showPanel;
 
 		void Reread();
+
+		// Claims whoever the realm says this client is signed in as, and lets go
+		// where it says nobody. Asked on every frame drawn outside a game, which
+		// is what marks an account signed in by hand as well as one signed in
+		// from the panel.
+		void HoldSignedInAccount();
 
 	public:
 		AccountsWindow() : WindowModule("Accounts", ACCOUNTS_TOGGLE_NAME, "None"),
