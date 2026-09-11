@@ -63,8 +63,11 @@ void SettingsWindow::OnLoad() {
 	GetUI()->SetOnMinimized([]() -> void { Settings::Persist(); });
 
 	// The title already says BH is what this window belongs to, so the number
-	// alone goes beside it.
-	GetUI()->SetSubtitle(About::VersionNumber());
+	// alone goes beside it - and the release alone, since the subtitle shows on
+	// the collapsed title bar, which is no place for a commit hash. The build is
+	// in the footer, a glance away for anyone reporting a bug.
+	GetUI()->SetSubtitle(About::ReleaseNumber());
+	GetUI()->SetFooterLeft(About::VersionNumber());
 }
 
 void SettingsWindow::LoadConfig() {

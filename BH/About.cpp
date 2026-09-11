@@ -12,6 +12,10 @@ namespace About {
 		return BH_VERSION_NUMBER;
 	}
 
+	std::string ReleaseNumber() {
+		return VERSION;
+	}
+
 	std::string Branch() {
 		return "planqi Resurgence/Slash branch";
 	}

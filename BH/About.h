@@ -11,6 +11,10 @@ namespace About {
 	// already on screen.
 	std::string VersionNumber();
 
+	// The release on its own, without the build it was cut from. What a user
+	// answers "which version?" with; the build is for a bug report.
+	std::string ReleaseNumber();
+
 	// Which build of BH this is.
 	std::string Branch();
 
