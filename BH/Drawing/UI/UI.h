@@ -131,7 +131,7 @@ namespace Drawing {
 			// a share of, for a window UI.ini had no size for.
 			void ResolveDefaultSize();
 
-			// The width of the title bar's text, and the drawing of it. A
+			// The width of the collapsed title bar's text, and the drawing of it. A
 			// collapsed window is as wide as its text, so both its frame and its
 			// hit box are measured from the first of these.
 			unsigned int TitleTextWidth();
@@ -186,9 +186,10 @@ namespace Drawing {
 			void SetName(std::string newName) { Lock(); name = newName;  Unlock(); };
 
 			// A note after the title, in grey so it reads as something about the
-			// window rather than as part of its name. Drawn collapsed as well as
-			// open, so that what it says - a version, for one - is on any
-			// screenshot of the window without anyone having to go looking.
+			// window rather than as part of its name. Drawn on the collapsed title
+			// bar, where what it says - a version, for one - lands on a screenshot
+			// of a window nobody thought to open first. An open window says it in
+			// the footer instead.
 			std::string GetSubtitle() { return subtitle; };
 			void SetSubtitle(std::string text) { Lock(); subtitle = text; Unlock(); };
 			void SetDragged(bool state, bool write_file); // only write config to file if write_file is true
