@@ -14,6 +14,5 @@
 #include "Modules\Party\Party.h"
 #include "Modules\ChatColor\ChatColor.h"
 #include "Modules\GambleRefresh\GambleRefresh.h"
-#include "Modules\Info\InfoWindow.h"
-#include "Modules\Settings\SettingsWindow.h"
+#include "Modules\Codex\CodexWindow.h"
 #include "Modules\Settings\SettingsWindow.h"

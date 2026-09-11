@@ -317,7 +317,7 @@ std::string Tables::getString(int index){
  * Wording one property reads the properties table for its row and the stat cost
  * table for each stat that row grants, which walked is the better part of a
  * thousand rows for a single line. Both are keyed instead, so a line costs a
- * handful of lookups and the Info window can word a whole list without the
+ * handful of lookups and the codex can word a whole list without the
  * player waiting on it.
  */
 void Tables::buildLookups(){

@@ -128,7 +128,7 @@ void BH::Initialize()
 	new ChatColor();
 	new GambleRefresh();
 	new AccountsWindow();
-	new InfoWindow();
+	new CodexWindow();
 	new SettingsWindow();
 
 	moduleManager->LoadModules();

@@ -14,8 +14,8 @@ BH:
   .help (.commands) - Lists every command BH answers
   .reload - Rereads BH.cfg and BH_settings.cfg from disk
   .save - Writes the current settings back to BH_settings.cfg
-Info:
-  .info <search> - Opens the info window on the tab last accessed
+Codex:
+  .codex <search> - Opens the codex on the tab last in front
   .rw (.runewords) <search> - Opens the Runewords tab
   .uni (.uniques) <search> - Opens the Uniques tab
   .set (.sets) <search> - Opens the Sets tab
@@ -54,15 +54,15 @@ without an answer.
 | `.reload` | | Rereads `BH.cfg` and `BH_settings.cfg` from disk. |
 | `.save` | | Writes the current settings back to `BH_settings.cfg`. |
 
-## Info
+## Codex
 
-The [Info window](Info-Window.md), and each of its tabs. Every one of these takes
+The [codex](Codex.md), and each of its tabs. Every one of these takes
 an optional search, so `.uni griffon` opens the Uniques tab with `griffon`
 already typed in its search box.
 
 | Command | Also | What it does |
 | --- | --- | --- |
-| `.info` | | Opens the window on whichever tab was last in front. |
+| `.codex` | | Opens the codex on whichever tab was last in front. |
 | `.rw` | `.runewords` | Opens the Runewords tab. |
 | `.uni` | `.uniques` | Opens the Uniques tab. |
 | `.set` | `.sets` | Opens the Sets tab. |

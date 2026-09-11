@@ -1,4 +1,4 @@
-#include "InfoWindow.h"
+#include "CodexWindow.h"
 #include "../../BH.h"
 #include "../../Common.h"
 #include "../../D2Helpers.h"
@@ -10,16 +10,16 @@ using namespace Drawing;
 // What the window asks for the first time it is opened. A window with nothing
 // remembered in UI.ini takes a share of the canvas instead, never less than
 // this, so on anything past a vanilla resolution it opens larger.
-#define INFO_WINDOW_WIDTH	400
-#define INFO_WINDOW_HEIGHT	420
+#define CODEX_WINDOW_WIDTH	400
+#define CODEX_WINDOW_HEIGHT	420
 
-void InfoWindow::OnLoad() {
+void CodexWindow::OnLoad() {
 	LoadConfig();
 
-	RegisterToggleKey(Settings::Category::Input, "Info window",
-		"Opens the window of runewords, uniques, sets, recipes and bases.");
+	RegisterToggleKey(Settings::Category::Input, "Codex",
+		"Opens the codex of runewords, uniques, sets, recipes and bases.");
 
-	CreateUI("Info", "Info", INFO_WINDOW_WIDTH, INFO_WINDOW_HEIGHT);
+	CreateUI("Codex", "Codex", CODEX_WINDOW_WIDTH, CODEX_WINDOW_HEIGHT);
 
 	// One search box for every panel. Each panel supplies its own hint as it
 	// comes forward, so the box still says what searching it will do.
@@ -45,19 +45,19 @@ void InfoWindow::OnLoad() {
 
 // The window's own name, which opens it on whichever panel was last in front.
 // The panels add their own.
-std::vector<ChatCommand> InfoWindow::GetOwnCommands() {
+std::vector<ChatCommand> CodexWindow::GetOwnCommands() {
 	std::vector<ChatCommand> commands;
-	commands.push_back(ChatCommand{ "info", {}, "<search>",
-		"Opens the window on the tab last in front" });
+	commands.push_back(ChatCommand{ "codex", {}, "<search>",
+		"Opens the codex on the tab last in front" });
 	return commands;
 }
 
 // Only the part that is particular to this window; opening it on the right panel
 // with the right search is every window's behaviour and belongs to the base.
-void InfoWindow::OnUserInput(const wchar_t* msg, bool fromGame, bool* block) {
+void CodexWindow::OnUserInput(const wchar_t* msg, bool fromGame, bool* block) {
 	if (!Tables::isInitialized()) {
 		*block = true;
-		Print("\377c4Info:\377c0 still loading game data, try again in a moment.");
+		Print("\377c4Codex:\377c0 still loading game data, try again in a moment.");
 		return;
 	}
 	WindowModule::OnUserInput(msg, fromGame, block);
