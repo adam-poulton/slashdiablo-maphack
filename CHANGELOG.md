@@ -2,104 +2,88 @@
 =========
 
 All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
-in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
+in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
 
-# Release Notes for 1.9.11h (Unreleased)
+# Release Notes for 1.10.0 (2026-09-12)
+* Rework the settings UI. Every setting is now searchable by name from the box at
+  the top, which answers from all four tabs at once, so a setting can be found
+  without knowing which tab holds it. The window is resizable, and remembers its
+  size and position. Settings that only matter while another is on are now grouped
+  beneath it rather than sitting beside it as a flat list. Open it with `.settings`,
+  or bind a key to it on the Input tab.
+* Add the account manager (`Accounts Panel` in `BH_settings.cfg`, default on), a panel
+  drawn on the login screen listing the accounts you have saved. Add a new entry by
+  entering your details as you normally would and then click 'Save new password'.
+  Click an existing entry to automatically log in; right click one to label it,
+  favourite it or forget it. Favourites sit above the rest, and a label groups the
+  accounts under it. An account another running client is signed in as is marked
+  `(in use)`, and stays clickable, so you can still choose to sign in multiuple
+  clients to the same account. Labelled `Account manager` on the Lobby tab of the
+  settings UI; switched off, nothing is drawn and the accounts file is never read.
+  Accounts are kept in `BH_accounts.json` beside the settings, and the passwords
+  in it are stored as typed, in plain text. This is not a password manager, it's a
+  convenience feature.
 * Add `Item Filter` (`BH_settings.cfg`, default `BH (default)`), choosing which file the
   item display rules are read from. `BH (default)` is `BH.cfg`; every other option is a
   `.cfg` in the `filters` folder beside it, named by its file name. Chosen as
   `Filter source` on the Filter tab of the settings UI, and applied without a restart.
   A filter that cannot be read falls back to `BH.cfg` without the choice being forgotten.
-  See [Advanced Item Display](docs/Advanced-Item-Display.md).
-* Add the `Codex`, an in-game reference window with a responsive interface.
-  Open it with numpad 9 or `.codex`.
-  Searchable tab for runewords, unique items, set items and Horadric Cube
-  recipes. Commands `.rw <search>` `.uni <search>` `.set <search>` `.cube <search>`
+* Add the `Codex`, an in-game reference window that scales to the size you give it
+  rather than a fixed one. Open it with numpad 9 or `.codex`. Change or disable the
+  binding in settings. Searchable tabs for runewords, unique items, set items,
+  Horadric Cube recipes and item bases, each reached directly with `.rw <search>`,
+  `.uni <search>`, `.set <search>`, `.cube <search>` and `.base <search>`.
   On by default, and configurable as `Codex` in `BH_settings.cfg`.
   See [Codex](docs/Codex.md).
 * Add `.help`, also reached as `.commands`, listing every chat command BH answers. See
   [Chat Commands](docs/Chat-Commands.md).
-* Fix BH windows not staying where you put them when multiple were on screen.
-* Fix BH windows swallowing mouse clicks in menus and lobby under certain circumstances.
+* Add `AREALVL` and `AREAID` filter conditions.
+  See [Area ids and area levels](docs/Advanced-Item-Display.md#area-ids-and-area-levels).
+* Rename the `Smart Scrolls` option to `Hide Redundant Scrolls`. Scrolls on the ground
+  are hidden when every tome you carry is above the threshold, or when you carry no
+  tome that takes them.
 * Add `Scroll Visibility Threshold` option (`BH_settings.cfg`, default `19`) so ground
-  scrolls can stay hidden until a tome drops to a chosen quantity, instead of only while
-  every tome is completely full. Editable from the Filter tab of the settings UI.
+  scrolls can stay hidden until a tome drops to the chosen quantity, instead of only
+  while every tome is completely full. Editable from the Filter tab of the settings UI.
 * Remove the legacy item name options `Alt Item Style`, `Color Mod`,
   `Shorten Item Names`, `Show Ethereal`, `Show Sockets` and `Show Rune Numbers`.
   Item names are now customised only through
   [Advanced Item Display](docs/Advanced-Item-Display.md); with it off, items are
   named as the game names them. Configs that set these keys need no change - the
-  keys are ignored. The docs show the display rules that reproduce short scroll
-  and potion names, socket counts, ethereality and rune numbers.
-* `Advanced Item Display` now takes effect as soon as it is toggled rather than
-  needing a restart, and is the first setting on the Filter tab of the settings
-  UI, above the filter it applies.
-* Fold the Items tab of the settings UI into the Filter tab. Everything it held
-  decided what you see of an item, which is what the Filter tab is for, and the
-  quest drop warning joins the notifications there. No config keys changed.
-* Remove the `Show ILvl` option. The item level, and the affix level where it
-  differs, are part of an item's properties whenever `Advanced Item Display` is
-  on. Configs that set the key need no change - it is ignored.
-* Remove the `No Item Level` filter key, which named item codes to leave the item
-  level off. It was never documented and no shipped filter used it. Filters that
-  set it need no change - the key is ignored.
-* Relabel `Always Show Items` as "Always show items on the ground" and
-  `Always Show Item Stat Ranges` as "Show item stat ranges" in the settings UI.
-  The config keys are unchanged.
-* Use sentence case for every label and section heading in the settings UI,
-  matching the headings that already read that way. Labels only: no config key
-  changes, and searching still finds a setting by either its label or its key.
-* Rename the `Smart Scrolls` option to `Hide Redundant Scrolls`. Configs that set
-  `Smart Scrolls` need updating; the old key is ignored and the option reverts to its
-  default of off.
+  keys are ignored. Use the packaged filter (or write your own) instead.
+* Add `Fail To Join` (`BH_settings.cfg`, default `3000` ms), tuning how long the client
+  waits for a game to open before deeming it a failure to join. Tuning this too low will
+  stop you joining valid games if you have a slow connection. Editable from the Lobby
+  tab of the settings UI.
+* Add `Join Notice` (`BH_settings.cfg`, default `90` frames), tuning how long the failed
+  to join notice stays on screen. Editable from the Lobby tab of the settings UI.
+* Make item filtering always ordered. Whether a hide rule (a blank label) hides an
+  item depends on whether it was the first matching rule. A rule ending in
+  `%CONTINUE%` decorates an item rather than settling it, so it does not protect the
+  item from a subsequent hide rule. See
+  [Advanced Item Display](docs/Advanced-Item-Display.md#rule-order-decides-what-is-hidden).
+* Add `Show Experience Range`, a ring around your player icon showing how close you
+  have to be to a monster's death to gain experience from it.
 * Fix an item display rule marked `%NOTIFY-dead%` still announcing the item in chat
   when a later rule also matched it. The rule that draws the item on the automap now
-  also decides whether it is announced, as it already did for everything else it says.
-* Fix item display rules using `CLVL`, `CRAFTALVL`, `AREAID` or `AREALVL` keeping the
-  answer they gave before you levelled up or changed area. Items already seen were
-  judged again only on rejoining the game; they are now judged again when your level
-  or your area changes.
-* Fix `AREAID` and `AREALVL` reading the area you came from for the first items of an
-  area you have just entered, so that a rule hiding items outside town let the first
-  drop of the area through and then named it `[blocked]`. The area is now the one the
-  item is lying in, taken from the item itself, rather than the one the character is
-  standing in: the first drop packets of an area arrive before the client has moved
-  your character into it. Captures record the item's area for the same reason.
-* Fix `AREAID` and `AREALVL` never matching an item lying in the world, so that an item
-  a rule kept only by its area was let through by the filter and then named `[blocked]`
-  on the ground. The area is now read from where the item lies, by the same walk of the
-  rooms the item's drop packet was judged by.
-* Item filtering is now always ordered, and the `Ordered Item Filtering` setting is
-  gone. Whether a hide rule (a blank label) hides an item depends on whether it was
-  written before or after the rules that name it, which is what lets a single
-  catch-all near the top of `BH.cfg` hide a whole category. Configs that set the key
-  need no change - it is ignored. A rule ending in `%CONTINUE%` decorates an item
-  rather than settling it, so it does not protect the item from a hide rule above it;
-  an exception has to be a rule that stops. Replaying 1,351 recorded drops from 11
-  sessions, no item changed between the old default and this. See
-  [Advanced Item Display](docs/Advanced-Item-Display.md#rule-order-decides-what-is-hidden).
+  also decides whether it is announced, as it already did for everything else.
+* Fix item display rules using `CLVL` or `CRAFTALVL` keeping the answer they gave before
+  you levelled up. Items already seen were judged again only on rejoining the game;
+  they are now judged again when your level changes.
+* Fix Save and Exit freezing the client for several seconds, worst in large or
+  graphically varied levels such as Halls of Vaught and Pit Level 2. The game capped
+  its background archive reads at 256KB/s, and leaving a game waits on every read
+  still outstanding, so the exit was paced by that cap rather than by any work.
+  Just think about all that time you spent waiting for the game to exit at Nihl, and
+  your CPU was literally being instructed to sleep. (Fixed for 1.13c only)
+* Fix BH windows not staying where you put them when multiple were on screen.
+* Fix BH windows swallowing mouse clicks in menus and lobby under certain circumstances.
 * Releases now ship a single archive holding `BH.dll`, `BH.cfg`, `BH_settings.cfg`,
   `buffs.mpq` and installation instructions, instead of loose files. Release notes
   are the changelog entry for the version plus the install steps, rather than the
   commit log. See [Installation](docs/Installation.md).
-* Add `Show Experience Range`, a broken ring around your automap icon at the 80
-  subtiles a monster's death has to be within for the party to share its
-  experience. Off by default; the colour is `Experience Range Color` in
-  `BH_settings.cfg`, and both are on the Map tab of the settings UI.
-* Fix Save and Exit freezing the client for several seconds, worst in large or
-  graphically varied levels such as Halls of Vaught and Pit Level 2. The game caps
-  its background archive reads at 256KB/s, and leaving a game waits on every read
-  still outstanding, so the exit was paced by that cap rather than by any work.
-  1.13c only.
-* The keys that open the codex (`Codex`, default numpad 9), the
-  character stats screen (`Character Stats`, default 8) and the settings window
-  itself (`Show Settings`, default numpad 8) can be rebound from the settings UI,
-  under `Panel hotkeys` on the Input tab, rather than only by editing
-  `BH_settings.cfg`. The settings window is still reached by typing `.settings`
-  in chat, whatever its key is set to.
-* The reload hotkey (`Reload Config`, default numpad 0) is on the Input tab of the
-  settings UI too, with `Ctrl+R Reload Config` shown beneath it as the second
-  binding for the same reload. Both keep their defaults: numpad 0 and ctrl-R.
+* Feedback is always welcome. If something in this release reads wrong, behaves wrong or
+  is missing an option you relied on, say so and it can be fixed.
 
 # Release Notes for 1.9.11g (2026-08-19)
 * Add `Monster Curses` option (`BH_settings.cfg`, default `True, None`) to mark

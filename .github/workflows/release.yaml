@@ -2,7 +2,7 @@ name: Release
 
 on:
   push:
-    tags: ['20*']
+    tags: ['v*']
 
 jobs:
   release:
@@ -29,6 +29,13 @@ jobs:
         # named the way the version reads in game, product name and all.
         "number=$number" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
         "version=BH $number" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        # The tag names the version it builds, so a tag pushed against a stale
+        # Constants.h fails here rather than shipping an archive and a release
+        # page that disagree with the tag.
+        $tag = $env:GITHUB_REF_NAME
+        if ($tag -ne "v$number") {
+          throw "Tag $tag does not match VERSION $number in BH/Constants.h. Expected v$number."
+        }
 
     - name: Build the release archive
       # One download holding everything a user needs: the DLL, the configs, the

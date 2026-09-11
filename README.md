@@ -32,6 +32,8 @@ Major features include:
   * Configurable monster colors (see [Monster Colors](docs/Monster-Colors.md))
   * Indicators of current level's exits
   * Chests shown on the automap
+  * Ring showing how close you have to be to a monster's death to gain
+    experience from it
   * Configurable automap overlay offset for non-vanilla resolutions (1.13c only)
 * Configurable item display features (see [Advanced Item Display](docs/Advanced-Item-Display.md))
   * Modify item names and add sockets, item levels, ethereality
@@ -59,12 +61,24 @@ Major features include:
   * Record each run's length, XP gained, kill counts and drops to a file in
     your Diablo `data` directory (off by default)
 * Kill counters and kill rates (unique/champion/total) on the automap
-* Tabbed in-game codex (default hotkey: numpad 9): a runeword recipe
-  lookup, a unique item lookup and a set item lookup, each searchable and each
-  with its own chat command (`.rw`, `.uni` and `.set`) - see
+* Tabbed in-game codex (default hotkey: numpad 9): runeword, unique item, set
+  item, Horadric Cube recipe and item base lookups, each searchable and each with
+  its own chat command (`.rw`, `.uni`, `.set`, `.cube` and `.base`) - see
   [Codex](docs/Codex.md)
 * Gamble refresh hotkey for Gheed, Jamella and Anya (default: F5)
 * Reload configs in-game with ctrl+r or numpad 0 (both configurable)
+* Account manager on the login screen: save the accounts you sign in with, click
+  one to log in, and label or favourite them. An account another running client
+  is signed in as is marked. Off is a single setting, and the accounts file is
+  then never read - note that it holds passwords in plain text
+* Searchable settings window (`.settings`): every setting findable by name across
+  all tabs, resizable, and remembering its size and position
+* `.help` lists every chat command BH answers - see
+  [Chat Commands](docs/Chat-Commands.md)
+* Tunable lobby waits: how long the client waits before calling a join failed,
+  and how long it then holds the notice, so a failed join wastes less time
+* Save and Exit returns to the lobby promptly instead of freezing the client for
+  several seconds in large levels (1.13c only)
 
 Imports from LoliSquad's branch:
 * Cow King and his pack now has a separate color on the minimap
