@@ -441,8 +441,8 @@ void UI::DrawResizeGrip() {
 	}
 }
 
-// What the title bar reads: the name, and the subtitle after it when there is
-// one.
+// What the collapsed title bar reads: the name, and the subtitle after it when
+// there is one.
 unsigned int UI::TitleTextWidth() {
 	unsigned int width = Texthook::GetTextSize(GetName(), 0).x;
 	if (subtitle.length() > 0)
@@ -452,6 +452,8 @@ unsigned int UI::TitleTextWidth() {
 
 // The subtitle stays grey while the name lights up under the cursor: it says
 // something about the window rather than being part of what the bar offers.
+// Only the collapsed bar draws it - an open window has a footer to say the same
+// thing in more detail, and saying it twice on one window reads as clutter.
 void UI::DrawTitleText(unsigned int x, unsigned int y, bool hovered) {
 	Texthook::Draw(x, y, false, 0, hovered ? Silver : White, GetName());
 	if (subtitle.length() > 0) {
@@ -525,7 +527,7 @@ void UI::OnDraw() {
 		LayoutChrome();
 		Framehook::Draw(GetX(), GetY(), GetXSize(), GetYSize(), 0, (IsActive()?BTNormal:BTOneHalf));
 		Framehook::Draw(GetX(), GetY(), GetXSize(), TITLE_BAR_HEIGHT, 0, BTNormal);
-		DrawTitleText(GetX() + 4, GetY() + 3, InTitle(Hook::GetMouseX(), Hook::GetMouseY()));
+		Texthook::Draw(GetX() + 4, GetY() + 3, false, 0, InTitle(Hook::GetMouseX(), Hook::GetMouseY())?Silver:White, GetName());
 		for (list<UITab*>::iterator it = Tabs.begin(); it != Tabs.end(); it++)
 			(*it)->OnDraw();
 		DrawChrome();

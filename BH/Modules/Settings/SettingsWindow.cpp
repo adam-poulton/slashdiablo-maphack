@@ -39,8 +39,8 @@ void SettingsWindow::OnLoad() {
 		".settings in chat.");
 
 	// "Settings" rather than the version string. The title bar says which window
-	// this is, which matters now there is more than one of them; the version
-	// follows it as a subtitle, which does not change what section of UI.ini the
+	// this is, which matters now there is more than one of them; the version is a
+	// subtitle and a footer, neither of which changes what section of UI.ini the
 	// geometry is remembered under.
 	CreateUI("Settings", "Settings", SETTINGS_WINDOW_WIDTH, SETTINGS_WINDOW_HEIGHT);
 
@@ -63,9 +63,9 @@ void SettingsWindow::OnLoad() {
 	GetUI()->SetOnMinimized([]() -> void { Settings::Persist(); });
 
 	// The title already says BH is what this window belongs to, so the number
-	// alone goes beside it - and the release alone, since the subtitle shows on
-	// the collapsed title bar, which is no place for a commit hash. The build is
-	// in the footer, a glance away for anyone reporting a bug.
+	// alone goes beside it - and the release alone, since the subtitle is what a
+	// collapsed window shows and a commit hash is no use on a pill. Open, the
+	// footer has room for the build, which is what a bug report wants.
 	GetUI()->SetSubtitle(About::ReleaseNumber());
 	GetUI()->SetFooterLeft(About::VersionNumber());
 }
