@@ -185,6 +185,19 @@ class SettingsPanel : public UIPanel {
 		unsigned int SettingsUnder(int headingRow);
 		void MeasureMarkers();
 
+		// How wide the column bindings are drawn in has to be, or zero where
+		// nothing the panel could show binds a key and the column is given back to
+		// the settings.
+		//
+		// Measured over every row the panel could show rather than the ones it is
+		// showing: a column that came and went as a search narrowed its results
+		// would slide every control on screen sideways on each keystroke. With no
+		// query that is the panel's own tab, so a tab that binds nothing gets the
+		// width back; with one it is every row in the panel, since a search crosses
+		// the tabs and its results have to line up with each other whichever tab
+		// they came from.
+		unsigned int MeasureHotkeyColumn();
+
 		// Greys out and makes inert every setting whose parent is off. Done every
 		// frame, because a parent can be switched off at any moment - by this
 		// panel, by a hotkey, or by a reload.
