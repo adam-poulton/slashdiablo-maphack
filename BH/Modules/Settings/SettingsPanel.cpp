@@ -64,6 +64,26 @@ using namespace Drawing;
 // together to aim at.
 #define SETTINGS_SLIDER_WIDTH	150
 
+// The narrowest a rail is drawn once the window has been dragged in far enough
+// that the row cannot hold all of it. The rail gives the width up rather than the
+// label: a short rail is still a rail, while a label cut in half stops saying
+// which setting it belongs to.
+#define SETTINGS_SLIDER_MIN		60
+
+// The column bindings are drawn in, kept clear down the right edge of the panel.
+//
+// Without it a binding and a slider's value land on the same column drawn the
+// same way, and a row reading 3 sits under one reading F5 as though it were
+// another key. The column is measured rather than fixed, since how wide a binding
+// reads is the game's to decide, and capped so that one long one cannot take the
+// width the settings themselves need.
+#define SETTINGS_HOTKEY_MAX		90
+#define SETTINGS_HOTKEY_GAP		8
+
+// Between a label and the control that belongs to it, which is what a control
+// keeps clear when it gives up width rather than crowding the label.
+#define SETTINGS_CONTROL_GAP	8
+
 // A note is something to read rather than something to change, so it is drawn in
 // the colour the old tabs used for the same kind of text. The cap on lines bounds
 // how many Texthooks a note is built from; a note longer than that is cut rather
@@ -652,6 +672,23 @@ void SettingsPanel::MeasureMarkers() {
 	markerWidth = GroupMarkerColumn(0);
 }
 
+unsigned int SettingsPanel::MeasureHotkeyColumn() {
+	unsigned int column = 0;
+	for (unsigned int i = 0; i < rows.size(); i++) {
+		const Row& row = rows[i];
+		if (!row.hotkey)
+			continue;
+		// Only what this tab could show, until a search widens the panel to all of
+		// them.
+		if (query.empty() && row.category.compare(category) != 0)
+			continue;
+		unsigned int needed = row.hotkey->GetContentWidth();
+		if (needed > column)
+			column = needed;
+	}
+	return (column > SETTINGS_HOTKEY_MAX) ? SETTINGS_HOTKEY_MAX : column;
+}
+
 void SettingsPanel::Relayout() {
 	laidOutWidth = tab->GetXSize();
 	laidOutHeight = tab->GetYSize();
@@ -679,6 +716,13 @@ void SettingsPanel::Relayout() {
 	box->ClearRows();
 	unsigned int contentWidth = box->GetContentWidth();
 	MeasureMarkers();
+
+	// The column bindings are drawn in, and how far in from the right edge
+	// everything else therefore sits. Nothing where no binding is on offer, so a
+	// tab of settings alone is laid out as it was before there were bindings.
+	unsigned int hotkeyColumn = MeasureHotkeyColumn();
+	unsigned int controlInset = hotkeyColumn ?
+		(hotkeyColumn + SETTINGS_HOTKEY_GAP) : 0;
 
 	// What is under a heading sits in from the heading's own text, as the rows
 	// under a list's heading do.
@@ -797,15 +841,34 @@ void SettingsPanel::Relayout() {
 		}
 
 		// The control, against the right edge so it tracks the window rather than
-		// sitting at a column somebody once measured.
+		// sitting at a column somebody once measured, and in from that edge by
+		// whatever the binding column is holding.
 		if (row.control && row.control != named) {
+			// A rail takes what the row has left rather than the width it was built
+			// at: it is the widest control in the panel, so it is the one that runs
+			// out of room first as the window is dragged in.
+			if (row.setting && row.setting->kind == Settings::KindSlider) {
+				unsigned int taken = left + (named ? named->GetXSize() : 0) +
+					SETTINGS_CONTROL_GAP + controlInset;
+				unsigned int room = (contentWidth > taken) ? (contentWidth - taken) : 0;
+				unsigned int rail = (room < SETTINGS_SLIDER_WIDTH) ?
+					room : SETTINGS_SLIDER_WIDTH;
+				((Sliderhook*)row.control)->SetXSize(
+					(rail < SETTINGS_SLIDER_MIN) ? SETTINGS_SLIDER_MIN : rail);
+			}
 			row.control->SetAlignment(Right);
+			row.control->SetBaseX(controlInset);
 			row.control->SetBaseY(textY - row.control->GetTextInset());
 			box->AddToRow(index, row.control);
 		}
 
+		// The binding, in the column kept clear for it. Every chip is drawn at the
+		// column's full width rather than at its own, so a tab of them reads as one
+		// column of keys rather than as a ragged edge.
 		if (row.hotkey) {
+			row.hotkey->SetXSize(hotkeyColumn);
 			row.hotkey->SetAlignment(Right);
+			row.hotkey->SetBaseX(0);
 			row.hotkey->SetBaseY(textY - row.hotkey->GetTextInset());
 			box->AddToRow(index, row.hotkey);
 		}
