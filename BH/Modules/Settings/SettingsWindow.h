@@ -10,7 +10,7 @@
 //
 // Everything about being a window - the shared search box and footer, cycling
 // between panels, what escape does, how it is sized and remembered - belongs to
-// WindowModule, which the Info window shares.
+// WindowModule, which the codex shares.
 class SettingsWindow : public WindowModule {
 	private:
 		// Which categories there are and the order their tabs appear in. The

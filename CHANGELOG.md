@@ -11,12 +11,12 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
   `Filter source` on the Filter tab of the settings UI, and applied without a restart.
   A filter that cannot be read falls back to `BH.cfg` without the choice being forgotten.
   See [Advanced Item Display](docs/Advanced-Item-Display.md).
-* Add an in-game reference window with a responsive interface.
-  Open it with numpad 9 or `.info`.
+* Add the `Codex`, an in-game reference window with a responsive interface.
+  Open it with numpad 9 or `.codex`.
   Searchable tab for runewords, unique items, set items and Horadric Cube
   recipes. Commands `.rw <search>` `.uni <search>` `.set <search>` `.cube <search>`
-  On by default, and configurable as `Info Window` in `BH_settings.cfg`.
-  See [Info Window](docs/Info-Window.md).
+  On by default, and configurable as `Codex` in `BH_settings.cfg`.
+  See [Codex](docs/Codex.md).
 * Add `.help`, also reached as `.commands`, listing every chat command BH answers. See
   [Chat Commands](docs/Chat-Commands.md).
 * Fix BH windows not staying where you put them when multiple were on screen.
@@ -91,7 +91,7 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged by date.
   its background archive reads at 256KB/s, and leaving a game waits on every read
   still outstanding, so the exit was paced by that cap rather than by any work.
   1.13c only.
-* The keys that open the info window (`Info Window`, default numpad 9), the
+* The keys that open the codex (`Codex`, default numpad 9), the
   character stats screen (`Character Stats`, default 8) and the settings window
   itself (`Show Settings`, default numpad 8) can be rebound from the settings UI,
   under `Panel hotkeys` on the Input tab, rather than only by editing

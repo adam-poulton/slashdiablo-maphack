@@ -21,8 +21,8 @@ namespace Drawing {
 	#define MINIMIZED_X_POS 234
 
 	// The inset kept down either side of a window's contents, and the spacing of
-	// the search and footer bands. Every panel of the Info window held its own
-	// copies of these same numbers before the window owned the bands.
+	// the search and footer bands the window draws around whichever panel is in
+	// front. The window owns the bands, so every panel is laid out to these.
 	#define UI_CONTENT_MARGIN	6
 	#define SEARCH_BAND_TOP		3	// tab row to search box
 	#define SEARCH_BAND_GAP		7	// search box to contents

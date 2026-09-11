@@ -10,10 +10,9 @@
 // A module that owns one window: its hotkey, its panels, the chrome they share,
 // and the input that belongs to the window rather than to any panel.
 //
-// All of this was written for the Info window first and then wanted by the
-// settings window, which is why it is a base class rather than part of either.
-// A window feature added here reaches both; one added to a window reaches only
-// that window, and the two drift apart. They already had.
+// The codex and the settings window are both windows in this sense, so this is
+// a base class rather than part of either. A window feature added here reaches
+// both; one added to a window reaches only that window, and the two drift apart.
 class WindowModule : public Module {
 	private:
 		CRITICAL_SECTION crit;

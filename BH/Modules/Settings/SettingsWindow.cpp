@@ -54,7 +54,7 @@ void SettingsWindow::OnLoad() {
 	SetSearchEveryPanel(true);
 
 	// And the caret stays out of the box, so the arrow keys reach the settings.
-	// The Info window wants the opposite, which is why this is a switch and not
+	// The codex wants the opposite, which is why this is a switch and not
 	// two implementations.
 	SetFocusSearchOnOpen(false);
 

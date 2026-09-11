@@ -1,5 +1,5 @@
-Info Window
-===========
+Codex
+=====
 
 An in-game reference window. It is a tabbed panel, so lookups that would
 otherwise mean alt-tabbing to a wiki can live in the game. It has five tabs,
@@ -8,7 +8,7 @@ switch to it, `Tab` / `Shift + Tab` to cycle or use the chat commands.
 
 ## Opening it
 
-`Info Window: True, VK_NUMPAD9` in `BH_settings.cfg` enables the window and sets
+`Codex: True, VK_NUMPAD9` in `BH_settings.cfg` enables the window and sets
 the hotkey. Defaults are on and numpad 9. The hotkey is also bindable from the
 settings window, under **Panel hotkeys** on the Input tab.
 
@@ -18,7 +18,7 @@ settings window, under **Panel hotkeys** on the Input tab.
 * Drag the open window by its title bar. The position is remembered in `UI.ini`.
 * Closed, it sits as a title bar with the other BH windows near the bottom of
   the screen. Ctrl-click it to reopen, shift-drag it to move it.
-* `.info` in chat opens it on whichever tab was last in front.
+* `.codex` in chat opens it on whichever tab was last in front.
 
 Closing the window clears where you had got to, so it opens on a clean list
 rather than on the last thing you searched for.
