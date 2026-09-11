@@ -424,16 +424,6 @@ void Maphack::OnLoad() {
 		&Toggles["Show Automap On Join"],
 		"Opens the automap as you enter a game rather than waiting to be asked.");
 
-	Settings::AddToggle(GetName(), Settings::Category::Map, "Force Light Radius", "Light radius",
-		&Toggles["Force Light Radius"],
-		"Lights the whole screen instead of only what your character can see.");
-	Settings::AddToggle(GetName(), Settings::Category::Map, "Remove Weather", "Remove weather",
-		&Toggles["Remove Weather"], "Stops rain and snow being drawn.");
-	Settings::AddToggle(GetName(), Settings::Category::Map, "Infravision", "Infravision",
-		&Toggles["Infravision"], "Lights monsters up as infravision does.");
-	Settings::AddToggle(GetName(), Settings::Category::Map, "Remove Shake", "Remove shake",
-		&Toggles["Remove Shake"], "Stops the screen shaking.");
-
 	Settings::AddSlider(GetName(), Settings::Category::Map, "Minimap Max Ghost",
 		"Minimap ghost frames", &automapDraw.maxGhost,
 		MIN_MINIMAP_GHOST, MAX_MINIMAP_GHOST, STEP_MINIMAP_GHOST, "",
@@ -460,6 +450,18 @@ void Maphack::OnLoad() {
 		&missileColors["Party"], "", "Show Missiles");
 	Settings::AddColor(GetName(), Settings::Category::Map, "Missile Color: Hostile", "Hostile",
 		&missileColors["Hostile"], "", "Show Missiles");
+
+	// The scene rather than the automap over it: these change what the game draws
+	// whether the automap is open or not.
+	Settings::AddToggle(GetName(), Settings::Category::Display, "Force Light Radius", "Light radius",
+		&Toggles["Force Light Radius"],
+		"Lights the whole screen instead of only what your character can see.");
+	Settings::AddToggle(GetName(), Settings::Category::Display, "Infravision", "Infravision",
+		&Toggles["Infravision"], "Lights monsters up as infravision does.");
+	Settings::AddToggle(GetName(), Settings::Category::Display, "Remove Weather", "Remove weather",
+		&Toggles["Remove Weather"], "Stops rain and snow being drawn.");
+	Settings::AddToggle(GetName(), Settings::Category::Display, "Remove Shake", "Remove shake",
+		&Toggles["Remove Shake"], "Stops the screen shaking.");
 
 	Settings::AddToggle(GetName(), Settings::Category::Input, "Skip NPC Quest Messages", "Skip NPC quest messages",
 		&Toggles["Skip NPC Quest Messages"],

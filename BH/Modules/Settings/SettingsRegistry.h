@@ -17,7 +17,12 @@
 namespace Settings {
 	// The tabs, named once.
 	namespace Category {
+		// Map is the automap and nothing else. What the game draws outside it -
+		// the light the scene is lit by, the weather over it, what is written on
+		// top of it - is Display, which is the line between the two: a setting
+		// belongs to Map only if turning the automap off would make it moot.
 		const char* const Map = "Map";
+		const char* const Display = "Display";
 		const char* const Filter = "Filter";
 		const char* const Input = "Input";
 		const char* const Lobby = "Lobby";

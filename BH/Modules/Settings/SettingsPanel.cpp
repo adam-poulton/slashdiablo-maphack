@@ -109,7 +109,8 @@ static const struct {
 	{ Settings::Category::Map, "Monster colors" },
 	{ Settings::Category::Map, "Missile colors" },
 	{ Settings::Category::Input, Settings::Heading::PanelHotkeys },
-
+	{ Settings::Category::Input, "QOL hotkeys" },
+	{ Settings::Category::Input, "Stash export" },
 };
 
 static unsigned int SectionOrderCount() {

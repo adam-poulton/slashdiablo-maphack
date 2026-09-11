@@ -71,11 +71,11 @@ void ScreenInfo::OnLoad() {
 	L"Might", L"Prayer", L"Resist Fire", L"Holy Fire", L"Thorns", L"Defiance", L"Resist Cold", L"Blessed Aim", L"Vigor", L"Resist Lightning", L"Concentration", L"Holy Freeze", L"Cleansing", L"Holy Shock", L"Sanctuary", L"Meditation", L"Fanaticism", L"Redemption", L"Conviction", L"Salvation", 
 	L"Amplify Damage", L"Weaken", L"Decrepify", L"Lower Resist", L"Poisoned", L"Frozen"	};
 	
-	Settings::AddToggle(GetName(), Settings::Category::Map, "Experience Meter",
+	Settings::AddToggle(GetName(), Settings::Category::Display, "Experience Meter",
 		"Experience meter", &Toggles["Experience Meter"],
 		"Shows how far through the level the character is, what this game has "
 		"added to that, and experience per second.");
-	Settings::AddSlider(GetName(), Settings::Category::Map, "Experience Meter Precision",
+	Settings::AddSlider(GetName(), Settings::Category::Display, "Experience Meter Precision",
 		"Decimals", &expPrecision,
 		MIN_EXP_PRECISION, MAX_EXP_PRECISION, STEP_EXP_PRECISION, "",
 		"How many decimal places the experience meter writes its percentages to.",

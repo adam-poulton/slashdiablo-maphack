@@ -6,11 +6,18 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
 
 # Release Notes for 1.10.0 (2026-09-12)
 * Rework the settings UI. Every setting is now searchable by name from the box at
-  the top, which answers from all four tabs at once, so a setting can be found
+  the top, which answers from every tab at once, so a setting can be found
   without knowing which tab holds it. The window is resizable, and remembers its
   size and position. Settings that only matter while another is on are now grouped
   beneath it rather than sitting beside it as a flat list. Open it with `.settings`,
   or bind a key to it on the Input tab.
+* Add a `Display` tab to the settings UI, holding the settings that change what is
+  drawn on screen rather than what is drawn on the automap: `Quest drop warning`,
+  `Light radius`, `Infravision`, `Remove weather`, `Remove shake` and the
+  `Experience meter`. The `Map` tab is now the automap and nothing else. No config
+  keys changed, so existing `BH_settings.cfg` files need no edit.
+* The stash export is now reachable from the settings UI, under `Stash export` on the
+  Input tab
 * Add the account manager (`Accounts Panel` in `BH_settings.cfg`, default on), a panel
   drawn on the login screen listing the accounts you have saved. Add a new entry by
   entering your details as you normally would and then click 'Save new password'.

@@ -21,15 +21,28 @@ using namespace Drawing;
 void StashExport::OnLoad() {
 	LoadConfig();
 
+	// The key leads the section: the settings under it shape an export, and the
+	// key is what asks for one. It ships unbound, so the section is read before
+	// anything it describes can happen.
 	Settings::AddHeading(GetName(), Settings::Category::Input, "Stash export");
+	Settings::AddKey(GetName(), Settings::Category::Input, "Export Gear", "Export stash",
+		&exportGear,
+		"Writes your stash and inventory to a file under the stash folder.");
 	Settings::AddToggle(GetName(), Settings::Category::Input, "Include Equipment", "Include equipment",
-		&Toggles["Include Equipment"]);
+		&Toggles["Include Equipment"],
+		"Exports what the character is wearing as well as what is stored.");
 	Settings::AddToggle(GetName(), Settings::Category::Input, "Include Fixed Stats", "Include fixed stats",
-		&Toggles["Include Fixed Stats"]);
+		&Toggles["Include Fixed Stats"],
+		"Exports stats that cannot roll a range, which most tools work out for "
+		"themselves from the item.");
 	Settings::AddToggle(GetName(), Settings::Category::Input, "Condense Stats", "Condense stats",
-		&Toggles["Condense Stats"]);
+		&Toggles["Condense Stats"],
+		"Combines stats the game itself writes as one line, such as the two halves "
+		"of a damage range.");
 	Settings::AddToggle(GetName(), Settings::Category::Input, "Export On Menu", "Export on menu",
-		&Toggles["Export On Menu"]);
+		&Toggles["Export On Menu"],
+		"Exports again every time the in-game menu is opened, without the key "
+		"being pressed.");
 
 	// the MustacheTemplates will not be reloaded
 	options.clear();
@@ -61,7 +74,9 @@ void StashExport::LoadConfig() {
 	BH::config->ReadToggle("Condense Stats", "None", true, Toggles["Condense Stats"]);
 	BH::config->ReadToggle("Export On Menu", "None", false, Toggles["Export On Menu"]);
 
-	BH::config->ReadKey("Export Gear", "VK_NUMPAD5", exportGear);
+	// Unbound, so the export is something asked for rather than something a
+	// numpad key already on the keyboard does by surprise.
+	BH::config->ReadKey("Export Gear", "None", exportGear);
 }
 
 void StashExport::OnUnload() {
