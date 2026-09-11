@@ -225,7 +225,7 @@ void ScreenInfo::OnGameJoin() {
 	// meter derives from it wrong for the rest of the game.
 	if (startLevel == 0)
 		startExperience = 0;
-	double startPctExp = LevelProgressPct(startExperience, startLevel);
+	RecordStartSnapshot();
 
 	time_t t
 		= chrono::system_clock::to_time_t(chrono::system_clock::now());
@@ -234,10 +234,6 @@ void ScreenInfo::OnGameJoin() {
 
 	automap["JOINDATE"] = FormatTime(t, "%F");
 	automap["JOINTIME"] = FormatTime(t, "%T%z");
-	automap["CHARLEVEL"] = to_string(startLevel);
-	automap["CHARLEVELPERCENT"] = to_string(static_cast<double>(startLevel) + (startPctExp / 100.0));
-	automap["CHARXPPERCENT"] = to_string(startPctExp);
-	automap["CHARXP"] = to_string(startExperience);
 	automap["GAMENAME"] = pData->szGameName;
 	string runname = SimpleGameName(pData->szGameName);
 	automap["RUNNAME"] = runname;
@@ -494,6 +490,7 @@ void ScreenInfo::OnDraw() {
 	if (startLevel == 0) {
 		startLevel = currentLevel;
 		startExperience = currentExperience;
+		RecordStartSnapshot();
 	}
 
 	char sExp[255] = { 0 };
@@ -708,6 +705,17 @@ void ScreenInfo::FormattedXPPerSec(char* buffer, size_t bufferSize, double xpPer
 		unit = "K";
 	}
 	sprintf_s(buffer, bufferSize, "%s%.2f%s/s", xpPerSec >= 0 ? "+" : "", xpPerSec, unit);
+}
+
+// The start-of-game tokens. Written again if the snapshot they describe is
+// captured late, so a run tracker is never handed the zeroes that OnGameJoin
+// reads when the player's stats are not populated yet.
+void ScreenInfo::RecordStartSnapshot() {
+	const double startPctExp = LevelProgressPct(startExperience, startLevel);
+	automap["CHARLEVEL"] = to_string(startLevel);
+	automap["CHARLEVELPERCENT"] = to_string(static_cast<double>(startLevel) + (startPctExp / 100.0));
+	automap["CHARXPPERCENT"] = to_string(startPctExp);
+	automap["CHARXP"] = to_string(startExperience);
 }
 
 std::string ScreenInfo::ReplaceAutomapTokens(std::string& v) {

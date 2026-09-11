@@ -117,6 +117,7 @@ class ScreenInfo : public Module {
 		void OnAutomapDraw();
 		void OnGamePacketRecv(BYTE* packet, bool *block);
 
+		void RecordStartSnapshot();
 		std::string ReplaceAutomapTokens(std::string& v);		
 		void WriteRunTrackerData();
 		void DrawPopup(wchar_t* buffName, int x, int y);
