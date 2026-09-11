@@ -44,7 +44,6 @@
 */
 
 #pragma once
-#include <unordered_set>
 #include "../Module.h"
 #include "../../Constants.h"
 #include "../../Config.h"
@@ -64,9 +63,9 @@ struct UnitAny;
 class Item : public Module {
 	private:
 		static map<std::string, Toggle> Toggles;
-		static unordered_set<string> no_ilvl_codes;
 		unsigned int showPlayer{};
 		static UnitAny* viewingUnit;
+		static unsigned int filterSourceSetting;
 		static unsigned int filterLevelSetting;
 		static unsigned int pingLevelSetting;
 		static int trackerPingLevelSetting;
@@ -75,6 +74,12 @@ class Item : public Module {
 
 
 		void ResetPatches();
+
+		// Keeps the dropdown and the filter in step, each way round: the list of
+		// filters is what the folder holds now, the position in it is whichever
+		// filter is selected, and moving it reads that filter in.
+		void RefreshFilterSources();
+		void ApplyFilterSource();
 	public:
 
 		Item() : Module("Item") {};
@@ -83,7 +88,6 @@ class Item : public Module {
 		void OnUnload();
 
 		void LoadConfig();
-		void LoadNoIlvlCodes();
 		void RegisterSettings();
 
 		void OnSettingsChanged(const vector<string>& keys);

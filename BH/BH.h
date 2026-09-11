@@ -35,6 +35,10 @@ namespace BH {
 	extern ModuleManager* moduleManager;
 	extern Config* config;
 	extern Config* itemConfig;
+	// The item filter the settings name, which is not always the one itemConfig
+	// holds: a filter that cannot be read falls back to BH.cfg without the
+	// selection being forgotten.
+	extern string itemFilterSource;
 	extern Drawing::StatsDisplay* statsDisplay;
 	extern WNDPROC OldWNDPROC;
 	extern map<string, Toggle>* MiscToggles;
@@ -48,4 +52,10 @@ namespace BH {
 	void Initialize();
 	extern bool Shutdown();
 	extern bool ReloadConfig();
+
+	// Reads the item filter named in the settings into itemConfig.
+	void ReadItemConfig();
+
+	// Switches to a named filter, one of FilterSource::Options().
+	void SelectItemFilter(const string& name);
 };

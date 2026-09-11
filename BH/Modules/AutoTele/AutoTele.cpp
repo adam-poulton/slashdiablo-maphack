@@ -34,7 +34,8 @@ void AutoTele::OnLoad() {
 	Settings::AddColor(GetName(), Settings::Category::Map, "Other Extra Color", "Other extra",
 		&Colors[5], "", "Draw Destination");
 
-	Settings::AddToggle(GetName(), Settings::Category::Items, "Quest Drop Warning", "Quest drop warning",
+	Settings::AddHeading(GetName(), Settings::Category::Filter, Settings::Heading::Notifications);
+	Settings::AddToggle(GetName(), Settings::Category::Filter, "Quest Drop Warning", "Quest drop warning",
 		&Toggles["Quest Drop Warning"],
 		"Warns you when the current act boss quest drop is active.");
 }

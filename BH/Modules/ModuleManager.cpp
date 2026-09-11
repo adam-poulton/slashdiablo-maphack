@@ -15,7 +15,7 @@ static std::vector<ChatCommand> OwnCommands() {
 	commands.push_back(ChatCommand{ "help", { "commands" }, "",
 		"Lists every command BH answers" });
 	commands.push_back(ChatCommand{ "reload", {}, "",
-		"Rereads BH.cfg and BH_settings.cfg from disk" });
+		"Rereads BH_settings.cfg and the item filter from disk" });
 	commands.push_back(ChatCommand{ "save", {}, "",
 		"Writes the current settings back to BH_settings.cfg" });
 	commands.push_back(ChatCommand{ "version", {}, "",

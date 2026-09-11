@@ -12,7 +12,6 @@ using namespace Drawing;
 
 const char* SettingsWindow::Categories[] = {
 	Settings::Category::Map,
-	Settings::Category::Items,
 	Settings::Category::Filter,
 	Settings::Category::Input,
 	Settings::Category::Lobby,
@@ -29,7 +28,7 @@ void SettingsWindow::OnLoad() {
 	// rather than under the panel hotkeys: reloading summons no panel.
 	Settings::AddKey(GetName(), Settings::Category::Input, "Reload Config",
 		"Reload config", &reloadConfig,
-		"Reads BH.cfg and BH_settings.cfg again and applies whatever changed, "
+		"Reads the settings and the item filter again and applies whatever changed, "
 		"without restarting the game.");
 	Settings::AddBool(GetName(), Settings::Category::Input,
 		"Ctrl+R Reload Config", "Ctrl-R also reloads", &legacyReloadConfigHotkey,

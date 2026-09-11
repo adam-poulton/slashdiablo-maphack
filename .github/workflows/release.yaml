@@ -37,7 +37,7 @@ jobs:
         $staging = "dist/slashdiablo-maphack-${{ steps.version.outputs.number }}"
         New-Item -ItemType Directory -Path $staging -Force | Out-Null
         Copy-Item Release/BH.dll -Destination $staging
-        Copy-Item Packaging/* -Destination $staging
+        Copy-Item Packaging/* -Destination $staging -Recurse
         Copy-Item docs/Installation.md -Destination $staging
         Compress-Archive -Path "$staging/*" -DestinationPath "$staging.zip"
 

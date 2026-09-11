@@ -12,6 +12,7 @@
 #include "TableReader.h"
 #include "Catalogue/Catalogues.h"
 #include "Task.h"
+#include "FilterSource.h"
 #include "Modules/Settings/SettingsRegistry.h"
 
 string BH::path;
@@ -19,6 +20,7 @@ HINSTANCE BH::instance;
 ModuleManager* BH::moduleManager;
 Config* BH::config;
 Config* BH::itemConfig;
+string BH::itemFilterSource = FilterSource::Default;
 Drawing::StatsDisplay* BH::statsDisplay;
 bool BH::initialized;
 bool BH::cGuardLoaded;
@@ -84,8 +86,8 @@ void BH::Initialize()
 			MessageBox(NULL, msg.c_str(), "Failed to load BH config", MB_OK);
 		}
 	}
-	itemConfig = new Config("BH.cfg");
-	itemConfig->Parse();
+	itemConfig = new Config("");
+	ReadItemConfig();
 
 	// Do this asynchronously because D2GFX_GetHwnd() will be null if
 	// we inject on process start
@@ -176,14 +178,26 @@ bool BH::Shutdown() {
 	return true;
 }
 
+// The filter named in the settings, which a reload re-reads: a filter chosen by
+// editing the file is picked up the same way one chosen in the settings window is.
+void BH::ReadItemConfig() {
+	config->ReadString("Item Filter", itemFilterSource);
+	FilterSource::Load(itemConfig, itemFilterSource);
+}
+
+void BH::SelectItemFilter(const string& name) {
+	itemFilterSource = name;
+	FilterSource::Load(itemConfig, itemFilterSource);
+}
+
 bool BH::ReloadConfig() {
 	if (initialized){
+		config->Parse();
+		ReadItemConfig();
 		if (D2CLIENT_GetPlayerUnit()) {
 			PrintText(0, "Reloading config: %s", config->GetConfigName().c_str());
 			PrintText(0, "Reloading Item config: %s", itemConfig->GetConfigName().c_str());
 		}
-		config->Parse();
-		itemConfig->Parse();
 		moduleManager->ReloadConfig();
 		statsDisplay->LoadConfig();
 		// The file is what was just read, so nothing is unsaved; but every module

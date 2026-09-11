@@ -220,6 +220,7 @@ if defined D2Path (
     <ClCompile Include="Catalogue\SetCatalogue.cpp" />
     <ClCompile Include="Catalogue\StatIndex.cpp" />
     <ClCompile Include="Catalogue\UniqueCatalogue.cpp" />
+    <ClCompile Include="FilterSource.cpp" />
     <ClCompile Include="ItemDescription.cpp" />
     <ClCompile Include="PropertyStats.cpp" />
     <ClCompile Include="StatDescriptions.cpp" />
@@ -333,6 +334,7 @@ if defined D2Path (
     <ClInclude Include="Catalogue\StatIndex.h" />
     <ClInclude Include="Catalogue\UniqueCatalogue.h" />
     <ClInclude Include="Catalogue\Source.h" />
+    <ClInclude Include="FilterSource.h" />
     <ClInclude Include="ItemDescription.h" />
     <ClInclude Include="PropertyStats.h" />
     <ClInclude Include="StatDescriptions.h" />

@@ -18,7 +18,6 @@ namespace Settings {
 	// The tabs, named once.
 	namespace Category {
 		const char* const Map = "Map";
-		const char* const Items = "Items";
 		const char* const Filter = "Filter";
 		const char* const Input = "Input";
 		const char* const Lobby = "Lobby";
@@ -29,6 +28,7 @@ namespace Settings {
 	// identically.
 	namespace Heading {
 		const char* const PanelHotkeys = "Panel hotkeys";
+		const char* const Notifications = "Notifications";
 	}
 
 	enum Kind {
@@ -94,6 +94,13 @@ namespace Settings {
 	void AddEnum(std::string owner, std::string category, std::string key,
 		std::string label, unsigned int* value, std::vector<std::string> options,
 		std::string help = "", std::string parent = "");
+
+	// Replaces what a registered enum can be set to, for options that are not
+	// known until they are looked for - the files in a folder, say. The value is
+	// left where it is: what a position in the list means is the module's to say,
+	// not the registry's.
+	void SetOptions(std::string owner, std::string key,
+		std::vector<std::string> options);
 
 	void AddColor(std::string owner, std::string category, std::string key,
 		std::string label, unsigned int* value, std::string help = "",
