@@ -12,6 +12,7 @@ using namespace Drawing;
 
 const char* SettingsWindow::Categories[] = {
 	Settings::Category::Map,
+	Settings::Category::Display,
 	Settings::Category::Filter,
 	Settings::Category::Input,
 	Settings::Category::Lobby,
