@@ -9,6 +9,7 @@
 #include "../../D2Helpers.h"
 #include "../Settings/SettingsRegistry.h"
 #include <time.h>
+#include <cmath>
 #include <iomanip>
 #include <numeric>
 #include <filesystem>
@@ -26,6 +27,34 @@ map<std::string, Toggle> ScreenInfo::Toggles;
 #define DEFAULT_EXP_PRECISION	3
 
 static unsigned int expPrecision = DEFAULT_EXP_PRECISION;
+
+// ExpByLevel is indexed by level - 1, so level 99 is the last level the table
+// can describe a span for.
+#define MAX_CHAR_LEVEL 99
+
+// Progress through the given level, as a percentage. A character's stats read
+// back as zero for the first few frames after a game is joined, so both the
+// level and the resulting percentage are clamped: an experience total that does
+// not belong to the level would otherwise underflow the unsigned subtraction and
+// report percentages in the thousands.
+static double LevelProgressPct(DWORD experience, int level) {
+	if (level < 1)
+		level = 1;
+	if (level > MAX_CHAR_LEVEL)
+		level = MAX_CHAR_LEVEL;
+
+	const double base = (double)ExpByLevel[level - 1];
+	const double span = (double)ExpByLevel[level] - base;
+	if (span <= 0.0)
+		return 0.0;
+
+	const double pct = ((double)experience - base) / span * 100.0;
+	if (pct < 0.0)
+		return 0.0;
+	if (pct > 100.0)
+		return 100.0;
+	return pct;
+}
 
 void ScreenInfo::OnLoad() {
 	LoadConfig();
@@ -190,7 +219,13 @@ void ScreenInfo::OnGameJoin() {
 	char* szDiff[3] = { "Normal", "Nightmare", "Hell" };
 	currentPlayer = string(pUnit->pPlayerData->szName);
 	startLevel = (int)D2COMMON_GetUnitStat(pUnit, STAT_LEVEL, 0);
-	double startPctExp = (double)(startExperience - ExpByLevel[startLevel - 1]) / (ExpByLevel[startLevel] - ExpByLevel[startLevel - 1]) * 100.0;
+	// The player's stats are not always populated this early. Drop a partial
+	// snapshot so OnDraw captures the level and the experience together: a start
+	// experience that does not belong to the start level makes every figure the
+	// meter derives from it wrong for the rest of the game.
+	if (startLevel == 0)
+		startExperience = 0;
+	double startPctExp = LevelProgressPct(startExperience, startLevel);
 
 	time_t t
 		= chrono::system_clock::to_time_t(chrono::system_clock::now());
@@ -456,18 +491,21 @@ void ScreenInfo::OnDraw() {
 	currentLevel = (int)D2COMMON_GetUnitStat(pUnit, STAT_LEVEL, 0);
 
 	endTimer = ((GetTickCount() - gameTimer) / 1000);
-	if (startLevel == 0) { startLevel = currentLevel; }
+	if (startLevel == 0) {
+		startLevel = currentLevel;
+		startExperience = currentExperience;
+	}
 
 	char sExp[255] = { 0 };
-	double oldPctExp = (double)(startExperience - ExpByLevel[startLevel - 1]) / (ExpByLevel[startLevel] - ExpByLevel[startLevel - 1]) * 100.0;
-	double pExp = (double)(currentExperience - ExpByLevel[currentLevel - 1]) / (ExpByLevel[currentLevel] - ExpByLevel[currentLevel - 1]) * 100.0;
+	double oldPctExp = LevelProgressPct(startExperience, startLevel);
+	double pExp = LevelProgressPct(currentExperience, currentLevel);
 	currentExpGainPct = pExp - oldPctExp;
 	if (currentLevel > startLevel) {
 		currentExpGainPct = (100 - oldPctExp) + pExp + ((currentLevel - startLevel) - 1) * 100;
 	}
-	currentExpPerSecond = endTimer > 0 ? (currentExperience - startExperience) / (double)endTimer : 0;
+	currentExpPerSecond = endTimer > 0 ? ((__int64)currentExperience - (__int64)startExperience) / (double)endTimer : 0;
 	char xpPerSec[32];
-	FormattedXPPerSec(xpPerSec, currentExpPerSecond);
+	FormattedXPPerSec(xpPerSec, sizeof(xpPerSec), currentExpPerSecond);
 
 	if (Toggles["Experience Meter"].state) {
 		sprintf_s(sExp, "%.*f%% (%s%.*f%%) [%s]", (int)expPrecision, pExp,
@@ -654,21 +692,22 @@ void ScreenInfo::OnOOGDraw() {
 	}
 }
 
-void ScreenInfo::FormattedXPPerSec(char* buffer, double xpPerSec) {
-	char* unit = "";
-	if (xpPerSec > 1E9) {
+void ScreenInfo::FormattedXPPerSec(char* buffer, size_t bufferSize, double xpPerSec) {
+	const char* unit = "";
+	const double magnitude = fabs(xpPerSec);
+	if (magnitude > 1E9) {
 		xpPerSec /= 1E9;
 		unit = "B";
 	}
-	else if (xpPerSec > 1E6) {
+	else if (magnitude > 1E6) {
 		xpPerSec /= 1E6;
 		unit = "M";
 	}
-	else if (xpPerSec > 1E3) {
+	else if (magnitude > 1E3) {
 		xpPerSec /= 1E3;
 		unit = "K";
 	}
-	sprintf_s(buffer, 128, "%s%.2f%s/s", xpPerSec >= 0 ? "+" : "", xpPerSec, unit);
+	sprintf_s(buffer, bufferSize, "%s%.2f%s/s", xpPerSec >= 0 ? "+" : "", xpPerSec, unit);
 }
 
 std::string ScreenInfo::ReplaceAutomapTokens(std::string& v) {
@@ -797,24 +836,38 @@ void ScreenInfo::OnGamePacketRecv(BYTE* packet, bool* block) {
 }
 
 void ScreenInfo::OnGameExit() {
-	DWORD xpGained = (currentExperience - startExperience);
-	double gamesToLevel = (ExpByLevel[currentLevel] - currentExperience) / (1.0 * xpGained);
+	__int64 xpGained = (__int64)currentExperience - (__int64)startExperience;
 	double lastExpGainPct = currentExpGainPct;
 	double lastExpPerSecond = currentExpPerSecond;
 	int lastGameLength = endTimer;
-	int timeToLevel = (int)(gamesToLevel * lastGameLength);
 
 	char buffer[128];
-	sprintf_s(buffer, sizeof(buffer), "%.2f", gamesToLevel);
-	szGamesToLevel = string(buffer);
 
-	sprintf_s(buffer, sizeof(buffer), "%d:%.2d:%.2d", timeToLevel / 3600, (timeToLevel / 60) % 60, timeToLevel % 60);
-	szTimeToLevel = string(buffer);
+	// A game that lost experience, or gained none, gives nothing to project the
+	// next level off.
+	if (xpGained > 0 && currentLevel >= 1 && currentLevel < MAX_CHAR_LEVEL) {
+		double gamesToLevel = ((__int64)ExpByLevel[currentLevel] - (__int64)currentExperience) / (double)xpGained;
+		if (gamesToLevel < 0.0)
+			gamesToLevel = 0.0;
+		double secondsToLevel = gamesToLevel * lastGameLength;
+		if (secondsToLevel > 359999.0)
+			secondsToLevel = 359999.0;
+		int timeToLevel = (int)secondsToLevel;
+
+		sprintf_s(buffer, sizeof(buffer), "%.2f", gamesToLevel);
+		szGamesToLevel = string(buffer);
+
+		sprintf_s(buffer, sizeof(buffer), "%d:%.2d:%.2d", timeToLevel / 3600, (timeToLevel / 60) % 60, timeToLevel % 60);
+		szTimeToLevel = string(buffer);
+	} else {
+		szGamesToLevel = "";
+		szTimeToLevel = "";
+	}
 
 	sprintf_s(buffer, sizeof(buffer), "%s%00.3f%%", lastExpGainPct >= 0 ? "+" : "", lastExpGainPct);
 	szLastXpGainPer = string(buffer);
 
-	FormattedXPPerSec(buffer, lastExpPerSecond);
+	FormattedXPPerSec(buffer, sizeof(buffer), lastExpPerSecond);
 	szLastXpPerSec = string(buffer);
 
 	sprintf_s(buffer, sizeof(buffer), "%.2d:%.2d:%.2d", lastGameLength / 3600, (lastGameLength / 60) % 60, lastGameLength % 60);

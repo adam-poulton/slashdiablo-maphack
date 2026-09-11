@@ -86,7 +86,7 @@ class ScreenInfo : public Module {
 
 		string SimpleGameName(const string& gameName);
 		int	GetPlayerCount();
-		void FormattedXPPerSec(char* buffer, double xpPerSec);
+		void FormattedXPPerSec(char* buffer, size_t bufferSize, double xpPerSec);
 		string FormatTime(time_t t, const char* format);
 		CellFile* cf;
 		void* mpqH;
