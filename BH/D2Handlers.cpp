@@ -50,6 +50,87 @@ static void LiftStormReadThrottle() {
 	STORM_SetAsyncReadRate(0);
 }
 
+// Where D2Net 1.13c keeps the pointer to its connection context and the lock that
+// guards it, the load the guard stands in for, and where the receive thread goes
+// when it finds the connection closed. Reached by offset because only
+// netContextGuard knows they are there, and only on the version it is installed
+// on.
+#define NET_CONTEXT_113C	0xB244
+#define NET_LOCK_113C		0xB400
+#define NET_GUARD_113C		0x7363
+#define NET_THREAD_CLOSE_113C	0x74A5
+
+static DWORD** netContext;
+static CRITICAL_SECTION* netLock;
+static DWORD netResume;
+static DWORD netThreadClose;
+
+void NetContextGuard_Interception();
+
+// D2Net's receive thread reads its connection context while holding the lock that
+// guards it, but tests whether the connection is still open before taking that
+// lock. A close landing between the two frees the context and nulls the pointer,
+// and the thread faults reading through it. The shorter the client's wait on a
+// join that is going nowhere, the likelier the close is to land there, because
+// the socket is still carrying the join when it is torn down.
+//
+// Stands in for the first read of the context, where the lock is already held and
+// so no close can be in progress. That one read answers for the whole run: every
+// later read of the pointer is under the same lock, and only a close nulls it.
+Patch* netContextGuard = new Patch(Jump, D2NET, { NET_GUARD_113C, 0 },
+	(int)NetContextGuard_Interception, 5);
+
+// Non-zero to send the thread to its close, having given the lock up on the way
+// out as every other path off that run does.
+DWORD NetContextGone() {
+	if (*netContext)
+		return 0;
+
+	LeaveCriticalSection(netLock);
+	return 1;
+}
+
+void __declspec(naked) NetContextGuard_Interception()
+{
+	/*
+	Decides whether the context the run is about to read is still there. Only eax,
+	ecx and edx are dead at the load this replaces, and a call leaves the rest as
+	the client had them.
+	*/
+	__asm
+	{
+		CALL NetContextGone
+		TEST EAX, EAX
+		JNZ closed
+
+		; Original code
+		CMP DWORD PTR [ESP+0x10], ESI
+		PUSH ESI
+		MOV ECX, netResume
+		JMP ECX
+
+	closed:
+		MOV ECX, netThreadClose
+		JMP ECX
+	}
+}
+
+// Installed once and never removed. The thread it guards runs for as long as a
+// connection is open, and rewriting the bytes that thread is executing is the
+// kind of race the guard is there to close.
+void InstallNetContextGuard() {
+	// Only 1.13c's D2Net has been read for these.
+	if (D2Version::GetGameVersionID() != VERSION_113c)
+		return;
+
+	netContext = (DWORD**)Patch::GetDllOffset(D2NET, NET_CONTEXT_113C);
+	netLock = (CRITICAL_SECTION*)Patch::GetDllOffset(D2NET, NET_LOCK_113C);
+	netResume = Patch::GetDllOffset(D2NET, NET_GUARD_113C + 5);
+	netThreadClose = Patch::GetDllOffset(D2NET, NET_THREAD_CLOSE_113C);
+
+	netContextGuard->Install();
+}
+
 DWORD WINAPI GameThread(VOID* lpvoid) {
 	bool inGame = false;
 	while(true) {

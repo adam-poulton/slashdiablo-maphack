@@ -149,6 +149,9 @@ void BH::Initialize()
 		patches[n]->Install();
 	}
 
+	// Apart from the others: it is never removed, so it is not one of them.
+	InstallNetContextGuard();
+
 	if (!D2CLIENT_GetPlayerUnit())
 		oogDraw->Install();
 
