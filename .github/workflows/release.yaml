@@ -69,7 +69,7 @@ jobs:
         $notes = $notes -replace '\]\((?!https?://|#)([^)]+)\)', "]($blob`$1)"
         # Skip the page's own title and its underline; it becomes a section here.
         $install = ((Get-Content docs/Installation.md | Select-Object -Skip 2) -join "`n").Trim()
-        $body = @($notes, '', '## Installation', '', $install) -join "`n"
+        $body = @('## Release Notes', '', $notes, '', '## Installation', '', $install) -join "`n"
         $body | Out-File -FilePath release-notes.md -Encoding utf8
 
     - name: Release
