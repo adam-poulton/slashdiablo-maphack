@@ -5,92 +5,43 @@ All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
 in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
 
 # Release Notes for 1.10.0 (2026-09-12)
-* Rework the settings UI. Every setting is now searchable by name from the box at
-  the top, which answers from every tab at once, so a setting can be found
-  without knowing which tab holds it. The window is resizable, and remembers its
-  size and position. Settings that only matter while another is on are now grouped
-  beneath it rather than sitting beside it as a flat list. Open it with `.settings`,
-  or bind a key to it on the Input tab.
-* Add a `Display` tab to the settings UI, holding the settings that change what is
-  drawn on screen rather than what is drawn on the automap: `Quest drop warning`,
-  `Light radius`, `Infravision`, `Remove weather`, `Remove shake` and the
-  `Experience meter`. The `Map` tab is now the automap and nothing else. No config
-  keys changed, so existing `BH_settings.cfg` files need no edit.
-* The stash export is now reachable from the settings UI, under `Stash export` on the
-  Input tab
-* Add the account manager (`Accounts Panel` in `BH_settings.cfg`, default on), a panel
-  drawn on the login screen listing the accounts you have saved. Add a new entry by
-  entering your details as you normally would and then click 'Save new password'.
-  Click an existing entry to automatically log in; right click one to label it,
-  favourite it or forget it. Favourites sit above the rest, and a label groups the
-  accounts under it. An account another running client is signed in as is marked
-  `(in use)`, and stays clickable, so you can still choose to sign in multiuple
-  clients to the same account. Labelled `Account manager` on the Lobby tab of the
-  settings UI; switched off, nothing is drawn and the accounts file is never read.
-  Accounts are kept in `BH_accounts.json` beside the settings, and the passwords
-  in it are stored as typed, in plain text. This is not a password manager, it's a
-  convenience feature.
-* Add `Item Filter` (`BH_settings.cfg`, default `BH (default)`), choosing which file the
-  item display rules are read from. `BH (default)` is `BH.cfg`; every other option is a
-  `.cfg` in the `filters` folder beside it, named by its file name. Chosen as
-  `Filter source` on the Filter tab of the settings UI, and applied without a restart.
-  A filter that cannot be read falls back to `BH.cfg` without the choice being forgotten.
-* Add the `Codex`, an in-game reference window that scales to the size you give it
-  rather than a fixed one. Open it with numpad 9 or `.codex`. Change or disable the
-  binding in settings. Searchable tabs for runewords, unique items, set items,
-  Horadric Cube recipes and item bases, each reached directly with `.rw <search>`,
-  `.uni <search>`, `.set <search>`, `.cube <search>` and `.base <search>`.
-  On by default, and configurable as `Codex` in `BH_settings.cfg`.
-  See [Codex](docs/Codex.md).
-* Add `.help`, also reached as `.commands`, listing every chat command BH answers. See
-  [Chat Commands](docs/Chat-Commands.md).
-* Add `AREALVL` and `AREAID` filter conditions.
-  See [Area ids and area levels](docs/Advanced-Item-Display.md#area-ids-and-area-levels).
-* Rename the `Smart Scrolls` option to `Hide Redundant Scrolls`. Scrolls on the ground
-  are hidden when every tome you carry is above the threshold, or when you carry no
-  tome that takes them.
-* Add `Scroll Visibility Threshold` option (`BH_settings.cfg`, default `19`) so ground
-  scrolls can stay hidden until a tome drops to the chosen quantity, instead of only
-  while every tome is completely full. Editable from the Filter tab of the settings UI.
-* Remove the legacy item name options `Alt Item Style`, `Color Mod`,
-  `Shorten Item Names`, `Show Ethereal`, `Show Sockets` and `Show Rune Numbers`.
-  Item names are now customised only through
-  [Advanced Item Display](docs/Advanced-Item-Display.md); with it off, items are
-  named as the game names them. Configs that set these keys need no change - the
-  keys are ignored. Use the packaged filter (or write your own) instead.
-* Add `Fail To Join` (`BH_settings.cfg`, default `3000` ms), tuning how long the client
-  waits for a game to open before deeming it a failure to join. Tuning this too low will
-  stop you joining valid games if you have a slow connection. Editable from the Lobby
-  tab of the settings UI.
-* Add `Join Notice` (`BH_settings.cfg`, default `90` frames), tuning how long the failed
-  to join notice stays on screen. Editable from the Lobby tab of the settings UI.
-* Make item filtering always ordered. Whether a hide rule (a blank label) hides an
-  item depends on whether it was the first matching rule. A rule ending in
-  `%CONTINUE%` decorates an item rather than settling it, so it does not protect the
-  item from a subsequent hide rule. See
-  [Advanced Item Display](docs/Advanced-Item-Display.md#rule-order-decides-what-is-hidden).
-* Add `Show Experience Range`, a ring around your player icon showing how close you
-  have to be to a monster's death to gain experience from it.
-* Fix an item display rule marked `%NOTIFY-dead%` still announcing the item in chat
-  when a later rule also matched it. The rule that draws the item on the automap now
-  also decides whether it is announced, as it already did for everything else.
-* Fix item display rules using `CLVL` or `CRAFTALVL` keeping the answer they gave before
-  you levelled up. Items already seen were judged again only on rejoining the game;
-  they are now judged again when your level changes.
-* Fix Save and Exit freezing the client for several seconds, worst in large or
-  graphically varied levels such as Halls of Vaught and Pit Level 2. The game capped
-  its background archive reads at 256KB/s, and leaving a game waits on every read
-  still outstanding, so the exit was paced by that cap rather than by any work.
-  Just think about all that time you spent waiting for the game to exit at Nihl, and
-  your CPU was literally being instructed to sleep. (Fixed for 1.13c only)
+* Reworks the settings UI. Every setting is now searchable by name. The window is resizable and escape closes it.
+* Adds a `Display` tab to the settings UI.
+* Renames the `Item` tab to `Filter`
+* Renames the `Interaction` tab to `Input`
+* The stash export is now reachable from the settings UI, under `Stash export` on the Input tab
+* Adds Account Manager, a panel drawn on the login screen listing the accounts you have saved.
+  * Add a new entry by entering your details as you normally would and then click 'Save new password'.
+  * Click an existing entry to automatically log in; right click one to label it, favourite it or forget it.
+  * Favourites sit above the rest, and a label groups the accounts under it.
+  * Labelled `Account manager` on the Lobby tab of the settings UI.
+  * Accounts are kept in `BH_accounts.json` beside the settings, and the passwords in it are stored as typed, in plain text.
+  * This is not a secure password manager, it's a convenience feature.
+* Adds in-game active filter switching.
+  * `BH (default)` is `BH.cfg`; every other option is a `.cfg` in the `filters` folder in the install directory, named by its file name.
+  * Chosen as `Filter source` on the Filter tab of the settings UI, and applied without a restart.
+* Add the Codex, an in-game reference window based on the game files.
+  * Open it with numpad 9 or `.codex`. Change or disable the binding in settings.
+  * Searchable tabs for runewords, unique items, set items, Horadric Cube recipes and item bases, each reached directly by typing `.rw <search>`, `.uni <search>`, `.set <search>`, `.cube <search>` and `.base <search>` in the game chat.
+  * See [Codex](docs/Codex.md).
+* Add `.help`, also reached as `.commands`, listing every chat command BH answers. See [Chat Commands](docs/Chat-Commands.md).
+* Add `AREALVL` and `AREAID` filter conditions. See [Area ids and area levels](docs/Advanced-Item-Display.md#area-ids-and-area-levels).
+* Rename the `Smart Scrolls` option to `Hide Redundant Scrolls`. Scrolls on the ground are hidden when every tome you carry is above the threshold, or when you carry no tome that takes them.
+* Add `Scroll Visibility Threshold` option so ground scrolls can stay hidden until a tome drops to the chosen quantity. Editable from the Filter tab of the settings UI.
+* Remove the legacy item name options `Alt Item Style`, `Color Mod`, `Shorten Item Names`, `Show Ethereal`, `Show Sockets` and `Show Rune Numbers`. Item names are now customised only through [Advanced Item Display](docs/Advanced-Item-Display.md); with it off, items are named as the game names them. Configs that set these keys need no change - the keys are ignored. Use the packaged filter (or write your own) instead.
+* Add `Fail To Join`, tuning how long the client waits for a game to open before deeming it a failure to join. Editable from the Lobby tab of the settings UI.
+* Add `Join Notice`, tuning how long the failed to join notice stays on screen. Editable from the Lobby tab of the settings UI.
+* Make item filtering always ordered. Whether a hide rule (a blank label) hides an item depends on whether it was the first matching rule. A rule ending in `%CONTINUE%` decorates an item rather than settling it, so it does not protect the item from a subsequent hide rule. See [Advanced Item Display](docs/Advanced-Item-Display.md#rule-order-decides-what-is-hidden).
+* Add `Show Experience Range`, a ring around your player icon showing how close you have to be to a monster's death to gain experience from it.
+* Fix an item display rule marked `%NOTIFY-dead%` still announcing the item in chat when a later rule also matched it. The rule that draws the item on the automap now also decides whether it is announced, as it already did for everything else.
+* Fix item display rules using `CLVL` or `CRAFTALVL` keeping the answer they gave before you levelled up. Items already seen were judged again only on rejoining the game; they are now judged again when your level changes.
+* Fix Save and Exit freezing the client for several seconds, worst in large or graphically varied levels such as Halls of Vaught and Pit Level 2. (Fixed for 1.13c only)
+  * The game capped its background archive reads at 256KB/s, and leaving a game waits on every read still outstanding, so the exit was paced by that cap rather than by any work.
+  * Just think about all that time you spent waiting for the game to exit at Nihl, and your CPU was literally being instructed to sleep.
 * Fix BH windows not staying where you put them when multiple were on screen.
 * Fix BH windows swallowing mouse clicks in menus and lobby under certain circumstances.
-* Releases now ship a single archive holding `BH.dll`, `BH.cfg`, `BH_settings.cfg`,
-  `buffs.mpq` and installation instructions, instead of loose files. Release notes
-  are the changelog entry for the version plus the install steps, rather than the
-  commit log. See [Installation](docs/Installation.md).
-* Feedback is always welcome. If something in this release reads wrong, behaves wrong or
-  is missing an option you relied on, say so and it can be fixed.
+* Releases now ship a single archive holding `BH.dll`, `BH.cfg`, `BH_settings.cfg`, `buffs.mpq` and installation instructions, instead of loose files. Release notes are the changelog entry for the version plus the install steps, rather than the commit log. See [Installation](docs/Installation.md).
+* Feedback is always welcome. If something in this release reads wrong, behaves wrong or is missing an option you relied on, say so and it can be fixed.
 
 # Release Notes for 1.9.11g (2026-08-19)
 * Add `Monster Curses` option (`BH_settings.cfg`, default `True, None`) to mark
@@ -471,9 +422,9 @@ _(this module was removed in 1.9.11)_
 ### ScreenInfo
 - Added display for current/added/rate of gain for experience
 	 - BH Toggle: "Experience Meter"
-	 
+	
 ### Maphack
-- Refactored the rendering pipeline for the automap objects (monsters, items, missiles, etc) so that the frames could be recycled. 
+- Refactored the rendering pipeline for the automap objects (monsters, items, missiles, etc) so that the frames could be recycled.
 	- This allows the system to reuse calculations from previous frames and only store the draw commands.
 	- This can result in a large frame rate increase on slower machines
 - Added ability to display chests on the automap
