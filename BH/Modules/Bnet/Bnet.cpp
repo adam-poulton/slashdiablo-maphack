@@ -13,14 +13,28 @@
 // a lost connection raises among them, keeps the length the client wanted.
 #define NOTICE_FAILED_TO_JOIN	6
 
+// Where BNCLIENT 1.13c weighs how long it has waited on a battle.net reply
+// against the wait it allows. Reached by offset because only enterChatWaitPatch
+// below knows it is there, and only on the version it is installed on.
+#define WAIT_BUDGET_113C	0x10DC1
+
+// The battle.net message whose reply the lobby opens on: SID_ENTERCHAT. The wait
+// the patch stands in is the one loop the client waits on every reply in, and it
+// is told which one this run is waiting on.
+#define MSG_ENTER_CHAT		0x0A
+
+unsigned int Bnet::failToJoinChoice;
 unsigned int Bnet::failToJoin;
 unsigned int Bnet::joinNotice;
+unsigned int Bnet::enterChatChoice;
+unsigned int Bnet::enterChatWait;
 bool* Bnet::showLastGame;
 bool* Bnet::showLastPass;
 bool* Bnet::nextInstead;
 bool* Bnet::keepDesc;
 bool* Bnet::overrideFailToJoin;
 bool* Bnet::overrideJoinNotice;
+bool* Bnet::overrideEnterChat;
 std::string Bnet::lastName;
 std::string Bnet::lastPass;
 std::string Bnet::lastDesc;
@@ -29,7 +43,19 @@ std::string Bnet::defaultPass;
 std::string Bnet::defaultDesc;
 std::regex Bnet::reg = std::regex("^(.*?)(\\d+)$");
 
-// Fixes Unrecoverable internal error 6FF61787
+// Fog checks a critical section before every lock it takes, on every Windows
+// since NT: the debug record non-null, aligned and naming the section back, the
+// lock and recursion counts within sane bounds. A section that fails any of them
+// is taken as a sign that memory is already gone, and the client is killed where
+// it stands, as Unrecoverable internal error 6FF61787. That number is the return
+// address inside the check and reads the same whichever test failed.
+//
+// Stood down for the session, so no lock is checked and none of those can be
+// raised. The check is not necessarily wrong when it fires: the first thing it
+// asks is whether the section still has a debug record, which is what deleting a
+// section takes away, and a section that has been deleted can usually still be
+// entered. So this buys a client that carries on in place of one that stops, and
+// gives up the only notice that a lock was ever in that state.
 Patch* fog10251Patch = new Patch(Jump, FOG, { 0x11690, 0x11690 }, (int)Bnet::FOG10251Patch, 5);
 
 Patch* bnetLobbyPatch = new Patch(Jump, D2MULTI, { 0xBC00, 0xF9B0 }, (int)Bnet::BnetLobbyAdBlockPatch, 5);
@@ -49,6 +75,37 @@ Patch* ftjPatch = new Patch(Call, D2CLIENT, { 0x4363E, 0x443FE }, (int)FailToJoi
 Patch* joinNoticePatch = new Patch(Call, D2CLIENT, { 0x4358B, 0 }, (int)JoinNotice_Interception, 10);
 
 Patch* removePass = new Patch(Call, D2MULTI, { 0x1250, 0x1AD0 }, (int)RemovePass_Interception, 5);
+
+// Where BNCLIENT's wait carries on once the comparison below has been made: the
+// instruction after the one that patch stands in for. Held in a variable because
+// the stub jumps back through it with every register live and no room to work one
+// out, and resolved when the patch goes in, since a module's address is not known
+// before it is loaded.
+static DWORD waitResume;
+
+// The lobby sends SID_ENTERCHAT on its way in and then waits on the reply,
+// sleeping in ten millisecond steps for up to 45 seconds, on the thread that
+// draws it. pvpgn answers that message at login but not when the lobby is handed
+// back by a game it never opened, so the window is frozen for the whole wait
+// before the lobby appears.
+//
+// Nothing is given up by giving up sooner. The reply carries only the account's
+// chat name, which the client already holds from the reply it did get at login,
+// and the lobby is opened whether the wait ended in a reply or in the time
+// running out.
+//
+// Stands in for the comparison the client makes, which is reached with the time
+// waited so far in eax and the message being waited on in esi. Only SID_ENTERCHAT
+// is answered for: the same loop carries the waits on logon, on auth and on the
+// realm and game lists, which are answered and can fairly take a while.
+Patch* enterChatWaitPatch = new Patch(Jump, BNCLIENT, { WAIT_BUDGET_113C, 0 },
+	(int)EnterChatWait_Interception, 5);
+
+// The only patch here with an address of its own to find first.
+static void InstallEnterChatWaitPatch() {
+	waitResume = Patch::GetDllOffset(BNCLIENT, WAIT_BUDGET_113C + 5);
+	enterChatWaitPatch->Install();
+}
 
 void Bnet::OnLoad() {
 	// Its own settings, said by itself. They used to be drawn by AutoTele's tab,
@@ -85,11 +142,12 @@ void Bnet::OnLoad() {
 	overrideJoinNotice = &bools["Override Join Notice"];
 	*overrideJoinNotice = true;
 
-	// Each wait is a patch of its own, and the switch on each says whether that
-	// patch is installed at all: with one off the client keeps its own wait, so a
-	// crash in the lobby can be pinned on one patch, the other, or neither.
+	// The switch on each of these chooses between the wait below it and the client's
+	// own. It does not decide whether the patch behind the wait is installed: every
+	// patch this module has goes in once, at load, and a patch left in place saying
+	// what the client would have said is what off means.
 	Settings::AddSlider(GetName(), Settings::Category::Lobby, "Fail To Join", "Fail to join after",
-		&failToJoin, MIN_FAIL_TO_JOIN, MAX_FAIL_TO_JOIN, STEP_FAIL_TO_JOIN, " ms",
+		&failToJoinChoice, MIN_FAIL_TO_JOIN, MAX_FAIL_TO_JOIN, STEP_FAIL_TO_JOIN, " ms",
 		"How long to wait for a game to open before the client says it failed to join. "
 		"Off leaves the client to decide.",
 		"", overrideFailToJoin);
@@ -98,6 +156,15 @@ void Bnet::OnLoad() {
 		"How long the failed to join notice is displayed, in frames. "
 		"Off holds it for the length the client gives it.",
 		"", overrideJoinNotice);
+
+	overrideEnterChat = &bools["Override Enter Chat Wait"];
+	*overrideEnterChat = true;
+
+	Settings::AddSlider(GetName(), Settings::Category::Lobby, "Enter Chat Wait", "Wait on battle.net for",
+		&enterChatChoice, MIN_ENTER_CHAT, MAX_ENTER_CHAT, STEP_ENTER_CHAT, " ms",
+		"How long the lobby waits on battle.net's reply before it opens anyway. "
+		"The client draws nothing while it waits. Off leaves the client to decide.",
+		"", overrideEnterChat);
 
 	showLastGame = &bools["Autofill Last Game"];
 	*showLastGame = true;
@@ -111,9 +178,11 @@ void Bnet::OnLoad() {
 	keepDesc = &bools["Autofill Description"];
 	*keepDesc = true;
 
-	failToJoin = MAX_FAIL_TO_JOIN;
+	failToJoinChoice = MAX_FAIL_TO_JOIN;
 	joinNotice = DEFAULT_JOIN_NOTICE;
+	enterChatChoice = DEFAULT_ENTER_CHAT;
 	LoadConfig();
+	InstallPatches();
 }
 
 void Bnet::LoadConfig() {
@@ -123,23 +192,24 @@ void Bnet::LoadConfig() {
 	BH::config->ReadBoolean("Autofill Description", *keepDesc);
 	BH::config->ReadBoolean("Override Fail To Join", *overrideFailToJoin);
 	BH::config->ReadBoolean("Override Join Notice", *overrideJoinNotice);
-	BH::config->ReadInt("Fail To Join", failToJoin, MAX_FAIL_TO_JOIN);
+	BH::config->ReadBoolean("Override Enter Chat Wait", *overrideEnterChat);
+	BH::config->ReadInt("Fail To Join", failToJoinChoice, MAX_FAIL_TO_JOIN);
 
 	// Config::ReadInt yields zero for a key the file does not have, and the wait
 	// used to be a box in which zero meant leave the client's own wait alone. Both
 	// read as no wait having been chosen, and the longest one is what to fall back
 	// on, being the closest to the wait the client would have used.
-	if (failToJoin == 0)
-		failToJoin = MAX_FAIL_TO_JOIN;
+	if (failToJoinChoice == 0)
+		failToJoinChoice = MAX_FAIL_TO_JOIN;
 
 	// Held to the range here and not only by the slider: an old file can name a
 	// wait shorter than loading into a game that is opening normally, which gives
 	// up on every join, and the settings window opens only in game - so the value
 	// has to be made usable whether or not that window is ever reached.
-	if (failToJoin < MIN_FAIL_TO_JOIN)
-		failToJoin = MIN_FAIL_TO_JOIN;
-	if (failToJoin > MAX_FAIL_TO_JOIN)
-		failToJoin = MAX_FAIL_TO_JOIN;
+	if (failToJoinChoice < MIN_FAIL_TO_JOIN)
+		failToJoinChoice = MIN_FAIL_TO_JOIN;
+	if (failToJoinChoice > MAX_FAIL_TO_JOIN)
+		failToJoinChoice = MAX_FAIL_TO_JOIN;
 
 	// Held to the range for the same reason as the wait above: the slider cannot
 	// offer a value outside it, but a file can name one.
@@ -149,6 +219,14 @@ void Bnet::LoadConfig() {
 	if (joinNotice > MAX_JOIN_NOTICE)
 		joinNotice = MAX_JOIN_NOTICE;
 
+	// Held to the range for the same reason as the two above.
+	BH::config->ReadInt("Enter Chat Wait", enterChatChoice, DEFAULT_ENTER_CHAT);
+	if (enterChatChoice < MIN_ENTER_CHAT)
+		enterChatChoice = MIN_ENTER_CHAT;
+	if (enterChatChoice > MAX_ENTER_CHAT)
+		enterChatChoice = MAX_ENTER_CHAT;
+	SetWaits();
+
 	// Used to prefill the create/join boxes when there is no previous game to fall back on
 	BH::config->ReadString("Default Game Name", defaultName);
 	BH::config->ReadString("Default Password", defaultPass);
@@ -156,53 +234,47 @@ void Bnet::LoadConfig() {
 	defaultName = Trim(defaultName);
 	defaultPass = Trim(defaultPass);
 	defaultDesc = Trim(defaultDesc);
-
-	InstallPatches();
 }
 
-// Which patches are installed depends on the settings, including on whether the
-// defaults are blank, so they are worked out again when a setting changes rather
-// than only when a game is left. Never while in a game: the lobby patches are
-// removed on joining one, and OnGameExit puts them back.
 void Bnet::OnSettingsChanged(const vector<string>& keys) {
 	defaultName = Trim(defaultName);
 	defaultPass = Trim(defaultPass);
 	defaultDesc = Trim(defaultDesc);
-
-	if (D2CLIENT_GetPlayerUnit())
-		return;
-	RemovePatches();
-	InstallPatches();
+	SetWaits();
 }
 
+// Every patch here goes in once, at load, and stays in for the session. They are
+// written by BH's own thread while the game runs on its own, and a patch is five
+// to ten bytes of code rewritten in place: a thread reading those bytes as they
+// are written reads half of each instruction. Some of these stand in code the
+// game is running constantly - Fog's 10251 alone is called from a hundred and
+// fifty places and imported by three more libraries - so the bytes are written
+// once, before any of that is under way, and left alone.
+//
+// What each patch does is decided when it runs instead, from the settings it
+// reads there. A setting that is off leaves the client's own behaviour in place,
+// which is what the patch would have left had it never been installed.
 void Bnet::InstallPatches() {
 	fog10251Patch->Install();
 	bnetLobbyPatch->Install();
-	// The defaults are filled in by the same patches, so they need to be installed
-	// even when the corresponding autofill option is off.
-	if (*showLastGame || *nextInstead || defaultName.size() > 0) {
-		nextGame1->Install();
-		nextGame2->Install();
-	}
 
-	if (*showLastPass || defaultPass.size() > 0) {
-		nextPass1->Install();
-		nextPass2->Install();
-		removePass->Install();
-	}
+	nextGame1->Install();
+	nextGame2->Install();
 
-	if (*keepDesc || defaultDesc.size() > 0) {
-		gameDesc->Install();
-	}
+	nextPass1->Install();
+	nextPass2->Install();
+	removePass->Install();
 
-	if (!D2CLIENT_GetPlayerUnit()) {
-		if (*overrideFailToJoin)
-			ftjPatch->Install();
-		if (*overrideJoinNotice)
-			joinNoticePatch->Install();
-	}
+	gameDesc->Install();
+
+	ftjPatch->Install();
+	joinNoticePatch->Install();
+
+	InstallEnterChatWaitPatch();
 }
 
+// Only on the way out, when BH is going and a patch left in place would be a jump
+// into code that is no longer there.
 void Bnet::RemovePatches() {
 	fog10251Patch->Remove();
 	bnetLobbyPatch->Remove();
@@ -217,6 +289,7 @@ void Bnet::RemovePatches() {
 	ftjPatch->Remove();
 	joinNoticePatch->Remove();
 	removePass->Remove();
+	enterChatWaitPatch->Remove();
 }
 
 void Bnet::OnUnload() {
@@ -236,8 +309,6 @@ void Bnet::OnGameJoin() {
 		lastDesc = (*p_D2LAUNCH_BnData)->szGameDesc;
 	else
 		lastDesc = "";
-
-	RemovePatches();
 }
 
 void Bnet::OnGameExit() {
@@ -271,8 +342,6 @@ void Bnet::OnGameExit() {
 			}
 		}
 	}
-
-	InstallPatches();
 }
 
 VOID __fastcall Bnet::FOG10251Patch(DWORD lpCriticalSection, char nLine) {
@@ -283,55 +352,57 @@ DWORD __stdcall Bnet::BnetLobbyAdBlockPatch(DWORD a1) {
 	return 1;
 }
 
+// The box is given its proc whether or not there is anything to put in it: the
+// call that does so is the code this patch stands in for, and a box that never
+// gets one is a box that cannot be typed in.
 VOID __fastcall Bnet::NextGamePatch(Control* box, BOOL (__stdcall *FunCallBack)(Control*, DWORD, DWORD)) {
 	// Fall back to the configured default when there is no previous game name
 	const bool useLast = (*Bnet::showLastGame || *Bnet::nextInstead) && Bnet::lastName.size() > 0;
 	const std::string& name = useLast ? Bnet::lastName : Bnet::defaultName;
-	if (name.size() == 0)
-		return;
 
-	wchar_t *wszLastGameName = AnsiToUnicode(name.c_str());
+	if (name.size() > 0) {
+		wchar_t *wszLastGameName = AnsiToUnicode(name.c_str());
 
-	D2WIN_SetControlText(box, wszLastGameName);
-	D2WIN_SelectEditBoxText(box);
+		D2WIN_SetControlText(box, wszLastGameName);
+		D2WIN_SelectEditBoxText(box);
+		delete [] wszLastGameName;
+	}
 
 	// original code
 	D2WIN_SetEditBoxProc(box, FunCallBack);
-	delete [] wszLastGameName;
 }
 
 VOID __fastcall Bnet::NextPassPatch(Control* box, BOOL(__stdcall *FunCallBack)(Control*, DWORD, DWORD)) {
 	// Only fall back to the default password when there is no previous game at all;
 	// a remembered game name with no password means that game genuinely had none.
 	const bool useLast = *Bnet::showLastPass && Bnet::lastPass.size() > 0;
-	if (!useLast && Bnet::lastName.size() > 0)
-		return;
-
 	const std::string& pass = useLast ? Bnet::lastPass : Bnet::defaultPass;
-	if (pass.size() == 0)
-		return;
-	wchar_t *wszLastPass = AnsiToUnicode(pass.c_str());
 
-	D2WIN_SetControlText(box, wszLastPass);
-	
+	if ((useLast || Bnet::lastName.size() == 0) && pass.size() > 0) {
+		wchar_t *wszLastPass = AnsiToUnicode(pass.c_str());
+
+		D2WIN_SetControlText(box, wszLastPass);
+		delete[] wszLastPass;
+	}
+
 	// original code
 	D2WIN_SetEditBoxProc(box, FunCallBack);
-	delete[] wszLastPass;
 }
 
 VOID __fastcall Bnet::GameDescPatch(Control* box, BOOL(__stdcall *FunCallBack)(Control*, DWORD, DWORD)) {
 	// Fall back to the configured default when there is no previous description
 	const bool useLast = *Bnet::keepDesc && Bnet::lastDesc.size() > 0;
 	const std::string& desc = useLast ? Bnet::lastDesc : Bnet::defaultDesc;
-	if (desc.size() == 0)
-		return;
-	wchar_t *wszLastDesc = AnsiToUnicode(desc.c_str());
 
-	D2WIN_SetControlText(box, wszLastDesc);
-	
+	if (desc.size() > 0) {
+		wchar_t *wszLastDesc = AnsiToUnicode(desc.c_str());
+
+		D2WIN_SetControlText(box, wszLastDesc);
+		delete[] wszLastDesc;
+	}
+
 	// original code
 	D2WIN_SetEditBoxProc(box, FunCallBack);
-	delete[] wszLastDesc;
 }
 
 void __declspec(naked) RemovePass_Interception() {
@@ -387,9 +458,43 @@ void __declspec(naked) JoinNotice_Interception()
 	}
 }
 
+void __declspec(naked) EnterChatWait_Interception()
+{
+	/*
+	Leaves the comparison the client would have made, against the wait that applies
+	to the message this run is waiting on. Every register the run holds is live
+	here, so nothing is touched, and the comparison is made last so that the jump
+	back carries the flags the client's own branch reads.
+	*/
+	__asm
+	{
+		CMP ESI, MSG_ENTER_CHAT
+		JNE stock
+
+		CMP EAX, Bnet::enterChatWait
+		JMP resume
+
+	stock:
+		CMP EAX, STOCK_ENTER_CHAT
+
+	resume:
+		JMP DWORD PTR [waitResume]
+	}
+}
+
+// What the two waits above read. Each is reached where no setting can be read -
+// one from a stub with every register live, one from a loop inside BNCLIENT - so
+// the switch on each is answered here: off is the client's own wait, which the
+// patch says as readily as it says a chosen one.
+void Bnet::SetWaits() {
+	failToJoin = *overrideFailToJoin ? failToJoinChoice : STOCK_FAIL_TO_JOIN;
+	enterChatWait = *overrideEnterChat ? enterChatChoice : STOCK_ENTER_CHAT;
+}
+
 void Bnet::SetJoinNotice() {
 	DWORD* frames = (DWORD*)Patch::GetDllOffset(D2CLIENT, NOTICE_FRAMES_113C);
 	DWORD* notice = (DWORD*)Patch::GetDllOffset(D2CLIENT, NOTICE_ID_113C);
 
-	*frames = (*notice == NOTICE_FAILED_TO_JOIN) ? joinNotice : STOCK_JOIN_NOTICE;
+	const bool shorten = *overrideJoinNotice && *notice == NOTICE_FAILED_TO_JOIN;
+	*frames = shorten ? joinNotice : STOCK_JOIN_NOTICE;
 }

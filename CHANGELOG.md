@@ -6,10 +6,14 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
 
 # Unreleased
 * Fix the client crashing with an access violation in `D2Net.dll` after a failed join, most often when running several instances against a game the server never opens. (Fixed for 1.13c only)
-  * D2Net's receive thread reads its connection context while holding the lock that guards it, but tests whether the connection is still open before taking that lock. A close landing between the two frees the context under the thread.
-  * The window is always there, but it takes a close while the socket is still carrying traffic to fall into, which is what `Join Notice` made likely by shortening the wait before the connection is torn down.
-  * The thread now reads the context under the lock, where no close can be in progress, and shuts down cleanly if the connection has gone.
-  * `Net Context Guard` in `BH_settings.cfg` turns the guard off. It is not in the settings window: it is there to answer whether the guard is behind some other problem, not as something to choose.
+  * The client could close a connection while a packet was still arriving on it and then read the connection it had just thrown away. A failed join is the usual way to arrange that; a clean game exit never is.
+  * `Net Context Guard` in `BH_settings.cfg` turns the fix off, for working out whether it is behind some other problem. It is deliberately not in the settings window.
+* Fix being left unable to create or join a game for up to 45 seconds after a failed join. (Fixed for 1.13c only)
+  * The client waits on a reply from the server before it will let you back into the lobby, and after a failed join that reply never arrives. It carries nothing the client does not already know, so there is no reason to sit through it.
+  * `Enter Chat Wait` on the Lobby tab sets how long to wait before getting on with it, five seconds by default. Off leaves the client its own wait.
+* Fix the game name, password and description boxes on the create game screen refusing to be typed in when there was nothing to fill them with.
+* BH now makes its lobby changes once at startup, rather than applying and undoing them on every game join and exit. Doing that while the game was running risked a crash each time.
+  * `Fail To Join` and `Join Notice` switched off now leave the client its own wait without taking anything back out mid-session. No change to what either does.
 
 # Release Notes for 1.10.0 (2026-09-12)
 * Reworks the settings UI. Every setting is now searchable by name. The window is resizable and escape closes it.
