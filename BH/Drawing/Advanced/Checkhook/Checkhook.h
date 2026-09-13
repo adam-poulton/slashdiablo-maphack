@@ -4,11 +4,27 @@
 #include "../../Basic/Texthook/Texthook.h"
 
 namespace Drawing {
+	// The box, and the clear space between it and the label. The hook's width is
+	// both plus the label, so that what it reports is what it draws and a click
+	// anywhere along it lands.
+	#define CHECK_BOX_SIZE		12
+	#define CHECK_LABEL_GAP		6
+
+	// The label sits a little below the top of the box, so the two read as one line
+	// rather than the text sitting on the box's rim.
+	#define CHECK_LABEL_TOP		2
+
 	class Checkhook : public Hook {
 		private:
 			bool* state;//Holds if the checkbox is checked.
 			TextColor color, hoverColor, disabledColor;//Holds text color/hover color.
 			std::string text;//The text beside the checkhook.
+
+			//The box and, when checked, the mark in it. Apart from OnDraw so that
+			//what the box looks like sits in one place rather than mixed in with
+			//placing the label beside it.
+			static void DrawBox(unsigned int x, unsigned int y, bool checked,
+				TextColor color);
 		public:
 			Checkhook(HookVisibility visibility, unsigned int x, unsigned int y, bool* checked, std::string formatString, ...);
 			Checkhook(HookGroup* group, unsigned int x, unsigned int y, bool* checked, std::string formatString, ...);

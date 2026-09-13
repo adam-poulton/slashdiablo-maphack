@@ -31,9 +31,15 @@ namespace Drawing {
 	// Between the end of the rail and the value written after it.
 	#define SLIDER_READOUT_GAP		6
 
+	// What the readout says in place of a number while the slider is switched off,
+	// which is the only thing on the row that can say so: a greyed number still
+	// reads as the value in force.
+	#define SLIDER_OFF_TEXT			"Off"
+
 	class Sliderhook : public Hook {
 		private:
 			unsigned int* value;
+			bool* onOff;			// the switch, or NULL for a rail on its own
 			SliderRange range;
 			std::string unit;		// written after the number, "" for none
 			unsigned int xSize;
@@ -61,6 +67,18 @@ namespace Drawing {
 			Sliderhook(HookGroup* group, unsigned int x, unsigned int y,
 				unsigned int xSize, unsigned int* value, unsigned int min,
 				unsigned int max, unsigned int step, std::string unit = "");
+
+			// Tells the slider which bool holds whether its value applies at all.
+			// The box for it is drawn by the row; what the slider does with it is
+			// go inert and say so. A slider without one is always on.
+			void SetSwitch(bool* state);
+			bool HasSwitch() const { return onOff != NULL; };
+
+			// Whether the value is in force. True for a slider with no switch.
+			bool IsOn() const { return !onOff || *onOff; };
+
+			// Flips the switch, for whoever drives the row from the keyboard.
+			void Flip();
 
 			// Puts the value on a step and inside the range. The value belongs to a
 			// module, which reads it from the config and can be handed anything at

@@ -19,6 +19,8 @@ bool* Bnet::showLastGame;
 bool* Bnet::showLastPass;
 bool* Bnet::nextInstead;
 bool* Bnet::keepDesc;
+bool* Bnet::overrideFailToJoin;
+bool* Bnet::overrideJoinNotice;
 std::string Bnet::lastName;
 std::string Bnet::lastPass;
 std::string Bnet::lastDesc;
@@ -75,12 +77,27 @@ void Bnet::OnLoad() {
 		&defaultDesc, 0,
 		"Filled into the description box when there is no last one to put back.");
 
+	// Held before the sliders are registered, since a slider is given the bool
+	// itself rather than the key of one.
+	overrideFailToJoin = &bools["Override Fail To Join"];
+	*overrideFailToJoin = true;
+
+	overrideJoinNotice = &bools["Override Join Notice"];
+	*overrideJoinNotice = true;
+
+	// Each wait is a patch of its own, and the switch on each says whether that
+	// patch is installed at all: with one off the client keeps its own wait, so a
+	// crash in the lobby can be pinned on one patch, the other, or neither.
 	Settings::AddSlider(GetName(), Settings::Category::Lobby, "Fail To Join", "Fail to join after",
 		&failToJoin, MIN_FAIL_TO_JOIN, MAX_FAIL_TO_JOIN, STEP_FAIL_TO_JOIN, " ms",
-		"How long to wait for a game to open before the client says it failed to join.");
+		"How long to wait for a game to open before the client says it failed to join. "
+		"Off leaves the client to decide.",
+		"", overrideFailToJoin);
 	Settings::AddSlider(GetName(), Settings::Category::Lobby, "Join Notice", "Hold failed to join for",
 		&joinNotice, MIN_JOIN_NOTICE, MAX_JOIN_NOTICE, STEP_JOIN_NOTICE, " frames",
-		"How long the failed to join notice is displayed, in frames.");
+		"How long the failed to join notice is displayed, in frames. "
+		"Off holds it for the length the client gives it.",
+		"", overrideJoinNotice);
 
 	showLastGame = &bools["Autofill Last Game"];
 	*showLastGame = true;
@@ -104,6 +121,8 @@ void Bnet::LoadConfig() {
 	BH::config->ReadBoolean("Autofill Last Password", *showLastPass);
 	BH::config->ReadBoolean("Autofill Next Game", *nextInstead);
 	BH::config->ReadBoolean("Autofill Description", *keepDesc);
+	BH::config->ReadBoolean("Override Fail To Join", *overrideFailToJoin);
+	BH::config->ReadBoolean("Override Join Notice", *overrideJoinNotice);
 	BH::config->ReadInt("Fail To Join", failToJoin, MAX_FAIL_TO_JOIN);
 
 	// Config::ReadInt yields zero for a key the file does not have, and the wait
@@ -177,8 +196,10 @@ void Bnet::InstallPatches() {
 	}
 
 	if (!D2CLIENT_GetPlayerUnit()) {
-		ftjPatch->Install();
-		joinNoticePatch->Install();
+		if (*overrideFailToJoin)
+			ftjPatch->Install();
+		if (*overrideJoinNotice)
+			joinNoticePatch->Install();
 	}
 }
 

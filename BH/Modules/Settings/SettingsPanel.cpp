@@ -485,10 +485,22 @@ void SettingsPanel::BuildCategory(HookGroup* content, const std::string& categor
 				break;
 
 			case Settings::KindSlider:
-				row.label = new Texthook(content, 0, 0, "%s", setting->label.c_str());
+				// A setting with a switch as well as a value is named by the
+				// switch, so its box is in the column every other checkbox is in.
+				// One without is named by a label like every other valued setting.
+				if (setting->boolValue)
+					row.nameSwitch = new Checkhook(content, 0, 0, setting->boolValue,
+						"%s", setting->label.c_str());
+				else
+					row.label = new Texthook(content, 0, 0, "%s",
+						setting->label.c_str());
 				row.control = new Sliderhook(content, 0, 0, SETTINGS_SLIDER_WIDTH,
 					setting->intValue, setting->numberMin, setting->numberMax,
 					setting->numberStep, setting->unit);
+				// The rail is told which bool the switch holds so that it can go
+				// inert and say Off while it is unset.
+				if (setting->boolValue)
+					((Sliderhook*)row.control)->SetSwitch(setting->boolValue);
 				break;
 
 			case Settings::KindText:
@@ -904,6 +916,10 @@ bool SettingsPanel::SettingIsOn(const Row& row) {
 			return row.setting->boolValue ? *row.setting->boolValue : true;
 		case Settings::KindToggle:
 			return row.setting->toggleValue ? row.setting->toggleValue->state : true;
+		// A slider is a switch too where it carries one, so a setting can hang off
+		// a rail being in force the same way it hangs off a checkbox.
+		case Settings::KindSlider:
+			return row.setting->boolValue ? *row.setting->boolValue : true;
 		default:
 			return true;
 	}
@@ -911,6 +927,7 @@ bool SettingsPanel::SettingIsOn(const Row& row) {
 
 void SettingsPanel::SetRowEnabled(Row& row, bool enabled) {
 	if (row.label) row.label->SetEnabled(enabled);
+	if (row.nameSwitch) row.nameSwitch->SetEnabled(enabled);
 	if (row.control) row.control->SetEnabled(enabled);
 	if (row.hotkey) row.hotkey->SetEnabled(enabled);
 	for (unsigned int line = 0; line < row.noteLines.size(); line++)
@@ -950,6 +967,8 @@ static bool Over(Hook* hook) {
 }
 
 Hook* SettingsPanel::NamedHook(const Row& row) {
+	if (row.nameSwitch)
+		return row.nameSwitch;
 	return row.label ? (Hook*)row.label : row.control;
 }
 
@@ -1017,7 +1036,11 @@ void SettingsPanel::ApplyFocusColors() {
 			off = SETTINGS_FOCUS_DISABLED;
 		}
 
-		ColorName(named, row.setting->kind, resting, hover, off);
+		// A row named by its switch is named by a Checkhook, whatever kind of
+		// setting it is, so it is coloured the way an on/off row is.
+		Settings::Kind namedAs = row.nameSwitch ?
+			Settings::KindBool : row.setting->kind;
+		ColorName(named, namedAs, resting, hover, off);
 	}
 }
 
@@ -1292,6 +1315,12 @@ void SettingsPanel::ActuateFocused() {
 					(*setting->intValue + 1) % (unsigned int)setting->options.size();
 			}
 			break;
+		// The rail is stepped by the arrow keys, so what is left for space and
+		// enter is the switch - and a slider without one has nothing to do here.
+		case Settings::KindSlider:
+			if (setting->boolValue && rows[focusRow].control)
+				((Sliderhook*)rows[focusRow].control)->Flip();
+			break;
 		default:
 			break;
 	}
@@ -1341,17 +1370,16 @@ bool SettingsPanel::OnKey(bool up, BYTE key) {
 				return false;
 
 			// Only while there is a value to move: a slider its parent has switched
-			// off does nothing when dragged, so the keys go back to folding the
-			// section rather than being swallowed by a control that is inert.
-			bool slid = rows[focusRow].setting &&
-				rows[focusRow].setting->kind == Settings::KindSlider &&
-				rows[focusRow].enabled && FocusPosition() >= 0;
-			if (slid) {
-				if (!up) {
-					Sliderhook* slider = (Sliderhook*)rows[focusRow].control;
-					if (slider)
-						slider->Step((key == VK_LEFT) ? -1 : 1);
-				}
+			// off, or one its own switch has, does nothing when dragged, so the
+			// keys go back to folding the section rather than being swallowed by a
+			// control that is inert.
+			Sliderhook* slider = (rows[focusRow].setting &&
+				rows[focusRow].setting->kind == Settings::KindSlider) ?
+					(Sliderhook*)rows[focusRow].control : NULL;
+			if (slider && rows[focusRow].enabled && slider->IsOn() &&
+					FocusPosition() >= 0) {
+				if (!up)
+					slider->Step((key == VK_LEFT) ? -1 : 1);
 				return true;
 			}
 
