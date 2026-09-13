@@ -43,7 +43,19 @@ std::string Bnet::defaultPass;
 std::string Bnet::defaultDesc;
 std::regex Bnet::reg = std::regex("^(.*?)(\\d+)$");
 
-// Fixes Unrecoverable internal error 6FF61787
+// Fog checks a critical section before every lock it takes, on every Windows
+// since NT: the debug record non-null, aligned and naming the section back, the
+// lock and recursion counts within sane bounds. A section that fails any of them
+// is taken as a sign that memory is already gone, and the client is killed where
+// it stands, as Unrecoverable internal error 6FF61787. That number is the return
+// address inside the check and reads the same whichever test failed.
+//
+// Stood down for the session, so no lock is checked and none of those can be
+// raised. The check is not necessarily wrong when it fires: the first thing it
+// asks is whether the section still has a debug record, which is what deleting a
+// section takes away, and a section that has been deleted can usually still be
+// entered. So this buys a client that carries on in place of one that stops, and
+// gives up the only notice that a lock was ever in that state.
 Patch* fog10251Patch = new Patch(Jump, FOG, { 0x11690, 0x11690 }, (int)Bnet::FOG10251Patch, 5);
 
 Patch* bnetLobbyPatch = new Patch(Jump, D2MULTI, { 0xBC00, 0xF9B0 }, (int)Bnet::BnetLobbyAdBlockPatch, 5);
