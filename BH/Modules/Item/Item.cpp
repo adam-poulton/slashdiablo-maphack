@@ -146,6 +146,7 @@ void Item::LoadConfig() {
 	BH::config->ReadToggle("Suppress Invalid Stats", "None", false, Toggles["Suppress Invalid Stats"]);
 	BH::config->ReadToggle("Always Show Item Stat Ranges", "None", true, Toggles["Always Show Item Stat Ranges"]);
 	BH::config->ReadToggle("Hide Redundant Scrolls", "None", false, Toggles["Hide Redundant Scrolls"]);
+	BH::config->ReadToggle("Hide Redundant Gold Piles", "None", false, Toggles["Hide Redundant Gold Piles"]);
 	RefreshFilterSources();
 	BH::config->ReadInt("Filter Level", filterLevelSetting, 0);
 	BH::config->ReadInt("Ping Level", pingLevelSetting, 0);
@@ -256,6 +257,9 @@ void Item::RegisterSettings() {
 		&scrollVisibilityThreshold, MAX_SCROLL_VISIBILITY_THRESHOLD,
 		"How many scrolls you have to be carrying before the rest are hidden.",
 		"Hide Redundant Scrolls");
+	Settings::AddToggle(GetName(), Settings::Category::Filter, "Hide Redundant Gold Piles",
+		"Hide redundant gold piles", &Toggles["Hide Redundant Gold Piles"],
+		"Hides gold when you cannot carry any more.");
 
 	Settings::AddHeading(GetName(), Settings::Category::Filter, Settings::Heading::Notifications);
 	Settings::AddToggle(GetName(), Settings::Category::Filter, "Item Drop Notifications", "Item drop notifications",

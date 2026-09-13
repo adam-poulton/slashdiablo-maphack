@@ -5,6 +5,8 @@ All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
 in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
 
 # Unreleased
+* Add `Hide Redundant Gold Piles` on the Filter tab. Gold on the ground is hidden while you are already carrying
+  all the gold your level allows, so only gold you can pick up is shown. Stash gold is a separate pool and does not count. Doesn't apply in town.
 * Fix the client crashing with an access violation in `D2Net.dll` after a failed join, most often when running several instances against a game the server never opens. (Fixed for 1.13c only)
   * The client could close a connection while a packet was still arriving on it and then read the connection it had just thrown away. A failed join is the usual way to arrange that; a clean game exit never is.
   * `Net Context Guard` in `BH_settings.cfg` turns the fix off, for working out whether it is behind some other problem. It is deliberately not in the settings window.

@@ -130,6 +130,34 @@ static bool IsRedundantScroll(BYTE *packet) {
 	return NoTomeWantsScroll(D2CLIENT_GetPlayerUnit(), tomeCode, Item::GetScrollVisibilityThreshold());
 }
 
+// The game caps carried gold at this much per character level.
+static const unsigned int GOLD_CARRIED_PER_LEVEL = 10000;
+
+// "Hide Redundant Gold Piles": true for gold that lands while the character already
+// carries every coin their level allows. Gold in the stash is a separate pool and
+// does not count towards the limit. Never true in town, where the stash is at hand
+// to make room.
+static bool IsRedundantGold(BYTE *packet) {
+	ItemFacts item = {};
+	ItemFactsPacket::PacketStats stats(item);
+	item.stats = &stats;
+	bool success = ReadItemPacket(packet, &item);
+	if (!success || !item.isGold ||
+		(item.action != ITEM_ACTION_NEW_GROUND && item.action != ITEM_ACTION_OLD_GROUND))
+		return false;
+
+	UnitAny *player = D2CLIENT_GetPlayerUnit();
+	if (!player)
+		return false;
+	if (IsTown(GetPlayerArea()))
+		return false;
+	unsigned int level = (unsigned int)D2COMMON_GetUnitStat(player, STAT_LEVEL, 0);
+	if (level == 0)
+		return false;
+	unsigned int carried = (unsigned int)D2COMMON_GetUnitStat(player, STAT_GOLD, 0);
+	return carried >= level * GOLD_CARRIED_PER_LEVEL;
+}
+
 bool ItemMover::Init() {
 	BnetData* pData = (*p_D2LAUNCH_BnData);
 	if (!pData) { return false; }
@@ -604,6 +632,11 @@ void ItemMover::OnGamePacketRecv(BYTE* packet, bool* block) {
 			}
 
 			if ((*BH::MiscToggles2)["Hide Redundant Scrolls"].state && IsRedundantScroll(packet)) {
+				*block = true;
+				break;
+			}
+
+			if ((*BH::MiscToggles2)["Hide Redundant Gold Piles"].state && IsRedundantGold(packet)) {
 				*block = true;
 				break;
 			}
