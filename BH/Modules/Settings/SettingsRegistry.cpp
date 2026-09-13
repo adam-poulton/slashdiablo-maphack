@@ -112,9 +112,10 @@ namespace Settings {
 	void AddSlider(std::string owner, std::string category, std::string key,
 			std::string label, unsigned int* value, unsigned int min,
 			unsigned int max, unsigned int step, std::string unit,
-			std::string help, std::string parent) {
+			std::string help, std::string parent, bool* onOff) {
 		Descriptor descriptor = Common(KindSlider, owner, category, key, label, help, parent);
 		descriptor.intValue = value;
+		descriptor.boolValue = onOff;
 		descriptor.numberMin = min;
 		descriptor.numberMax = max;
 		descriptor.numberStep = step;
@@ -206,9 +207,16 @@ namespace Settings {
 			case KindEnum:
 			case KindColor:
 			case KindNumber:
+				if (descriptor.intValue)
+					snapshot.a = *descriptor.intValue;
+				break;
+			// A slider's switch is part of the same setting, so flipping it is a
+			// change like moving the rail is, and is taken and put back with it.
 			case KindSlider:
 				if (descriptor.intValue)
 					snapshot.a = *descriptor.intValue;
+				if (descriptor.boolValue)
+					snapshot.b = *descriptor.boolValue ? 1 : 0;
 				break;
 			case KindText:
 				if (descriptor.textValue)
@@ -237,9 +245,14 @@ namespace Settings {
 			case KindEnum:
 			case KindColor:
 			case KindNumber:
+				if (descriptor.intValue)
+					*descriptor.intValue = snapshot.a;
+				break;
 			case KindSlider:
 				if (descriptor.intValue)
 					*descriptor.intValue = snapshot.a;
+				if (descriptor.boolValue)
+					*descriptor.boolValue = (snapshot.b != 0);
 				break;
 			case KindText:
 				if (descriptor.textValue)

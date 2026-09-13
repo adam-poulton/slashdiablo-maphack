@@ -62,6 +62,8 @@ namespace Settings {
 		std::string parent;		// key of the setting this one depends on
 		Kind kind;
 
+		// The value of a KindBool, and on a KindSlider the switch, which is a
+		// second value of the same setting rather than one of its own.
 		bool* boolValue;
 		Toggle* toggleValue;
 		unsigned int* intValue;
@@ -130,10 +132,19 @@ namespace Settings {
 	//
 	// The unit is written after the value, so the number on screen says what it
 	// is without the label having to carry it.
+	//
+	// A slider can carry a switch: a bool holding whether the setting applies at
+	// all, with the rail inert and the readout saying Off while it is off. That is
+	// one setting and so one row - a checkbox on a row of its own would leave the
+	// rail beside it showing a number that is not in force - and the switch is what
+	// names the row, so its box shares a column with every plain on/off setting.
+	// The module still reads and writes the bool under a config key of its own;
+	// the registry only draws it.
 	void AddSlider(std::string owner, std::string category, std::string key,
 		std::string label, unsigned int* value, unsigned int min,
 		unsigned int max, unsigned int step, std::string unit = "",
-		std::string help = "", std::string parent = "");
+		std::string help = "", std::string parent = "",
+		bool* onOff = NULL);
 
 	// A line of text, of the kind Config::ReadString() reads: a game name, a
 	// password, anything a module keeps as a std::string rather than a number. The

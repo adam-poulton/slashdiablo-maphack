@@ -4,6 +4,13 @@ Changelog
 All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
 in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
 
+# Unreleased
+* Fix the client crashing with an access violation in `D2Net.dll` after a failed join, most often when running several instances against a game the server never opens. (Fixed for 1.13c only)
+  * D2Net's receive thread reads its connection context while holding the lock that guards it, but tests whether the connection is still open before taking that lock. A close landing between the two frees the context under the thread.
+  * The window is always there, but it takes a close while the socket is still carrying traffic to fall into, which is what `Join Notice` made likely by shortening the wait before the connection is torn down.
+  * The thread now reads the context under the lock, where no close can be in progress, and shuts down cleanly if the connection has gone.
+  * `Net Context Guard` in `BH_settings.cfg` turns the guard off. It is not in the settings window: it is there to answer whether the guard is behind some other problem, not as something to choose.
+
 # Release Notes for 1.10.0 (2026-09-12)
 * Reworks the settings UI. Every setting is now searchable by name. The window is resizable and escape closes it.
 * Adds a `Display` tab to the settings UI.
@@ -31,6 +38,7 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
 * Remove the legacy item name options `Alt Item Style`, `Color Mod`, `Shorten Item Names`, `Show Ethereal`, `Show Sockets` and `Show Rune Numbers`. Item names are now customised only through [Advanced Item Display](docs/Advanced-Item-Display.md); with it off, items are named as the game names them. Configs that set these keys need no change - the keys are ignored. Use the packaged filter (or write your own) instead.
 * Add `Fail To Join`, tuning how long the client waits for a game to open before deeming it a failure to join. Editable from the Lobby tab of the settings UI.
 * Add `Join Notice`, tuning how long the failed to join notice stays on screen. Editable from the Lobby tab of the settings UI.
+* Add `Override Fail To Join` and `Override Join Notice`, switching off the patch behind each of those waits so the client keeps its own. Each is the checkbox that names its row on the Lobby tab of the settings UI, and the slider beside it reads `Off` while it is unchecked.
 * Make item filtering always ordered. Whether a hide rule (a blank label) hides an item depends on whether it was the first matching rule. A rule ending in `%CONTINUE%` decorates an item rather than settling it, so it does not protect the item from a subsequent hide rule. See [Advanced Item Display](docs/Advanced-Item-Display.md#rule-order-decides-what-is-hidden).
 * Add `Show Experience Range`, a ring around your player icon showing how close you have to be to a monster's death to gain experience from it.
 * Fix an item display rule marked `%NOTIFY-dead%` still announcing the item in chat when a later rule also matched it. The rule that draws the item on the automap now also decides whether it is announced, as it already did for everything else.

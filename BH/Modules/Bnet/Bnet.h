@@ -38,6 +38,8 @@ class Bnet : public Module {
 		static bool* showLastPass;
 		static bool* nextInstead;
 		static bool* keepDesc;
+		static bool* overrideFailToJoin;
+		static bool* overrideJoinNotice;
 		static unsigned int failToJoin;
 		static unsigned int joinNotice;
 		static std::string lastName;

@@ -5,16 +5,15 @@
 
 using namespace Drawing;
 
-// The box, and the clear space between it and the label. The label was drawn at a
-// bare 18 while the reported width was the label's alone, which put the hook's
-// clickable area 18 pixels left of what it draws: the far end of a label could not
-// be clicked, and a short label was not over the hook at all.
-#define CHECK_BOX_SIZE		12
-#define CHECK_LABEL_GAP		6
-
-// The label sits a little below the top of the box, so the two read as one line
-// rather than the text sitting on the box's rim.
-#define CHECK_LABEL_TOP		2
+/* DrawBox()
+ *	The box and the mark in it, at the given corner.
+ */
+void Checkhook::DrawBox(unsigned int x, unsigned int y, bool checked,
+		TextColor color) {
+	Framehook::Draw(x, y, CHECK_BOX_SIZE, CHECK_BOX_SIZE, 0, BTFull);
+	if (checked)
+		Texthook::Draw(x + 3, y + CHECK_LABEL_TOP, false, 0, color, "X");
+}
 
 /* Basic Hook Initializer
  *		Used for drawing a checkbox on screen.
@@ -173,9 +172,6 @@ void Checkhook::OnDraw() {
 
 	Lock();
 
-	Framehook::Draw(GetX(), GetY(), CHECK_BOX_SIZE, CHECK_BOX_SIZE, 0, BTFull);
-
-
 	unsigned int drawColor = color;
 	unsigned int checkColor = White;
 	if (!IsEnabled()) {
@@ -185,9 +181,7 @@ void Checkhook::OnDraw() {
 		checkColor = hoverColor;
 	}
 
-	if (IsChecked())
-		Texthook::Draw(GetX() + 3, GetY() + CHECK_LABEL_TOP, false, 0,
-			(TextColor)checkColor, "X");
+	DrawBox(GetX(), GetY(), IsChecked(), (TextColor)checkColor);
 
 	Texthook::Draw(GetX() + CHECK_BOX_SIZE + CHECK_LABEL_GAP,
 		GetY() + CHECK_LABEL_TOP, false, 0, (TextColor)drawColor, text);

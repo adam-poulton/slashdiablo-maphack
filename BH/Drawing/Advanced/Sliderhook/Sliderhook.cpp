@@ -12,6 +12,7 @@ void Sliderhook::Init(unsigned int width, unsigned int* target,
 		const std::string& suffix) {
 	xSize = width;
 	value = target;
+	onOff = NULL;
 	unit = suffix;
 	dragging = false;
 	SetFont(0);
@@ -32,6 +33,20 @@ Sliderhook::Sliderhook(HookGroup* group, unsigned int x, unsigned int y,
 		Init(xSize, value, unit);
 }
 
+void Sliderhook::SetSwitch(bool* state) {
+	Lock();
+	onOff = state;
+	Unlock();
+}
+
+void Sliderhook::Flip() {
+	if (!onOff)
+		return;
+	Lock();
+	*onOff = !*onOff;
+	Unlock();
+}
+
 void Sliderhook::Snap() {
 	if (!value)
 		return;
@@ -41,7 +56,9 @@ void Sliderhook::Snap() {
 }
 
 void Sliderhook::Step(int steps) {
-	if (!value || steps == 0)
+	// A switched off slider has no value in force to move, and moving one behind
+	// the switch would change a number nobody can see.
+	if (!value || steps == 0 || !IsOn())
 		return;
 	Lock();
 	int at = (int)range.IndexForValue(*value) + steps;
@@ -59,8 +76,16 @@ std::string Sliderhook::Readout(unsigned int raw) const {
 	return std::string(text);
 }
 
+// The widest thing the readout will ever say, so the rail keeps its width as the
+// thumb is dragged along it and as the switch is flipped.
 unsigned int Sliderhook::ReadoutWidth() {
-	return (unsigned int)Texthook::GetTextSize(Readout(range.max), GetFont()).x;
+	unsigned int number =
+		(unsigned int)Texthook::GetTextSize(Readout(range.max), GetFont()).x;
+	if (!HasSwitch())
+		return number;
+	unsigned int off =
+		(unsigned int)Texthook::GetTextSize(SLIDER_OFF_TEXT, GetFont()).x;
+	return (off > number) ? off : number;
 }
 
 unsigned int Sliderhook::GetYSize() {
@@ -131,6 +156,12 @@ bool Sliderhook::OnLeftClick(bool up, unsigned int x, unsigned int y) {
 		return true;
 	}
 
+	// A rail that is switched off still takes the click rather than letting it
+	// through to the row behind it: it is drawn, so a click on it has landed on
+	// something, and what that something does is nothing until the switch is on.
+	if (!IsOn())
+		return InHook(x, y);
+
 	if (InHook(x, y)) {
 		if (!up) {
 			Lock();
@@ -154,6 +185,10 @@ void Sliderhook::OnDraw() {
 	}
 
 	Lock();
+	// A switch flipped off mid-drag - from the keyboard, or by a revert - ends the
+	// drag, since there is no longer a value being dragged.
+	if (!IsOn())
+		dragging = false;
 	// There is no mouse move event to hang a drag off, so the thumb catches up
 	// with the cursor here, once per frame.
 	if (dragging)
@@ -165,8 +200,11 @@ void Sliderhook::OnDraw() {
 	unsigned int rail = RailWidth();
 	unsigned int railTop = RailTop();
 	unsigned int thumbLeft = ThumbLeft();
+	// A slider its switch has turned off is as inert as one the panel has greyed
+	// out, and is drawn the same way.
 	bool enabled = IsEnabled();
-	bool lit = enabled && (dragging ||
+	bool live = enabled && IsOn();
+	bool lit = live && (dragging ||
 		InHook((*p_D2CLIENT_MouseX), (*p_D2CLIENT_MouseY)));
 
 	Boxhook::Draw(RailLeft(), railTop, rail, SLIDER_RAIL_HEIGHT,
@@ -174,7 +212,7 @@ void Sliderhook::OnDraw() {
 	// Filled up to the far edge of the thumb, so how far along the rail the value
 	// sits reads without having to read the number after it - and so the rail is
 	// exactly full at the maximum and exactly a thumb's worth at the minimum.
-	if (enabled) {
+	if (live) {
 		unsigned int filled = (thumbLeft - RailLeft()) + SLIDER_THUMB_WIDTH;
 		Boxhook::Draw(RailLeft(), railTop, filled, SLIDER_RAIL_HEIGHT,
 			SLIDER_FILL_COLOR, BTNormal);
@@ -185,6 +223,7 @@ void Sliderhook::OnDraw() {
 	// Against the right edge of the hook, so the number stays in its column
 	// whatever it says and however wide the row is.
 	Texthook::Draw(GetX() + xSize, GetY() + SLIDER_PADDING_TOP, Right, GetFont(),
-		enabled ? Gold : DISABLED_TEXT_COLOR, Readout(GetValue()));
+		live ? Gold : DISABLED_TEXT_COLOR,
+		IsOn() ? Readout(GetValue()) : SLIDER_OFF_TEXT);
 	Unlock();
 }

@@ -62,6 +62,12 @@ class SettingsPanel : public UIPanel {
 			const Settings::Descriptor* setting;
 			Drawing::Texthook* label;	// NULL where the control labels itself
 			Drawing::Hook* control;		// what you change, or NULL
+
+			// The switch on a setting that has both a switch and a value, drawn as
+			// the checkbox that names the row. It names rather than sits beside the
+			// value so that it lands in the same column as the checkbox on every
+			// plain on/off row, and the column reads down the panel.
+			Drawing::Checkhook* nameSwitch;
 			Drawing::Keyhook* hotkey;	// the binding beside it, or NULL
 
 			// A heading's own three parts: what takes the click, the fold marker,
@@ -101,7 +107,8 @@ class SettingsPanel : public UIPanel {
 			int headingRow;
 
 			Row() : setting(NULL), label(NULL), control(NULL), hotkey(NULL),
-				bar(NULL), marker(NULL), count(NULL), heading(false), indent(0),
+				nameSwitch(NULL), bar(NULL), marker(NULL), count(NULL),
+				heading(false), indent(0),
 				height(0), enabled(true), headingRow(-1) {};
 		};
 
