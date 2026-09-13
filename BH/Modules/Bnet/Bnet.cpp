@@ -14,11 +14,9 @@
 #define NOTICE_FAILED_TO_JOIN	6
 
 // Where BNCLIENT 1.13c weighs how long it has waited on a battle.net reply
-// against the wait it allows, and the instruction that reads the answer. Reached
-// by offset because only enterChatWaitPatch below knows they are there, and only
-// on the version it is installed on.
+// against the wait it allows. Reached by offset because only enterChatWaitPatch
+// below knows it is there, and only on the version it is installed on.
 #define WAIT_BUDGET_113C	0x10DC1
-#define WAIT_RESUME_113C	0x10DC6
 
 // The battle.net message whose reply the lobby opens on: SID_ENTERCHAT. The wait
 // the patch stands in is the one loop the client waits on every reply in, and it
@@ -66,8 +64,11 @@ Patch* joinNoticePatch = new Patch(Call, D2CLIENT, { 0x4358B, 0 }, (int)JoinNoti
 
 Patch* removePass = new Patch(Call, D2MULTI, { 0x1250, 0x1AD0 }, (int)RemovePass_Interception, 5);
 
-// Where BNCLIENT's wait resumes once it has been told whether it has waited long
-// enough. Filled in when the patch that stands in for that decision goes in.
+// Where BNCLIENT's wait carries on once the comparison below has been made: the
+// instruction after the one that patch stands in for. Held in a variable because
+// the stub jumps back through it with every register live and no room to work one
+// out, and resolved when the patch goes in, since a module's address is not known
+// before it is loaded.
 static DWORD waitResume;
 
 // The lobby sends SID_ENTERCHAT on its way in and then waits on the reply,
@@ -87,6 +88,12 @@ static DWORD waitResume;
 // realm and game lists, which are answered and can fairly take a while.
 Patch* enterChatWaitPatch = new Patch(Jump, BNCLIENT, { WAIT_BUDGET_113C, 0 },
 	(int)EnterChatWait_Interception, 5);
+
+// The only patch here with an address of its own to find first.
+static void InstallEnterChatWaitPatch() {
+	waitResume = Patch::GetDllOffset(BNCLIENT, WAIT_BUDGET_113C + 5);
+	enterChatWaitPatch->Install();
+}
 
 void Bnet::OnLoad() {
 	// Its own settings, said by itself. They used to be drawn by AutoTele's tab,
@@ -251,8 +258,7 @@ void Bnet::InstallPatches() {
 	ftjPatch->Install();
 	joinNoticePatch->Install();
 
-	waitResume = Patch::GetDllOffset(BNCLIENT, WAIT_RESUME_113C);
-	enterChatWaitPatch->Install();
+	InstallEnterChatWaitPatch();
 }
 
 // Only on the way out, when BH is going and a patch left in place would be a jump
