@@ -9,6 +9,7 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
   * D2Net's receive thread reads its connection context while holding the lock that guards it, but tests whether the connection is still open before taking that lock. A close landing between the two frees the context under the thread.
   * The window is always there, but it takes a close while the socket is still carrying traffic to fall into, which is what `Join Notice` made likely by shortening the wait before the connection is torn down.
   * The thread now reads the context under the lock, where no close can be in progress, and shuts down cleanly if the connection has gone.
+  * `Net Context Guard` in `BH_settings.cfg` turns the guard off. It is not in the settings window: it is there to answer whether the guard is behind some other problem, not as something to choose.
 
 # Release Notes for 1.10.0 (2026-09-12)
 * Reworks the settings UI. Every setting is now searchable by name. The window is resizable and escape closes it.

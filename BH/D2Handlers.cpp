@@ -65,6 +65,10 @@ static CRITICAL_SECTION* netLock;
 static DWORD netResume;
 static DWORD netThreadClose;
 
+// Config::ReadBoolean keeps the address it is given and Config::Write reads
+// through it on every game exit, so what it is given has to outlive the call.
+static bool netGuardEnabled = true;
+
 void NetContextGuard_Interception();
 
 // D2Net's receive thread reads its connection context while holding the lock that
@@ -121,6 +125,13 @@ void __declspec(naked) NetContextGuard_Interception()
 void InstallNetContextGuard() {
 	// Only 1.13c's D2Net has been read for these.
 	if (D2Version::GetGameVersionID() != VERSION_113c)
+		return;
+
+	// Read from the file and not offered in the settings window: it is here to
+	// answer whether the guard is behind a problem, not as something to choose,
+	// and it takes effect at load rather than when a setting changes.
+	BH::config->ReadBoolean("Net Context Guard", netGuardEnabled);
+	if (!netGuardEnabled)
 		return;
 
 	netContext = (DWORD**)Patch::GetDllOffset(D2NET, NET_CONTEXT_113C);
