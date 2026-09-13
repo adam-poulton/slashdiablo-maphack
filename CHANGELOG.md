@@ -10,6 +10,9 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
   * The window is always there, but it takes a close while the socket is still carrying traffic to fall into, which is what `Join Notice` made likely by shortening the wait before the connection is torn down.
   * The thread now reads the context under the lock, where no close can be in progress, and shuts down cleanly if the connection has gone.
   * `Net Context Guard` in `BH_settings.cfg` turns the guard off. It is not in the settings window: it is there to answer whether the guard is behind some other problem, not as something to choose.
+* Stop the lobby freezing for 45 seconds on the way back from a failed join. (Fixed for 1.13c only)
+  * The client sends `SID_ENTERCHAT` as the lobby opens and then waits on the reply on the thread that draws it, for up to 45 seconds. pvpgn answers that message at login but not when the lobby is handed back by a game it never opened.
+  * The reply carries only the account's chat name, which the client already holds from login, and the lobby opens whether the reply comes or the wait runs out - so how long it waits is now `Enter Chat Wait` on the Lobby tab, five seconds by default. Off leaves the client its own.
 
 # Release Notes for 1.10.0 (2026-09-12)
 * Reworks the settings UI. Every setting is now searchable by name. The window is resizable and escape closes it.
