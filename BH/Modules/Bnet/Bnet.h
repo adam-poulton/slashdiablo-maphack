@@ -8,7 +8,9 @@
 // the settings window cannot be opened from the lobby to put it back.
 //
 // The ceiling is the longest wait worth offering, since a game that has not
-// opened by then is not going to.
+// opened by then is not going to. The stock wait is what the client keeps when
+// the override is off.
+#define STOCK_FAIL_TO_JOIN	30000
 #define MIN_FAIL_TO_JOIN	1000
 #define MAX_FAIL_TO_JOIN	4000
 #define STEP_FAIL_TO_JOIN	500
@@ -55,6 +57,7 @@ class Bnet : public Module {
 		static bool* overrideFailToJoin;
 		static bool* overrideJoinNotice;
 		static bool* overrideEnterChat;
+		static unsigned int failToJoinChoice;
 		static unsigned int failToJoin;
 		static unsigned int joinNotice;
 		static unsigned int enterChatChoice;
@@ -81,6 +84,7 @@ class Bnet : public Module {
 
 		void InstallPatches();
 		void RemovePatches();
+		static void SetWaits();
 
 		std::map<string, bool>* GetBools() { return &bools; }
 		static VOID __fastcall FOG10251Patch(DWORD lpCriticalSection, char nLine);
@@ -90,7 +94,6 @@ class Bnet : public Module {
 		static VOID __fastcall GameDescPatch(Control* box, BOOL(__stdcall *FunCallBack)(Control*, DWORD, DWORD));
 		static void RemovePassPatch();
 		static void SetJoinNotice();
-		static void SetEnterChatWait();
 
 		static std::string GetDefaultGameName() { return defaultName; }
 		static std::string GetDefaultPassword() { return defaultPass; }
@@ -100,5 +103,4 @@ class Bnet : public Module {
 void FailToJoin_Interception();
 void JoinNotice_Interception();
 void EnterChatWait_Interception();
-void InstallEnterChatWait();
 void RemovePass_Interception();

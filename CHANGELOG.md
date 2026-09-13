@@ -13,6 +13,11 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
 * Stop the lobby freezing for 45 seconds on the way back from a failed join. (Fixed for 1.13c only)
   * The client sends `SID_ENTERCHAT` as the lobby opens and then waits on the reply on the thread that draws it, for up to 45 seconds. pvpgn answers that message at login but not when the lobby is handed back by a game it never opened.
   * The reply carries only the account's chat name, which the client already holds from login, and the lobby opens whether the reply comes or the wait runs out - so how long it waits is now `Enter Chat Wait` on the Lobby tab, five seconds by default. Off leaves the client its own.
+* The lobby patches are no longer written and unwritten on every game join and exit.
+  * They were rewritten in place by BH's own thread while the game ran on its own, five to ten bytes at a time. A thread reading those bytes as they were written reads half an instruction, and some of them stand in code the game runs constantly: `Fog` ordinal 10251 is called from a hundred and fifty places and imported by three more libraries.
+  * They now go in once, at load, and stay for the session. `Fail To Join` and `Join Notice` switched off leave the client's own wait as a value the patch says, rather than by taking the patch out.
+* Fix the game name, password and description boxes on the create game screen losing the handler that lets them be typed in, when there was nothing to fill them with.
+  * The code that gives a box its handler is what the autofill patches stand in for, and each gave up before reaching it when it had no name, password or description to put in.
 
 # Release Notes for 1.10.0 (2026-09-12)
 * Reworks the settings UI. Every setting is now searchable by name. The window is resizable and escape closes it.
