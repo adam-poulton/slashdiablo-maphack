@@ -170,7 +170,9 @@ bool ModuleManager::UserInput(wchar_t* module, wchar_t* msg, bool fromGame) {
 
 	if (command.compare("reload") == 0)
 	{
-		ReloadConfig();
+		// The whole reload, not just the modules' part of it: the command has to
+		// leave BH in the same state the reload hotkey does.
+		BH::ReloadConfig();
 		Print("\377c4BH:\377c0 Successfully reloaded configuration.");
 		return true;
 	}
