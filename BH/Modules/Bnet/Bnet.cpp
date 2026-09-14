@@ -13,28 +13,15 @@
 // a lost connection raises among them, keeps the length the client wanted.
 #define NOTICE_FAILED_TO_JOIN	6
 
-// Where BNCLIENT 1.13c weighs how long it has waited on a battle.net reply
-// against the wait it allows. Reached by offset because only enterChatWaitPatch
-// below knows it is there, and only on the version it is installed on.
-#define WAIT_BUDGET_113C	0x10DC1
-
-// The battle.net message whose reply the lobby opens on: SID_ENTERCHAT. The wait
-// the patch stands in is the one loop the client waits on every reply in, and it
-// is told which one this run is waiting on.
-#define MSG_ENTER_CHAT		0x0A
-
 unsigned int Bnet::failToJoinChoice;
 unsigned int Bnet::failToJoin;
 unsigned int Bnet::joinNotice;
-unsigned int Bnet::enterChatChoice;
-unsigned int Bnet::enterChatWait;
 bool* Bnet::showLastGame;
 bool* Bnet::showLastPass;
 bool* Bnet::nextInstead;
 bool* Bnet::keepDesc;
 bool* Bnet::overrideFailToJoin;
 bool* Bnet::overrideJoinNotice;
-bool* Bnet::overrideEnterChat;
 std::string Bnet::lastName;
 std::string Bnet::lastPass;
 std::string Bnet::lastDesc;
@@ -75,37 +62,6 @@ Patch* ftjPatch = new Patch(Call, D2CLIENT, { 0x4363E, 0x443FE }, (int)FailToJoi
 Patch* joinNoticePatch = new Patch(Call, D2CLIENT, { 0x4358B, 0 }, (int)JoinNotice_Interception, 10);
 
 Patch* removePass = new Patch(Call, D2MULTI, { 0x1250, 0x1AD0 }, (int)RemovePass_Interception, 5);
-
-// Where BNCLIENT's wait carries on once the comparison below has been made: the
-// instruction after the one that patch stands in for. Held in a variable because
-// the stub jumps back through it with every register live and no room to work one
-// out, and resolved when the patch goes in, since a module's address is not known
-// before it is loaded.
-static DWORD waitResume;
-
-// The lobby sends SID_ENTERCHAT on its way in and then waits on the reply,
-// sleeping in ten millisecond steps for up to 45 seconds, on the thread that
-// draws it. pvpgn answers that message at login but not when the lobby is handed
-// back by a game it never opened, so the window is frozen for the whole wait
-// before the lobby appears.
-//
-// Nothing is given up by giving up sooner. The reply carries only the account's
-// chat name, which the client already holds from the reply it did get at login,
-// and the lobby is opened whether the wait ended in a reply or in the time
-// running out.
-//
-// Stands in for the comparison the client makes, which is reached with the time
-// waited so far in eax and the message being waited on in esi. Only SID_ENTERCHAT
-// is answered for: the same loop carries the waits on logon, on auth and on the
-// realm and game lists, which are answered and can fairly take a while.
-Patch* enterChatWaitPatch = new Patch(Jump, BNCLIENT, { WAIT_BUDGET_113C, 0 },
-	(int)EnterChatWait_Interception, 5);
-
-// The only patch here with an address of its own to find first.
-static void InstallEnterChatWaitPatch() {
-	waitResume = Patch::GetDllOffset(BNCLIENT, WAIT_BUDGET_113C + 5);
-	enterChatWaitPatch->Install();
-}
 
 void Bnet::OnLoad() {
 	// Its own settings, said by itself. They used to be drawn by AutoTele's tab,
@@ -157,15 +113,6 @@ void Bnet::OnLoad() {
 		"Off holds it for the length the client gives it.",
 		"", overrideJoinNotice);
 
-	overrideEnterChat = &bools["Override Enter Chat Wait"];
-	*overrideEnterChat = true;
-
-	Settings::AddSlider(GetName(), Settings::Category::Lobby, "Enter Chat Wait", "Wait on battle.net for",
-		&enterChatChoice, MIN_ENTER_CHAT, MAX_ENTER_CHAT, STEP_ENTER_CHAT, " ms",
-		"How long the lobby waits on battle.net's reply before it opens anyway. "
-		"The client draws nothing while it waits. Off leaves the client to decide.",
-		"", overrideEnterChat);
-
 	showLastGame = &bools["Autofill Last Game"];
 	*showLastGame = true;
 	
@@ -180,7 +127,6 @@ void Bnet::OnLoad() {
 
 	failToJoinChoice = MAX_FAIL_TO_JOIN;
 	joinNotice = DEFAULT_JOIN_NOTICE;
-	enterChatChoice = DEFAULT_ENTER_CHAT;
 	LoadConfig();
 	InstallPatches();
 }
@@ -192,7 +138,6 @@ void Bnet::LoadConfig() {
 	BH::config->ReadBoolean("Autofill Description", *keepDesc);
 	BH::config->ReadBoolean("Override Fail To Join", *overrideFailToJoin);
 	BH::config->ReadBoolean("Override Join Notice", *overrideJoinNotice);
-	BH::config->ReadBoolean("Override Enter Chat Wait", *overrideEnterChat);
 	BH::config->ReadInt("Fail To Join", failToJoinChoice, MAX_FAIL_TO_JOIN);
 
 	// Config::ReadInt yields zero for a key the file does not have, and the wait
@@ -219,13 +164,7 @@ void Bnet::LoadConfig() {
 	if (joinNotice > MAX_JOIN_NOTICE)
 		joinNotice = MAX_JOIN_NOTICE;
 
-	// Held to the range for the same reason as the two above.
-	BH::config->ReadInt("Enter Chat Wait", enterChatChoice, DEFAULT_ENTER_CHAT);
-	if (enterChatChoice < MIN_ENTER_CHAT)
-		enterChatChoice = MIN_ENTER_CHAT;
-	if (enterChatChoice > MAX_ENTER_CHAT)
-		enterChatChoice = MAX_ENTER_CHAT;
-	SetWaits();
+	SetFailToJoin();
 
 	// Used to prefill the create/join boxes when there is no previous game to fall back on
 	BH::config->ReadString("Default Game Name", defaultName);
@@ -240,7 +179,7 @@ void Bnet::OnSettingsChanged(const vector<string>& keys) {
 	defaultName = Trim(defaultName);
 	defaultPass = Trim(defaultPass);
 	defaultDesc = Trim(defaultDesc);
-	SetWaits();
+	SetFailToJoin();
 }
 
 // Every patch here goes in once, at load, and stays in for the session. They are
@@ -269,8 +208,6 @@ void Bnet::InstallPatches() {
 
 	ftjPatch->Install();
 	joinNoticePatch->Install();
-
-	InstallEnterChatWaitPatch();
 }
 
 // Only on the way out, when BH is going and a patch left in place would be a jump
@@ -289,7 +226,6 @@ void Bnet::RemovePatches() {
 	ftjPatch->Remove();
 	joinNoticePatch->Remove();
 	removePass->Remove();
-	enterChatWaitPatch->Remove();
 }
 
 void Bnet::OnUnload() {
@@ -458,37 +394,12 @@ void __declspec(naked) JoinNotice_Interception()
 	}
 }
 
-void __declspec(naked) EnterChatWait_Interception()
-{
-	/*
-	Leaves the comparison the client would have made, against the wait that applies
-	to the message this run is waiting on. Every register the run holds is live
-	here, so nothing is touched, and the comparison is made last so that the jump
-	back carries the flags the client's own branch reads.
-	*/
-	__asm
-	{
-		CMP ESI, MSG_ENTER_CHAT
-		JNE stock
-
-		CMP EAX, Bnet::enterChatWait
-		JMP resume
-
-	stock:
-		CMP EAX, STOCK_ENTER_CHAT
-
-	resume:
-		JMP DWORD PTR [waitResume]
-	}
-}
-
-// What the two waits above read. Each is reached where no setting can be read -
-// one from a stub with every register live, one from a loop inside BNCLIENT - so
-// the switch on each is answered here: off is the client's own wait, which the
-// patch says as readily as it says a chosen one.
-void Bnet::SetWaits() {
+// Sets the value FailToJoin_Interception compares against. That stub runs with
+// every register live and cannot read a setting, so the choice is made here and
+// left in a variable: the chosen wait when the override is on, the client's own
+// when it is off.
+void Bnet::SetFailToJoin() {
 	failToJoin = *overrideFailToJoin ? failToJoinChoice : STOCK_FAIL_TO_JOIN;
-	enterChatWait = *overrideEnterChat ? enterChatChoice : STOCK_ENTER_CHAT;
 }
 
 void Bnet::SetJoinNotice() {

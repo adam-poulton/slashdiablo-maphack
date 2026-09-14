@@ -10,9 +10,6 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
 * Fix the client crashing with an access violation in `D2Net.dll` after a failed join, most often when running several instances against a game the server never opens. (Fixed for 1.13c only)
   * The client could close a connection while a packet was still arriving on it and then read the connection it had just thrown away. A failed join is the usual way to arrange that; a clean game exit never is.
   * `Net Context Guard` in `BH_settings.cfg` turns the fix off, for working out whether it is behind some other problem. It is deliberately not in the settings window.
-* Fix being left unable to create or join a game for up to 45 seconds after a failed join. (Fixed for 1.13c only)
-  * The client waits on a reply from the server before it will let you back into the lobby, and after a failed join that reply never arrives. It carries nothing the client does not already know, so there is no reason to sit through it.
-  * `Enter Chat Wait` on the Lobby tab sets how long to wait before getting on with it, five seconds by default. Off leaves the client its own wait.
 * Fix the game name, password and description boxes on the create game screen refusing to be typed in when there was nothing to fill them with.
 * BH now makes its lobby changes once at startup, rather than applying and undoing them on every game join and exit. Doing that while the game was running risked a crash each time.
   * `Fail To Join` and `Join Notice` switched off now leave the client its own wait without taking anything back out mid-session. No change to what either does.
