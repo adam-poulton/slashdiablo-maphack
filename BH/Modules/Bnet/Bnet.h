@@ -31,20 +31,6 @@
 #define STEP_JOIN_NOTICE	30
 #define DEFAULT_JOIN_NOTICE	90
 
-// How long the lobby waits on the battle.net reply it opens on, in milliseconds,
-// and what one notch of its slider moves. The client draws nothing while it
-// waits, so the whole wait is a frozen window.
-//
-// The stock wait is what the client keeps when the override is off. The range
-// offered is what is worth choosing: a reply that has not come in fifteen
-// seconds is not coming, and the floor is the shortest wait a reply can still
-// win.
-#define STOCK_ENTER_CHAT	45000
-#define MIN_ENTER_CHAT		1000
-#define MAX_ENTER_CHAT		15000
-#define STEP_ENTER_CHAT		1000
-#define DEFAULT_ENTER_CHAT	5000
-
 struct Control;
 
 class Bnet : public Module {
@@ -56,12 +42,9 @@ class Bnet : public Module {
 		static bool* keepDesc;
 		static bool* overrideFailToJoin;
 		static bool* overrideJoinNotice;
-		static bool* overrideEnterChat;
 		static unsigned int failToJoinChoice;
 		static unsigned int failToJoin;
 		static unsigned int joinNotice;
-		static unsigned int enterChatChoice;
-		static unsigned int enterChatWait;
 		static std::string lastName;
 		static std::string lastPass;
 		static std::string lastDesc;
@@ -84,7 +67,7 @@ class Bnet : public Module {
 
 		void InstallPatches();
 		void RemovePatches();
-		static void SetWaits();
+		static void SetFailToJoin();
 
 		std::map<string, bool>* GetBools() { return &bools; }
 		static VOID __fastcall FOG10251Patch(DWORD lpCriticalSection, char nLine);
@@ -102,5 +85,4 @@ class Bnet : public Module {
 
 void FailToJoin_Interception();
 void JoinNotice_Interception();
-void EnterChatWait_Interception();
 void RemovePass_Interception();
