@@ -5,6 +5,7 @@
 #include <string>
 #include <list>
 #include "../Hook.h"
+#include "../Advanced/Buttonhook/Buttonhook.h"
 
 namespace Drawing {
 	class UI;
@@ -26,6 +27,7 @@ namespace Drawing {
 	#define UI_CONTENT_MARGIN	6
 	#define SEARCH_BAND_TOP		3	// tab row to search box
 	#define SEARCH_BAND_GAP		7	// search box to contents
+	#define SEARCH_BUTTON_GAP	4	// search box to the button beside it
 	#define FOOTER_BAND_GAP		6	// contents to footer line
 	#define FOOTER_BAND_HEIGHT	8	// the footer line itself
 	#define FOOTER_ACTION_GAP	10	// between what the window says and what it offers
@@ -108,6 +110,18 @@ namespace Drawing {
 			Inputhook* searchBox;
 			Texthook* footerLeft;
 			Texthook* footerRight;
+
+			// A square button on the end of the search row, and what to do when
+			// it is clicked. The search box gives up its width to it, so a
+			// window without one is laid out exactly as it always was.
+			Buttonhook* searchButton;
+			std::function<void()> onSearchButton;
+
+			// Room kept clear under the search box for whatever the window's
+			// owner draws there. The window only holds the space: what goes in
+			// it belongs to the owner, which is what keeps a control made of
+			// stats out of a class that draws frames.
+			unsigned int searchExtraHeight;
 
 			// Something in the footer the user can click, and what to do about it.
 			// A callback rather than the call, so a drawing class needs to know
@@ -208,9 +222,31 @@ namespace Drawing {
 			// control rather than building one of its own.
 			void EnableSearch(std::string placeholder);
 			bool HasSearch() { return searchBox != NULL; };
+
+			// The group the bands are built into, for an owner putting its own
+			// controls in the room it reserved. A hook in it is laid out against
+			// the window's content box and is drawn and hidden with the window,
+			// which is the whole reason not to hang one off the screen instead.
+			HookGroup* GetChrome() { return (HookGroup*)chrome; };
 			Inputhook* GetSearchBox() { return searchBox; };
 			void SetSearchPlaceholder(std::string placeholder);
 			unsigned int GetSearchBandHeight();
+
+			// A square button on the end of the search row, for something that
+			// belongs with the search rather than with any one panel. The search
+			// box is narrowed to make room for it, and a button switched off
+			// gives that room back.
+			void EnableSearchButton(ButtonIcon icon, std::function<void()> onClick);
+			Buttonhook* GetSearchButton() { return searchButton; };
+			void SetSearchButtonShown(bool shown);
+			void InvokeSearchButton();
+
+			// Room kept clear under the search box, and where it starts. The
+			// window holds the space and draws nothing in it; the owner lays its
+			// own controls out against GetSearchExtraY().
+			void SetSearchExtraHeight(unsigned int height);
+			unsigned int GetSearchExtraHeight() { return searchExtraHeight; };
+			unsigned int GetSearchExtraY();
 
 			// The footer band. Two lines sharing one strip: whatever the window
 			// has to say about itself on the left, whatever the panel in front has

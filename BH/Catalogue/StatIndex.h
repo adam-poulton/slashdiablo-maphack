@@ -72,7 +72,13 @@ namespace StatIndex {
 	enum Comparator {
 		GreaterThan,
 		LessThan,
-		EqualTo
+		EqualTo,
+
+		// Whatever it rolls, so long as it rolls it at all. Not one of the
+		// three the filter offers: it is what a condition naming a stat and no
+		// amount asks, which is the question "what grants this" with nothing
+		// said about how much.
+		Granted
 	};
 
 	// One question asked of a source: a stat with a comparator and a value, or
@@ -139,5 +145,15 @@ namespace StatIndex {
 	// which is the order the catalogues list them in. The entry a result names
 	// is valid until something else is registered.
 	std::vector<Result> Find(const Query& query);
+
+	// Every stat the sources of one kind write, once each, in no particular
+	// order. Empty kind asks every kind.
+	//
+	// This is exactly the set a stat criterion can answer for that kind: a stat
+	// outside it is granted by nothing in scope, and one inside it is granted
+	// by at least one source. What a condition builder may offer therefore
+	// follows from the index rather than from a list maintained beside it.
+	// docs/adr/0010 is where that is reasoned about.
+	std::vector<std::string> StatsGranted(const std::string& kind);
 
 }

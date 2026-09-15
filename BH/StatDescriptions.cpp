@@ -790,4 +790,37 @@ std::string Render(const Stat& stat) {
 		ToText(stat.low), ToText(stat.high));
 }
 
+// Substituting nothing for the placeholders rather than reaching past them: a
+// description string carries its value wherever the game puts it, which is not
+// always at the front, and cutting at a fixed position would take words with it.
+std::string StatLabel(const std::string& stat) {
+	StatDescription desc;
+	if (!LookupStat(stat, desc) || desc.positive.length() == 0)
+		return "";
+
+	std::string label = Collapse(Substitute(desc.positive, {}));
+
+	// What is left of a string written to follow a number: the sign the value
+	// would have carried, and the preposition that joined it to these words.
+	while (label.length() > 0 && (label[0] == '+' || label[0] == '-'))
+		label.erase(0, 1);
+	label = Trim(label);
+	if (label.compare(0, 3, "to ") == 0)
+		label.erase(0, 3);
+	else if (label.compare(0, 3, "by ") == 0)
+		label.erase(0, 3);
+
+	return Trim(label);
+}
+
+bool StatIsPercent(const std::string& stat) {
+	StatDescription desc;
+	if (!LookupStat(stat, desc))
+		return false;
+
+	bool percent = false, plus = false;
+	FormatFlags(desc.func, percent, plus);
+	return percent;
+}
+
 }	// namespace StatDescriptions

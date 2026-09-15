@@ -14,8 +14,11 @@ namespace Drawing {
 	// What a compact box uses instead. A box that stands on its own, as the search
 	// box does, is worth the room; a box on a row beside other controls is not, and
 	// the extra height only makes it the odd one out on its row.
-	#define INPUT_COMPACT_PADDING_TOP		2
-	#define INPUT_COMPACT_PADDING_BOTTOM	2
+	//
+	// The same split a combo box uses, so a box and a combo side by side put their
+	// text on one line rather than a pixel apart.
+	#define INPUT_COMPACT_PADDING_TOP		3
+	#define INPUT_COMPACT_PADDING_BOTTOM	1
 
 	// How long the caret stays on or off, in milliseconds.
 	#define INPUT_BLINK_MS			500

@@ -6,6 +6,7 @@
 #include "../Basic/Framehook/Framehook.h"
 #include "../Basic/Boxhook/Boxhook.h"
 #include "../Advanced/Inputhook/Inputhook.h"
+#include "../Advanced/Buttonhook/Buttonhook.h"
 
 using namespace Drawing;
 
@@ -52,6 +53,8 @@ UI::UI(std::string name, std::string configKey, unsigned int xSize, unsigned int
 	askedYSize = ySize;
 	sizeResolved = false;
 	searchBox = NULL;
+	searchButton = NULL;
+	searchExtraHeight = 0;
 	footerLeft = footerRight = footerAction = NULL;
 	chromeWidth = chromeHeight = 0;
 	chrome = new UIChrome(this);
@@ -108,6 +111,7 @@ UI::~UI() {
 	while (chrome->Hooks.size() > 0)
 		delete (*chrome->Hooks.begin());
 	searchBox = NULL;
+	searchButton = NULL;
 	footerLeft = footerRight = footerAction = NULL;
 	delete chrome;
 	chrome = NULL;
@@ -241,7 +245,27 @@ void UI::ResolveDefaultSize() {
 unsigned int UI::GetSearchBandHeight() {
 	if (!searchBox)
 		return 0;
-	return SEARCH_BAND_TOP + searchBox->GetYSize() + SEARCH_BAND_GAP;
+	return SEARCH_BAND_TOP + searchBox->GetYSize() + searchExtraHeight +
+		SEARCH_BAND_GAP;
+}
+
+// Straight under the search box. Absolute rather than an offset, since what is
+// laid out here is laid out by someone who is not the window.
+unsigned int UI::GetSearchExtraY() {
+	if (!searchBox)
+		return GetY();
+	return searchBox->GetY() + searchBox->GetYSize();
+}
+
+// Taking room from the panel below rather than from the window, so the search
+// row itself does not move and a panel resizes to what is left.
+void UI::SetSearchExtraHeight(unsigned int height) {
+	if (searchExtraHeight == height)
+		return;
+	Lock();
+	searchExtraHeight = height;
+	chromeWidth = 0;	// so the next draw places the bands against it
+	Unlock();
 }
 
 unsigned int UI::GetFooterBandHeight() {
@@ -267,6 +291,50 @@ void UI::EnableSearch(std::string placeholder) {
 void UI::SetSearchPlaceholder(std::string placeholder) {
 	if (searchBox)
 		searchBox->SetPlaceholder(placeholder);
+}
+
+// Fired by the button on the search row. A plain function with the window as its
+// context, as the footer's clickable line is, since the hook callbacks predate
+// anything that could carry a closure.
+static bool SearchButtonClicked(bool up, Hook* hook, void* context) {
+	if (up && context)
+		((UI*)context)->InvokeSearchButton();
+	return true;
+}
+
+void UI::EnableSearchButton(ButtonIcon icon, std::function<void()> onClick) {
+	// Nothing to put it on the end of until there is a search row.
+	if (!searchBox)
+		return;
+
+	Lock();
+	onSearchButton = onClick;
+	if (!searchButton) {
+		// Square on the search box's own height, so the two read as one row
+		// however the font sizes them.
+		searchButton = new Buttonhook(chrome, 0, searchBox->GetBaseY(),
+			searchBox->GetYSize(), icon);
+		searchButton->SetLeftCallback(SearchButtonClicked, this);
+		chromeWidth = 0;	// so the next draw places it and narrows the box
+	}
+	searchButton->SetIcon(icon);
+	Unlock();
+}
+
+// Switched off rather than merely undrawn, so it stops taking clicks too, and
+// the search box is laid out again to take back the width.
+void UI::SetSearchButtonShown(bool shown) {
+	if (!searchButton || searchButton->IsActive() == shown)
+		return;
+	Lock();
+	searchButton->SetActive(shown);
+	chromeWidth = 0;
+	Unlock();
+}
+
+void UI::InvokeSearchButton() {
+	if (onSearchButton)
+		onSearchButton();
 }
 
 void UI::EnableFooter() {
@@ -347,8 +415,17 @@ void UI::LayoutChrome() {
 	chromeWidth = GetXSize();
 	chromeHeight = GetYSize();
 
-	if (searchBox)
-		searchBox->SetXSize(chrome->GetXSize());
+	if (searchBox) {
+		unsigned int searchWidth = chrome->GetXSize();
+		if (searchButton && searchButton->IsActive()) {
+			unsigned int taken = searchButton->GetXSize() + SEARCH_BUTTON_GAP;
+			searchWidth = (searchWidth > taken) ? (searchWidth - taken) : 0;
+			// Laid out from the box rather than from the far end of the content
+			// box, so the gap between the two is the same at every width.
+			searchButton->SetBaseX(searchWidth + SEARCH_BUTTON_GAP);
+		}
+		searchBox->SetXSize(searchWidth);
+	}
 
 	if (footerLeft) {
 		unsigned int footerY = (chromeHeight > FOOTER_BAND_HEIGHT + UI_CONTENT_MARGIN) ?

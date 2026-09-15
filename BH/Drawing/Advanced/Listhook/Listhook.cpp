@@ -1,6 +1,7 @@
 #include "Listhook.h"
 #include "../../Basic/Scrollbar/Scrollbar.h"
 #include "../../Basic/Boxhook/Boxhook.h"
+#include "../../Basic/Framehook/Framehook.h"
 #include "../../../D2Ptrs.h"
 #include "../../GroupStyle.h"
 
@@ -10,6 +11,10 @@ using namespace Drawing;
 #define LIST_ROW_PADDING	2
 #define LIST_HEADER_GAP		4
 #define LIST_ELLIPSIS		".."
+
+// How far a floating list's panel is drawn outside its rows, so the border does
+// not sit against the text.
+#define LIST_FLOAT_PADDING	3
 
 // A group row is a heading, and what a heading looks like - its markers, its
 // colours, the column the marker sits in and how far its rows are indented - is
@@ -28,7 +33,8 @@ Listhook::Listhook(HookVisibility visibility, unsigned int x, unsigned int y, un
 Hook(visibility, x, y), xSize(xSize), ySize(ySize), font(0), scrollTop(0), headerColor(Gold),
 groupColor(UI_GROUP_COLOR), groupHoverColor(UI_GROUP_HOVER_COLOR),
 groupIndent(UI_GROUP_INDENT),
-hasGroups(false), unfoldWidth(0), foldWidth(0), markerWidth(0),
+hasGroups(false), floating(false),
+unfoldWidth(0), foldWidth(0), markerWidth(0),
 foldingSuspended(false),
 selectedRow(-1), clickedRow(-1), rightClickedRow(-1),
 draggingThumb(false), thumbGrabOffset(0) {
@@ -38,10 +44,15 @@ Listhook::Listhook(HookGroup* group, unsigned int x, unsigned int y, unsigned in
 Hook(group, x, y), xSize(xSize), ySize(ySize), font(0), scrollTop(0), headerColor(Gold),
 groupColor(UI_GROUP_COLOR), groupHoverColor(UI_GROUP_HOVER_COLOR),
 groupIndent(UI_GROUP_INDENT),
-hasGroups(false), unfoldWidth(0), foldWidth(0), markerWidth(0),
+hasGroups(false), floating(false),
+unfoldWidth(0), foldWidth(0), markerWidth(0),
 foldingSuspended(false),
 selectedRow(-1), clickedRow(-1), rightClickedRow(-1),
 draggingThumb(false), thumbGrabOffset(0) {
+}
+
+Listhook::~Listhook() {
+	floaters.remove(this);
 }
 
 void Listhook::SetSize(unsigned int newXSize, unsigned int newYSize) {
@@ -518,8 +529,45 @@ int Listhook::RowAt(unsigned int x, unsigned int y) {
 	return (position < shown.size()) ? (int)shown[position] : -1;
 }
 
+std::list<Listhook*> Listhook::floaters;
+
+void Listhook::SetFloating(bool float_) {
+	Lock();
+	floating = float_;
+	floaters.remove(this);
+	if (float_)
+		floaters.push_back(this);
+	Unlock();
+}
+
+bool Listhook::CoveredByFloater(Hook* below, unsigned int x, unsigned int y) {
+	for (std::list<Listhook*>::iterator it = floaters.begin();
+			it != floaters.end(); ++it) {
+		if ((*it) == below || !(*it)->IsActive())
+			continue;
+		// The panel it draws for itself, rather than its rows, since that is
+		// what is actually covering whatever is underneath.
+		unsigned int left = ((*it)->GetX() > LIST_FLOAT_PADDING) ?
+			((*it)->GetX() - LIST_FLOAT_PADDING) : 0;
+		unsigned int top = ((*it)->GetY() > LIST_FLOAT_PADDING) ?
+			((*it)->GetY() - LIST_FLOAT_PADDING) : 0;
+		if (x >= left && y >= top &&
+				x < left + (*it)->GetXSize() + (2 * LIST_FLOAT_PADDING) &&
+				y < top + (*it)->GetYSize() + (2 * LIST_FLOAT_PADDING))
+			return true;
+	}
+	return false;
+}
+
+// Nothing is hovered through a list drawn over this one. Without this a row
+// under the cursor lights up behind whatever is covering it, and a panel that
+// follows the hovered row describes something the player cannot even see.
 int Listhook::GetHoveredRow() {
-	return RowAt(Hook::GetMouseX(), Hook::GetMouseY());
+	unsigned int x = (unsigned int)Hook::GetMouseX();
+	unsigned int y = (unsigned int)Hook::GetMouseY();
+	if (CoveredByFloater(this, x, y))
+		return -1;
+	return RowAt(x, y);
 }
 
 int Listhook::TakeClickedRow() {
@@ -719,6 +767,21 @@ void Listhook::OnDraw() {
 	}
 
 	Lock();
+	// Before anything else, so the rows and the scrollbar are drawn onto it. A
+	// solid fill rather than a translucent one: what is behind a floating list
+	// is whatever it is covering, and reading through to it is what makes the
+	// rows hard to read.
+	if (floating) {
+		unsigned int panelX = (GetX() > LIST_FLOAT_PADDING) ?
+			(GetX() - LIST_FLOAT_PADDING) : 0;
+		unsigned int panelY = (GetY() > LIST_FLOAT_PADDING) ?
+			(GetY() - LIST_FLOAT_PADDING) : 0;
+		unsigned int panelW = xSize + (2 * LIST_FLOAT_PADDING);
+		unsigned int panelH = ySize + (2 * LIST_FLOAT_PADDING);
+		D2GFX_DrawRectangle(panelX, panelY, panelX + panelW, panelY + panelH, 0, BTFull);
+		Framehook::DrawBorder(panelX, panelY, panelW, panelH, BTFull);
+	}
+
 	unsigned int rowHeight = GetRowHeight();
 	// There is no mouse move event to hang a drag off, so the thumb catches up
 	// with the cursor here, once per frame.

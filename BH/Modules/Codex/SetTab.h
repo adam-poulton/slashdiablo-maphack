@@ -4,13 +4,15 @@
 #include "../../Catalogue/StatIndex.h"
 #include "../Window/UIPanel.h"
 
+class QueryBuilder;
+
 // The set items panel, laid out and driven the same way as the runewords and
 // uniques panels.
 //
 // A view onto the stat index, scoped to the pieces of a set. What the player
-// types becomes a query with one text criterion, so the panel holds no pieces
-// of its own and matches nothing for itself: what it draws is the answer it was
-// given. A set's own bonuses are a source of their own, which the panel asks
+// types becomes a text criterion, and the conditions the window shares
+// between its panels become criteria beside it, so the panel holds no pieces of its own
+// and matches nothing for itself: what it draws is the answer it was given. A set's own bonuses are a source of their own, which the panel asks
 // the catalogue for when it describes one of that set's pieces.
 class SetTab : public UIPanel {
 	private:
@@ -19,6 +21,13 @@ class SetTab : public UIPanel {
 		// Sits beside the window rather than inside the tab, which is why it is a
 		// bare Tooltiphook rather than one of the tab's hooks.
 		Drawing::Tooltiphook* summary;
+
+		// The stat conditions the window shares between its panels, and the
+		// revision the list was last built against, so a condition changed
+		// while another panel was in front is noticed on coming back to this
+		// one.
+		QueryBuilder* conditions;
+		unsigned int conditionsRevision;
 
 		std::vector<StatIndex::Result> results;
 
@@ -49,7 +58,7 @@ class SetTab : public UIPanel {
 		void UpdateSummary();
 
 	public:
-		SetTab(Drawing::UI* ui);
+		SetTab(Drawing::UI* ui, QueryBuilder* conditions);
 
 		std::vector<ChatCommand> GetCommands();
 		void OnDraw();

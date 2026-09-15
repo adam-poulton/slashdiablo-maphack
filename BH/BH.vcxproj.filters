@@ -12,6 +12,7 @@
     <ClCompile Include="D2Stubs.cpp" />
     <ClCompile Include="D2Version.cpp" />
     <ClCompile Include="DllMain.cpp" />
+    <ClCompile Include="Drawing\Advanced\Buttonhook\Buttonhook.cpp" />
     <ClCompile Include="Drawing\Advanced\Checkhook\Checkhook.cpp" />
     <ClCompile Include="Drawing\Advanced\Colorhook\Colorhook.cpp" />
     <ClCompile Include="Drawing\Advanced\Combohook\Combohook.cpp" />
@@ -50,6 +51,8 @@
     <ClCompile Include="Modules\ModuleManager.cpp" />
     <ClCompile Include="Modules\Party\Party.cpp" />
     <ClCompile Include="Modules\Codex\CodexWindow.cpp" />
+    <ClCompile Include="Modules\Codex\QueryBuilder.cpp" />
+    <ClCompile Include="Modules\Codex\StatVocabulary.cpp" />
     <ClCompile Include="Modules\Codex\BaseTab.cpp" />
     <ClCompile Include="Modules\Codex\RecipeTab.cpp" />
     <ClCompile Include="Modules\Codex\RunewordTab.cpp" />
@@ -97,6 +100,7 @@
     <ClInclude Include="D2Stubs.h" />
     <ClInclude Include="D2Version.h" />
     <ClInclude Include="Drawing.h" />
+    <ClInclude Include="Drawing\Advanced\Buttonhook\Buttonhook.h" />
     <ClInclude Include="Drawing\Advanced\Checkhook\Checkhook.h" />
     <ClInclude Include="Drawing\Advanced\Colorhook\Colorhook.h" />
     <ClInclude Include="Drawing\Advanced\Combohook\Combohook.h" />
@@ -144,6 +148,8 @@
     <ClInclude Include="Modules\ModuleManager.h" />
     <ClInclude Include="Modules\Party\Party.h" />
     <ClInclude Include="Modules\Codex\CodexWindow.h" />
+    <ClInclude Include="Modules\Codex\QueryBuilder.h" />
+    <ClInclude Include="Modules\Codex\StatVocabulary.h" />
     <ClInclude Include="Modules\Codex\BaseTab.h" />
     <ClInclude Include="Modules\Codex\RecipeTab.h" />
     <ClInclude Include="Modules\Codex\RunewordTab.h" />

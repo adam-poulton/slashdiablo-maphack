@@ -4,12 +4,15 @@
 #include "../../Catalogue/StatIndex.h"
 #include "../Window/UIPanel.h"
 
+class QueryBuilder;
+
 // The unique items panel, laid out and driven the same way as the runewords
 // panel.
 //
-// A view onto the stat index, scoped to the uniques. What the player types
-// becomes a query with one text criterion, so the panel holds no uniques of its
-// own and matches nothing for itself: what it draws is the answer it was given.
+// A view onto the stat index, scoped to the uniques. What the player
+// types becomes a text criterion, and the conditions the window shares
+// between its panels become criteria beside it, so the panel holds no uniques of its own
+// and matches nothing for itself: what it draws is the answer it was given.
 class UniqueTab : public UIPanel {
 	private:
 		Drawing::Listhook* list;
@@ -17,6 +20,13 @@ class UniqueTab : public UIPanel {
 		// Sits beside the window rather than inside the tab, which is why it is a
 		// bare Tooltiphook rather than one of the tab's hooks.
 		Drawing::Tooltiphook* summary;
+
+		// The stat conditions the window shares between its panels, and the
+		// revision the list was last built against, so a condition changed
+		// while another panel was in front is noticed on coming back to this
+		// one.
+		QueryBuilder* conditions;
+		unsigned int conditionsRevision;
 
 		std::vector<StatIndex::Result> results;
 		std::string search;			// what the player typed, always lowercase
@@ -39,7 +49,7 @@ class UniqueTab : public UIPanel {
 		void UpdateSummary();
 
 	public:
-		UniqueTab(Drawing::UI* ui);
+		UniqueTab(Drawing::UI* ui, QueryBuilder* conditions);
 
 		std::vector<ChatCommand> GetCommands();
 		void OnDraw();

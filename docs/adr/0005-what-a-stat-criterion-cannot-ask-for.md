@@ -22,6 +22,8 @@ A criterion is answered on the roll most favourable to it. "More than" is answer
 
 A source that does not write the stat at all answers no criterion on it. Its range would otherwise read as zero to zero, which "less than five" would be satisfied by for every source in the index.
 
+A fourth comparator was added for the condition builder: `Granted` is satisfied by any source that writes the stat, whatever it rolls. It is what a condition naming a stat with no amount beside it asks, which is "what grants this at all", and it needs no reading of the range because the paragraph above has already turned away every source that does not write the stat.
+
 ## What a source made on several kinds of base is answered from
 
 A runeword is not made on one base. Each of its runes gives one set of bonuses in a weapon, another in a helm or body armour and a third in a shield, so the same runeword grants different things depending on what it is made in. A source carries one variant per kind of base it is allowed in, each holding the whole of what it grants there, and the index adds each kind up on its own rather than into one set of totals.
@@ -45,5 +47,7 @@ Leaving the gaps undocumented was rejected because the failure they produce is s
 ## Consequences
 
 A criterion names a stat as `ItemStatCost.txt` names it, `fireresist` rather than Fire Resist, and asks about one stat at a time. What the game folds into a single line, the four resistances and the four attributes, is four criteria and four ranges. Offering a player the names they read, and one row that expands into four criteria, is the condition builder's work and not the index's.
+
+The builder that was then written does neither: it derives the names it offers from the index's own totals rather than carrying a list of them, and does not fold the four into one. ADR 0010 supersedes this paragraph and is where that is reasoned about.
 
 A source that grants nothing a criterion can reach is still in the index, answers a text criterion, and carries its worded lines. Nothing disappears; only the stat criteria cannot see what is listed above.
