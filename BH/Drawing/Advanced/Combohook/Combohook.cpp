@@ -24,6 +24,7 @@ Combohook::Combohook(HookVisibility visibility, unsigned int x, unsigned int y, 
 		currentIndex = index;
 		options = opts;
 		SetFont(0);
+		arrow = true;
 		SetOpen(false);
 }
 
@@ -33,7 +34,20 @@ Combohook::Combohook(HookGroup* group, unsigned int x, unsigned int y, unsigned 
 		currentIndex = index;
 		options = opts;
 		SetFont(0);
+		arrow = true;
 		SetOpen(false);
+}
+
+// Where the value and the options are drawn from, which is the one place the
+// two ways of laying a box out are told apart: a box with an arrow keeps its
+// value clear of the left frame, and one without puts it in the middle of the
+// room the missing arrow leaves.
+unsigned int Combohook::ValueX() {
+	return arrow ? (GetX() + COMBO_PADDING_X) : (GetX() + (GetXSize() / 2));
+}
+
+int Combohook::ValueAlignment() {
+	return arrow ? None : Center;
 }
 
 Combohook::~Combohook() {
@@ -70,13 +84,20 @@ bool Combohook::OnLeftClick(bool up, unsigned int x, unsigned int y) {
 }
 
 void Combohook::OnDraw() {
+	// Every other hook checks this for itself, and a box that ignored it was
+	// drawn wherever it had last been laid out however switched off it was.
+	if (!IsActive())
+		return;
+
 	TextColor valueColor = IsEnabled() ? Gold : DISABLED_TEXT_COLOR;
 	Framehook::Draw(GetX(), GetY(), GetXSize(), GetYSize(), 0, BTNormal);
-	Texthook::Draw(GetX() + COMBO_PADDING_X, GetY() + COMBO_PADDING_TOP, 0, GetFont(),
+	Texthook::Draw(ValueX(), GetY() + COMBO_PADDING_TOP, ValueAlignment(), GetFont(),
 		valueColor, options.at(GetSelectedIndex()));
-	Texthook::Draw(GetX() + GetXSize() - COMBO_ARROW_GAP, GetY() + COMBO_PADDING_TOP, 0, GetFont(),
-		IsEnabled() ? (InHook(Hook::GetMouseX(), Hook::GetMouseY())||active?Tan:Gold)
-			: DISABLED_TEXT_COLOR, "v");
+	if (arrow) {
+		Texthook::Draw(GetX() + GetXSize() - COMBO_ARROW_GAP, GetY() + COMBO_PADDING_TOP, 0, GetFont(),
+			IsEnabled() ? (InHook(Hook::GetMouseX(), Hook::GetMouseY())||active?Tan:Gold)
+				: DISABLED_TEXT_COLOR, "v");
+	}
 	// The open list is not drawn here; see DrawOpenList().
 }
 
@@ -100,7 +121,7 @@ void Combohook::DrawOpenList() {
 		// the one the box is showing does not shift as the list opens over it.
 		bool hovering = mouseX >= GetX() && mouseX < GetX() + GetXSize() &&
 			mouseY >= optionY && mouseY < optionY + GetYSize();
-		Texthook::Draw(GetX() + COMBO_PADDING_X, optionY + COMBO_PADDING_TOP, 0,
+		Texthook::Draw(ValueX(), optionY + COMBO_PADDING_TOP, ValueAlignment(),
 			GetFont(), hovering ? Tan : Gold, *it);
 	}
 }

@@ -47,6 +47,12 @@ class WindowModule : public Module {
 		// loop to be driven by and calls this itself.
 		void CheckOpenState();
 
+		// The same news, for whatever the window owns rather than a panel does.
+		// A panel cannot be told to put back what it does not own: the search
+		// box is emptied here for that reason, and anything else the window
+		// shares between its panels belongs here with it.
+		virtual void OnOpenStateChanged(bool open) {};
+
 		// Builds the window. Called from the subclass's OnLoad before any panel
 		// is added, since a panel measures itself against the window.
 		void CreateUI(std::string title, std::string configKey,

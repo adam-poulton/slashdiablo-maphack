@@ -1,4 +1,5 @@
 #include "StatIndex.h"
+#include <set>
 #include "../PropertyStats.h"
 #include "../StringUtil.h"
 
@@ -31,6 +32,10 @@ static bool Compares(Comparator comparator, int value, int low, int high) {
 		case GreaterThan:	return high > value;
 		case LessThan:		return low < value;
 		case EqualTo:		return low <= value && value <= high;
+		// Reached only for a source that writes the stat, the caller having
+		// already given up on one that does not, so there is nothing left to
+		// compare.
+		case Granted:		return true;
 	}
 	return false;
 }
@@ -129,6 +134,25 @@ std::vector<Result> Find(const Query& query) {
 			results.push_back(result);
 	}
 	return results;
+}
+
+// Read from the totals rather than from the sources, so that a stat left out of
+// the totals is left out of this too. That is what makes the answer the set a
+// criterion can reach: the per level and poison amounts CollectTotals drops
+// never appear here to be offered.
+std::vector<std::string> StatsGranted(const std::string& kind) {
+	std::set<std::string> granted;
+	for (unsigned int i = 0; i < entries.size(); i++) {
+		const Entry& entry = entries[i];
+		if (kind.length() > 0 && entry.kind.compare(kind) != 0)
+			continue;
+		for (unsigned int t = 0; t < entry.totals.size(); t++) {
+			const StatTotals& totals = entry.totals[t];
+			for (unsigned int s = 0; s < totals.size(); s++)
+				granted.insert(totals[s].stat);
+		}
+	}
+	return std::vector<std::string>(granted.begin(), granted.end());
 }
 
 }

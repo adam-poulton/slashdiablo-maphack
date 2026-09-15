@@ -21,7 +21,52 @@ settings window, under **Panel hotkeys** on the Input tab.
 * `.codex` in chat opens it on whichever tab was last in front.
 
 Closing the window clears where you had got to, so it opens on a clean list
-rather than on the last thing you searched for.
+rather than on the last thing you searched for. That includes any conditions you
+had set.
+
+## Searching by what something grants
+
+Searching matches words. To ask what something *grants* - every unique that can
+roll thirty faster cast rate, say - use the filter button on the right of the
+search box.
+
+Clicking it drops a row of conditions under the search box. A condition is a
+stat, a comparison and a number, and the **+ Add condition** line under the last
+row adds another. Conditions are combined with the search and with each other,
+so every one of them has to be satisfied: `Faster Cast Rate > 20` and
+`Fire Resist > 30` finds what rolls both, not either.
+
+* The stat box is a search of its own. Type into it and pick from the list that
+  drops below. The names are the game's own words for each stat; where two would
+  otherwise read alike the one measured as a percentage says so, so flat Cold
+  Absorb and `Cold Absorb %` are separate entries.
+* Only the stats something in the tab actually grants are offered, so a
+  condition can always be satisfied by something. Which stats those are changes
+  with the tab.
+* **Leave the number empty** and the condition matches anything granting that
+  stat at all, whatever it rolls. That is the quickest way to ask what has
+  Crushing Blow, or what can spawn with sockets.
+* `>` and `<` are the wording the item filter uses, and mean the same: `>` is
+  more than, and it is answered on the best roll. `= 30` finds anything that can
+  roll exactly thirty, which for a range means thirty falls inside it.
+* A condition does nothing until it names a stat, so adding a row does not empty
+  the list while you are still filling it in.
+* The `x` at the end of a row takes it away, and empties it when it is the only
+  row left - which is how you call off the filter without closing the window.
+
+Conditions are shared between the Runewords, Uniques and Sets tabs, as the
+search box is, so you can ask the same question of each in turn. The Recipes and
+Bases tabs do not offer them and the button is not drawn there.
+
+Clicking the button again puts the rows away **but leaves them applied**, which
+is how you get the room back on a small window without losing the query. The
+button's funnel turns gold whenever something is being filtered on, and the
+footer says how many conditions are in force.
+
+There are things a condition cannot find, all of them deliberate and all of them
+listed in `docs/adr/0005`: amounts granted per character level, poison damage,
+and a handful of properties the tables give no stat to. A search for life does
+not find Harlequin Crest, whose life is granted per level.
 
 ## Runewords tab
 

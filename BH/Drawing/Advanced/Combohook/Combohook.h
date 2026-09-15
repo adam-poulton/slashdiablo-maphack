@@ -21,9 +21,17 @@ namespace Drawing {
 			unsigned int* currentIndex;
 			bool active;
 
+			// Whether the box draws the arrow that says it has a list to open.
+			bool arrow;
+
 			// Opening and closing go through one place, so that the static below
 			// cannot get out of step with it.
 			void SetOpen(bool open);
+
+			// Where the value and each option are drawn from, and how they are
+			// aligned against it.
+			unsigned int ValueX();
+			int ValueAlignment();
 		public:
 			// The combo box whose list is open, if any, so that whoever draws last
 			// can put it on top. The colour picker holds itself the same way.
@@ -35,6 +43,18 @@ namespace Drawing {
 			//The open list is held in the static above, which would dangle if the
 			//box behind it were destroyed while it was still open.
 			~Combohook();
+
+			// Whether the box carries the arrow that says it has a list, and so
+			// whether its value sits after the left inset or in the middle.
+			//
+			// A box whose options are one character each - a comparator, say -
+			// is more arrow than value with one, and the arrow tells the player
+			// nothing they would not find by clicking it. Such a box drops the
+			// arrow and centres its value instead, which is also how its options
+			// are then listed, so the one showing does not move as the list
+			// opens over it.
+			bool HasArrow() { return arrow; };
+			void SetArrow(bool shown) { Lock(); arrow = shown; Unlock(); };
 
 			std::vector<std::string> GetOptions() { return options; };
 			unsigned int NewOption(std::string opt) { Lock(); options.push_back(opt); Unlock(); return options.size() - 1; };

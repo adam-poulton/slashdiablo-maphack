@@ -6,6 +6,7 @@
 #include "../../ItemDescription.h"
 #include "../../ItemRarity.h"
 #include "../../StringUtil.h"
+#include "QueryBuilder.h"
 
 using namespace Drawing;
 
@@ -17,7 +18,9 @@ using namespace Drawing;
 #define RW_COL_NAME_W		136
 #define RW_COL_GAP			4
 
-RunewordTab::RunewordTab(UI* ui) : UIPanel("Runewords", ui),
+RunewordTab::RunewordTab(UI* ui, QueryBuilder* conditions) : UIPanel("Runewords", ui),
+	conditions(conditions),
+	conditionsRevision(0),
 	shownSummary(-1),
 	catalogueLoaded(false),
 	needsRefresh(true) {
@@ -57,12 +60,19 @@ std::vector<ChatCommand> RunewordTab::GetCommands() {
 	return { { "rw", { "runewords" }, "<search>", "Opens the Runewords tab" } };
 }
 
-// One text criterion, scoped to the runewords. An empty search is carried by
+// What was typed and what the conditions ask, scoped to the runewords. An empty
+// search is carried by
 // every source, which is what shows the whole list.
 void RunewordTab::RunQuery() {
 	StatIndex::Query query;
 	query.kind = RunewordCatalogue::Kind;
 	query.criteria.push_back(StatIndex::Criterion::OnText(search));
+
+	// The window's conditions, which every panel offering them asks with, so
+	// that the same question can be put to each of them in turn.
+	std::vector<StatIndex::Criterion> stats = conditions->GetCriteria();
+	query.criteria.insert(query.criteria.end(), stats.begin(), stats.end());
+
 	results = StatIndex::Find(query);
 }
 
@@ -142,8 +152,15 @@ std::string RunewordTab::GetSearchPlaceholder() {
 std::string RunewordTab::GetStatus() {
 	if (!catalogueLoaded)
 		return "Waiting for game data to finish loading...";
-	if (results.empty())
-		return "No runewords match \"" + search + "\"";
+	if (results.empty()) {
+		// Everything that was asked for, so a list emptied by a condition does
+		// not read as a search that found nothing.
+		std::string asked = search.empty() ? "" : ("\"" + search + "\"");
+		std::string named = conditions->DescribeConditions();
+		if (named.length() > 0)
+			asked = asked.empty() ? named : (asked + " and " + named);
+		return asked.empty() ? "No runewords" : ("No runewords match " + asked);
+	}
 
 	char line[64];
 	if (list->GetMaxScrollTop() > 0) {
@@ -153,7 +170,12 @@ std::string RunewordTab::GetStatus() {
 	} else {
 		sprintf_s(line, sizeof(line), "%u runewords", (unsigned int)results.size());
 	}
-	return line;
+
+	// What narrowed the list, after what it came to. A list short because a
+	// condition is applied looks the same as one short because there is little
+	// to show, and the rows saying so may well be put away.
+	std::string named = conditions->DescribeConditions();
+	return (named.length() > 0) ? (std::string(line) + " matching " + named) : line;
 }
 
 // Enter picks the first match rather than typing a newline.
@@ -170,6 +192,14 @@ void RunewordTab::OnDraw() {
 	// finish either before this tab exists or after it has drawn a frame.
 	if (!catalogueLoaded && Catalogue::Loaded()) {
 		catalogueLoaded = true;
+		needsRefresh = true;
+	}
+
+	// Changed while this panel was behind another as readily as while it was
+	// in front, the conditions belonging to the window rather than to a panel.
+	if (conditionsRevision != conditions->GetRevision()) {
+		conditionsRevision = conditions->GetRevision();
+		list->SetScrollTop(0);
 		needsRefresh = true;
 	}
 

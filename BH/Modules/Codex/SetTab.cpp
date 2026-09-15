@@ -6,6 +6,7 @@
 #include "../../ItemDescription.h"
 #include "../../ItemRarity.h"
 #include "../../StringUtil.h"
+#include "QueryBuilder.h"
 
 using namespace Drawing;
 
@@ -15,9 +16,11 @@ using namespace Drawing;
 #define ST_COL_BASE_WEIGHT	2
 #define ST_COL_GAP			4
 
-SetTab::SetTab(UI* ui) : UIPanel("Sets", ui),
+SetTab::SetTab(UI* ui, QueryBuilder* conditions) : UIPanel("Sets", ui),
 	shownSets(0),
 	foldOnPush(true),
+	conditions(conditions),
+	conditionsRevision(0),
 	shownSummary(-1),
 	catalogueLoaded(false),
 	needsRefresh(true) {
@@ -58,12 +61,19 @@ std::vector<ChatCommand> SetTab::GetCommands() {
 	return { { "set", { "sets" }, "<search>", "Opens the Sets tab" } };
 }
 
-// One text criterion, scoped to the pieces of a set. An empty search is carried
+// What was typed and what the conditions ask, scoped to the pieces of a set. An empty
+// search is carried
 // by every source, which is what shows the whole list.
 void SetTab::RunQuery() {
 	StatIndex::Query query;
 	query.kind = SetCatalogue::Kind;
 	query.criteria.push_back(StatIndex::Criterion::OnText(search));
+
+	// The window's conditions, which every panel offering them asks with, so
+	// that the same question can be put to each of them in turn.
+	std::vector<StatIndex::Criterion> stats = conditions->GetCriteria();
+	query.criteria.insert(query.criteria.end(), stats.begin(), stats.end());
+
 	results = StatIndex::Find(query);
 }
 
@@ -177,13 +187,25 @@ std::string SetTab::GetSearchPlaceholder() {
 std::string SetTab::GetStatus() {
 	if (!catalogueLoaded)
 		return "Waiting for game data to finish loading...";
-	if (results.empty())
-		return "No set items match \"" + search + "\"";
+	if (results.empty()) {
+		// Everything that was asked for, so a list emptied by a condition does
+		// not read as a search that found nothing.
+		std::string asked = search.empty() ? "" : ("\"" + search + "\"");
+		std::string named = conditions->DescribeConditions();
+		if (named.length() > 0)
+			asked = asked.empty() ? named : (asked + " and " + named);
+		return asked.empty() ? "No set items" : ("No set items match " + asked);
+	}
 
 	char line[64];
 	sprintf_s(line, sizeof(line), "%u set items in %u set%s",
 		(unsigned int)results.size(), shownSets, (shownSets == 1) ? "" : "s");
-	return line;
+
+	// What narrowed the list, after what it came to. A list short because a
+	// condition is applied looks the same as one short because there is little
+	// to show, and the rows saying so may well be put away.
+	std::string named = conditions->DescribeConditions();
+	return (named.length() > 0) ? (std::string(line) + " matching " + named) : line;
 }
 
 // Row 0 is a heading, so enter takes the first row holding a piece.
@@ -207,10 +229,21 @@ void SetTab::OnDraw() {
 		needsRefresh = true;
 	}
 
+	// Changed while this panel was behind another as readily as while it was
+	// in front, the conditions belonging to the window rather than to a panel.
+	if (conditionsRevision != conditions->GetRevision()) {
+		conditionsRevision = conditions->GetRevision();
+		list->SetScrollTop(0);
+		needsRefresh = true;
+	}
+
 	if (needsRefresh) {
 		// Suspended rather than cleared, so clearing the search restores the
-		// user's folds.
-		list->SetFoldingSuspended(!search.empty());
+		// user's folds. A condition narrows the list the same way a search does,
+		// and a set whose only matching piece is folded away is a match the
+		// player cannot see.
+		list->SetFoldingSuspended(!search.empty() ||
+			conditions->GetActiveCount() > 0);
 		RunQuery();
 		PushRows();
 		needsRefresh = false;

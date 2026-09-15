@@ -1,5 +1,6 @@
 #pragma once
 
+#include <list>
 #include <set>
 #include <string>
 #include <vector>
@@ -98,6 +99,11 @@ namespace Drawing {
 	// font routines, so call them from the draw thread (a module's OnDraw).
 	class Listhook : public Hook {
 		private:
+			// Every floating list there is. Short by construction - a floating
+			// list is one that hangs over a panel, and a window has at most a
+			// few - and walked only to ask whether the mouse is over one.
+			static std::list<Listhook*> floaters;
+
 			// Where a column ended up once its share of the width was resolved.
 			// Parallel to columns.
 			struct ColumnLayout {
@@ -137,6 +143,11 @@ namespace Drawing {
 			TextColor groupHoverColor;
 			unsigned int groupIndent;	// rows under a group, in from its text
 			bool hasGroups;				// whether anything is indented at all
+
+			// Whether the list draws its own panel behind its rows, for a list
+			// that hangs over something rather than sitting inside a frame that
+			// was already there.
+			bool floating;
 
 			// The fold markers as measured at the current font: each of them, and
 			// the column they share, which is as wide as the wider one.
@@ -204,6 +215,10 @@ namespace Drawing {
 			Listhook(HookVisibility visibility, unsigned int x, unsigned int y, unsigned int xSize, unsigned int ySize);
 			Listhook(HookGroup* group, unsigned int x, unsigned int y, unsigned int xSize, unsigned int ySize);
 
+			// Takes a floating list back out of the list of them, which would
+			// otherwise be left holding an address nobody owns.
+			~Listhook();
+
 			// Resizing relays the columns out and brings the view back into
 			// range. Prefer SetSize() when both change, so the list is only
 			// measured once.
@@ -239,6 +254,26 @@ namespace Drawing {
 			void ToggleGroup(int groupRow);
 			void FoldAllGroups();
 			void UnfoldAllGroups();
+
+			// Whether the list draws a filled panel and a border around itself.
+			// Off by default: a list laid out inside a window is already on one,
+			// and a second panel drawn over the first reads as a seam. On for a
+			// list that hangs over whatever is behind it, which without one is
+			// rows of text floating on nothing.
+			//
+			// The panel is drawn around the list rather than inside it, so
+			// nothing about where the rows land changes. A caller placing a
+			// floating list leaves LIST_FLOAT_PADDING clear on every side of it.
+			bool IsFloating() { return floating; };
+			void SetFloating(bool float_);
+
+			// Whether a point is under some other floating list. Clicks are
+			// settled by the z order, but the mouse is read rather than
+			// dispatched - a row lights up under it, and a panel hangs a summary
+			// off whichever row that is - and reading it takes no account of
+			// what is drawn on top.
+			static bool CoveredByFloater(Hook* below, unsigned int x,
+				unsigned int y);
 
 			// For a filter that has to show what it matched whether or not its
 			// heading was folded.

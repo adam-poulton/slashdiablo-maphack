@@ -190,6 +190,7 @@ void WindowModule::CheckOpenState() {
 				lastSearch.clear();
 			}
 		}
+		OnOpenStateChanged(open);
 		Unlock();
 	}
 	wasOpen = open;

@@ -151,4 +151,22 @@ namespace StatDescriptions {
 
 	// The description line for one stat.
 	std::string Render(const Stat& stat);
+
+	// The stat's own words with nothing standing in for a value: the text
+	// ItemStatCost describes it by, with the placeholders taken out and a
+	// leading preposition dropped, so that "+%d to Life" comes back as "Life".
+	// Empty for a stat the tables give no description to.
+	//
+	// This asks the same rows Render() does, for a caller labelling a control
+	// rather than writing a line. The two cannot share: a description reads as
+	// part of a sentence about an amount, and a label has no amount to be part
+	// of a sentence about.
+	std::string StatLabel(const std::string& stat);
+
+	// Whether the stat's description writes its value as a percentage, which is
+	// what tells a stat granting points from the one beside it granting a share.
+	// The tables word the pair identically - flat and percentage cold absorb are
+	// both "Cold Absorb" - so this is what a caller labelling them has to tell
+	// them apart by.
+	bool StatIsPercent(const std::string& stat);
 };
