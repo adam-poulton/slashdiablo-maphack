@@ -5,6 +5,10 @@ All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
 in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
 
 # Unreleased
+* Fix the codex's stat filter naming two stats after whichever class or skill tab the tables happened to word
+  them with. A bonus to a class now reads `Class Skill Levels` rather than `Amazon Skill Levels`, and a bonus
+  to a skill tab reads `Skill Tab Levels` rather than `Javelin and Spear Skills`. Both match any of them, which
+  is what the new wording says.
 * Fix the codex reading a bonus to a random class as an Amazon one. The Hellfire Torch now reads
   `+3 to Random Class Skill Levels` rather than `+0-6 to Amazon Skill Levels`: the range on that property
   is the classes it can roll, and the three levels it grants are held elsewhere.

@@ -4,9 +4,9 @@ The stats the codex's condition builder offers are every stat the sources in
 front of the player actually write, read out of the stat index, and each is
 labelled with the game's own description of it with the value's placeholder
 taken out. There is no list of stats written anywhere. The only names written
-down are for the nine the tables describe with nothing at all, which is not a
-vocabulary so much as an admission that for those there is nothing to derive
-from.
+down are for the eleven the tables describe with nothing a picker can use, which
+is not a vocabulary so much as an admission that for those there is nothing to
+derive from.
 
 This supersedes the expectation in the Consequences of ADR 0005, which reads as
 though the builder would hand-write the names a player reads and fold the four
@@ -56,13 +56,18 @@ says whether a value renders as a percentage - so a label shared by two stats
 gets a "%" on whichever of them reads as one. This is derived, not written down,
 so it settles whatever pairs a future table happens to hold.
 
-**Stats the tables word with nothing at all.** Seven have no `descfunc`, and the
-two skill stats have one but take their words from a parameter no picker can
-supply. There is nothing to derive from, so these carry a written name -
-`item_numsockets` is "Sockets", `maxdurability` is "Durability" - as do
-`magicmindam` and `magicmaxdam`, which share every column that could tell them
-apart. Nine entries, each there because the tables say nothing, and the list
-does not grow as the data does.
+**Stats the tables word with nothing a picker can use.** Seven have no
+`descfunc`, and the four skill stats have one but take their words from the
+property that granted them rather than from the stat. `item_singleskill` and
+`item_nonclassskill` name a skill a picker cannot supply; `item_addclassskills`
+points every class at the Amazon's string and `item_addskill_tab` points every
+tab at the Javelin and Spear one, since which class or tab it is comes out of the
+property rather than the stat, and the picker has no property to read. There is
+nothing to derive from, so these carry a written name - `item_numsockets` is
+"Sockets", `maxdurability` is "Durability", `item_addclassskills` is "Class Skill
+Levels" - as do `magicmindam` and `magicmaxdam`, which share every column that
+could tell them apart. Eleven entries, each there because the tables say nothing
+about the stat on its own, and the list does not grow as the data does.
 
 Against the real 1.11 tables that leaves 122 entries for the uniques, 95 for the
 runewords and 80 for the set items, with no raw stat name and no repeated label
@@ -109,10 +114,10 @@ Adding a catalogue, or a realm adding an item, changes what the builder offers
 without a line of code changing. A wording fix in the string tables reaches the
 picker for the same reason.
 
-The written names are for stats the tables say nothing about, and are not the
-place to put a label that merely reads better than the tables' own. Overriding a
-stat the tables do describe would make the derived list a fallback rather than
-the source, and the next reader would have no way to tell which entries were
-still following the data. Anyone wanting nicer wording should reach for the
-grouping table described above, which lays something over the derived list
-without replacing any of it.
+The written names are for stats the tables say nothing about on their own, and
+are not the place to put a label that merely reads better than the tables' own.
+Overriding a stat whose description stands by itself would make the derived list
+a fallback rather than the source, and the next reader would have no way to tell
+which entries were still following the data. Anyone wanting nicer wording should
+reach for the grouping table described above, which lays something over the
+derived list without replacing any of it.
