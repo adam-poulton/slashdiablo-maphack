@@ -158,6 +158,20 @@ TEST_CASE("collecting reads the properties the game hardcodes") {
 	CHECK(StatDescriptions::Render(stats[0]) == "+100% Enhanced damage");
 }
 
+TEST_CASE("a random class skill bonus names no one class") {
+	// The Hellfire Torch's property, whose range is the classes it can roll
+	// rather than the levels it grants.
+	std::vector<Stat> stats = Collect("randclassskill", "", 0, 6);
+	REQUIRE(stats.size() == 1);
+	CHECK(StatDescriptions::Render(stats[0]) == "+3 to Random Class Skill Levels");
+}
+
+TEST_CASE("a random class skill bonus narrowed to one class names it") {
+	std::vector<Stat> stats = Collect("randclassskill", "", 3, 3);
+	REQUIRE(stats.size() == 1);
+	CHECK(StatDescriptions::Render(stats[0]) == "+3 to Paladin Skill Levels");
+}
+
 TEST_CASE("merging adds equal stats together") {
 	std::vector<Stat> stats = Collect("str", "", 5, 5);
 	StatDescriptions::CollectProperty("str", "", 10, 10, stats);
