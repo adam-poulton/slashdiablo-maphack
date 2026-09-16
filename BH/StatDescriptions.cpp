@@ -168,6 +168,11 @@ static const DamagePair kDamagePairs[] = {
 	{ "coldmindam", "coldmaxdam" },
 };
 
+// How a bonus to a class the game has yet to pick reads. The string tables word
+// each class in turn and have nothing for an unpicked one, since an item only
+// carries this property until it is made.
+const char* const kRandomClassSkills = "to Random Class Skill Levels";
+
 // The three letter codes the item tables restrict a class item by, in the order
 // CharStats.txt lists the classes they name.
 const char* const kClassCodes[] = {
@@ -545,6 +550,17 @@ void CollectProperty(const std::string& code, const std::string& param,
 				stat.text = GetString(charClass->getString("StrAllSkills"));
 		}
 
+		if (func == 36) {
+			// A class the game picks when it makes the item, which swaps what the
+			// two columns hold: the amount is the property's own value, and the
+			// item's range is the span of classes it can land on. The Hellfire
+			// Torch grants three levels and rolls 0-6, so no one class names it.
+			stat.low = stat.high = ToInt(property->getString("val" + index));
+			JSONObject* charClass = (min == max) ? CharClass(min) : NULL;
+			stat.text = charClass ? GetString(charClass->getString("StrAllSkills")) :
+				kRandomClassSkills;
+		}
+
 		// Two properties granting the same stat are only the same bonus if they
 		// resolved to the same label, so an item raising two classes' skills
 		// keeps them apart.
@@ -554,7 +570,7 @@ void CollectProperty(const std::string& code, const std::string& param,
 
 		// These describe the whole property in one line; the remaining stats are
 		// parameters to it rather than separate bonuses.
-		if (func == 10 || func == 19 || func == 21 || func == 22)
+		if (func == 10 || func == 19 || func == 21 || func == 22 || func == 36)
 			break;
 	}
 }
@@ -612,6 +628,10 @@ void CollectTotals(const std::string& code, const std::string& param,
 			total.low = total.high = min;
 		} else if (func == 16) {
 			total.low = total.high = max;
+		} else if (func == 36) {
+			// The amount is the property's own value; the row's range says which
+			// classes the bonus can land on rather than how much of it there is.
+			total.low = total.high = ToInt(property->getString("val" + index));
 		} else {
 			total.low = min;
 			total.high = max;

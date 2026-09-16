@@ -5,6 +5,9 @@ All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
 in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
 
 # Unreleased
+* Fix the codex reading a bonus to a random class as an Amazon one. The Hellfire Torch now reads
+  `+3 to Random Class Skill Levels` rather than `+0-6 to Amazon Skill Levels`: the range on that property
+  is the classes it can roll, and the three levels it grants are held elsewhere.
 * Add `Hide Redundant Gold Piles` on the Filter tab. Gold on the ground is hidden while you are already carrying
   all the gold your level allows, so only gold you can pick up is shown. Stash gold is a separate pool and does not count. Doesn't apply in town.
 * Fix the client crashing with an access violation in `D2Net.dll` after a failed join, most often when running several instances against a game the server never opens. (Fixed for 1.13c only)
