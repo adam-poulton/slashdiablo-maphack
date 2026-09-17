@@ -327,7 +327,7 @@ map<string, string> Config::ReadAssoc(std::string key, map<string, string> &valu
 				value.insert(assoc);
 			}
 			else {
-				value[key] = (*it).second.value;
+				value[assoc.first] = (*it).second.value;
 			}
 
 			(*it).second.pointer = &value;

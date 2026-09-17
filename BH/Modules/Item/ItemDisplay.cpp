@@ -350,9 +350,29 @@ class FilterDiagnostics : public ItemFilterDiagnostics {
 };
 static FilterDiagnostics filterDiagnostics;
 
+// The entries switched on, by the number each one is keyed under. A key is
+// whatever the file had between the brackets, so one that is not a number names
+// nothing and is passed over.
+static void ReadGoodSkills(const std::map<std::string, std::string> &list,
+		std::vector<unsigned int> &good) {
+	for (auto it = list.cbegin(); it != list.cend(); ++it) {
+		if (!StringToBool(it->second))
+			continue;
+		int num = -1;
+		std::stringstream ss(it->first);
+		if ((ss >> num).fail() || num < 0)
+			continue;
+		good.push_back(num);
+	}
+}
+
 static ItemFilterSettings ReadFilterSettings() {
 	static std::map<std::string, std::string> classSkills;
 	static std::map<std::string, std::string> tabSkills;
+	// Emptied first: the maps outlive the file they were read from, so an entry
+	// dropped from the filter has to go with it.
+	classSkills.clear();
+	tabSkills.clear();
 	BH::itemConfig->ReadAssoc("ClassSkillsList", classSkills);
 	BH::itemConfig->ReadAssoc("TabSkillsList", tabSkills);
 
@@ -361,14 +381,8 @@ static ItemFilterSettings ReadFilterSettings() {
 	settings.statMax = STAT_MAX;
 	settings.skillMax = SKILL_MAX;
 	settings.diagnostics = &filterDiagnostics;
-	for (auto it = classSkills.cbegin(); it != classSkills.cend(); ++it) {
-		if (StringToBool(it->second))
-			settings.goodClassSkills.push_back(stoi(it->first));
-	}
-	for (auto it = tabSkills.cbegin(); it != tabSkills.cend(); ++it) {
-		if (StringToBool(it->second))
-			settings.goodTabSkills.push_back(stoi(it->first));
-	}
+	ReadGoodSkills(classSkills, settings.goodClassSkills);
+	ReadGoodSkills(tabSkills, settings.goodTabSkills);
 	return settings;
 }
 
