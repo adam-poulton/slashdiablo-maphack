@@ -10,29 +10,33 @@ namespace StatVocabulary {
 
 namespace {
 
-// The stats the game's tables describe with nothing at all, and the two halves
-// of the magic damage line, which they describe identically.
+// The stats the game's tables describe with nothing a picker can use, and the
+// two halves of the magic damage line, which they describe identically.
 //
 // This is the whole of what is written down here, and it is written down only
 // because there is nothing to read instead: a stat with no `descfunc` has no
-// words anywhere in the tables, and `magicmindam` and `magicmaxdam` share every
-// column that could tell them apart. Everything else is worded from the tables
-// and disambiguated from them, so this does not grow as the data does.
+// words anywhere in the tables, a stat whose words name a class or a skill tab
+// names whichever one the property that granted it picked, and `magicmindam` and
+// `magicmaxdam` share every column that could tell them apart. Everything else is
+// worded from the tables and disambiguated from them, so this does not grow as
+// the data does.
 struct NamedStat {
 	const char* stat;
 	const char* label;
 };
 
 const NamedStat kNamed[] = {
-	{ "coldlength",         "Cold Duration" },
-	{ "poisonlength",       "Poison Duration" },
-	{ "item_numsockets",    "Sockets" },
-	{ "maxdurability",      "Durability" },
-	{ "item_extrablood",    "Extra Blood" },
-	{ "item_singleskill",   "Skill Level" },
-	{ "item_nonclassskill", "Skill from Another Class" },
-	{ "magicmindam",        "Minimum Magic Damage" },
-	{ "magicmaxdam",        "Maximum Magic Damage" },
+	{ "coldlength",          "Cold Duration" },
+	{ "poisonlength",        "Poison Duration" },
+	{ "item_numsockets",     "Sockets" },
+	{ "maxdurability",       "Durability" },
+	{ "item_extrablood",     "Extra Blood" },
+	{ "item_singleskill",    "Skill Level" },
+	{ "item_nonclassskill",  "Skill from Another Class" },
+	{ "item_addclassskills", "Class Skill Levels" },
+	{ "item_addskill_tab",   "Skill Tab Levels" },
+	{ "magicmindam",         "Minimum Magic Damage" },
+	{ "magicmaxdam",         "Maximum Magic Damage" },
 };
 
 const char* NamedLabel(const std::string& stat) {
