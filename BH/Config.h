@@ -15,6 +15,9 @@ struct Toggle {
 };
 
 enum ConfigType {
+	// A parsed entry starts here and stays here unless a Read* call claims it,
+	// so HasChanged() skips keys that no module ever registered.
+	CTNone,
 	CTBoolean,
 	CTString,
 	CTInt,
@@ -28,15 +31,13 @@ enum ConfigType {
 
 class ConfigEntry {
 public:
-	ConfigType type;
+	ConfigType type = CTNone;
 	std::string key;
 	std::string value;
 	std::string comment;
-	int line;
-	void* pointer;
-	Toggle* toggle;
-
-
+	int line = 0;
+	void* pointer = NULL;
+	Toggle* toggle = NULL;
 };
 
 inline bool operator< (const ConfigEntry& lhs, const ConfigEntry& rhs) {
