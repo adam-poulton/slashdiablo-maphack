@@ -46,7 +46,6 @@ bool Config::Parse() {
 		entry.value = Trim(line.substr(line.find_first_of(":") + 1));
 
 		entry.comment = line.substr(line.find_first_of(":") + 1, line.find(entry.value) - line.find_first_of(":") - 1);
-		entry.pointer = NULL;
 
 		//Store them!
 		contents.insert(pair<string, ConfigEntry>(entry.key, entry));
