@@ -50,7 +50,7 @@ reads against. Reports the budget, the quantum and the resulting interval:
 ```
 
 The game sets this budget to 256KB/s at startup, which is what made Save and
-Exit stall while it waited for outstanding reads to drain. BH now lifts it on
-entering a game, so against a current build this reports a budget of zero; the
-tool remains useful for confirming that, and for measuring what a given budget
-costs.
+Exit stall while it waited for outstanding reads to drain. BH lifts it on
+entering a game while `Quick Save And Exit` is on, which it is by default, so
+against a current build this reports a budget of zero; the tool remains useful
+for confirming that, and for measuring what a given budget costs.

@@ -19,7 +19,8 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
   * `Net Context Guard` in `BH_settings.cfg` turns the fix off, for working out whether it is behind some other problem. It is deliberately not in the settings window.
 * Fix the game name, password and description boxes on the create game screen refusing to be typed in when there was nothing to fill them with.
 * BH now makes its lobby changes once at startup, rather than applying and undoing them on every game join and exit. Doing that while the game was running risked a crash each time.
-  * `Fail To Join` and `Join Notice` switched off now leave the client its own wait without taking anything back out mid-session. No change to what either does.
+* Add `Quick Save And Exit` on the Lobby tab, on by default. It is the lift on the game's archive read cap that makes save and exit return to the lobby promptly.
+* `Override Fail To Join`, `Override Join Notice` and `Quick Save And Exit` switched off leave the game exactly as it shipped, patching nothing. Each takes effect without a restart. They are there so that a client that is crashing can be run with each of them out of the picture in turn.
 
 # Release Notes for 1.10.0 (2026-09-12)
 * Reworks the settings UI. Every setting is now searchable by name. The window is resizable and escape closes it.

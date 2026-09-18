@@ -1,6 +1,7 @@
 #include "Bnet.h"
 #include "../Settings/SettingsRegistry.h"
 #include "../../D2Ptrs.h"
+#include "../../D2Version.h"
 #include "../../BH.h"
 
 // Where D2Client 1.13c keeps the countdown on the notice the lobby is showing and
@@ -22,6 +23,7 @@ bool* Bnet::nextInstead;
 bool* Bnet::keepDesc;
 bool* Bnet::overrideFailToJoin;
 bool* Bnet::overrideJoinNotice;
+bool* Bnet::quickSaveAndExit;
 std::string Bnet::lastName;
 std::string Bnet::lastPass;
 std::string Bnet::lastDesc;
@@ -63,6 +65,10 @@ Patch* joinNoticePatch = new Patch(Call, D2CLIENT, { 0x4358B, 0 }, (int)JoinNoti
 
 Patch* removePass = new Patch(Call, D2MULTI, { 0x1250, 0x1AD0 }, (int)RemovePass_Interception, 5);
 
+// Whether this session has ever taken Storm off its read budget. See
+// Bnet::ApplyStormReadThrottle.
+static bool stormThrottleLifted = false;
+
 void Bnet::OnLoad() {
 	// Its own settings, said by itself. They used to be drawn by AutoTele's tab,
 	// which reached them through a pointer BH published for the purpose.
@@ -98,20 +104,26 @@ void Bnet::OnLoad() {
 	overrideJoinNotice = &bools["Override Join Notice"];
 	*overrideJoinNotice = true;
 
-	// The switch on each of these chooses between the wait below it and the client's
-	// own. It does not decide whether the patch behind the wait is installed: every
-	// patch this module has goes in once, at load, and a patch left in place saying
-	// what the client would have said is what off means.
+	// The switch on each of these decides whether the patch behind it is installed
+	// at all, so off leaves the bytes it stands in as the client shipped them. See
+	// ApplyOptionalPatches for why these two can be written after load.
 	Settings::AddSlider(GetName(), Settings::Category::Lobby, "Fail To Join", "Fail to join after",
 		&failToJoinChoice, MIN_FAIL_TO_JOIN, MAX_FAIL_TO_JOIN, STEP_FAIL_TO_JOIN, " ms",
 		"How long to wait for a game to open before the client says it failed to join. "
-		"Off leaves the client to decide.",
+		"Off leaves the client's own wait in place, untouched.",
 		"", overrideFailToJoin);
 	Settings::AddSlider(GetName(), Settings::Category::Lobby, "Join Notice", "Hold failed to join for",
 		&joinNotice, MIN_JOIN_NOTICE, MAX_JOIN_NOTICE, STEP_JOIN_NOTICE, " frames",
 		"How long the failed to join notice is displayed, in frames. "
-		"Off holds it for the length the client gives it.",
+		"Off leaves the client's own length in place, untouched.",
 		"", overrideJoinNotice);
+
+	quickSaveAndExit = &bools["Quick Save And Exit"];
+	*quickSaveAndExit = true;
+	Settings::AddBool(GetName(), Settings::Category::Lobby, "Quick Save And Exit",
+		"Quick save and exit", quickSaveAndExit,
+		"Lifts the cap on how fast the game reads its archives, which is what save "
+		"and exit spends its time waiting out. Takes effect on the next game.");
 
 	showLastGame = &bools["Autofill Last Game"];
 	*showLastGame = true;
@@ -138,6 +150,7 @@ void Bnet::LoadConfig() {
 	BH::config->ReadBoolean("Autofill Description", *keepDesc);
 	BH::config->ReadBoolean("Override Fail To Join", *overrideFailToJoin);
 	BH::config->ReadBoolean("Override Join Notice", *overrideJoinNotice);
+	BH::config->ReadBoolean("Quick Save And Exit", *quickSaveAndExit);
 	BH::config->ReadInt("Fail To Join", failToJoinChoice, MAX_FAIL_TO_JOIN);
 
 	// Config::ReadInt yields zero for a key the file does not have, and the wait
@@ -164,7 +177,11 @@ void Bnet::LoadConfig() {
 	if (joinNotice > MAX_JOIN_NOTICE)
 		joinNotice = MAX_JOIN_NOTICE;
 
-	SetFailToJoin();
+	// Both at load and on a reload: a reload changes the switches under us exactly
+	// as the settings window does, and the file is read from the main thread
+	// either way. The read throttle is not applied here - it is Storm's, not the
+	// client's, and nothing has set it yet at load.
+	ApplyOptionalPatches();
 
 	// Used to prefill the create/join boxes when there is no previous game to fall back on
 	BH::config->ReadString("Default Game Name", defaultName);
@@ -179,20 +196,19 @@ void Bnet::OnSettingsChanged(const vector<string>& keys) {
 	defaultName = Trim(defaultName);
 	defaultPass = Trim(defaultPass);
 	defaultDesc = Trim(defaultDesc);
-	SetFailToJoin();
+	ApplyOptionalPatches();
+	ApplyStormReadThrottle();
 }
 
-// Every patch here goes in once, at load, and stays in for the session. They are
-// written by BH's own thread while the game runs on its own, and a patch is five
-// to ten bytes of code rewritten in place: a thread reading those bytes as they
-// are written reads half of each instruction. Some of these stand in code the
-// game is running constantly - Fog's 10251 alone is called from a hundred and
+// Every patch here goes in once, at load, and stays in for the session. A patch
+// is five to ten bytes of code rewritten in place, and a thread reading those
+// bytes as they are written reads half of each instruction. These stand in code
+// the game runs constantly - Fog's 10251 alone is called from a hundred and
 // fifty places and imported by three more libraries - so the bytes are written
 // once, before any of that is under way, and left alone.
 //
-// What each patch does is decided when it runs instead, from the settings it
-// reads there. A setting that is off leaves the client's own behaviour in place,
-// which is what the patch would have left had it never been installed.
+// What each does is decided when it runs instead, from the settings it reads
+// there. The two that answer to a switch are not here: see ApplyOptionalPatches.
 void Bnet::InstallPatches() {
 	fog10251Patch->Install();
 	bnetLobbyPatch->Install();
@@ -205,9 +221,69 @@ void Bnet::InstallPatches() {
 	removePass->Install();
 
 	gameDesc->Install();
+}
 
-	ftjPatch->Install();
-	joinNoticePatch->Install();
+// The two patches whose switch decides whether they are installed at all, rather
+// than what they do once they are. Off has to mean untouched: these exist partly
+// so that a client that is crashing can be run with them out of the picture, and
+// a patch that writes back what the client would have said still rewrote the
+// bytes to do it.
+//
+// Safe to write after load, where the rest are not, because of where both stand
+// and who runs this. Both replace instructions in D2Client's join path, which
+// only the main thread ever executes, and every caller is on that same thread:
+// LoadConfig at injection, and Settings::Poll off D2Client's in-game loop, which
+// is by definition not inside a join.
+void Bnet::ApplyOptionalPatches() {
+	// Read by FailToJoin_Interception, which runs with every register live and so
+	// cannot read a setting itself.
+	failToJoin = failToJoinChoice;
+
+	if (*overrideFailToJoin)
+		ftjPatch->Install();
+	else
+		ftjPatch->Remove();
+
+	if (*overrideJoinNotice)
+		joinNoticePatch->Install();
+	else
+		joinNoticePatch->Remove();
+}
+
+// Storm paces its asynchronous archive reads against a byte budget, sleeping out
+// the rest of an interval whenever it has read its quantum early. Fog sets the
+// budget to 256KB/s and the quantum to 16KB as the client starts, and Storm's
+// read loop turns the pair into a floor in milliseconds:
+//
+//     (quantum * 1000) / budget  ->  (16384 * 1000) / 262144  ->  62
+//
+// Each pass waits on an event until at least that many ticks have gone by since
+// the read began, and only then reads. 256KB/s is a figure sized for a CD-ROM
+// drive.
+//
+// Leaving a game is where the cap hurts. D2Client's teardown walks every cached
+// cell context and waits, with no timeout, on each read still in flight, so the
+// exit is paced by the budget rather than by any work: the client burns no CPU
+// for the seconds it takes. The more of a level's artwork is still in flight the
+// longer it lasts, which is why large, graphically varied levels stall worst.
+//
+// A budget of zero takes Storm's unpaced path rather than dividing by it: the
+// floor is given zero outright, and no elapsed tick count is below zero, so the
+// wait is never reached.
+void Bnet::ApplyStormReadThrottle() {
+	// Only 1.13c's Storm is known to number this export 284.
+	if (D2Version::GetGameVersionID() != VERSION_113c)
+		return;
+
+	// Nothing is written for a switch that has been off throughout: the point of
+	// it is that Storm is left as the game set it. Once lifted, though, it stays
+	// lifted for the life of the client, so turning the switch off has to put the
+	// budget back rather than wait for something to set it again.
+	if (!*quickSaveAndExit && !stormThrottleLifted)
+		return;
+
+	stormThrottleLifted = *quickSaveAndExit;
+	STORM_SetAsyncReadRate(stormThrottleLifted ? 0 : STOCK_STORM_READ_RATE);
 }
 
 // Only on the way out, when BH is going and a patch left in place would be a jump
@@ -222,10 +298,10 @@ void Bnet::RemovePatches() {
 	nextPass2->Remove();
 
 	gameDesc->Remove();
+	removePass->Remove();
 
 	ftjPatch->Remove();
 	joinNoticePatch->Remove();
-	removePass->Remove();
 }
 
 void Bnet::OnUnload() {
@@ -233,6 +309,10 @@ void Bnet::OnUnload() {
 }
 
 void Bnet::OnGameJoin() {
+	// The budget is set while the game starts up, which is after we are injected,
+	// so it has to be dealt with again from inside a game.
+	ApplyStormReadThrottle();
+
 	if ( strlen((*p_D2LAUNCH_BnData)->szGameName) > 0)
 		lastName = (*p_D2LAUNCH_BnData)->szGameName;
 
@@ -394,18 +474,12 @@ void __declspec(naked) JoinNotice_Interception()
 	}
 }
 
-// Sets the value FailToJoin_Interception compares against. That stub runs with
-// every register live and cannot read a setting, so the choice is made here and
-// left in a variable: the chosen wait when the override is on, the client's own
-// when it is off.
-void Bnet::SetFailToJoin() {
-	failToJoin = *overrideFailToJoin ? failToJoinChoice : STOCK_FAIL_TO_JOIN;
-}
-
+// Reached only while joinNoticePatch is installed, which is only while the
+// switch is on, so the choice left is which notice this is. Any other one gets
+// the length the store this stands in for would have written.
 void Bnet::SetJoinNotice() {
 	DWORD* frames = (DWORD*)Patch::GetDllOffset(D2CLIENT, NOTICE_FRAMES_113C);
 	DWORD* notice = (DWORD*)Patch::GetDllOffset(D2CLIENT, NOTICE_ID_113C);
 
-	const bool shorten = *overrideJoinNotice && *notice == NOTICE_FAILED_TO_JOIN;
-	*frames = shorten ? joinNotice : STOCK_JOIN_NOTICE;
+	*frames = (*notice == NOTICE_FAILED_TO_JOIN) ? joinNotice : STOCK_JOIN_NOTICE;
 }
