@@ -8,9 +8,8 @@
 // the settings window cannot be opened from the lobby to put it back.
 //
 // The ceiling is the longest wait worth offering, since a game that has not
-// opened by then is not going to. The stock wait is what the client keeps when
-// the override is off.
-#define STOCK_FAIL_TO_JOIN	30000
+// opened by then is not going to. Off installs no patch at the wait, so the
+// client keeps its own.
 #define MIN_FAIL_TO_JOIN	1000
 #define MAX_FAIL_TO_JOIN	4000
 #define STEP_FAIL_TO_JOIN	500
@@ -21,15 +20,22 @@
 // window is in the background, and joining on several accounts in turn waits
 // out the notice on each of them.
 //
-// The stock length is the ceiling; the floor is the shortest notice still long
-// enough to see, since nothing turns on the notice being read. The default is
-// near that floor: long enough to read why the join ended, short enough not to
-// be waited out.
+// The stock length is the ceiling, and what the patch writes for any notice
+// other than a failed join, since it stands in for the store that would have
+// written it. The floor is the shortest notice still long enough to see, since
+// nothing turns on the notice being read. The default is near that floor: long
+// enough to read why the join ended, short enough not to be waited out.
 #define STOCK_JOIN_NOTICE	600
 #define MIN_JOIN_NOTICE		30
 #define MAX_JOIN_NOTICE		STOCK_JOIN_NOTICE
 #define STEP_JOIN_NOTICE	30
 #define DEFAULT_JOIN_NOTICE	90
+
+// The byte budget Storm paces its asynchronous archive reads against, as Fog
+// sets it at startup: `push 0x40000` at Fog+0x1DF3B on 1.13c, into Storm's
+// ordinal 284. Sized for a CD-ROM drive, and what has to be written back to undo
+// a lift, since nothing sets it again for the life of the client.
+#define STOCK_STORM_READ_RATE	0x40000
 
 struct Control;
 
@@ -42,6 +48,7 @@ class Bnet : public Module {
 		static bool* keepDesc;
 		static bool* overrideFailToJoin;
 		static bool* overrideJoinNotice;
+		static bool* quickSaveAndExit;
 		static unsigned int failToJoinChoice;
 		static unsigned int failToJoin;
 		static unsigned int joinNotice;
@@ -67,7 +74,8 @@ class Bnet : public Module {
 
 		void InstallPatches();
 		void RemovePatches();
-		static void SetFailToJoin();
+		static void ApplyOptionalPatches();
+		static void ApplyStormReadThrottle();
 
 		std::map<string, bool>* GetBools() { return &bools; }
 		static VOID __fastcall FOG10251Patch(DWORD lpCriticalSection, char nLine);
