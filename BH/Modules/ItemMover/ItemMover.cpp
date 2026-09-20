@@ -135,21 +135,23 @@ static const unsigned int GOLD_CARRIED_PER_LEVEL = 10000;
 
 // "Hide Redundant Gold Piles": true for gold that lands while the character already
 // carries every coin their level allows. Gold in the stash is a separate pool and
-// does not count towards the limit. Never true in town, where the stash is at hand
-// to make room.
+// does not count towards the limit. Never true for gold lying in town, where the
+// stash is at hand to make room.
 static bool IsRedundantGold(BYTE *packet) {
 	ItemFacts item = {};
 	ItemFactsPacket::PacketStats stats(item);
 	item.stats = &stats;
 	bool success = ReadItemPacket(packet, &item);
-	if (!success || !item.isGold ||
+	if (!success || !item.isGold || !item.ground ||
 		(item.action != ITEM_ACTION_NEW_GROUND && item.action != ITEM_ACTION_OLD_GROUND))
 		return false;
 
 	UnitAny *player = D2CLIENT_GetPlayerUnit();
 	if (!player)
 		return false;
-	if (IsTown(GetPlayerArea()))
+	// The pile's own area, not the character's: a drop packet from the far side
+	// of a portal arrives before the character has been moved through it.
+	if (IsTown(GetAreaAtPosition(item.x, item.y)))
 		return false;
 	unsigned int level = (unsigned int)D2COMMON_GetUnitStat(player, STAT_LEVEL, 0);
 	if (level == 0)
