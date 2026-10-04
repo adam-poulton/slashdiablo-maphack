@@ -14,7 +14,10 @@
 #include "../Item/Item.h"
 #include "../../AsyncDrawBuffer.h"
 #include "../ScreenInfo/ScreenInfo.h"
+#include "RoomFrontier.h"
+#include <algorithm>
 #include <cmath>
+#include <unordered_set>
 
 #pragma optimize( "", off)
 
@@ -101,6 +104,66 @@ static void DrawExperienceRange(int centerX, int centerY, unsigned int color) {
 	}
 }
 
+#define DEFAULT_ROOM_FRONTIER_COLOR 0xCB
+
+// Broken for the same reason as the experience ring, and in about the same rhythm.
+// Each edge is cut into a whole number of dashes that start and end on its
+// corners, so where two edges meet the corner is drawn rather than left open.
+static void DrawRoomFrontier(const std::vector<RoomFrontier::Edge>& edges, unsigned int color) {
+	const double targetDash = 6, targetGap = 3;
+
+	for (const RoomFrontier::Edge& edge : edges) {
+		double dx = edge.x2 - edge.x1, dy = edge.y2 - edge.y1;
+		double length = dx + dy;
+		int dashes = (std::max)(1, (int)lround((length + targetGap) / (targetDash + targetGap)));
+		// In thirds of a dash and its gap, so the two stay at two to one: the edge
+		// is dashes whole periods less the gap after the last.
+		double third = 1.0 / (3 * dashes - 1);
+		for (int i = 0; i < dashes; i++) {
+			double from = 3 * i * third, to = (3 * i + 2) * third;
+			POINT a, b;
+			Drawing::Hook::ScreenToAutomapPrecise(&a, edge.x1 + dx * from, edge.y1 + dy * from);
+			Drawing::Hook::ScreenToAutomapPrecise(&b, edge.x1 + dx * to, edge.y1 + dy * to);
+			Drawing::Linehook::Draw(a.x, a.y, b.x, b.y, color);
+		}
+	}
+}
+
+// Rooms are placed in tiles; everything drawn on the automap is placed in subtiles.
+static RoomFrontier::Rect RoomExtent(const Room2* room) {
+	return RoomFrontier::Rect{ (int)room->dwPosX * 5, (int)room->dwPosY * 5,
+		(int)room->dwSizeX * 5, (int)room->dwSizeY * 5 };
+}
+
+// The server sends the units of the room the player stands in and of the rooms
+// near it, and takes back the rest as the player moves on. The client keeps the
+// rooms it has been sent for a while after that, so the act's room list runs
+// past the active ones and is no guide to where units can be.
+//
+// The inactive rooms the frontier can lie against are the neighbours of active
+// ones, cached or not, which spares walking every room the act has revealed.
+static std::vector<RoomFrontier::Edge> TraceRoomFrontier(Room1* playerRoom) {
+	std::unordered_set<const Room2*> active;
+	std::vector<RoomFrontier::Rect> activeRects, inactiveRects;
+	auto addActive = [&](Room1* room1) {
+		if (room1 && room1->pRoom2 && active.insert(room1->pRoom2).second)
+			activeRects.push_back(RoomExtent(room1->pRoom2));
+	};
+	addActive(playerRoom);
+	for (DWORD i = 0; i < playerRoom->dwRoomsNear; i++)
+		addActive(playerRoom->pRoomsNear[i]);
+
+	std::unordered_set<const Room2*> inactive;
+	for (const Room2* room2 : active) {
+		for (DWORD i = 0; i < room2->dwRoomsNear; i++) {
+			Room2* neighbour = room2->pRoom2Near[i];
+			if (neighbour && !active.count(neighbour) && inactive.insert(neighbour).second)
+				inactiveRects.push_back(RoomExtent(neighbour));
+		}
+	}
+	return RoomFrontier::Trace(activeRects, inactiveRects);
+}
+
 Maphack::Maphack() : Module("Maphack") {
 	revealType = MaphackRevealAct;
 	ResetRevealed();
@@ -116,6 +179,7 @@ Maphack::Maphack() : Module("Maphack") {
 	monsterResistanceThreshold = DEFAULT_MONSTER_RESISTANCE_THRESHOLD;
 	lkLinesColor = 105;
 	experienceRangeColor = DEFAULT_EXPERIENCE_RANGE_COLOR;
+	roomFrontierColor = DEFAULT_ROOM_FRONTIER_COLOR;
 
 	automapOffsetX = 0;
 	automapOffsetY = 0;
@@ -247,6 +311,9 @@ void Maphack::ReadConfig() {
 	BH::config->ReadToggle("Show Experience Range", "None", false, Toggles["Show Experience Range"]);
 	BH::config->ReadInt("Experience Range Color", experienceRangeColor,
 		DEFAULT_EXPERIENCE_RANGE_COLOR);
+	BH::config->ReadToggle("Show Active Rooms", "None", false, Toggles["Show Active Rooms"]);
+	BH::config->ReadInt("Active Rooms Color", roomFrontierColor,
+		DEFAULT_ROOM_FRONTIER_COLOR);
 	BH::config->ReadInt("Minimap Max Ghost", automapDraw.maxGhost,
 		DEFAULT_MINIMAP_GHOST);
 
@@ -413,6 +480,13 @@ void Maphack::OnLoad() {
 		"the party to share its experience.");
 	Settings::AddColor(GetName(), Settings::Category::Map, "Experience Range Color", "Range color",
 		&experienceRangeColor, "", "Show Experience Range");
+
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Active Rooms", "Active rooms",
+		&Toggles["Show Active Rooms"],
+		"Marks where the rooms around you that the game is sending monsters and "
+		"items for end. Nothing beyond it is drawn on the automap.");
+	Settings::AddColor(GetName(), Settings::Category::Map, "Active Rooms Color", "Edge color",
+		&roomFrontierColor, "", "Show Active Rooms");
 
 	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Missiles", "Show missiles",
 		&Toggles["Show Missiles"], "Marks missiles in flight on the automap.");
@@ -612,6 +686,14 @@ void Maphack::OnAutomapDraw() {
 			unsigned int rangeColor = experienceRangeColor;
 			automapBuffer.push([myX, myY, rangeColor]()->void {
 				DrawExperienceRange(myX, myY, rangeColor);
+			});
+		}
+
+		if (Toggles["Show Active Rooms"].state) {
+			std::vector<RoomFrontier::Edge> frontier = TraceRoomFrontier(player->pPath->pRoom1);
+			unsigned int frontierColor = roomFrontierColor;
+			automapBuffer.push([frontier, frontierColor]()->void {
+				DrawRoomFrontier(frontier, frontierColor);
 			});
 		}
 
