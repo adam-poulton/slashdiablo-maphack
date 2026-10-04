@@ -311,8 +311,8 @@ void Maphack::ReadConfig() {
 	BH::config->ReadToggle("Show Experience Range", "None", false, Toggles["Show Experience Range"]);
 	BH::config->ReadInt("Experience Range Color", experienceRangeColor,
 		DEFAULT_EXPERIENCE_RANGE_COLOR);
-	BH::config->ReadToggle("Show Active Rooms", "None", false, Toggles["Show Active Rooms"]);
-	BH::config->ReadInt("Active Rooms Color", roomFrontierColor,
+	BH::config->ReadToggle("Show Active Area Range", "None", false, Toggles["Show Active Area Range"]);
+	BH::config->ReadInt("Active Area Range Color", roomFrontierColor,
 		DEFAULT_ROOM_FRONTIER_COLOR);
 	BH::config->ReadInt("Minimap Max Ghost", automapDraw.maxGhost,
 		DEFAULT_MINIMAP_GHOST);
@@ -481,12 +481,11 @@ void Maphack::OnLoad() {
 	Settings::AddColor(GetName(), Settings::Category::Map, "Experience Range Color", "Range color",
 		&experienceRangeColor, "", "Show Experience Range");
 
-	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Active Rooms", "Active rooms",
-		&Toggles["Show Active Rooms"],
-		"Marks where the rooms around you that the game is sending monsters and "
-		"items for end. Nothing beyond it is drawn on the automap.");
-	Settings::AddColor(GetName(), Settings::Category::Map, "Active Rooms Color", "Edge color",
-		&roomFrontierColor, "", "Show Active Rooms");
+	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Active Area Range", "Active area range",
+		&Toggles["Show Active Area Range"],
+		"Marks the active area on the map where monsters and items are known.");
+	Settings::AddColor(GetName(), Settings::Category::Map, "Active Area Range Color", "Range color",
+		&roomFrontierColor, "", "Show Active Area Range");
 
 	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Missiles", "Show missiles",
 		&Toggles["Show Missiles"], "Marks missiles in flight on the automap.");
@@ -689,7 +688,7 @@ void Maphack::OnAutomapDraw() {
 			});
 		}
 
-		if (Toggles["Show Active Rooms"].state) {
+		if (Toggles["Show Active Area Range"].state) {
 			std::vector<RoomFrontier::Edge> frontier = TraceRoomFrontier(player->pPath->pRoom1);
 			unsigned int frontierColor = roomFrontierColor;
 			automapBuffer.push([frontier, frontierColor]()->void {
