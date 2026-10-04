@@ -4,23 +4,16 @@ Changelog
 All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
 in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
 
-# Unreleased
-* Fix the codex's stat filter naming two stats after whichever class or skill tab the tables happened to word
-  them with. A bonus to a class now reads `Class Skill Levels` rather than `Amazon Skill Levels`, and a bonus
-  to a skill tab reads `Skill Tab Levels` rather than `Javelin and Spear Skills`. Both match any of them, which
-  is what the new wording says.
-* Fix the codex reading a bonus to a random class as an Amazon one. The Hellfire Torch now reads
-  `+3 to Random Class Skill Levels` rather than `+0-6 to Amazon Skill Levels`: the range on that property
-  is the classes it can roll, and the three levels it grants are held elsewhere.
-* Add `Hide Redundant Gold Piles` on the Filter tab. Gold on the ground is hidden while you are already carrying
-  all the gold your level allows, so only gold you can pick up is shown. Stash gold is a separate pool and does not count. Doesn't apply in town.
-* Fix the client crashing with an access violation in `D2Net.dll` after a failed join, most often when running several instances against a game the server never opens. (Fixed for 1.13c only)
-  * The client could close a connection while a packet was still arriving on it and then read the connection it had just thrown away. A failed join is the usual way to arrange that; a clean game exit never is.
-  * `Net Context Guard` in `BH_settings.cfg` turns the fix off, for working out whether it is behind some other problem. It is deliberately not in the settings window.
-* Fix the game name, password and description boxes on the create game screen refusing to be typed in when there was nothing to fill them with.
-* BH now makes its lobby changes once at startup, rather than applying and undoing them on every game join and exit. Doing that while the game was running risked a crash each time.
-* Add `Quick Save And Exit` on the Lobby tab, on by default. It is the lift on the game's archive read cap that makes save and exit return to the lobby promptly.
-* `Override Fail To Join`, `Override Join Notice` and `Quick Save And Exit` switched off leave the game exactly as it shipped, patching nothing. Each takes effect without a restart. They are there so that a client that is crashing can be run with each of them out of the picture in turn.
+# Release Notes for 1.10.1 (2026-10-04)
+* Add stat filter conditions to the codex.
+* Add `Hide redundant gold piles` toggle in the Filter tab, off by default. Hides gold on the ground while you are already carrying the max gold for your level. Doesn't apply in town.
+* Add `Show active area range` on the Map tab, off by default. A dashed line on the map that marks the edge of the area around you that the game is sending monsters, missiles and items for.
+* BH now applies its existing patches once at startup, rather than applying and undoing them on every game join and exit.
+* Fix certain settings not applying immediately when changed from the in-game menu.
+* Fix crash on reloading the item filter when the filter file contained `SkillsList` or `TabSkillList` lines.
+* Fix the codex reading a bonus to a random class as an Amazon one. The Hellfire Torch now reads `+3 to Random Class Skill Levels` rather than `+0-6 to Amazon Skill Levels`.
+* Fix rare access violation crash on game create/join. Turns this crash into a momentary freeze that recovers. If you encounter this and keep getting the freeze, try waiting ~1 minute before retrying the create/join, then it should return to normal.
+* Add `Quick save and exit`, `Fail to join after` and `Hold fail to join for` toggles on the lobby tab, on by default. They are there so that a client that is crashing during client-server connection brokering can be tested without those patches enabled.
 
 # Release Notes for 1.10.0 (2026-09-12)
 * Reworks the settings UI. Every setting is now searchable by name. The window is resizable and escape closes it.
@@ -49,7 +42,6 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
 * Remove the legacy item name options `Alt Item Style`, `Color Mod`, `Shorten Item Names`, `Show Ethereal`, `Show Sockets` and `Show Rune Numbers`. Item names are now customised only through [Advanced Item Display](docs/Advanced-Item-Display.md); with it off, items are named as the game names them. Configs that set these keys need no change - the keys are ignored. Use the packaged filter (or write your own) instead.
 * Add `Fail To Join`, tuning how long the client waits for a game to open before deeming it a failure to join. Editable from the Lobby tab of the settings UI.
 * Add `Join Notice`, tuning how long the failed to join notice stays on screen. Editable from the Lobby tab of the settings UI.
-* Add `Override Fail To Join` and `Override Join Notice`, switching off the patch behind each of those waits so the client keeps its own. Each is the checkbox that names its row on the Lobby tab of the settings UI, and the slider beside it reads `Off` while it is unchecked.
 * Make item filtering always ordered. Whether a hide rule (a blank label) hides an item depends on whether it was the first matching rule. A rule ending in `%CONTINUE%` decorates an item rather than settling it, so it does not protect the item from a subsequent hide rule. See [Advanced Item Display](docs/Advanced-Item-Display.md#rule-order-decides-what-is-hidden).
 * Add `Show Experience Range`, a ring around your player icon showing how close you have to be to a monster's death to gain experience from it.
 * Fix an item display rule marked `%NOTIFY-dead%` still announcing the item in chat when a later rule also matched it. The rule that draws the item on the automap now also decides whether it is announced, as it already did for everything else.
