@@ -7,6 +7,7 @@
 // The re-entry delay, in milliseconds: what the slider offers and what it starts
 // at. The game's own wait lasts as long as the state does, so a delay longer
 // than that changes nothing.
+#define MIN_PORTAL_DELAY		500
 #define MAX_PORTAL_DELAY		3000
 #define STEP_PORTAL_DELAY		250
 #define DEFAULT_PORTAL_DELAY	1000
