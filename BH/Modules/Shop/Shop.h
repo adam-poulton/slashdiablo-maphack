@@ -38,7 +38,8 @@ public:
 	Shop() : Module("Shop"), npcId(0), npcKind(0), contentsKey(0),
 		contentsChangedAt(0), announced(false), familiesBuilt(false),
 		pendingMark(false), pendingClear(false), refreshNpcId(0),
-		refreshTab(0), automapHidden(false), automapWasOn(0), pendingRefresh(RefreshNone), buttonHeld(false), refreshBusy(false),
+		refreshTab(0), automapHidden(false), automapWasOn(0),
+		panelsOpen(0), panelsClosed(0), keepingPanels(false), pendingRefresh(RefreshNone), buttonHeld(false), refreshBusy(false),
 		windowDown(false), awaitingTalk(0), talkAnswered(false) {};
 
 	void OnLoad();
@@ -102,6 +103,11 @@ private:
 	BYTE refreshTab;
 	bool automapHidden;
 	DWORD automapWasOn;
+	// The side panels open before a refresh took the window down, and as taking
+	// it down left them; the first is kept while it is down.
+	DWORD panelsOpen;
+	DWORD panelsClosed;
+	bool keepingPanels;
 
 	// Set from the input thread, carried out on the game loop.
 	enum RefreshRequest { RefreshNone, RefreshOnce, RefreshUntilMarked, RefreshStop };

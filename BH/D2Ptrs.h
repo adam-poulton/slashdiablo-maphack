@@ -223,6 +223,10 @@ VARPTR(D2CLIENT, ShopTabs, BYTE, 0xE1186, 0xE1186)
 // on each tab and moves on to the next tab with any where the one asked for has
 // none. It sends nothing to the server.
 VARPTR(D2CLIENT, ShopTab, BYTE, 0x11BC48, 0x11BC48)
+// Which side panels are open: 1 the right, 2 the left, 3 both. Opening and
+// closing a panel sets it, and the frame draws the screen borders beside the
+// panels it names (0x2926C), which is also where resolution mods add their own.
+VARPTR(D2CLIENT, PanelsOpen, DWORD, 0x11C414, 0x11C414)
 FUNCPTR(D2CLIENT, SelectShopTab, void __stdcall, (DWORD tab), 0x8F710, 0x8F710)
 // buysellbtn.dc6, the art of the buttons along the bottom of the trade window,
 // as the game loads it the first time it draws one.
@@ -230,11 +234,9 @@ VARPTR(D2CLIENT, ShopButtonCells, CellFile*, 0x11B9C4, 0x11B9C4)
 // The gamble entry of an NPC's talk menu: sends the gamble request for the NPC
 // being talked to and opens the gamble window.
 FUNCPTR(D2CLIENT, StartGamble, BOOL __stdcall, (void), 0x4ABE0, 0x4ABE0)
-// What the game draws for an open trade window: the trade panels, the screen
-// borders beside them and the two globes over them.
+// What the game draws for an open trade window: the trade panels, and the two
+// globes drawn over them.
 FUNCPTR(D2CLIENT, DrawTradeScreen, void __stdcall, (void), 0x99440, 0x99440)
-FUNCPTR(D2CLIENT, DrawLeftScreenBorder, void __stdcall, (void), 0x271C0, 0x271C0)
-FUNCPTR(D2CLIENT, DrawRightScreenBorder, void __stdcall, (void), 0x270D0, 0x270D0)
 FUNCPTR(D2CLIENT, DrawLifeGlobe, void __stdcall, (void), 0x27BD0, 0x27BD0)
 FUNCPTR(D2CLIENT, DrawManaGlobe, void __stdcall, (void), 0x27A90, 0x27A90)
 

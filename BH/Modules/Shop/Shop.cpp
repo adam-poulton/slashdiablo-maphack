@@ -274,6 +274,7 @@ void Shop::OnGameExit() {
 	refresher.Reset();
 	refreshBusy = false;
 	windowDown = false;
+	keepingPanels = false;
 	ShowAutomapAgain();
 	awaitingTalk = 0;
 	pendingRefresh = RefreshNone;
@@ -492,8 +493,16 @@ void Shop::TickRefresh() {
 	GambleRefresh::State state = refresher.GetState();
 	windowDown = !TradeWindowOpen(SHOP_KIND_GAMBLE) &&
 		(state == GambleRefresh::StateTalking || state == GambleRefresh::StateStocking);
-	if (!windowDown)
+	if (windowDown) {
+		*p_D2CLIENT_PanelsOpen = panelsOpen;
+	} else {
+		// Opening the window again sets the panels itself. A refresh that
+		// gave up with it down leaves them as the window's closing did.
+		if (keepingPanels && !TradeWindowOpen(SHOP_KIND_GAMBLE))
+			*p_D2CLIENT_PanelsOpen = panelsClosed;
+		keepingPanels = false;
 		ShowAutomapAgain();
+	}
 }
 
 // The automap would otherwise show through for as long as the window is down.
@@ -518,10 +527,15 @@ void Shop::ShowAutomapAgain() {
 void Shop::TakeWindowDown() {
 	HideAutomap();
 	*p_D2CLIENT_SelectedInvItem = NULL;
+	panelsOpen = *p_D2CLIENT_PanelsOpen;
 	D2CLIENT_SetUIVar(UI_NPCSHOP, 1, 0);
+	panelsClosed = *p_D2CLIENT_PanelsOpen;
+	keepingPanels = true;
 	// Closing clears the trade window's cursor mode, which the trade screen
-	// drawn in the window's place goes by.
+	// drawn in the window's place goes by, and the panels it had open, which
+	// the borders around them are drawn by.
 	*p_D2CLIENT_ShopCursorType = 1;
+	*p_D2CLIENT_PanelsOpen = panelsOpen;
 	Forget();
 }
 
@@ -749,13 +763,12 @@ void Shop::OnDraw() {
 
 // While a refresh has the gamble window down, the game draws the world where it
 // was. Drawing what the game draws for an open trade window in its place keeps
-// the window on screen until the new one is up.
+// the window on screen until the new one is up. The borders around it the game
+// still draws itself, from the panels kept open meanwhile.
 void Shop::DrawWindowInPlace() {
 	if (!windowDown || TradeWindowOpen(SHOP_KIND_GAMBLE))
 		return;
 	D2CLIENT_DrawTradeScreen();
-	D2CLIENT_DrawLeftScreenBorder();
-	D2CLIENT_DrawRightScreenBorder();
 	D2CLIENT_DrawLifeGlobe();
 	D2CLIENT_DrawManaGlobe();
 }
