@@ -50,6 +50,7 @@ struct ItemVerdict {
  * over the other's items without emptying it.
  */
 static StampedCache<ItemVerdict> item_verdicts(512);
+static unsigned int verdicts_generation = 0;
 
 /*
  * The world, read at most once however much of a verdict is worked out.
@@ -92,6 +93,11 @@ static ItemVerdict &VerdictFor(UnitItemInfo *uInfo, World &world) {
 
 void ResetItemVerdicts() {
 	item_verdicts.Clear();
+	verdicts_generation++;
+}
+
+unsigned int ItemVerdictsGeneration() {
+	return verdicts_generation;
 }
 
 /*
@@ -133,7 +139,7 @@ void ForgetVerdictsIfWorldChanged() {
 
 	judgedAtLevel = level;
 	judgedInArea = area;
-	item_verdicts.Clear();
+	ResetItemVerdicts();
 }
 
 std::vector<const Action*> GetItemMapActions(UnitItemInfo *uInfo) {

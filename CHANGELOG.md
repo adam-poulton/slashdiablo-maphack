@@ -4,6 +4,11 @@ Changelog
 All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
 in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
 
+# Unreleased
+* Add `Buy cooldown` under `Shopping` on the Input tab, off by default. Shortens the 500 ms the game waits between buying with a right click or selling to an NPC, down to as little as 100 ms.
+* Add `Shop highlights` on the Filter tab, on by default. Colours the items in an NPC's shop that your item filter would mark on the map, in the rule's map colour or a fixed one, and marks the shop tabs that hold one. Can also announce the matches in chat.
+* Add gamble marks under `Gambling` on the Input tab. Press F2 over an item in a gamble window to highlight every item of its base, and its exceptional and elite versions with `Match base tiers`. Marks survive a gamble refresh, can be kept between games with `Remember marks`, and the marked items on offer are announced when the window opens or refreshes.
+
 # Release Notes for 1.10.1 (2026-10-04)
 * Add stat filter conditions to the codex.
 * Add `Hide redundant gold piles` toggle in the Filter tab, off by default. Hides gold on the ground while you are already carrying the max gold for your level. Doesn't apply in town.

@@ -68,6 +68,9 @@ set(MODULE_SOURCES "Modules/Module.cpp"
                    "Modules/Codex/SetTab.cpp"
                    "Modules/Codex/UniqueTab.cpp"
                    "Modules/ScreenInfo/ScreenInfo.cpp"
+                   "Modules/Shop/GambleMarks.cpp"
+                   "Modules/Shop/Shop.cpp"
+                   "Modules/Shop/ShopHighlights.cpp"
                    "Modules/StashExport/StashExport.cpp")
 
 set(DRAWING_SOURCES "Drawing/Hook.cpp"
