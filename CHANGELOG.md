@@ -7,9 +7,13 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
 # Unreleased
 * Add `Buy cooldown` under `Shopping` on the Input tab, off by default. Shortens the 500 ms the game waits between buying with a right click or selling to an NPC, down to as little as 100 ms.
 * Add `Shop highlights` on the Filter tab, on by default. Colours the items in an NPC's shop that your item filter would mark on the map, in the rule's map colour or a fixed one, and marks the shop tabs that hold one. It follows the filter level and hidden items as the map does. Can also announce the matches in chat, leaving out items whose rule has no drop notification.
-* Add gamble marks under `Gambling` on the Input tab. Press F2 over an item in a gamble window to highlight every item of its base, and its exceptional and elite versions with `Match base tiers`. Marks survive a gamble refresh, can be kept between games with `Remember marks`, and the marked items on offer are announced when the window opens or refreshes.
+* Add gamble marks under `Gambling` on the Input tab. Press F2 over an item in a gamble window to highlight every item of its base, and its exceptional and elite versions with `Match base tiers`. Marks survive a gamble refresh and can be kept between games with `Remember marks`.
 * Add `Portal re-entry delay` under `Town portal` on the Input tab, off by default. Lets you take a town portal again sooner after taking one, timed from when you took it: 500 to 3000 ms, 1000 ms by default. Off leaves the game's own wait.
 * Move `Gamble refresh` under the new `Gambling` heading on the Input tab.
+* Add a refresh button to the gamble window, in the empty slot beside `Close`, drawn in the game's own button art. Hover it for its hotkey. Turn it off with `Show refresh button`.
+* Gamble refresh now works at every gambler: Elzix, Alkor and Nihlathak as well as Gheed, Jamella and Anya. It only answers with a gamble window open, so the hotkey no longer turns a trade window or talk menu into one, and it keeps the tab you were looking at (`Keep selected tab`).
+* Gamble refresh keeps the gamble window on screen while it refreshes, instead of flickering out to the world and back.
+* Gamble refresh now says why it stopped when the NPC is out of reach or does not answer, instead of a bare timeout.
 * Fix rare crashes when shift-clicking or ctrl-clicking items to move or identify them while items are being moved.
 
 # Release Notes for 1.10.1 (2026-10-04)

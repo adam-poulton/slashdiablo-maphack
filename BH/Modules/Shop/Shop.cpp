@@ -37,10 +37,6 @@
 #define TAB_MARKER_FRAME	1
 #define TAB_MARKER_INSET	5
 
-// Where an Items.txt record keeps the sound an item makes landing, a WORD.
-// D2Client 1.13c reads it there at 0x81E80.
-#define ITEMS_TXT_DROP_SOUND	0x124
-
 // How long a window's items have to stay as they are before it is taken to have
 // finished arriving, and what is on offer is announced.
 #define ANNOUNCE_SETTLE_MS	400
@@ -116,6 +112,15 @@ void Shop::OnLoad() {
 		"", &shortenBuyCooldown);
 
 	Settings::AddHeading(GetName(), Settings::Category::Input, Settings::Heading::Gambling);
+	Settings::AddToggle(GetName(), Settings::Category::Input, "Gamble Refresh", "Gamble refresh",
+		&refresh,
+		"Rerolls the gamble window's items by asking the NPC for them again.");
+	Settings::AddBool(GetName(), Settings::Category::Input, "Gamble Refresh Button",
+		"Show refresh button", &refreshButton,
+		"A button in the gamble window's empty slot that refreshes it.", "Gamble Refresh");
+	Settings::AddBool(GetName(), Settings::Category::Input, "Gamble Refresh Keep Tab",
+		"Keep selected tab", &keepTab,
+		"After a refresh, shows the tab that was showing before it.", "Gamble Refresh");
 	Settings::AddKey(GetName(), Settings::Category::Input, "Gamble Mark",
 		"Mark base in gamble window", &markKey,
 		"Marks the base of the item under the cursor; every item of that base is highlighted.");
@@ -129,9 +134,6 @@ void Shop::OnLoad() {
 		&rememberMarks, "Keeps your marks between games.");
 	Settings::AddText(GetName(), Settings::Category::Input, "Gamble Marks", "Marked bases",
 		&marksText, 0, "Base codes, comma separated.", "Gamble Remember Marks");
-	Settings::AddBool(GetName(), Settings::Category::Input, "Gamble Announce", "Announce marked items",
-		&announceMarks,
-		"After the window opens or refreshes, says which marked items are on offer.");
 
 	Settings::AddHeading(GetName(), Settings::Category::Filter, "Shop highlights");
 	Settings::AddToggle(GetName(), Settings::Category::Filter, "Shop Highlights", "Shop highlights",
@@ -181,8 +183,12 @@ void Shop::LoadConfig() {
 	BH::config->ReadBoolean("Gamble Remember Marks", rememberMarks);
 	marksText = "";
 	BH::config->ReadString("Gamble Marks", marksText);
-	announceMarks = true;
-	BH::config->ReadBoolean("Gamble Announce", announceMarks);
+
+	BH::config->ReadToggle("Gamble Refresh", "VK_F5", true, refresh);
+	refreshButton = true;
+	BH::config->ReadBoolean("Gamble Refresh Button", refreshButton);
+	keepTab = true;
+	BH::config->ReadBoolean("Gamble Refresh Keep Tab", keepTab);
 }
 
 void Shop::OnSettingsChanged(const vector<string>& keys) {
@@ -235,6 +241,14 @@ void Shop::OnUnload() {
 }
 
 void Shop::OnGameExit() {
+	refresher.Reset();
+	refreshBusy = false;
+	windowDown = false;
+	keepingPanels = false;
+	ShowAutomapAgain();
+	awaitingTalk = 0;
+	pendingRefresh = false;
+	buttonHeld = false;
 	Forget();
 	if (!rememberMarks) {
 		marks.clear();
@@ -283,6 +297,19 @@ void Shop::OnKey(bool up, BYTE key, LPARAM lParam, bool* block) {
 		return;
 	}
 
+	if (refresh.state && key == refresh.toggle) {
+		// A refresh takes the window down for a moment, and the key still
+		// belongs to it meanwhile.
+		if (!refreshBusy && !TradeWindowOpen(SHOP_KIND_GAMBLE))
+			return;
+		*block = true;
+		// A held key repeats, and only the first press asks for a refresh.
+		bool repeat = (lParam & 0x40000000) != 0;
+		if (!up && !repeat)
+			pendingRefresh = true;
+		return;
+	}
+
 	if (key != markKey && key != clearMarksKey)
 		return;
 	if (!TradeWindowOpen(SHOP_KIND_GAMBLE))
@@ -295,6 +322,199 @@ void Shop::OnKey(bool up, BYTE key, LPARAM lParam, bool* block) {
 		pendingMark = true;
 	else
 		pendingClear = true;
+}
+
+void Shop::OnLeftClick(bool up, unsigned int x, unsigned int y, bool* block) {
+	// The window drawn while a refresh has it down is only a picture: a click
+	// on it would reach the world behind and walk the player off.
+	bool held = windowDown;
+	if (!up) {
+		GambleRefresh::Box box = GambleRefresh::SlotBox(*p_D2CLIENT_PanelOffsetX,
+			*p_D2CLIENT_PanelOffsetY, *p_D2CLIENT_ScreenSizeY);
+		if (!RefreshButtonShown() || !box.Contains((int)x, (int)y)) {
+			if (held)
+				*block = true;
+			return;
+		}
+		*block = true;
+		buttonHeld = true;
+		return;
+	}
+
+	// The game was kept from seeing the press, so it is kept from seeing the
+	// release too, wherever it lands.
+	if (!buttonHeld.exchange(false)) {
+		if (held)
+			*block = true;
+		return;
+	}
+	*block = true;
+	if (!RefreshButtonShown())
+		return;
+	GambleRefresh::Box box = GambleRefresh::SlotBox(*p_D2CLIENT_PanelOffsetX,
+		*p_D2CLIENT_PanelOffsetY, *p_D2CLIENT_ScreenSizeY);
+	if (box.Contains((int)x, (int)y))
+		pendingRefresh = true;
+}
+
+void Shop::OnRightClick(bool up, unsigned int x, unsigned int y, bool* block) {
+	if (windowDown)
+		*block = true;
+}
+
+// Shown on the gamble window, and on the one drawn in its place while a refresh
+// has it down.
+bool Shop::RefreshButtonShown() {
+	return refresh.state && refreshButton &&
+		(TradeWindowOpen(SHOP_KIND_GAMBLE) || windowDown) &&
+		*p_D2CLIENT_ShopButtonCells != NULL;
+}
+
+void Shop::StartRefresh() {
+	if (!TradeWindowOpen(SHOP_KIND_GAMBLE))
+		return;
+	UnitAny* npc = D2CLIENT_GetCurrentInteractingNPC();
+	if (!npc)
+		return;
+	if (!refresher.Start(GetTickCount()))
+		return;
+	refreshNpcId = npc->dwUnitId;
+	refreshTab = *p_D2CLIENT_ShopTab;
+	refreshBusy = true;
+}
+
+// Whether the NPC can still be talked to: the client still knows it, and the
+// player is standing rather than walking off somewhere else.
+static bool NpcHere(DWORD npcId) {
+	UnitAny* player = D2CLIENT_GetPlayerUnit();
+	if (!player || !D2CLIENT_FindServerSideUnit(npcId, UNIT_MONSTER))
+		return false;
+	DWORD mode = player->dwMode;
+	return mode != PLAYER_MODE_WALK_OUTTOWN && mode != PLAYER_MODE_RUN &&
+		mode != PLAYER_MODE_WALK_INTOWN;
+}
+
+void Shop::TickRefresh() {
+	if (pendingRefresh.exchange(false) && !refresher.Busy())
+		StartRefresh();
+	if (!refresher.Busy())
+		return;
+
+	GambleRefresh::View view;
+	view.gambleOpen = TradeWindowOpen(SHOP_KIND_GAMBLE);
+	view.npcHere = NpcHere(refreshNpcId);
+	view.talkAnswered = talkAnswered;
+	UnitAny* npc = view.gambleOpen ? D2CLIENT_GetCurrentInteractingNPC() : NULL;
+	bool ours = npc && npc->dwUnitId == refreshNpcId && npc->pInventory;
+	view.items = ours ? npc->pInventory->dwItemCount : 0;
+
+	switch (refresher.Tick(GetTickCount(), view)) {
+	case GambleRefresh::StepTakeDown:
+		TakeWindowDown();
+		break;
+	case GambleRefresh::StepTalk: {
+		talkAnswered = false;
+		awaitingTalk = refreshNpcId;
+		BYTE packet[9];
+		packet[0] = 0x13;
+		*(DWORD*)&packet[1] = UNIT_MONSTER;
+		*(DWORD*)&packet[5] = refreshNpcId;
+		D2NET_SendPacket(sizeof(packet), 0, packet);
+		break;
+	}
+	case GambleRefresh::StepGamble:
+		D2CLIENT_StartGamble();
+		break;
+	case GambleRefresh::StepRestoreTab:
+		// Also recounts which tabs have anything on them, which the game
+		// otherwise only does when the window opens.
+		D2CLIENT_SelectShopTab(keepTab ? refreshTab : 0);
+		break;
+	case GambleRefresh::StepAbandon:
+		awaitingTalk = 0;
+		D2CLIENT_CloseNPCInteract();
+		break;
+	default:
+		break;
+	}
+
+	GambleRefresh::Outcome outcome = refresher.TakeOutcome();
+	if (outcome != GambleRefresh::OutcomeNone)
+		RefreshFinished(outcome);
+	refreshBusy = refresher.Busy();
+	GambleRefresh::State state = refresher.GetState();
+	windowDown = !TradeWindowOpen(SHOP_KIND_GAMBLE) &&
+		(state == GambleRefresh::StateTalking || state == GambleRefresh::StateStocking);
+	if (windowDown) {
+		*p_D2CLIENT_PanelsOpen = panelsOpen;
+	} else {
+		// Opening the window again sets the panels itself. A refresh that
+		// gave up with it down leaves them as the window's closing did.
+		if (keepingPanels && !TradeWindowOpen(SHOP_KIND_GAMBLE))
+			*p_D2CLIENT_PanelsOpen = panelsClosed;
+		keepingPanels = false;
+		ShowAutomapAgain();
+	}
+}
+
+// The automap would otherwise show through for as long as the window is down.
+void Shop::HideAutomap() {
+	if (automapHidden)
+		return;
+	automapWasOn = *p_D2CLIENT_AutomapOn;
+	*p_D2CLIENT_AutomapOn = 0;
+	automapHidden = true;
+}
+
+void Shop::ShowAutomapAgain() {
+	if (!automapHidden)
+		return;
+	*p_D2CLIENT_AutomapOn = automapWasOn;
+	automapHidden = false;
+}
+
+// Takes the gamble window down the way the game's own close starts out
+// (D2Client 0x492F0), without going on to end the talk: the next talk replaces
+// it, and its menu is where gamble is picked again.
+void Shop::TakeWindowDown() {
+	HideAutomap();
+	*p_D2CLIENT_SelectedInvItem = NULL;
+	panelsOpen = *p_D2CLIENT_PanelsOpen;
+	D2CLIENT_SetUIVar(UI_NPCSHOP, 1, 0);
+	panelsClosed = *p_D2CLIENT_PanelsOpen;
+	keepingPanels = true;
+	// Closing clears the trade window's cursor mode, which the trade screen
+	// drawn in the window's place goes by, and the panels it had open, which
+	// the borders around them are drawn by.
+	*p_D2CLIENT_ShopCursorType = 1;
+	*p_D2CLIENT_PanelsOpen = panelsOpen;
+	Forget();
+}
+
+// The server's answer to the talk a refresh asks for (D2Client 0xAFA70, then
+// 0x4B8A0), after which gamble can be picked. Read on whichever thread the
+// game hands packets over on, so it only trades atomics with the game loop.
+void Shop::OnGamePacketRecv(BYTE* packet, bool* block) {
+	if (packet[0] != 0x28 || packet[1] != UNIT_MONSTER)
+		return;
+	DWORD waiting = awaitingTalk;
+	if (waiting == 0 || *(DWORD*)&packet[2] != waiting)
+		return;
+	awaitingTalk = 0;
+	talkAnswered = true;
+}
+
+void Shop::RefreshFinished(GambleRefresh::Outcome outcome) {
+	switch (outcome) {
+	case GambleRefresh::OutcomeLost:
+		PrintText(Red, (char*)"Refresh stopped: the NPC is out of reach. Talk to them again.");
+		break;
+	case GambleRefresh::OutcomeTimedOut:
+		PrintText(Red, (char*)"Refresh stopped: the NPC did not answer. Talk to them again.");
+		break;
+	default:
+		break;
+	}
 }
 
 void Shop::ApplyPendingKeys() {
@@ -327,7 +547,6 @@ void Shop::Forget() {
 	contentsKey = 0;
 	announced = false;
 	matchNames.clear();
-	dropSound = 0;
 	for (int i = 0; i < SHOP_TABS; i++)
 		tabColor[i] = -1;
 	backdrops.clear();
@@ -366,6 +585,11 @@ void Shop::OnLoop() {
 			MarksChanged(false);
 	}
 
+	FollowWindow();
+	TickRefresh();
+}
+
+void Shop::FollowWindow() {
 	UnitAny* npc = D2CLIENT_GetUIState(UI_NPCSHOP) ? D2CLIENT_GetCurrentInteractingNPC() : NULL;
 	if (!npc || !npc->pInventory) {
 		if (npcId)
@@ -400,7 +624,6 @@ void Shop::Rebuild(UnitAny* npc) {
 	backdrops.clear();
 	backdropOwner = npc->dwUnitId;
 	matchNames.clear();
-	dropSound = 0;
 	for (int i = 0; i < SHOP_TABS; i++)
 		tabColor[i] = -1;
 
@@ -412,7 +635,7 @@ void Shop::Rebuild(UnitAny* npc) {
 	for (UnitAny* item = npc->pInventory->pFirstItem; item && item->pItemData;
 			item = item->pItemData->pNextInvItem) {
 		unsigned int color;
-		bool announce = true;
+		bool announce = false;
 		if (trade) {
 			LiveItem live(item);
 			if (!live.Known())
@@ -434,9 +657,6 @@ void Shop::Rebuild(UnitAny* npc) {
 			if (markedCodes.find(CodeOf(item)) == markedCodes.end())
 				continue;
 			color = markColor;
-			ItemText* txt = D2COMMON_GetItemText(item->dwTxtFileNo);
-			if (txt && dropSound == 0)
-				dropSound = *(WORD*)((BYTE*)txt + ITEMS_TXT_DROP_SOUND);
 		}
 
 		backdrops.push_back(std::make_pair(item->dwUnitId, (BYTE)color));
@@ -453,15 +673,10 @@ void Shop::Announce(UnitAny* npc) {
 	if (matchNames.empty())
 		return;
 
-	std::string name = Narrow(D2CLIENT_GetUnitName(npc));
 	if (npcKind == SHOP_KIND_TRADE && highlights.state && announceMatches) {
+		std::string name = Narrow(D2CLIENT_GetUnitName(npc));
 		Print((char*)"%s", ShopHighlights::AnnounceLine(name, "item for you",
 			"items for you", matchNames).c_str());
-	} else if (npcKind == SHOP_KIND_GAMBLE && announceMarks) {
-		Print((char*)"%s", ShopHighlights::AnnounceLine(name, "marked item",
-			"marked items", matchNames).c_str());
-		if (dropSound > 0)
-			D2CLIENT_PlaySound(dropSound);
 	}
 }
 
@@ -481,7 +696,73 @@ int Shop::BackdropColorFor(UnitAny* item) {
 }
 
 void Shop::OnDraw() {
+	DrawWindowInPlace();
 	DrawTabMarkers();
+	DrawRefreshButton();
+}
+
+// While a refresh has the gamble window down, the game draws the world where it
+// was. Drawing what the game draws for an open trade window in its place keeps
+// the window on screen until the new one is up. The borders around it the game
+// still draws itself, from the panels kept open meanwhile.
+void Shop::DrawWindowInPlace() {
+	if (!windowDown || TradeWindowOpen(SHOP_KIND_GAMBLE))
+		return;
+	D2CLIENT_DrawTradeScreen();
+	D2CLIENT_DrawLifeGlobe();
+	D2CLIENT_DrawManaGlobe();
+}
+
+// Drawn over the empty slot the game leaves in a gamble window, with the game's
+// own blank button and the same call and position the game draws its buttons
+// with, so only the icon on it is ours.
+void Shop::DrawRefreshButton() {
+	if (!RefreshButtonShown())
+		return;
+
+	int panelX = *p_D2CLIENT_PanelOffsetX;
+	int panelY = *p_D2CLIENT_PanelOffsetY;
+	int screenHeight = *p_D2CLIENT_ScreenSizeY;
+	GambleRefresh::Box box = GambleRefresh::SlotBox(panelX, panelY, screenHeight);
+	int mouseX = *p_D2CLIENT_MouseX;
+	int mouseY = *p_D2CLIENT_MouseY;
+	bool hovered = box.Contains(mouseX, mouseY);
+	bool down = (buttonHeld && hovered) || refresher.Busy();
+
+	// The game's cell context is 0x48 bytes, zeroed, with the frame first and
+	// the cell file at 0x34.
+	struct {
+		CellContext context;
+		DWORD rest[4];
+	} cell = {};
+	cell.context.nCellNo = down ? 1 : 0;
+	cell.context.pCellFile = *p_D2CLIENT_ShopButtonCells;
+	int x = GambleRefresh::ArtX(panelX);
+	int bottom = GambleRefresh::ArtBottom(panelY, screenHeight);
+	D2GFX_DrawAutomapCell2(&cell.context, x, bottom, (DWORD)-1, DRAW_MODE_NORMAL, NULL);
+
+	int top = bottom - GambleRefresh::GLYPH_SIZE;
+	const std::vector<GambleRefresh::Run>& glyph = GambleRefresh::Glyph(down);
+	for (unsigned int i = 0; i < glyph.size(); i++) {
+		const GambleRefresh::Run& run = glyph[i];
+		D2GFX_DrawRectangle(x + run.x, top + run.y, x + run.x + run.length, top + run.y + 1,
+			run.color, Drawing::BTNormal);
+	}
+
+	if (!hovered)
+		return;
+	std::string name = "Refresh";
+	if (refresh.toggle != 0)
+		name += " (" + GetKeyCode(refresh.toggle).literalName + ")";
+	char text[128];
+	sprintf_s(text, sizeof(text), "%s", refresher.Busy() ? "Refreshing" : name.c_str());
+	wchar_t* wide = AnsiToUnicode(text);
+	// The font the trade window draws its buttons' tooltips in.
+	DWORD font = D2WIN_SetTextSize(1);
+	D2WIN_DrawFramedText(wide, GambleRefresh::TooltipX(panelX),
+		GambleRefresh::TooltipY(panelY, screenHeight), 0, 0);
+	D2WIN_SetTextSize(font);
+	delete[] wide;
 }
 
 void Shop::DrawTabMarkers() {
