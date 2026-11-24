@@ -98,6 +98,7 @@
     <ClCompile Include="SliderRangeTests.cpp" />
     <ClCompile Include="RoomFrontierTests.cpp" />
     <ClCompile Include="ItemGridTests.cpp" />
+    <ClCompile Include="PortalDelayTests.cpp" />
     <ClCompile Include="PropertyStatsTests.cpp" />
     <ClCompile Include="StatDescriptionTests.cpp" />
     <ClCompile Include="TableFixture.cpp" />
@@ -123,6 +124,7 @@
     <ClCompile Include="..\BH\Modules\Accounts\AccountRows.cpp" />
     <ClCompile Include="..\BH\Modules\Maphack\RoomFrontier.cpp" />
     <ClCompile Include="..\BH\Modules\ItemMover\ItemGrid.cpp" />
+    <ClCompile Include="..\BH\Modules\TownPortal\PortalDelay.cpp" />
     <ClCompile Include="..\BH\Modules\Item\CaptureFormat.cpp" />
     <ClCompile Include="..\BH\Modules\Item\ItemFactsCatalogue.cpp" />
     <ClCompile Include="..\BH\Modules\Item\ItemFactsPacket.cpp" />

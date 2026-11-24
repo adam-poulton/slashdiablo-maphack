@@ -5,6 +5,7 @@ All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
 in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
 
 # Unreleased
+* Add `Portal re-entry delay` under `Town portal` on the Input tab, off by default. Lets you take a town portal again sooner after taking one, timed from when you took it: 0 to 3000 ms, 1000 ms by default. Off leaves the game's own wait.
 * Fix rare crashes when shift-clicking or ctrl-clicking items to move or identify them while items are being moved.
 
 # Release Notes for 1.10.1 (2026-10-04)

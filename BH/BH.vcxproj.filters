@@ -79,6 +79,8 @@
     <ClCompile Include="Mustache.cpp" />
     <ClCompile Include="Patch.cpp" />
     <ClCompile Include="Modules\StashExport\StashExport.cpp" />
+    <ClCompile Include="Modules\TownPortal\PortalDelay.cpp" />
+    <ClCompile Include="Modules\TownPortal\TownPortal.cpp" />
     <ClCompile Include="TableReader.cpp" />
     <ClCompile Include="TablesFromMPQ.cpp" />
     <ClCompile Include="Task.cpp" />
@@ -179,6 +181,8 @@
     <ClInclude Include="Mustache.h" />
     <ClInclude Include="Patch.h" />
     <ClInclude Include="Modules\StashExport\StashExport.h" />
+    <ClInclude Include="Modules\TownPortal\PortalDelay.h" />
+    <ClInclude Include="Modules\TownPortal\TownPortal.h" />
     <ClInclude Include="TableReader.h" />
     <ClInclude Include="Task.h" />
     <ClInclude Include="Modules\GambleRefresh\GambleRefresh.h" />
