@@ -147,6 +147,11 @@ std::vector<const Action*> GetItemMapActions(UnitItemInfo *uInfo) {
 	return VerdictFor(uInfo, world).match.mapActions;
 }
 
+RuleMatch GetItemMatch(UnitItemInfo *uInfo) {
+	World world;
+	return VerdictFor(uInfo, world).match;
+}
+
 void GetItemName(UnitItemInfo *uInfo, string &name) {
 	World world;
 	ItemVerdict &verdict = VerdictFor(uInfo, world);

@@ -46,6 +46,10 @@ void GetItemName(UnitItemInfo *uInfo, string &name);
 std::string GetItemDescription(UnitItemInfo *uInfo);
 std::vector<const Action*> GetItemMapActions(UnitItemInfo *uInfo);
 
+// Everything the rules decided about the item, under the filter level in force:
+// whether it is shown or hidden, and the colour a notification about it is in.
+RuleMatch GetItemMatch(UnitItemInfo *uInfo);
+
 // Forgets what was worked out about every item, for when the rules or the
 // settings they were worked out under have changed.
 void ResetItemVerdicts();
