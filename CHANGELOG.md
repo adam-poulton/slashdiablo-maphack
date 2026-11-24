@@ -13,7 +13,7 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
 * Add a refresh button to the gamble window, in the empty slot beside `Close`, drawn in the game's own button art. Hover it for its hotkey. Turn it off with `Show refresh button`.
 * Gamble refresh now works at every gambler: Elzix, Alkor and Nihlathak as well as Gheed, Jamella and Anya. It only answers with a gamble window open, so the hotkey no longer turns a trade window or talk menu into one, and it keeps the tab you were looking at (`Keep selected tab`).
 * Add refresh until marked. Shift+click the refresh button, or bind `Refresh until marked`, to refresh until a base you have marked is on offer. Stops at `Most refreshes` (25 by default), waits `Pause between refreshes` (1000 ms by default) between tries, and stops when you click the button or press the key again, or close the window.
-* Gamble refresh no longer closes and reopens the gamble window, so the screen no longer flickers and the NPC's talk menu no longer flashes up: the window stays open, empties, and fills with the new items.
+* Gamble refresh keeps the gamble window on screen while it refreshes, instead of flickering out to the world and back.
 * Gamble refresh now says why it stopped when the NPC is out of reach or does not answer, instead of a bare timeout.
 * Fix rare crashes when shift-clicking or ctrl-clicking items to move or identify them while items are being moved.
 

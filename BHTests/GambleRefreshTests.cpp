@@ -4,22 +4,24 @@
 #include "Modules/Shop/GambleRefresh.h"
 
 /*
- * Rerolling a gamble window in place: the steps a refresh walks the game
- * through, when it gives up, when a refresh until marked stops, where the
- * button answers clicks, and the icon.
+ * Rerolling a gamble window: the steps a refresh walks the game through, when
+ * it gives up, when a refresh until marked stops, where the button answers
+ * clicks, and the icon.
  */
 
 using namespace GambleRefresh;
 
 namespace {
 
-View Open(unsigned int items, bool marked = false, bool answered = false) {
-	View view = { true, true, answered, items, marked };
+View Open(unsigned int items, bool marked = false) {
+	View view = { true, true, true, items, marked };
 	return view;
 }
 
-View Answered() {
-	return Open(0, false, true);
+// The window taken down for the refresh, the talk answered or not.
+View Down(bool answered = false) {
+	View view = { false, true, answered, 0, false };
+	return view;
 }
 
 View Closed() {
@@ -30,27 +32,29 @@ View Closed() {
 // Walks one refresh from the window showing its stock to it showing the next,
 // starting at `now`, and returns the time the last step was taken at.
 unsigned int Cycle(Machine& machine, unsigned int now, bool marked, Step* last) {
-	CHECK(machine.Tick(now, Open(20)) == StepEnd);
+	CHECK(machine.Tick(now, Open(20)) == StepTakeDown);
 	now += 30;
-	CHECK(machine.Tick(now, Open(0)) == StepTalk);
+	CHECK(machine.Tick(now, Down()) == StepTalk);
+	now += 30;
+	CHECK(machine.Tick(now, Down()) == StepNone);
+	now += 30;
+	CHECK(machine.Tick(now, Down(true)) == StepGamble);
+	now += 30;
+	CHECK(machine.Tick(now, Down(true)) == StepNone);
 	now += 30;
 	CHECK(machine.Tick(now, Open(0)) == StepNone);
 	now += 30;
-	CHECK(machine.Tick(now, Answered()) == StepGamble);
-	now += 30;
-	CHECK(machine.Tick(now, Open(0, false, true)) == StepNone);
-	now += 30;
-	CHECK(machine.Tick(now, Open(5, marked, true)) == StepNone);
+	CHECK(machine.Tick(now, Open(5, marked)) == StepNone);
 	now += 100;
-	CHECK(machine.Tick(now, Open(20, marked, true)) == StepNone);
+	CHECK(machine.Tick(now, Open(20, marked)) == StepNone);
 	now += SETTLE_MS;
-	*last = machine.Tick(now, Open(20, marked, true));
+	*last = machine.Tick(now, Open(20, marked));
 	return now;
 }
 
 }
 
-TEST_CASE("one refresh ends the talk, talks again, asks for the stock and settles") {
+TEST_CASE("one refresh takes the window down, talks again, picks gamble and settles") {
 	Machine machine;
 	REQUIRE(machine.Start(1000, false, 1, 0));
 	Step last;
@@ -63,14 +67,14 @@ TEST_CASE("one refresh ends the talk, talks again, asks for the stock and settle
 	CHECK(machine.Tick(end + 10, Open(20)) == StepNone);
 }
 
-TEST_CASE("the talk goes out on the tick after the old one ends, and only once") {
+TEST_CASE("the talk goes out on the tick after the window comes down, and only once") {
 	Machine machine;
 	REQUIRE(machine.Start(0, false, 1, 0));
-	CHECK(machine.Tick(0, Open(20)) == StepEnd);
-	CHECK(machine.Tick(0, Open(0)) == StepTalk);
-	CHECK(machine.Tick(10, Open(0)) == StepNone);
-	CHECK(machine.Tick(20, Open(0)) == StepNone);
-	CHECK(machine.Tick(30, Answered()) == StepGamble);
+	CHECK(machine.Tick(0, Open(20)) == StepTakeDown);
+	CHECK(machine.Tick(0, Down()) == StepTalk);
+	CHECK(machine.Tick(10, Down()) == StepNone);
+	CHECK(machine.Tick(20, Down()) == StepNone);
+	CHECK(machine.Tick(30, Down(true)) == StepGamble);
 }
 
 TEST_CASE("a refresh that cannot begin leaves the window alone") {
@@ -100,45 +104,70 @@ TEST_CASE("a refresh cannot start while one is going or straight after one") {
 	CHECK(machine.Start(end + MIN_GAP_MS, false, 1, 0));
 }
 
-TEST_CASE("a refresh the server stops answering closes the window") {
+TEST_CASE("the window being down is the refresh's own doing, not a stop") {
+	Machine machine;
+	REQUIRE(machine.Start(0, false, 1, 0));
+	machine.Tick(0, Open(20));
+	machine.Tick(10, Down());
+	CHECK(machine.Tick(20, Down()) == StepNone);
+	CHECK(machine.Busy());
+	CHECK(machine.Tick(30, Down(true)) == StepGamble);
+	CHECK(machine.Tick(40, Down(true)) == StepNone);
+	CHECK(machine.Busy());
+}
+
+TEST_CASE("a refresh the server stops answering ends the talk") {
 	SUBCASE("no answer to the talk") {
 		Machine machine;
 		REQUIRE(machine.Start(0, false, 1, 0));
 		machine.Tick(0, Open(20));
-		machine.Tick(10, Open(0));
-		CHECK(machine.Tick(10 + STEP_TIMEOUT_MS - 1, Open(0)) == StepNone);
+		machine.Tick(10, Down());
+		CHECK(machine.Tick(10 + STEP_TIMEOUT_MS - 1, Down()) == StepNone);
 		CHECK(machine.Busy());
-		CHECK(machine.Tick(10 + STEP_TIMEOUT_MS, Open(0)) == StepAbandon);
+		CHECK(machine.Tick(10 + STEP_TIMEOUT_MS, Down()) == StepAbandon);
 		CHECK(machine.TakeOutcome() == OutcomeTimedOut);
 	}
-	SUBCASE("no stock after asking for it") {
+	SUBCASE("no window after picking gamble") {
 		Machine machine;
 		REQUIRE(machine.Start(0, false, 1, 0));
 		machine.Tick(0, Open(20));
-		machine.Tick(10, Open(0));
-		CHECK(machine.Tick(20, Answered()) == StepGamble);
-		CHECK(machine.Tick(20 + STEP_TIMEOUT_MS - 1, Answered()) == StepNone);
-		CHECK(machine.Tick(20 + STEP_TIMEOUT_MS, Answered()) == StepAbandon);
+		machine.Tick(10, Down());
+		CHECK(machine.Tick(20, Down(true)) == StepGamble);
+		CHECK(machine.Tick(20 + STEP_TIMEOUT_MS - 1, Down(true)) == StepNone);
+		CHECK(machine.Tick(20 + STEP_TIMEOUT_MS, Down(true)) == StepAbandon);
+		CHECK(machine.TakeOutcome() == OutcomeTimedOut);
+	}
+	SUBCASE("a window with no stock in it") {
+		Machine machine;
+		REQUIRE(machine.Start(0, false, 1, 0));
+		machine.Tick(0, Open(20));
+		machine.Tick(10, Down());
+		machine.Tick(20, Down(true));
+		CHECK(machine.Tick(20 + STEP_TIMEOUT_MS - 1, Open(0)) == StepNone);
+		CHECK(machine.Tick(20 + STEP_TIMEOUT_MS, Open(0)) == StepAbandon);
 		CHECK(machine.TakeOutcome() == OutcomeTimedOut);
 	}
 	SUBCASE("the NPC goes while the talk is unanswered") {
 		Machine machine;
 		REQUIRE(machine.Start(0, false, 1, 0));
 		machine.Tick(0, Open(20));
-		machine.Tick(10, Open(0));
-		View gone = Open(0);
+		machine.Tick(10, Down());
+		View gone = Down();
 		gone.npcHere = false;
 		CHECK(machine.Tick(20, gone) == StepAbandon);
 		CHECK(machine.TakeOutcome() == OutcomeLost);
 	}
 }
 
-TEST_CASE("closing the window mid refresh ends it without touching the window") {
+TEST_CASE("closing the new window before it settles ends the refresh") {
 	Machine machine;
 	REQUIRE(machine.Start(0, false, 1, 0));
 	machine.Tick(0, Open(20));
-	machine.Tick(10, Open(0));
-	CHECK(machine.Tick(20, Closed()) == StepNone);
+	machine.Tick(10, Down());
+	machine.Tick(20, Down(true));
+	machine.Tick(30, Open(20));
+	CHECK(machine.GetState() == StateSettling);
+	CHECK(machine.Tick(40, Closed()) == StepNone);
 	CHECK_FALSE(machine.Busy());
 	CHECK(machine.TakeOutcome() == OutcomeStopped);
 }
@@ -147,8 +176,8 @@ TEST_CASE("items still arriving hold the refresh back until they stop") {
 	Machine machine;
 	REQUIRE(machine.Start(0, false, 1, 0));
 	machine.Tick(0, Open(20));
-	machine.Tick(10, Open(0));
-	machine.Tick(20, Answered());
+	machine.Tick(10, Down());
+	machine.Tick(20, Down(true));
 	machine.Tick(30, Open(4));
 	CHECK(machine.Tick(30 + SETTLE_MS - 1, Open(4)) == StepNone);
 	machine.Tick(30 + SETTLE_MS - 1, Open(9));
@@ -191,12 +220,12 @@ TEST_CASE("refreshing until marked") {
 		CHECK(machine.TakeOutcome() == OutcomeStopped);
 		CHECK(machine.Refreshes() == 1);
 	}
-	SUBCASE("a stop mid refresh lets the stock arrive first") {
+	SUBCASE("a stop with the window down brings it back up first") {
 		REQUIRE(machine.Start(0, true, 10, 0));
-		CHECK(machine.Tick(0, Open(20)) == StepEnd);
+		CHECK(machine.Tick(0, Open(20)) == StepTakeDown);
 		machine.Stop();
-		CHECK(machine.Tick(10, Open(0)) == StepTalk);
-		CHECK(machine.Tick(20, Answered()) == StepGamble);
+		CHECK(machine.Tick(10, Down()) == StepTalk);
+		CHECK(machine.Tick(20, Down(true)) == StepGamble);
 		CHECK(machine.Tick(30, Open(20)) == StepNone);
 		CHECK(machine.Tick(30 + SETTLE_MS, Open(20)) == StepRestoreTab);
 		CHECK(machine.TakeOutcome() == OutcomeStopped);
@@ -215,8 +244,8 @@ TEST_CASE("a single refresh finds nothing to stop") {
 	CHECK_FALSE(machine.Running());
 	machine.Tick(0, Open(20));
 	machine.Stop();
-	machine.Tick(10, Open(0));
-	machine.Tick(20, Answered());
+	machine.Tick(10, Down());
+	machine.Tick(20, Down(true));
 	machine.Tick(30, Open(20, true));
 	CHECK(machine.Tick(30 + SETTLE_MS, Open(20, true)) == StepRestoreTab);
 	CHECK(machine.TakeOutcome() == OutcomeDone);

@@ -50,7 +50,7 @@ Outcome Machine::TakeOutcome() {
 	return taken;
 }
 
-// Nothing has been sent yet, so a refresh that cannot go ahead leaves the
+// Nothing has been done yet, so a refresh that cannot go ahead leaves the
 // window as it is.
 Step Machine::BeginCycle(unsigned int now, const View& view) {
 	if (!view.gambleOpen) {
@@ -62,15 +62,15 @@ Step Machine::BeginCycle(unsigned int now, const View& view) {
 		return StepNone;
 	}
 	Enter(StateTalking, now);
-	return StepEnd;
+	return StepTakeDown;
 }
 
 Step Machine::Tick(unsigned int now, const View& view) {
 	unsigned int waited = now - enteredAt;
 
-	// The player closing the window ends the talk the way the game always
-	// does, whatever the refresh was waiting on.
-	if (state != StateIdle && state != StateEnding && !view.gambleOpen) {
+	// The window is only the player's to close while it is up. While it is
+	// down for the refresh, the timeouts cover the server not answering.
+	if ((state == StateSettling || state == StatePausing) && !view.gambleOpen) {
 		Finish(OutcomeStopped, now);
 		return StepNone;
 	}
@@ -82,9 +82,9 @@ Step Machine::Tick(unsigned int now, const View& view) {
 	case StateEnding:
 		return BeginCycle(now, view);
 
-	// The talk is asked for a tick after it was ended, and the gamble stock
-	// only once the server has answered it, so each goes out in the order and
-	// with the answers the game's own would have.
+	// The talk is asked for a tick after the window comes down, and gamble
+	// picked only once the server has answered the talk, so each goes out in
+	// the order and with the answers a player's own clicks would have.
 	case StateTalking:
 		if (!talkAsked) {
 			talkAsked = true;
@@ -106,7 +106,7 @@ Step Machine::Tick(unsigned int now, const View& view) {
 		return StepNone;
 
 	case StateStocking:
-		if (view.items > 0) {
+		if (view.gambleOpen && view.items > 0) {
 			Enter(StateSettling, now);
 			lastItems = view.items;
 			itemsChangedAt = now;

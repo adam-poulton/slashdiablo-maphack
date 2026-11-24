@@ -38,8 +38,8 @@ public:
 	Shop() : Module("Shop"), npcId(0), npcKind(0), contentsKey(0),
 		contentsChangedAt(0), announced(false), familiesBuilt(false),
 		pendingMark(false), pendingClear(false), refreshNpcId(0),
-		refreshTab(0), pendingRefresh(RefreshNone), buttonHeld(false), refreshBusy(false),
-		storeRestocking(false), awaitingTalk(0), talkAnswered(false) {};
+		refreshTab(0), automapHidden(false), automapWasOn(0), pendingRefresh(RefreshNone), buttonHeld(false), refreshBusy(false),
+		windowDown(false), awaitingTalk(0), talkAnswered(false) {};
 
 	void OnLoad();
 	void OnUnload();
@@ -100,6 +100,8 @@ private:
 	GambleRefresh::Machine refresher;
 	DWORD refreshNpcId;
 	BYTE refreshTab;
+	bool automapHidden;
+	DWORD automapWasOn;
 
 	// Set from the input thread, carried out on the game loop.
 	enum RefreshRequest { RefreshNone, RefreshOnce, RefreshUntilMarked, RefreshStop };
@@ -108,10 +110,10 @@ private:
 	std::atomic<int> pendingRefresh;
 	// The refresh button is down: pressed on it, not yet let go.
 	std::atomic<bool> buttonHeld;
-	// A refresh is under way, and it has the store empty while the new stock
+	// A refresh is under way, and it has the window down while the new one
 	// comes.
 	std::atomic<bool> refreshBusy;
-	std::atomic<bool> storeRestocking;
+	std::atomic<bool> windowDown;
 	// The NPC whose answer to a refresh's talk is still to come, and whether it
 	// has come: set on the game loop, answered from the packet handler.
 	std::atomic<DWORD> awaitingTalk;
@@ -122,8 +124,10 @@ private:
 	void StartRefresh(bool untilMarked);
 	void TickRefresh();
 	void RefreshFinished(GambleRefresh::Outcome outcome);
-	void EndTalk(UnitAny* npc);
-	bool KeepOffStore(unsigned int x);
+	void TakeWindowDown();
+	void DrawWindowInPlace();
+	void HideAutomap();
+	void ShowAutomapAgain();
 	bool RefreshButtonShown();
 	void DrawRefreshButton();
 	void ApplyPendingKeys();

@@ -2,13 +2,12 @@
 #include <string>
 #include <vector>
 
-// Rerolling a gamble window in place, and the button in the window that asks for
-// it. The server keeps a player's gamble stock until their talk with the NPC
-// ends (D2Game 1.13c, 0xBF1C0), so a refresh ends the talk, starts it again and
-// asks for the gamble stock, sending what the game itself sends for that. The
-// window stays open throughout: the old stock is cleared from it and the new
-// stock arrives in it, and the talk menu the server's answer would open is
-// never shown.
+// Rerolling a gamble window, and the button in the window that asks for it. The
+// server keeps a player's gamble stock until their talk with the NPC starts
+// over (D2Game 1.13c: a new talk frees it at 0xD01D0, and 0xBF1C0 only makes
+// stock for a player with none), so a refresh takes the window down, talks to
+// the NPC again and picks gamble, as a player would. The Shop module keeps the
+// window drawn while it is down.
 //
 // Nothing here touches the game: the Shop module looks at the game, hands what
 // it sees in, and carries out what it is told to.
@@ -37,11 +36,11 @@ struct View {
 // What the game has to be made to do on this tick.
 enum Step {
 	StepNone,
-	StepEnd,			// end the talk with the NPC and clear the window's items
-	StepTalk,			// talk to the NPC again, keeping its menu from opening
-	StepGamble,			// ask for the gamble stock
+	StepTakeDown,		// take the gamble window down, leaving the talk open
+	StepTalk,			// talk to the NPC again
+	StepGamble,			// pick gamble, as the NPC's menu does
 	StepRestoreTab,		// show the tab that was selected
-	StepAbandon,		// close the window, which the server has stopped stocking
+	StepAbandon,		// end the talk, which the server has stopped answering
 };
 
 // How the last refresh or run ended. Taken once by TakeOutcome.
@@ -74,7 +73,7 @@ public:
 	bool Start(unsigned int now, bool untilMarked, unsigned int cap, unsigned int pauseMs);
 
 	// Ends a run. One in the middle of a refresh finishes it first, so the
-	// window is never left without its stock.
+	// window is never left down.
 	void Stop();
 
 	// Forgets everything, for leaving a game.

@@ -273,7 +273,8 @@ void Shop::OnUnload() {
 void Shop::OnGameExit() {
 	refresher.Reset();
 	refreshBusy = false;
-	storeRestocking = false;
+	windowDown = false;
+	ShowAutomapAgain();
 	awaitingTalk = 0;
 	pendingRefresh = RefreshNone;
 	buttonHeld = false;
@@ -353,19 +354,15 @@ void Shop::OnKey(bool up, BYTE key, LPARAM lParam, bool* block) {
 		pendingClear = true;
 }
 
-// While a refresh has ended the talk and the new stock is still coming, the
-// server has no trade open, so a buy or a sell on the panel would go nowhere.
-bool Shop::KeepOffStore(unsigned int x) {
-	return storeRestocking && TradeWindowOpen(SHOP_KIND_GAMBLE) &&
-		x < *p_D2CLIENT_ScreenSizeX / 2;
-}
-
 void Shop::OnLeftClick(bool up, unsigned int x, unsigned int y, bool* block) {
+	// The window drawn while a refresh has it down is only a picture: a click
+	// on it would reach the world behind and walk the player off.
+	bool held = windowDown;
 	if (!up) {
 		GambleRefresh::Box box = GambleRefresh::SlotBox(*p_D2CLIENT_PanelOffsetX,
 			*p_D2CLIENT_PanelOffsetY, *p_D2CLIENT_ScreenSizeY);
 		if (!RefreshButtonShown() || !box.Contains((int)x, (int)y)) {
-			if (KeepOffStore(x))
+			if (held)
 				*block = true;
 			return;
 		}
@@ -377,7 +374,7 @@ void Shop::OnLeftClick(bool up, unsigned int x, unsigned int y, bool* block) {
 	// The game was kept from seeing the press, so it is kept from seeing the
 	// release too, wherever it lands.
 	if (!buttonHeld.exchange(false)) {
-		if (KeepOffStore(x))
+		if (held)
 			*block = true;
 		return;
 	}
@@ -391,7 +388,7 @@ void Shop::OnLeftClick(bool up, unsigned int x, unsigned int y, bool* block) {
 }
 
 void Shop::OnRightClick(bool up, unsigned int x, unsigned int y, bool* block) {
-	if (KeepOffStore(x))
+	if (windowDown)
 		*block = true;
 }
 
@@ -399,8 +396,11 @@ void Shop::RequestRefresh(bool untilMarked) {
 	pendingRefresh = untilMarked ? RefreshUntilMarked : RefreshOnce;
 }
 
+// Shown on the gamble window, and on the one drawn in its place while a refresh
+// has it down.
 bool Shop::RefreshButtonShown() {
-	return refresh.state && refreshButton && TradeWindowOpen(SHOP_KIND_GAMBLE) &&
+	return refresh.state && refreshButton &&
+		(TradeWindowOpen(SHOP_KIND_GAMBLE) || windowDown) &&
 		*p_D2CLIENT_ShopButtonCells != NULL;
 }
 
@@ -456,8 +456,8 @@ void Shop::TickRefresh() {
 	view.marked = ours && npcId == refreshNpcId && !backdrops.empty();
 
 	switch (refresher.Tick(GetTickCount(), view)) {
-	case GambleRefresh::StepEnd:
-		EndTalk(ours ? npc : NULL);
+	case GambleRefresh::StepTakeDown:
+		TakeWindowDown();
 		break;
 	case GambleRefresh::StepTalk: {
 		talkAnswered = false;
@@ -469,16 +469,9 @@ void Shop::TickRefresh() {
 		D2NET_SendPacket(sizeof(packet), 0, packet);
 		break;
 	}
-	case GambleRefresh::StepGamble: {
-		// As the gamble entry of the NPC's menu sends it, at D2Client 0x4AE85.
-		BYTE packet[13];
-		packet[0] = 0x38;
-		*(DWORD*)&packet[1] = 2;
-		*(DWORD*)&packet[5] = refreshNpcId;
-		*(DWORD*)&packet[9] = 0;
-		D2NET_SendPacket(sizeof(packet), 0, packet);
+	case GambleRefresh::StepGamble:
+		D2CLIENT_StartGamble();
 		break;
-	}
 	case GambleRefresh::StepRestoreTab:
 		// Also recounts which tabs have anything on them, which the game
 		// otherwise only does when the window opens.
@@ -497,49 +490,50 @@ void Shop::TickRefresh() {
 		RefreshFinished(outcome);
 	refreshBusy = refresher.Busy();
 	GambleRefresh::State state = refresher.GetState();
-	storeRestocking = state == GambleRefresh::StateTalking ||
-		state == GambleRefresh::StateStocking;
+	windowDown = !TradeWindowOpen(SHOP_KIND_GAMBLE) &&
+		(state == GambleRefresh::StateTalking || state == GambleRefresh::StateStocking);
+	if (!windowDown)
+		ShowAutomapAgain();
 }
 
-// D2Client 1.13c's 0x460A0, which the game runs when a trade window closes:
-// takes every item out of the NPC's inventory and forgets them, leaving the
-// inventory itself. Takes the NPC in eax.
-static void ClearStoreItems(UnitAny* npc) {
-	DWORD clear = D2CLIENT_ClearStoreItems_I;
-	__asm {
-		mov eax, npc
-		call clear
-	}
+// The automap would otherwise show through for as long as the window is down.
+void Shop::HideAutomap() {
+	if (automapHidden)
+		return;
+	automapWasOn = *p_D2CLIENT_AutomapOn;
+	*p_D2CLIENT_AutomapOn = 0;
+	automapHidden = true;
 }
 
-// Ends the talk as the game does when the window closes, packet 0x30 and all,
-// except that the window stays: only its items go.
-void Shop::EndTalk(UnitAny* npc) {
-	BYTE packet[9];
-	packet[0] = 0x30;
-	*(DWORD*)&packet[1] = UNIT_MONSTER;
-	*(DWORD*)&packet[5] = refreshNpcId;
-	D2NET_SendPacket(sizeof(packet), 0, packet);
+void Shop::ShowAutomapAgain() {
+	if (!automapHidden)
+		return;
+	*p_D2CLIENT_AutomapOn = automapWasOn;
+	automapHidden = false;
+}
 
-	if (npc) {
-		// The item under the cursor is about to be freed.
-		*p_D2CLIENT_SelectedInvItem = NULL;
-		ClearStoreItems(npc);
-	}
+// Takes the gamble window down the way the game's own close starts out
+// (D2Client 0x492F0), without going on to end the talk: the next talk replaces
+// it, and its menu is where gamble is picked again.
+void Shop::TakeWindowDown() {
+	HideAutomap();
+	*p_D2CLIENT_SelectedInvItem = NULL;
+	D2CLIENT_SetUIVar(UI_NPCSHOP, 1, 0);
+	// Closing clears the trade window's cursor mode, which the trade screen
+	// drawn in the window's place goes by.
+	*p_D2CLIENT_ShopCursorType = 1;
 	Forget();
 }
 
-// The server's answer to the talk a refresh asks for, which would open the
-// NPC's talk menu over the window (D2Client 0xAFA70, then 0x4B8A0). Read on
-// whichever thread the game hands packets over on, so it only trades atomics
-// with the game loop.
+// The server's answer to the talk a refresh asks for (D2Client 0xAFA70, then
+// 0x4B8A0), after which gamble can be picked. Read on whichever thread the
+// game hands packets over on, so it only trades atomics with the game loop.
 void Shop::OnGamePacketRecv(BYTE* packet, bool* block) {
 	if (packet[0] != 0x28 || packet[1] != UNIT_MONSTER)
 		return;
 	DWORD waiting = awaitingTalk;
 	if (waiting == 0 || *(DWORD*)&packet[2] != waiting)
 		return;
-	*block = true;
 	awaitingTalk = 0;
 	talkAnswered = true;
 }
@@ -748,8 +742,22 @@ int Shop::BackdropColorFor(UnitAny* item) {
 }
 
 void Shop::OnDraw() {
+	DrawWindowInPlace();
 	DrawTabMarkers();
 	DrawRefreshButton();
+}
+
+// While a refresh has the gamble window down, the game draws the world where it
+// was. Drawing what the game draws for an open trade window in its place keeps
+// the window on screen until the new one is up.
+void Shop::DrawWindowInPlace() {
+	if (!windowDown || TradeWindowOpen(SHOP_KIND_GAMBLE))
+		return;
+	D2CLIENT_DrawTradeScreen();
+	D2CLIENT_DrawLeftScreenBorder();
+	D2CLIENT_DrawRightScreenBorder();
+	D2CLIENT_DrawLifeGlobe();
+	D2CLIENT_DrawManaGlobe();
 }
 
 // Drawn over the empty slot the game leaves in a gamble window, with the game's

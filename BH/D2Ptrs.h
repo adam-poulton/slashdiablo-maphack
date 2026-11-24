@@ -227,9 +227,16 @@ FUNCPTR(D2CLIENT, SelectShopTab, void __stdcall, (DWORD tab), 0x8F710, 0x8F710)
 // buysellbtn.dc6, the art of the buttons along the bottom of the trade window,
 // as the game loads it the first time it draws one.
 VARPTR(D2CLIENT, ShopButtonCells, CellFile*, 0x11B9C4, 0x11B9C4)
-// What the game runs on an NPC as its trade window closes: takes every item out
-// of the NPC's inventory and forgets them. Takes the NPC in eax.
-ASMPTR(D2CLIENT, ClearStoreItems_I, 0x460A0, 0x460A0)
+// The gamble entry of an NPC's talk menu: sends the gamble request for the NPC
+// being talked to and opens the gamble window.
+FUNCPTR(D2CLIENT, StartGamble, BOOL __stdcall, (void), 0x4ABE0, 0x4ABE0)
+// What the game draws for an open trade window: the trade panels, the screen
+// borders beside them and the two globes over them.
+FUNCPTR(D2CLIENT, DrawTradeScreen, void __stdcall, (void), 0x99440, 0x99440)
+FUNCPTR(D2CLIENT, DrawLeftScreenBorder, void __stdcall, (void), 0x271C0, 0x271C0)
+FUNCPTR(D2CLIENT, DrawRightScreenBorder, void __stdcall, (void), 0x270D0, 0x270D0)
+FUNCPTR(D2CLIENT, DrawLifeGlobe, void __stdcall, (void), 0x27BD0, 0x27BD0)
+FUNCPTR(D2CLIENT, DrawManaGlobe, void __stdcall, (void), 0x27A90, 0x27A90)
 
 
 VARPTR(D2CLIENT, Ping, DWORD, 0x119804, 0x108764)
