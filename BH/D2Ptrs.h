@@ -462,7 +462,7 @@ ASMPTR(D2MULTI, ChannelInput_I, 0xD5B0, 0x11B80)
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 FUNCPTR(D2CMP, InitCellFile, void __stdcall, (void *cellfile, CellFile **outptr, char *srcfile, DWORD lineno, DWORD filever, char *filename), -10006, -10008)
-FUNCPTR(D2CMP, DeleteCellFile, void __stdcall, (CellFile *cellfile), -10106, -10084)
+FUNCPTR(D2CMP, DeleteCellFile, void __stdcall, (CellFile *cellfile), -10065, -10020)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
