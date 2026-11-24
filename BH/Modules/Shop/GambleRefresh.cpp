@@ -3,28 +3,16 @@
 namespace GambleRefresh {
 
 Machine::Machine() : state(StateIdle), enteredAt(0), finishedAt(0), finishedOnce(false),
-	untilMarked(false), stopAsked(false), talkAsked(false), cap(1), pauseMs(0), refreshes(0),
-	lastItems(0), itemsChangedAt(0), outcome(OutcomeNone) {}
+	talkAsked(false), lastItems(0), itemsChangedAt(0), outcome(OutcomeNone) {}
 
-bool Machine::Start(unsigned int now, bool runUntilMarked, unsigned int most,
-		unsigned int pause) {
+bool Machine::Start(unsigned int now) {
 	if (state != StateIdle)
 		return false;
 	if (finishedOnce && now - finishedAt < MIN_GAP_MS)
 		return false;
-	untilMarked = runUntilMarked;
-	cap = most > 0 ? most : 1;
-	pauseMs = pause;
-	refreshes = 0;
-	stopAsked = false;
 	outcome = OutcomeNone;
-	Enter(StateEnding, now);
+	Enter(StateStarting, now);
 	return true;
-}
-
-void Machine::Stop() {
-	if (state != StateIdle)
-		stopAsked = true;
 }
 
 void Machine::Reset() {
@@ -50,41 +38,31 @@ Outcome Machine::TakeOutcome() {
 	return taken;
 }
 
-// Nothing has been done yet, so a refresh that cannot go ahead leaves the
-// window as it is.
-Step Machine::BeginCycle(unsigned int now, const View& view) {
-	if (!view.gambleOpen) {
-		Finish(OutcomeStopped, now);
-		return StepNone;
-	}
-	if (!view.npcHere) {
-		Finish(OutcomeLost, now);
-		return StepNone;
-	}
-	Enter(StateTalking, now);
-	return StepTakeDown;
-}
-
 Step Machine::Tick(unsigned int now, const View& view) {
 	unsigned int waited = now - enteredAt;
-
-	// The window is only the player's to close while it is up. While it is
-	// down for the refresh, the timeouts cover the server not answering.
-	if ((state == StateSettling || state == StatePausing) && !view.gambleOpen) {
-		Finish(OutcomeStopped, now);
-		return StepNone;
-	}
 
 	switch (state) {
 	case StateIdle:
 		return StepNone;
 
-	case StateEnding:
-		return BeginCycle(now, view);
+	// Nothing has been done yet, so a refresh that cannot go ahead leaves the
+	// window as it is.
+	case StateStarting:
+		if (!view.gambleOpen) {
+			Finish(OutcomeStopped, now);
+			return StepNone;
+		}
+		if (!view.npcHere) {
+			Finish(OutcomeLost, now);
+			return StepNone;
+		}
+		Enter(StateTalking, now);
+		return StepTakeDown;
 
 	// The talk is asked for a tick after the window comes down, and gamble
 	// picked only once the server has answered the talk, so each goes out in
-	// the order and with the answers a player's own clicks would have.
+	// the order and with the answers a player's own clicks would have. While
+	// the window is down, the timeouts cover the server not answering.
 	case StateTalking:
 		if (!talkAsked) {
 			talkAsked = true;
@@ -118,34 +96,21 @@ Step Machine::Tick(unsigned int now, const View& view) {
 		}
 		return StepNone;
 
+	// The tab is put back once everything has arrived: the game moves off a
+	// tab with nothing on it yet.
 	case StateSettling:
+		if (!view.gambleOpen) {
+			Finish(OutcomeStopped, now);
+			return StepNone;
+		}
 		if (view.items != lastItems) {
 			lastItems = view.items;
 			itemsChangedAt = now;
 		}
 		if (now - itemsChangedAt < SETTLE_MS)
 			return StepNone;
-		refreshes++;
-		if (!untilMarked)
-			Finish(OutcomeDone, now);
-		else if (view.marked)
-			Finish(OutcomeFound, now);
-		else if (stopAsked)
-			Finish(OutcomeStopped, now);
-		else if (refreshes >= cap)
-			Finish(OutcomeCapped, now);
-		else
-			Enter(StatePausing, now);
+		Finish(OutcomeDone, now);
 		return StepRestoreTab;
-
-	case StatePausing:
-		if (stopAsked) {
-			Finish(OutcomeStopped, now);
-			return StepNone;
-		}
-		if (waited < pauseMs)
-			return StepNone;
-		return BeginCycle(now, view);
 	}
 	return StepNone;
 }

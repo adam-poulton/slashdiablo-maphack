@@ -30,7 +30,6 @@ struct View {
 	bool npcHere;			// the NPC can still be talked to
 	bool talkAnswered;		// the server has answered the last talk asked for
 	unsigned int items;		// how many items the window holds
-	bool marked;			// one of them is of a marked base
 };
 
 // What the game has to be made to do on this tick.
@@ -43,38 +42,29 @@ enum Step {
 	StepAbandon,		// end the talk, which the server has stopped answering
 };
 
-// How the last refresh or run ended. Taken once by TakeOutcome.
+// How the last refresh ended. Taken once by TakeOutcome.
 enum Outcome {
 	OutcomeNone,
-	OutcomeDone,		// one refresh, finished
-	OutcomeFound,		// a run found a marked base
-	OutcomeCapped,		// a run reached its most refreshes
-	OutcomeStopped,		// a run was stopped, or its window closed
+	OutcomeDone,		// the new stock is in the window
+	OutcomeStopped,		// the window was closed
 	OutcomeLost,		// the NPC went or the player moved away
 	OutcomeTimedOut,	// the server did not answer in time
 };
 
 enum State {
 	StateIdle,
-	StateEnding,
+	StateStarting,
 	StateTalking,
 	StateStocking,
 	StateSettling,
-	StatePausing,
 };
 
 class Machine {
 public:
 	Machine();
 
-	// Starts one refresh, or a run that refreshes until a marked base is on
-	// offer, at most `cap` times with `pauseMs` between them. Refused while one
-	// is going or too soon after the last.
-	bool Start(unsigned int now, bool untilMarked, unsigned int cap, unsigned int pauseMs);
-
-	// Ends a run. One in the middle of a refresh finishes it first, so the
-	// window is never left down.
-	void Stop();
+	// Starts a refresh. Refused while one is going or too soon after the last.
+	bool Start(unsigned int now);
 
 	// Forgets everything, for leaving a game.
 	void Reset();
@@ -84,26 +74,17 @@ public:
 
 	State GetState() const { return state; }
 	bool Busy() const { return state != StateIdle; }
-	bool Running() const { return Busy() && untilMarked; }
-	unsigned int Refreshes() const { return refreshes; }
-	unsigned int Cap() const { return cap; }
 
 private:
 	State state;
 	unsigned int enteredAt;
 	unsigned int finishedAt;
 	bool finishedOnce;
-	bool untilMarked;
-	bool stopAsked;
 	bool talkAsked;
-	unsigned int cap;
-	unsigned int pauseMs;
-	unsigned int refreshes;
 	unsigned int lastItems;
 	unsigned int itemsChangedAt;
 	Outcome outcome;
 
-	Step BeginCycle(unsigned int now, const View& view);
 	void Enter(State next, unsigned int now);
 	void Finish(Outcome result, unsigned int now);
 };

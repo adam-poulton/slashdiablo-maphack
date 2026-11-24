@@ -18,17 +18,6 @@ struct UnitAny;
 #define STEP_BUY_COOLDOWN		50
 #define DEFAULT_BUY_COOLDOWN	200
 
-// How many refreshes a refresh until marked makes at most, and how long it
-// waits between them, in milliseconds.
-#define MIN_REFRESH_CAP			5
-#define MAX_REFRESH_CAP			200
-#define STEP_REFRESH_CAP		5
-#define DEFAULT_REFRESH_CAP		25
-#define MIN_REFRESH_PAUSE		250
-#define MAX_REFRESH_PAUSE		3000
-#define STEP_REFRESH_PAUSE		250
-#define DEFAULT_REFRESH_PAUSE	1000
-
 // What an NPC's trade window is made to say: the shop's items the item filter
 // would mark on the map, the gamble window's items of a base the player has
 // marked, and how soon the game lets the next buy or sell through. A gamble
@@ -37,9 +26,9 @@ class Shop : public Module {
 public:
 	Shop() : Module("Shop"), npcId(0), npcKind(0), contentsKey(0),
 		contentsChangedAt(0), announced(false), familiesBuilt(false),
-		pendingMark(false), pendingClear(false), refreshNpcId(0),
-		refreshTab(0), automapHidden(false), automapWasOn(0),
-		panelsOpen(0), panelsClosed(0), keepingPanels(false), pendingRefresh(RefreshNone), buttonHeld(false), refreshBusy(false),
+		pendingMark(false), pendingClear(false), refreshNpcId(0), refreshTab(0),
+		automapHidden(false), automapWasOn(0), panelsOpen(0), panelsClosed(0),
+		keepingPanels(false), pendingRefresh(false), buttonHeld(false), refreshBusy(false),
 		windowDown(false), awaitingTalk(0), talkAnswered(false) {};
 
 	void OnLoad();
@@ -74,12 +63,8 @@ private:
 	bool markTiers;
 	bool rememberMarks;
 	std::string marksText;
-	bool announceMarks;
 	Toggle refresh;
 	bool refreshButton;
-	unsigned int refreshUntilKey;
-	unsigned int refreshCap;
-	unsigned int refreshPause;
 	bool keepTab;
 
 	// The window open now, and what was last worked out about it.
@@ -90,7 +75,6 @@ private:
 	bool announced;
 	int tabColor[4];		// the first match's colour on each tab, -1 for none
 	std::vector<std::string> matchNames;
-	unsigned int dropSound;
 
 	std::vector<std::string> marks;
 	std::set<std::string> markedCodes;
@@ -110,10 +94,9 @@ private:
 	bool keepingPanels;
 
 	// Set from the input thread, carried out on the game loop.
-	enum RefreshRequest { RefreshNone, RefreshOnce, RefreshUntilMarked, RefreshStop };
 	std::atomic<bool> pendingMark;
 	std::atomic<bool> pendingClear;
-	std::atomic<int> pendingRefresh;
+	std::atomic<bool> pendingRefresh;
 	// The refresh button is down: pressed on it, not yet let go.
 	std::atomic<bool> buttonHeld;
 	// A refresh is under way, and it has the window down while the new one
@@ -126,8 +109,7 @@ private:
 	std::atomic<bool> talkAnswered;
 
 	void ApplyPatches();
-	void RequestRefresh(bool untilMarked);
-	void StartRefresh(bool untilMarked);
+	void StartRefresh();
 	void TickRefresh();
 	void RefreshFinished(GambleRefresh::Outcome outcome);
 	void TakeWindowDown();

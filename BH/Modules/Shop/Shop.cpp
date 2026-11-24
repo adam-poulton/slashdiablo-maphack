@@ -36,10 +36,6 @@
 #define TAB_MARKER_FRAME	1
 #define TAB_MARKER_INSET	5
 
-// Where an Items.txt record keeps the sound an item makes landing, a WORD.
-// D2Client 1.13c reads it there at 0x81E80.
-#define ITEMS_TXT_DROP_SOUND	0x124
-
 // How long a window's items have to stay as they are before it is taken to have
 // finished arriving, and what is on offer is announced.
 #define ANNOUNCE_SETTLE_MS	400
@@ -117,21 +113,10 @@ void Shop::OnLoad() {
 	Settings::AddHeading(GetName(), Settings::Category::Input, Settings::Heading::Gambling);
 	Settings::AddToggle(GetName(), Settings::Category::Input, "Gamble Refresh", "Gamble refresh",
 		&refresh,
-		"Rerolls the gamble window: closes it and asks the NPC for it again.");
+		"Rerolls the gamble window's items by asking the NPC for them again.");
 	Settings::AddBool(GetName(), Settings::Category::Input, "Gamble Refresh Button",
 		"Show refresh button", &refreshButton,
-		"A button in the gamble window's empty slot. Shift+click refreshes until a marked "
-		"base is on offer.", "Gamble Refresh");
-	Settings::AddKey(GetName(), Settings::Category::Input, "Gamble Refresh Until Marked",
-		"Refresh until marked", &refreshUntilKey,
-		"Refreshes until a marked base is on offer. Press again to stop.", "Gamble Refresh");
-	Settings::AddSlider(GetName(), Settings::Category::Input, "Gamble Refresh Cap",
-		"Most refreshes", &refreshCap, MIN_REFRESH_CAP, MAX_REFRESH_CAP, STEP_REFRESH_CAP, "",
-		"How many times refreshing until marked tries before it gives up.", "Gamble Refresh");
-	Settings::AddSlider(GetName(), Settings::Category::Input, "Gamble Refresh Pause",
-		"Pause between refreshes", &refreshPause, MIN_REFRESH_PAUSE, MAX_REFRESH_PAUSE,
-		STEP_REFRESH_PAUSE, " ms",
-		"How long refreshing until marked waits before the next refresh.", "Gamble Refresh");
+		"A button in the gamble window's empty slot that refreshes it.", "Gamble Refresh");
 	Settings::AddBool(GetName(), Settings::Category::Input, "Gamble Refresh Keep Tab",
 		"Keep selected tab", &keepTab,
 		"After a refresh, shows the tab that was showing before it.", "Gamble Refresh");
@@ -148,9 +133,6 @@ void Shop::OnLoad() {
 		&rememberMarks, "Keeps your marks between games.");
 	Settings::AddText(GetName(), Settings::Category::Input, "Gamble Marks", "Marked bases",
 		&marksText, 0, "Base codes, comma separated.", "Gamble Remember Marks");
-	Settings::AddBool(GetName(), Settings::Category::Input, "Gamble Announce", "Announce marked items",
-		&announceMarks,
-		"After the window opens or refreshes, says which marked items are on offer.");
 
 	Settings::AddHeading(GetName(), Settings::Category::Filter, "Shop highlights");
 	Settings::AddToggle(GetName(), Settings::Category::Filter, "Shop Highlights", "Shop highlights",
@@ -198,25 +180,10 @@ void Shop::LoadConfig() {
 	BH::config->ReadBoolean("Gamble Remember Marks", rememberMarks);
 	marksText = "";
 	BH::config->ReadString("Gamble Marks", marksText);
-	announceMarks = true;
-	BH::config->ReadBoolean("Gamble Announce", announceMarks);
 
 	BH::config->ReadToggle("Gamble Refresh", "VK_F5", true, refresh);
 	refreshButton = true;
 	BH::config->ReadBoolean("Gamble Refresh Button", refreshButton);
-	BH::config->ReadKey("Gamble Refresh Until Marked", "None", refreshUntilKey);
-	BH::config->ReadInt("Gamble Refresh Cap", refreshCap, DEFAULT_REFRESH_CAP);
-	if (refreshCap < MIN_REFRESH_CAP)
-		refreshCap = MIN_REFRESH_CAP;
-	if (refreshCap > MAX_REFRESH_CAP)
-		refreshCap = MAX_REFRESH_CAP;
-	// Below the floor is what the floor is there to prevent: refreshes fast
-	// enough to flood the server.
-	BH::config->ReadInt("Gamble Refresh Pause", refreshPause, DEFAULT_REFRESH_PAUSE);
-	if (refreshPause < MIN_REFRESH_PAUSE)
-		refreshPause = MIN_REFRESH_PAUSE;
-	if (refreshPause > MAX_REFRESH_PAUSE)
-		refreshPause = MAX_REFRESH_PAUSE;
 	keepTab = true;
 	BH::config->ReadBoolean("Gamble Refresh Keep Tab", keepTab);
 }
@@ -277,7 +244,7 @@ void Shop::OnGameExit() {
 	keepingPanels = false;
 	ShowAutomapAgain();
 	awaitingTalk = 0;
-	pendingRefresh = RefreshNone;
+	pendingRefresh = false;
 	buttonHeld = false;
 	Forget();
 	if (!rememberMarks) {
@@ -327,17 +294,16 @@ void Shop::OnKey(bool up, BYTE key, LPARAM lParam, bool* block) {
 		return;
 	}
 
-	if (refresh.state && (key == refresh.toggle || key == refreshUntilKey)) {
-		// A refresh closes the window it is refreshing, so while one is under
-		// way the key still belongs to it, to stop it.
+	if (refresh.state && key == refresh.toggle) {
+		// A refresh takes the window down for a moment, and the key still
+		// belongs to it meanwhile.
 		if (!refreshBusy && !TradeWindowOpen(SHOP_KIND_GAMBLE))
 			return;
 		*block = true;
-		// A held key repeats, and the repeat of the press that started a run
-		// would stop it.
+		// A held key repeats, and only the first press asks for a refresh.
 		bool repeat = (lParam & 0x40000000) != 0;
 		if (!up && !repeat)
-			RequestRefresh(key == refreshUntilKey);
+			pendingRefresh = true;
 		return;
 	}
 
@@ -385,16 +351,12 @@ void Shop::OnLeftClick(bool up, unsigned int x, unsigned int y, bool* block) {
 	GambleRefresh::Box box = GambleRefresh::SlotBox(*p_D2CLIENT_PanelOffsetX,
 		*p_D2CLIENT_PanelOffsetY, *p_D2CLIENT_ScreenSizeY);
 	if (box.Contains((int)x, (int)y))
-		RequestRefresh((GetKeyState(VK_SHIFT) & 0x8000) != 0);
+		pendingRefresh = true;
 }
 
 void Shop::OnRightClick(bool up, unsigned int x, unsigned int y, bool* block) {
 	if (windowDown)
 		*block = true;
-}
-
-void Shop::RequestRefresh(bool untilMarked) {
-	pendingRefresh = untilMarked ? RefreshUntilMarked : RefreshOnce;
 }
 
 // Shown on the gamble window, and on the one drawn in its place while a refresh
@@ -405,19 +367,13 @@ bool Shop::RefreshButtonShown() {
 		*p_D2CLIENT_ShopButtonCells != NULL;
 }
 
-void Shop::StartRefresh(bool untilMarked) {
+void Shop::StartRefresh() {
 	if (!TradeWindowOpen(SHOP_KIND_GAMBLE))
 		return;
-	if (untilMarked && markedCodes.empty()) {
-		std::string key = GetKeyCode(markKey).literalName;
-		PrintText(Gold, (char*)"Mark a base to refresh for first, with %s on an item.",
-			key.c_str());
-		return;
-	}
 	UnitAny* npc = D2CLIENT_GetCurrentInteractingNPC();
 	if (!npc)
 		return;
-	if (!refresher.Start(GetTickCount(), untilMarked, refreshCap, refreshPause))
+	if (!refresher.Start(GetTickCount()))
 		return;
 	refreshNpcId = npc->dwUnitId;
 	refreshTab = *p_D2CLIENT_ShopTab;
@@ -436,13 +392,8 @@ static bool NpcHere(DWORD npcId) {
 }
 
 void Shop::TickRefresh() {
-	int request = pendingRefresh.exchange(RefreshNone);
-	if (request != RefreshNone) {
-		if (refresher.Busy())
-			refresher.Stop();
-		else if (request != RefreshStop)
-			StartRefresh(request == RefreshUntilMarked);
-	}
+	if (pendingRefresh.exchange(false) && !refresher.Busy())
+		StartRefresh();
 	if (!refresher.Busy())
 		return;
 
@@ -453,8 +404,6 @@ void Shop::TickRefresh() {
 	UnitAny* npc = view.gambleOpen ? D2CLIENT_GetCurrentInteractingNPC() : NULL;
 	bool ours = npc && npc->dwUnitId == refreshNpcId && npc->pInventory;
 	view.items = ours ? npc->pInventory->dwItemCount : 0;
-	// Rebuilt from the window's contents earlier in this same loop.
-	view.marked = ours && npcId == refreshNpcId && !backdrops.empty();
 
 	switch (refresher.Tick(GetTickCount(), view)) {
 	case GambleRefresh::StepTakeDown:
@@ -553,19 +502,7 @@ void Shop::OnGamePacketRecv(BYTE* packet, bool* block) {
 }
 
 void Shop::RefreshFinished(GambleRefresh::Outcome outcome) {
-	unsigned int count = refresher.Refreshes();
-	const char* plural = count == 1 ? "" : "es";
 	switch (outcome) {
-	case GambleRefresh::OutcomeFound:
-		PrintText(Gold, (char*)"Found a marked base after %u refresh%s.", count, plural);
-		break;
-	case GambleRefresh::OutcomeCapped:
-		PrintText(Gold, (char*)"No marked base after %u refresh%s.", count, plural);
-		break;
-	case GambleRefresh::OutcomeStopped:
-		if (refresher.Cap() > 1 || count > 1)
-			PrintText(Gold, (char*)"Stopped refreshing after %u refresh%s.", count, plural);
-		break;
 	case GambleRefresh::OutcomeLost:
 		PrintText(Red, (char*)"Refresh stopped: the NPC is out of reach. Talk to them again.");
 		break;
@@ -607,7 +544,6 @@ void Shop::Forget() {
 	contentsKey = 0;
 	announced = false;
 	matchNames.clear();
-	dropSound = 0;
 	for (int i = 0; i < SHOP_TABS; i++)
 		tabColor[i] = -1;
 	backdrops.clear();
@@ -685,7 +621,6 @@ void Shop::Rebuild(UnitAny* npc) {
 	backdrops.clear();
 	backdropOwner = npc->dwUnitId;
 	matchNames.clear();
-	dropSound = 0;
 	for (int i = 0; i < SHOP_TABS; i++)
 		tabColor[i] = -1;
 
@@ -710,16 +645,14 @@ void Shop::Rebuild(UnitAny* npc) {
 			if (markedCodes.find(CodeOf(item)) == markedCodes.end())
 				continue;
 			color = markColor;
-			ItemText* txt = D2COMMON_GetItemText(item->dwTxtFileNo);
-			if (txt && dropSound == 0)
-				dropSound = *(WORD*)((BYTE*)txt + ITEMS_TXT_DROP_SOUND);
 		}
 
 		backdrops.push_back(std::make_pair(item->dwUnitId, (BYTE)color));
 		BYTE tab = item->pItemData->ItemLocation;
 		if (tab < SHOP_TABS && tabColor[tab] < 0)
 			tabColor[tab] = color;
-		matchNames.push_back(ItemDescription::NameLine(GetItemName(item)) + "\377c0");
+		if (trade)
+			matchNames.push_back(ItemDescription::NameLine(GetItemName(item)) + "\377c0");
 	}
 	std::sort(backdrops.begin(), backdrops.end());
 }
@@ -728,15 +661,10 @@ void Shop::Announce(UnitAny* npc) {
 	if (matchNames.empty())
 		return;
 
-	std::string name = Narrow(D2CLIENT_GetUnitName(npc));
 	if (npcKind == SHOP_KIND_TRADE && highlights.state && announceMatches) {
+		std::string name = Narrow(D2CLIENT_GetUnitName(npc));
 		Print((char*)"%s", ShopHighlights::AnnounceLine(name, "item for you",
 			"items for you", matchNames).c_str());
-	} else if (npcKind == SHOP_KIND_GAMBLE && announceMarks) {
-		Print((char*)"%s", ShopHighlights::AnnounceLine(name, "marked item",
-			"marked items", matchNames).c_str());
-		if (dropSound > 0)
-			D2CLIENT_PlaySound(dropSound);
 	}
 }
 
@@ -815,16 +743,7 @@ void Shop::DrawRefreshButton() {
 	if (refresh.toggle != 0)
 		name += " (" + GetKeyCode(refresh.toggle).literalName + ")";
 	char text[128];
-	if (refresher.Running()) {
-		sprintf_s(text, sizeof(text), "Refreshing: %u of %u. Click to stop",
-			refresher.Refreshes() + 1, refresher.Cap());
-	} else if (refresher.Busy()) {
-		sprintf_s(text, sizeof(text), "Refreshing");
-	} else if (!markedCodes.empty()) {
-		sprintf_s(text, sizeof(text), "%s. Shift+click: until marked", name.c_str());
-	} else {
-		sprintf_s(text, sizeof(text), "%s", name.c_str());
-	}
+	sprintf_s(text, sizeof(text), "%s", refresher.Busy() ? "Refreshing" : name.c_str());
 	wchar_t* wide = AnsiToUnicode(text);
 	// The font the trade window draws its buttons' tooltips in.
 	DWORD font = D2WIN_SetTextSize(1);
