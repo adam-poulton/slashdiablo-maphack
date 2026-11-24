@@ -4,52 +4,53 @@
 #include "Modules/Shop/GambleRefresh.h"
 
 /*
- * Rerolling a gamble window: the steps a refresh walks the game through, when it
- * gives up, when a refresh until marked stops, where the button answers clicks,
- * how the NPC's gamble option is found in the game's menu table, and the icon.
+ * Rerolling a gamble window in place: the steps a refresh walks the game
+ * through, when it gives up, when a refresh until marked stops, where the
+ * button answers clicks, and the icon.
  */
 
 using namespace GambleRefresh;
 
 namespace {
 
-View Shown(unsigned int items, bool marked = false) {
-	View view = { true, false, true, items, marked };
+View Open(unsigned int items, bool marked = false, bool answered = false) {
+	View view = { true, true, answered, items, marked };
 	return view;
+}
+
+View Answered() {
+	return Open(0, false, true);
 }
 
 View Closed() {
-	View view = { false, false, true, 0, false };
+	View view = { false, true, false, 0, false };
 	return view;
 }
 
-View Menu() {
-	View view = { false, true, true, 0, false };
-	return view;
-}
-
-// Walks one refresh from the window being open to it being open again with its
-// items settled, starting at `now`, and returns the time it ends at.
+// Walks one refresh from the window showing its stock to it showing the next,
+// starting at `now`, and returns the time the last step was taken at.
 unsigned int Cycle(Machine& machine, unsigned int now, bool marked, Step* last) {
-	CHECK(machine.Tick(now, Shown(20)) == StepClose);
+	CHECK(machine.Tick(now, Open(20)) == StepEnd);
 	now += 30;
-	CHECK(machine.Tick(now, Closed()) == StepTalk);
+	CHECK(machine.Tick(now, Open(0)) == StepTalk);
 	now += 30;
-	CHECK(machine.Tick(now, Closed()) == StepNone);
+	CHECK(machine.Tick(now, Open(0)) == StepNone);
 	now += 30;
-	CHECK(machine.Tick(now, Menu()) == StepGamble);
+	CHECK(machine.Tick(now, Answered()) == StepGamble);
 	now += 30;
-	CHECK(machine.Tick(now, Shown(5, marked)) == StepRestoreTab);
+	CHECK(machine.Tick(now, Open(0, false, true)) == StepNone);
+	now += 30;
+	CHECK(machine.Tick(now, Open(5, marked, true)) == StepNone);
 	now += 100;
-	CHECK(machine.Tick(now, Shown(20, marked)) == StepNone);
+	CHECK(machine.Tick(now, Open(20, marked, true)) == StepNone);
 	now += SETTLE_MS;
-	*last = machine.Tick(now, Shown(20, marked));
+	*last = machine.Tick(now, Open(20, marked, true));
 	return now;
 }
 
 }
 
-TEST_CASE("one refresh closes the window, talks to the NPC, picks gamble and settles") {
+TEST_CASE("one refresh ends the talk, talks again, asks for the stock and settles") {
 	Machine machine;
 	REQUIRE(machine.Start(1000, false, 1, 0));
 	Step last;
@@ -59,16 +60,34 @@ TEST_CASE("one refresh closes the window, talks to the NPC, picks gamble and set
 	CHECK(machine.Refreshes() == 1);
 	CHECK(machine.TakeOutcome() == OutcomeDone);
 	CHECK(machine.TakeOutcome() == OutcomeNone);
-	CHECK(machine.Tick(end + 10, Shown(20)) == StepNone);
+	CHECK(machine.Tick(end + 10, Open(20)) == StepNone);
 }
 
-TEST_CASE("the close is asked for once, however long the window takes to go") {
+TEST_CASE("the talk goes out on the tick after the old one ends, and only once") {
 	Machine machine;
 	REQUIRE(machine.Start(0, false, 1, 0));
-	CHECK(machine.Tick(0, Shown(20)) == StepClose);
-	CHECK(machine.Tick(10, Shown(20)) == StepNone);
-	CHECK(machine.Tick(20, Shown(20)) == StepNone);
-	CHECK(machine.Tick(30, Closed()) == StepTalk);
+	CHECK(machine.Tick(0, Open(20)) == StepEnd);
+	CHECK(machine.Tick(0, Open(0)) == StepTalk);
+	CHECK(machine.Tick(10, Open(0)) == StepNone);
+	CHECK(machine.Tick(20, Open(0)) == StepNone);
+	CHECK(machine.Tick(30, Answered()) == StepGamble);
+}
+
+TEST_CASE("a refresh that cannot begin leaves the window alone") {
+	SUBCASE("the window was closed before the loop got to it") {
+		Machine machine;
+		REQUIRE(machine.Start(0, false, 1, 0));
+		CHECK(machine.Tick(0, Closed()) == StepNone);
+		CHECK(machine.TakeOutcome() == OutcomeStopped);
+	}
+	SUBCASE("the NPC is out of reach") {
+		Machine machine;
+		REQUIRE(machine.Start(0, false, 1, 0));
+		View gone = Open(20);
+		gone.npcHere = false;
+		CHECK(machine.Tick(0, gone) == StepNone);
+		CHECK(machine.TakeOutcome() == OutcomeLost);
+	}
 }
 
 TEST_CASE("a refresh cannot start while one is going or straight after one") {
@@ -81,80 +100,61 @@ TEST_CASE("a refresh cannot start while one is going or straight after one") {
 	CHECK(machine.Start(end + MIN_GAP_MS, false, 1, 0));
 }
 
-TEST_CASE("each step gives up when the game does not answer") {
-	SUBCASE("the window never closes") {
+TEST_CASE("a refresh the server stops answering closes the window") {
+	SUBCASE("no answer to the talk") {
 		Machine machine;
 		REQUIRE(machine.Start(0, false, 1, 0));
-		machine.Tick(0, Shown(20));
-		CHECK(machine.Tick(STEP_TIMEOUT_MS - 1, Shown(20)) == StepNone);
+		machine.Tick(0, Open(20));
+		machine.Tick(10, Open(0));
+		CHECK(machine.Tick(10 + STEP_TIMEOUT_MS - 1, Open(0)) == StepNone);
 		CHECK(machine.Busy());
-		machine.Tick(STEP_TIMEOUT_MS, Shown(20));
+		CHECK(machine.Tick(10 + STEP_TIMEOUT_MS, Open(0)) == StepAbandon);
 		CHECK(machine.TakeOutcome() == OutcomeTimedOut);
 	}
-	SUBCASE("the NPC never answers the talk") {
+	SUBCASE("no stock after asking for it") {
 		Machine machine;
 		REQUIRE(machine.Start(0, false, 1, 0));
-		machine.Tick(0, Shown(20));
-		machine.Tick(10, Closed());
-		machine.Tick(10 + STEP_TIMEOUT_MS, Closed());
+		machine.Tick(0, Open(20));
+		machine.Tick(10, Open(0));
+		CHECK(machine.Tick(20, Answered()) == StepGamble);
+		CHECK(machine.Tick(20 + STEP_TIMEOUT_MS - 1, Answered()) == StepNone);
+		CHECK(machine.Tick(20 + STEP_TIMEOUT_MS, Answered()) == StepAbandon);
 		CHECK(machine.TakeOutcome() == OutcomeTimedOut);
 	}
-	SUBCASE("the gamble window never opens") {
+	SUBCASE("the NPC goes while the talk is unanswered") {
 		Machine machine;
 		REQUIRE(machine.Start(0, false, 1, 0));
-		machine.Tick(0, Shown(20));
-		machine.Tick(10, Closed());
-		machine.Tick(20, Menu());
-		machine.Tick(20 + STEP_TIMEOUT_MS, Menu());
-		CHECK(machine.TakeOutcome() == OutcomeTimedOut);
-	}
-	SUBCASE("no items ever arrive") {
-		Machine machine;
-		REQUIRE(machine.Start(0, false, 1, 0));
-		machine.Tick(0, Shown(20));
-		machine.Tick(10, Closed());
-		machine.Tick(20, Menu());
-		machine.Tick(30, Shown(0));
-		CHECK(machine.Tick(30 + STEP_TIMEOUT_MS - 1, Shown(0)) == StepNone);
-		CHECK(machine.Busy());
-		machine.Tick(30 + STEP_TIMEOUT_MS, Shown(0));
-		CHECK(machine.TakeOutcome() == OutcomeTimedOut);
+		machine.Tick(0, Open(20));
+		machine.Tick(10, Open(0));
+		View gone = Open(0);
+		gone.npcHere = false;
+		CHECK(machine.Tick(20, gone) == StepAbandon);
+		CHECK(machine.TakeOutcome() == OutcomeLost);
 	}
 }
 
-TEST_CASE("a refresh gives up when the NPC can no longer be talked to") {
-	View gone = Closed();
-	gone.npcHere = false;
-
-	SUBCASE("before talking") {
-		Machine machine;
-		REQUIRE(machine.Start(0, false, 1, 0));
-		machine.Tick(0, Shown(20));
-		CHECK(machine.Tick(10, gone) == StepNone);
-		CHECK(machine.TakeOutcome() == OutcomeLost);
-	}
-	SUBCASE("while waiting on the menu") {
-		Machine machine;
-		REQUIRE(machine.Start(0, false, 1, 0));
-		machine.Tick(0, Shown(20));
-		machine.Tick(10, Closed());
-		CHECK(machine.Tick(20, gone) == StepNone);
-		CHECK(machine.TakeOutcome() == OutcomeLost);
-	}
+TEST_CASE("closing the window mid refresh ends it without touching the window") {
+	Machine machine;
+	REQUIRE(machine.Start(0, false, 1, 0));
+	machine.Tick(0, Open(20));
+	machine.Tick(10, Open(0));
+	CHECK(machine.Tick(20, Closed()) == StepNone);
+	CHECK_FALSE(machine.Busy());
+	CHECK(machine.TakeOutcome() == OutcomeStopped);
 }
 
 TEST_CASE("items still arriving hold the refresh back until they stop") {
 	Machine machine;
 	REQUIRE(machine.Start(0, false, 1, 0));
-	machine.Tick(0, Shown(20));
-	machine.Tick(10, Closed());
-	machine.Tick(20, Menu());
-	machine.Tick(30, Shown(4));
-	CHECK(machine.Tick(30 + SETTLE_MS - 1, Shown(4)) == StepNone);
-	machine.Tick(30 + SETTLE_MS - 1, Shown(9));
-	CHECK(machine.Tick(30 + SETTLE_MS, Shown(9)) == StepNone);
+	machine.Tick(0, Open(20));
+	machine.Tick(10, Open(0));
+	machine.Tick(20, Answered());
+	machine.Tick(30, Open(4));
+	CHECK(machine.Tick(30 + SETTLE_MS - 1, Open(4)) == StepNone);
+	machine.Tick(30 + SETTLE_MS - 1, Open(9));
+	CHECK(machine.Tick(30 + SETTLE_MS, Open(9)) == StepNone);
 	CHECK(machine.Busy());
-	CHECK(machine.Tick(30 + 2 * SETTLE_MS - 1, Shown(9)) == StepRestoreTab);
+	CHECK(machine.Tick(30 + 2 * SETTLE_MS - 1, Open(9)) == StepRestoreTab);
 	CHECK(machine.TakeOutcome() == OutcomeDone);
 }
 
@@ -166,8 +166,9 @@ TEST_CASE("refreshing until marked") {
 		REQUIRE(machine.Start(0, true, 10, 500));
 		CHECK(machine.Running());
 		unsigned int now = Cycle(machine, 0, false, &last);
+		CHECK(last == StepRestoreTab);
 		CHECK(machine.GetState() == StatePausing);
-		CHECK(machine.Tick(now + 499, Shown(20)) == StepNone);
+		CHECK(machine.Tick(now + 499, Open(20)) == StepNone);
 		now = Cycle(machine, now + 500, true, &last);
 		CHECK_FALSE(machine.Busy());
 		CHECK(machine.Refreshes() == 2);
@@ -186,18 +187,18 @@ TEST_CASE("refreshing until marked") {
 		REQUIRE(machine.Start(0, true, 10, 1000));
 		unsigned int now = Cycle(machine, 0, false, &last);
 		machine.Stop();
-		CHECK(machine.Tick(now + 10, Shown(20)) == StepNone);
+		CHECK(machine.Tick(now + 10, Open(20)) == StepNone);
 		CHECK(machine.TakeOutcome() == OutcomeStopped);
 		CHECK(machine.Refreshes() == 1);
 	}
-	SUBCASE("a stop with the window closed reopens it first") {
+	SUBCASE("a stop mid refresh lets the stock arrive first") {
 		REQUIRE(machine.Start(0, true, 10, 0));
-		CHECK(machine.Tick(0, Shown(20)) == StepClose);
+		CHECK(machine.Tick(0, Open(20)) == StepEnd);
 		machine.Stop();
-		CHECK(machine.Tick(10, Closed()) == StepTalk);
-		CHECK(machine.Tick(20, Menu()) == StepGamble);
-		CHECK(machine.Tick(30, Shown(20)) == StepRestoreTab);
-		CHECK(machine.Tick(30 + SETTLE_MS, Shown(20)) == StepRestoreTab);
+		CHECK(machine.Tick(10, Open(0)) == StepTalk);
+		CHECK(machine.Tick(20, Answered()) == StepGamble);
+		CHECK(machine.Tick(30, Open(20)) == StepNone);
+		CHECK(machine.Tick(30 + SETTLE_MS, Open(20)) == StepRestoreTab);
 		CHECK(machine.TakeOutcome() == OutcomeStopped);
 	}
 	SUBCASE("closing the window during the pause ends it") {
@@ -212,21 +213,19 @@ TEST_CASE("a single refresh finds nothing to stop") {
 	Machine machine;
 	REQUIRE(machine.Start(0, false, 1, 0));
 	CHECK_FALSE(machine.Running());
-	machine.Tick(0, Shown(20));
+	machine.Tick(0, Open(20));
 	machine.Stop();
-	Step last;
-	machine.Tick(10, Closed());
-	machine.Tick(20, Menu());
-	machine.Tick(30, Shown(20, true));
-	last = machine.Tick(30 + SETTLE_MS, Shown(20, true));
-	CHECK(last == StepRestoreTab);
+	machine.Tick(10, Open(0));
+	machine.Tick(20, Answered());
+	machine.Tick(30, Open(20, true));
+	CHECK(machine.Tick(30 + SETTLE_MS, Open(20, true)) == StepRestoreTab);
 	CHECK(machine.TakeOutcome() == OutcomeDone);
 }
 
 TEST_CASE("reset forgets a refresh under way") {
 	Machine machine;
 	REQUIRE(machine.Start(0, true, 10, 0));
-	machine.Tick(0, Shown(20));
+	machine.Tick(0, Open(20));
 	machine.Reset();
 	CHECK_FALSE(machine.Busy());
 	CHECK(machine.TakeOutcome() == OutcomeNone);
@@ -264,43 +263,6 @@ TEST_CASE("the button is drawn where the game draws its buttons") {
 	CHECK(ArtBottom(-20, 768) == 768 - 20 - 0x3F);
 	CHECK(TooltipX(80) == 301);
 	CHECK(TooltipY(0, 600) == 600 - 0x64);
-}
-
-TEST_CASE("the gamble option is found by its id in the NPC's own record") {
-	const unsigned short TALK = 0x0D35, TRADE = 0x0D44, GAMBLE = 0x0D46, HIRE = 0x0D47;
-	// A few records as D2Client 1.13c's table at 0xF3BA0 has them.
-	std::vector<MenuRecord> menus = {
-		{ 148, 3, { TALK, TRADE, 0, 0 } },			// Akara
-		{ 147, 4, { TALK, TRADE, GAMBLE, 0 } },		// Gheed
-		{ 405, 3, { TRADE, GAMBLE, 0, 0 } },		// Jamella
-		{ 252, 4, { TALK, HIRE, TRADE, 0 } },		// Asheara
-		{ 512, 4, { TALK, TRADE, GAMBLE, 0 } },		// Anya
-		{ 514, 3, { TALK, GAMBLE, 0, 0 } },			// Nihlathak
-		{ 257, 2, { TRADE, 0, 0, 0 } },				// Halbu, the game's first record
-		{ 257, 2, { TALK, GAMBLE, 0, 0 } },			// a second record for one class
-		{ 600, 9, { TALK, TRADE, TALK, TRADE } },	// an entry count past the four
-	};
-	unsigned int record = 99, entry = 99;
-
-	CHECK(FindEntry(menus, 147, GAMBLE, &record, &entry));
-	CHECK(record == 1);
-	CHECK(entry == 2);
-	CHECK(FindEntry(menus, 405, GAMBLE, &record, &entry));
-	CHECK(record == 2);
-	CHECK(entry == 1);
-	CHECK(FindEntry(menus, 512, GAMBLE, &record, &entry));
-	CHECK(record == 4);
-	CHECK(entry == 2);
-	CHECK(FindEntry(menus, 514, GAMBLE, &record, &entry));
-	CHECK(record == 5);
-	CHECK(entry == 1);
-
-	CHECK_FALSE(FindEntry(menus, 148, GAMBLE, &record, &entry));
-	CHECK_FALSE(FindEntry(menus, 252, GAMBLE, &record, &entry));
-	CHECK_FALSE(FindEntry(menus, 999, GAMBLE, &record, &entry));
-	CHECK_FALSE(FindEntry(menus, 257, GAMBLE, &record, &entry));
-	CHECK_FALSE(FindEntry(menus, 600, GAMBLE, &record, &entry));
-	CHECK_FALSE(FindEntry(std::vector<MenuRecord>(), 147, GAMBLE, &record, &entry));
 }
 
 TEST_CASE("art rows become runs of one colour") {

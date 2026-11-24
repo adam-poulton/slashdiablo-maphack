@@ -3,8 +3,8 @@
 namespace GambleRefresh {
 
 Machine::Machine() : state(StateIdle), enteredAt(0), finishedAt(0), finishedOnce(false),
-	untilMarked(false), stopAsked(false), closeAsked(false), cap(1), pauseMs(0), refreshes(0), lastItems(0),
-	itemsChangedAt(0), outcome(OutcomeNone) {}
+	untilMarked(false), stopAsked(false), talkAsked(false), cap(1), pauseMs(0), refreshes(0),
+	lastItems(0), itemsChangedAt(0), outcome(OutcomeNone) {}
 
 bool Machine::Start(unsigned int now, bool runUntilMarked, unsigned int most,
 		unsigned int pause) {
@@ -18,7 +18,7 @@ bool Machine::Start(unsigned int now, bool runUntilMarked, unsigned int most,
 	refreshes = 0;
 	stopAsked = false;
 	outcome = OutcomeNone;
-	Enter(StateClosing, now);
+	Enter(StateEnding, now);
 	return true;
 }
 
@@ -34,7 +34,7 @@ void Machine::Reset() {
 void Machine::Enter(State next, unsigned int now) {
 	state = next;
 	enteredAt = now;
-	closeAsked = false;
+	talkAsked = false;
 }
 
 void Machine::Finish(Outcome result, unsigned int now) {
@@ -50,64 +50,78 @@ Outcome Machine::TakeOutcome() {
 	return taken;
 }
 
+// Nothing has been sent yet, so a refresh that cannot go ahead leaves the
+// window as it is.
+Step Machine::BeginCycle(unsigned int now, const View& view) {
+	if (!view.gambleOpen) {
+		Finish(OutcomeStopped, now);
+		return StepNone;
+	}
+	if (!view.npcHere) {
+		Finish(OutcomeLost, now);
+		return StepNone;
+	}
+	Enter(StateTalking, now);
+	return StepEnd;
+}
+
 Step Machine::Tick(unsigned int now, const View& view) {
 	unsigned int waited = now - enteredAt;
+
+	// The player closing the window ends the talk the way the game always
+	// does, whatever the refresh was waiting on.
+	if (state != StateIdle && state != StateEnding && !view.gambleOpen) {
+		Finish(OutcomeStopped, now);
+		return StepNone;
+	}
+
 	switch (state) {
 	case StateIdle:
 		return StepNone;
 
-	case StateClosing:
-		if (!closeAsked && view.gambleOpen) {
-			closeAsked = true;
-			return StepClose;
-		}
-		if (!view.gambleOpen && !view.menuOpen) {
-			if (!view.npcHere) {
-				Finish(OutcomeLost, now);
-				return StepNone;
-			}
-			Enter(StateTalking, now);
+	case StateEnding:
+		return BeginCycle(now, view);
+
+	// The talk is asked for a tick after it was ended, and the gamble stock
+	// only once the server has answered it, so each goes out in the order and
+	// with the answers the game's own would have.
+	case StateTalking:
+		if (!talkAsked) {
+			talkAsked = true;
+			enteredAt = now;
 			return StepTalk;
 		}
-		if (waited >= STEP_TIMEOUT_MS)
-			Finish(OutcomeTimedOut, now);
-		return StepNone;
-
-	case StateTalking:
-		if (view.menuOpen) {
-			Enter(StateOpening, now);
+		if (view.talkAnswered) {
+			Enter(StateStocking, now);
 			return StepGamble;
 		}
-		if (!view.npcHere)
+		if (!view.npcHere) {
 			Finish(OutcomeLost, now);
-		else if (waited >= STEP_TIMEOUT_MS)
+			return StepAbandon;
+		}
+		if (waited >= STEP_TIMEOUT_MS) {
 			Finish(OutcomeTimedOut, now);
+			return StepAbandon;
+		}
 		return StepNone;
 
-	case StateOpening:
-		if (view.gambleOpen) {
+	case StateStocking:
+		if (view.items > 0) {
 			Enter(StateSettling, now);
 			lastItems = view.items;
 			itemsChangedAt = now;
-			return StepRestoreTab;
+			return StepNone;
 		}
-		if (waited >= STEP_TIMEOUT_MS)
+		if (waited >= STEP_TIMEOUT_MS) {
 			Finish(OutcomeTimedOut, now);
+			return StepAbandon;
+		}
 		return StepNone;
 
 	case StateSettling:
-		if (!view.gambleOpen) {
-			Finish(OutcomeStopped, now);
-			return StepNone;
-		}
 		if (view.items != lastItems) {
 			lastItems = view.items;
 			itemsChangedAt = now;
-		}
-		if (view.items == 0) {
-			if (waited >= STEP_TIMEOUT_MS)
-				Finish(OutcomeTimedOut, now);
-			return StepNone;
 		}
 		if (now - itemsChangedAt < SETTLE_MS)
 			return StepNone;
@@ -122,21 +136,16 @@ Step Machine::Tick(unsigned int now, const View& view) {
 			Finish(OutcomeCapped, now);
 		else
 			Enter(StatePausing, now);
-		// The tab is put back again once everything has arrived: on the first
-		// try the tab may have had nothing in it yet, and the game moves off a
-		// tab with nothing in it.
 		return StepRestoreTab;
 
 	case StatePausing:
-		if (!view.gambleOpen || stopAsked) {
+		if (stopAsked) {
 			Finish(OutcomeStopped, now);
 			return StepNone;
 		}
 		if (waited < pauseMs)
 			return StepNone;
-		Enter(StateClosing, now);
-		closeAsked = true;
-		return StepClose;
+		return BeginCycle(now, view);
 	}
 	return StepNone;
 }
@@ -165,24 +174,6 @@ int TooltipX(int panelX) {
 
 int TooltipY(int panelY, int screenHeight) {
 	return screenHeight + panelY - 0x64;
-}
-
-bool FindEntry(const std::vector<MenuRecord>& menus, unsigned int npcClass,
-		unsigned short entryId, unsigned int* record, unsigned int* entry) {
-	for (unsigned int i = 0; i < menus.size(); i++) {
-		if (menus[i].npcClass != npcClass)
-			continue;
-		unsigned int entries = menus[i].entries < 4 ? menus[i].entries : 4;
-		for (unsigned int e = 0; e < entries; e++) {
-			if (menus[i].ids[e] == entryId) {
-				*record = i;
-				*entry = e;
-				return true;
-			}
-		}
-		return false;
-	}
-	return false;
 }
 
 static int HexDigit(char c) {
@@ -242,32 +233,32 @@ static const char* const GLYPH_UP[GLYPH_SIZE] = {
 	"................................................................",
 	"................................................................",
 	"................................................................",
-	"..........................c7....................................",
-	"..........................c7c6..................................",
-	"..........................b5afb114..............................",
-	"..........................13b0adaf13............................",
-	"....................bbb9b7b5b1adadad13..........................",
-	"................c71512b3b1aeadadadadad11bf......................",
-	"..............c1b813b0adadadadadadadadad14......................",
-	"............c715b7afadadadadadadadadadb8c917....................",
-	"............1515afadadadadaeb0adadadb5c917......................",
-	"..........c31311adadad0fb7c917adad11c917..bbb8be................",
-	"..........1413adadad0fbfc91914afafc917bb1212b4afb6..............",
-	"..........13b3adadad14c917....b1c3c9bf..1210adadaf17............",
-	"........ceb7aeadadaec9c9........17c1....b6b0adadadbf............",
-	"........ceb9adadad11c9c1........16......1411adadad14c1..........",
-	"........c9b7adadadb317..................b6b3adadadbf17..........",
-	"..........13adadadb5c9..................1211adadad14c1..........",
-	"..........bcadadadafca................bc12b1adadad..c1..........",
-	"..........bfb0adadadbf................b5b4adadadaec9c1..........",
-	"............b2adadadafbf..........bcb5b210adadadb5c9c1..........",
-	"............b8afadadadaeb6b714b7b8121210adadadad17c9............",
-	"..............b90fadadadadb01111b2b1adadadadad14c9c3............",
-	"................b7adadadadadadadadadadadadadb4c9c9..............",
-	"..................14aeadadadadadadadadadadb7c9c9................",
-	"......................b5afadadadadadaeb3c1c917..................",
-	"......................16c7c3bb14..bf171717c1....................",
-	"............................c1c7c8c917c0........................",
+	"................................................................",
+	"..........................1d....................................",
+	"..........................b9b7..................................",
+	"..........................14b4b4be..............................",
+	"..........................beb5b0b1b9............................",
+	"......................b9b81413b0b0b0b7..........................",
+	"..................16b81211b0b0b1b010b0b4........................",
+	"................c6beb6b0b0b0b0b0b010b1bf17......................",
+	"..............ca16b7b1b0b0b1b4b0b010..17c1......................",
+	"..............c315b1b1b1b7171710b0b917c1b814....................",
+	"............c7beb3b1b1bb1717..11b5c9c1b8b6b611c1................",
+	"............c715b1b1b5c917....13c317....b3b0b0b5................",
+	"............c313b1b1c1c9........c1......b6b0b11217..............",
+	"............bfb4b1b1..17................b7b1b0b4ca..............",
+	"............c6b5b1b0bfc1................b6b1b0b31b..............",
+	"............c8131111c117..............b812b0b012c9..............",
+	"..............14b1b11317..............13b4b0b0b617..............",
+	"..............c111b1b1bf..........bfb713b0b0b0..c8..............",
+	"................b8b1b1b0b4b814b8b713b5b0b0b013c9................",
+	"..................b9b0b0b0b1b3b412b1b0b0b0111717................",
+	"....................b510b0b0b010b0b1b0b0b417c9..................",
+	"......................bcb3101010b0b1b3bb1717c0..................",
+	"........................bf17..bb..c11917c1......................",
+	"..............................c1bfbbbf..........................",
+	"................................................................",
+	"................................................................",
 	"................................................................",
 	"................................................................",
 	"................................................................",
@@ -277,32 +268,32 @@ static const char* const GLYPH_DOWN[GLYPH_SIZE] = {
 	"................................................................",
 	"................................................................",
 	"................................................................",
-	"..........................be....................................",
-	"..........................b9b9c8................................",
-	"..........................c6b113d1..............................",
-	"..........................13b0adaf13............................",
-	"....................b813b4b2b1adadad11..........................",
-	"................16b812b3b1aeadadadadadb1bc......................",
-	"..............c113b6b0adadadadadadadadad14......................",
-	"............c1b8b6aeadadadadadadadadadb8c917....................",
-	"............1413afadadadadaeb0adadad12c917......................",
-	"..........19b6b1adadadadb7c917adadb1c917..14b614................",
-	"..........beb5adadad0fbfc917b8aeaf1717141212b4afb3..............",
-	"..........b911adadad14c9c1....b11619bf..1210adadafc1............",
-	"..........b9aeadadaec9c9........17c1....b6b0adadadbf............",
-	"........b9b9adadad11c9c1................b811adadad..bb..........",
-	"........13b7adadadb3c9..................b6b3adadad14bf..........",
-	"..........13adadadb4c9..................12b1adadad..c1..........",
-	"..........b9adadadafc9................b8b2b0adadadbfbf..........",
-	"..........c3b0adadadbb................12b2adadadaec9bb..........",
-	"............b4adadadafbb..........b812b2afadadadb4c914..........",
-	"............c1afadadadae12b6b8b61312b4afadadadad1717............",
-	"..............b7adadadadad10b12811b1adadadadad14c9c1............",
-	"................b8adadadadadadadadadadadadadb3c917..............",
-	"..................b9aeadadadadadadadadadadb8c917................",
-	"......................b5afadadadadad0fb2c11717..................",
-	"......................bbc316..1414..171717c1....................",
-	"............................c7c7c8c8c816........................",
+	"................................................................",
+	"..........................c7....................................",
+	"..........................cdc6..................................",
+	"..........................14b3b315..............................",
+	"..........................b8b4b0b1b6............................",
+	"......................b9b9b8b5b0b0b013..........................",
+	"..................bfb81211b0b0b01010b0b4........................",
+	"................bf14b610101010b01010b0bfc1......................",
+	"..............c3be13b1b0b0b112101010bb17bf......................",
+	"..............beb9b1b1b0b717c11010b817c1b8b7....................",
+	"............c115b3b1b1bb1717..b11217c1b6b6b611bf................",
+	"............c015b1b1b5c9c1....b51617....b3b0b0b5c0..............",
+	"............c013b1b0c1c9........16bb....b6b0b0b3c1..............",
+	"............c0b4b0b0..17................b6b1b0b317..............",
+	"............16b5b1b0c1bf................b6b1b0b3c9..............",
+	"............c313b1b1c1c1..............b8121010b317..............",
+	"..............14b1b1b517..............b6b3b010b617..............",
+	"..............14b1b0b114..........14b61210b0b01717..............",
+	"................13b0b1b0b4b8b8b8b6b612b01010b517c1..............",
+	"..................b8b01010b011b3b3b1b01010111717................",
+	"....................b510101010afb0b0b010b31717..................",
+	"........................b310101010b0b3..1717bf..................",
+	"........................bec1bf..bbc11717c1......................",
+	"..............................bfbbbb14..........................",
+	"................................................................",
+	"................................................................",
 	"................................................................",
 	"................................................................",
 	"................................................................",

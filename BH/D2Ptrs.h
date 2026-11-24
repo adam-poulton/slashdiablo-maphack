@@ -227,6 +227,9 @@ FUNCPTR(D2CLIENT, SelectShopTab, void __stdcall, (DWORD tab), 0x8F710, 0x8F710)
 // buysellbtn.dc6, the art of the buttons along the bottom of the trade window,
 // as the game loads it the first time it draws one.
 VARPTR(D2CLIENT, ShopButtonCells, CellFile*, 0x11B9C4, 0x11B9C4)
+// What the game runs on an NPC as its trade window closes: takes every item out
+// of the NPC's inventory and forgets them. Takes the NPC in eax.
+ASMPTR(D2CLIENT, ClearStoreItems_I, 0x460A0, 0x460A0)
 
 
 VARPTR(D2CLIENT, Ping, DWORD, 0x119804, 0x108764)

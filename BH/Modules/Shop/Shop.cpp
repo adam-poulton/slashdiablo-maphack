@@ -273,6 +273,8 @@ void Shop::OnUnload() {
 void Shop::OnGameExit() {
 	refresher.Reset();
 	refreshBusy = false;
+	storeRestocking = false;
+	awaitingTalk = 0;
 	pendingRefresh = RefreshNone;
 	buttonHeld = false;
 	Forget();
@@ -351,14 +353,22 @@ void Shop::OnKey(bool up, BYTE key, LPARAM lParam, bool* block) {
 		pendingClear = true;
 }
 
+// While a refresh has ended the talk and the new stock is still coming, the
+// server has no trade open, so a buy or a sell on the panel would go nowhere.
+bool Shop::KeepOffStore(unsigned int x) {
+	return storeRestocking && TradeWindowOpen(SHOP_KIND_GAMBLE) &&
+		x < *p_D2CLIENT_ScreenSizeX / 2;
+}
+
 void Shop::OnLeftClick(bool up, unsigned int x, unsigned int y, bool* block) {
 	if (!up) {
-		if (!RefreshButtonShown())
-			return;
 		GambleRefresh::Box box = GambleRefresh::SlotBox(*p_D2CLIENT_PanelOffsetX,
 			*p_D2CLIENT_PanelOffsetY, *p_D2CLIENT_ScreenSizeY);
-		if (!box.Contains((int)x, (int)y))
+		if (!RefreshButtonShown() || !box.Contains((int)x, (int)y)) {
+			if (KeepOffStore(x))
+				*block = true;
 			return;
+		}
 		*block = true;
 		buttonHeld = true;
 		return;
@@ -366,8 +376,11 @@ void Shop::OnLeftClick(bool up, unsigned int x, unsigned int y, bool* block) {
 
 	// The game was kept from seeing the press, so it is kept from seeing the
 	// release too, wherever it lands.
-	if (!buttonHeld.exchange(false))
+	if (!buttonHeld.exchange(false)) {
+		if (KeepOffStore(x))
+			*block = true;
 		return;
+	}
 	*block = true;
 	if (!RefreshButtonShown())
 		return;
@@ -375,6 +388,11 @@ void Shop::OnLeftClick(bool up, unsigned int x, unsigned int y, bool* block) {
 		*p_D2CLIENT_PanelOffsetY, *p_D2CLIENT_ScreenSizeY);
 	if (box.Contains((int)x, (int)y))
 		RequestRefresh((GetKeyState(VK_SHIFT) & 0x8000) != 0);
+}
+
+void Shop::OnRightClick(bool up, unsigned int x, unsigned int y, bool* block) {
+	if (KeepOffStore(x))
+		*block = true;
 }
 
 void Shop::RequestRefresh(bool untilMarked) {
@@ -401,7 +419,6 @@ void Shop::StartRefresh(bool untilMarked) {
 	if (!refresher.Start(GetTickCount(), untilMarked, refreshCap, refreshPause))
 		return;
 	refreshNpcId = npc->dwUnitId;
-	refreshNpcClass = npc->dwTxtFileNo;
 	refreshTab = *p_D2CLIENT_ShopTab;
 	refreshBusy = true;
 }
@@ -430,8 +447,8 @@ void Shop::TickRefresh() {
 
 	GambleRefresh::View view;
 	view.gambleOpen = TradeWindowOpen(SHOP_KIND_GAMBLE);
-	view.menuOpen = D2CLIENT_GetUIState(UI_NPCMENU) != 0;
 	view.npcHere = NpcHere(refreshNpcId);
+	view.talkAnswered = talkAnswered;
 	UnitAny* npc = view.gambleOpen ? D2CLIENT_GetCurrentInteractingNPC() : NULL;
 	bool ours = npc && npc->dwUnitId == refreshNpcId && npc->pInventory;
 	view.items = ours ? npc->pInventory->dwItemCount : 0;
@@ -439,10 +456,12 @@ void Shop::TickRefresh() {
 	view.marked = ours && npcId == refreshNpcId && !backdrops.empty();
 
 	switch (refresher.Tick(GetTickCount(), view)) {
-	case GambleRefresh::StepClose:
-		D2CLIENT_CloseNPCInteract();
+	case GambleRefresh::StepEnd:
+		EndTalk(ours ? npc : NULL);
 		break;
 	case GambleRefresh::StepTalk: {
+		talkAnswered = false;
+		awaitingTalk = refreshNpcId;
 		BYTE packet[9];
 		packet[0] = 0x13;
 		*(DWORD*)&packet[1] = UNIT_MONSTER;
@@ -450,12 +469,24 @@ void Shop::TickRefresh() {
 		D2NET_SendPacket(sizeof(packet), 0, packet);
 		break;
 	}
-	case GambleRefresh::StepGamble:
-		ClickGamble();
+	case GambleRefresh::StepGamble: {
+		// As the gamble entry of the NPC's menu sends it, at D2Client 0x4AE85.
+		BYTE packet[13];
+		packet[0] = 0x38;
+		*(DWORD*)&packet[1] = 2;
+		*(DWORD*)&packet[5] = refreshNpcId;
+		*(DWORD*)&packet[9] = 0;
+		D2NET_SendPacket(sizeof(packet), 0, packet);
 		break;
+	}
 	case GambleRefresh::StepRestoreTab:
-		if (keepTab && *p_D2CLIENT_ShopTab != refreshTab)
-			D2CLIENT_SelectShopTab(refreshTab);
+		// Also recounts which tabs have anything on them, which the game
+		// otherwise only does when the window opens.
+		D2CLIENT_SelectShopTab(keepTab ? refreshTab : 0);
+		break;
+	case GambleRefresh::StepAbandon:
+		awaitingTalk = 0;
+		D2CLIENT_CloseNPCInteract();
 		break;
 	default:
 		break;
@@ -465,33 +496,52 @@ void Shop::TickRefresh() {
 	if (outcome != GambleRefresh::OutcomeNone)
 		RefreshFinished(outcome);
 	refreshBusy = refresher.Busy();
+	GambleRefresh::State state = refresher.GetState();
+	storeRestocking = state == GambleRefresh::StateTalking ||
+		state == GambleRefresh::StateStocking;
 }
 
-// Picks gamble in the NPC's talk menu, through the entry the game's own table
-// gives that NPC.
-void Shop::ClickGamble() {
-	NPCMenu* table = (NPCMenu*)p_D2CLIENT_NPCMenu;
-	DWORD count = *p_D2CLIENT_NPCMenuAmount;
-	std::vector<GambleRefresh::MenuRecord> menus;
-	for (DWORD i = 0; i < count; i++) {
-		GambleRefresh::MenuRecord record;
-		record.npcClass = table[i].dwNPCClassId;
-		record.entries = table[i].dwEntryAmount;
-		record.ids[0] = table[i].wEntryId1;
-		record.ids[1] = table[i].wEntryId2;
-		record.ids[2] = table[i].wEntryId3;
-		record.ids[3] = table[i].wEntryId4;
-		menus.push_back(record);
+// D2Client 1.13c's 0x460A0, which the game runs when a trade window closes:
+// takes every item out of the NPC's inventory and forgets them, leaving the
+// inventory itself. Takes the NPC in eax.
+static void ClearStoreItems(UnitAny* npc) {
+	DWORD clear = D2CLIENT_ClearStoreItems_I;
+	__asm {
+		mov eax, npc
+		call clear
 	}
+}
 
-	unsigned int found, entry;
-	if (!GambleRefresh::FindEntry(menus, refreshNpcClass, MENU_GAMBLE, &found, &entry))
+// Ends the talk as the game does when the window closes, packet 0x30 and all,
+// except that the window stays: only its items go.
+void Shop::EndTalk(UnitAny* npc) {
+	BYTE packet[9];
+	packet[0] = 0x30;
+	*(DWORD*)&packet[1] = UNIT_MONSTER;
+	*(DWORD*)&packet[5] = refreshNpcId;
+	D2NET_SendPacket(sizeof(packet), 0, packet);
+
+	if (npc) {
+		// The item under the cursor is about to be freed.
+		*p_D2CLIENT_SelectedInvItem = NULL;
+		ClearStoreItems(npc);
+	}
+	Forget();
+}
+
+// The server's answer to the talk a refresh asks for, which would open the
+// NPC's talk menu over the window (D2Client 0xAFA70, then 0x4B8A0). Read on
+// whichever thread the game hands packets over on, so it only trades atomics
+// with the game loop.
+void Shop::OnGamePacketRecv(BYTE* packet, bool* block) {
+	if (packet[0] != 0x28 || packet[1] != UNIT_MONSTER)
 		return;
-	DWORD functions[4] = { table[found].dwEntryFunc1, table[found].dwEntryFunc2,
-		table[found].dwEntryFunc3, table[found].dwEntryFunc4 };
-	typedef BOOL(__stdcall* MenuEntry)();
-	if (functions[entry])
-		((MenuEntry)functions[entry])();
+	DWORD waiting = awaitingTalk;
+	if (waiting == 0 || *(DWORD*)&packet[2] != waiting)
+		return;
+	*block = true;
+	awaitingTalk = 0;
+	talkAnswered = true;
 }
 
 void Shop::RefreshFinished(GambleRefresh::Outcome outcome) {
@@ -716,7 +766,7 @@ void Shop::DrawRefreshButton() {
 	int mouseX = *p_D2CLIENT_MouseX;
 	int mouseY = *p_D2CLIENT_MouseY;
 	bool hovered = box.Contains(mouseX, mouseY);
-	bool down = (buttonHeld && hovered) || refresher.Running();
+	bool down = (buttonHeld && hovered) || refresher.Busy();
 
 	// The game's cell context is 0x48 bytes, zeroed, with the frame first and
 	// the cell file at 0x34.
@@ -747,6 +797,8 @@ void Shop::DrawRefreshButton() {
 	if (refresher.Running()) {
 		sprintf_s(text, sizeof(text), "Refreshing: %u of %u. Click to stop",
 			refresher.Refreshes() + 1, refresher.Cap());
+	} else if (refresher.Busy()) {
+		sprintf_s(text, sizeof(text), "Refreshing");
 	} else if (!markedCodes.empty()) {
 		sprintf_s(text, sizeof(text), "%s. Shift+click: until marked", name.c_str());
 	} else {

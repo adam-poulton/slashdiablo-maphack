@@ -37,8 +37,9 @@ class Shop : public Module {
 public:
 	Shop() : Module("Shop"), npcId(0), npcKind(0), contentsKey(0),
 		contentsChangedAt(0), announced(false), familiesBuilt(false),
-		pendingMark(false), pendingClear(false), refreshNpcId(0), refreshNpcClass(0),
-		refreshTab(0), pendingRefresh(RefreshNone), buttonHeld(false), refreshBusy(false) {};
+		pendingMark(false), pendingClear(false), refreshNpcId(0),
+		refreshTab(0), pendingRefresh(RefreshNone), buttonHeld(false), refreshBusy(false),
+		storeRestocking(false), awaitingTalk(0), talkAnswered(false) {};
 
 	void OnLoad();
 	void OnUnload();
@@ -50,6 +51,8 @@ public:
 	void OnGameExit();
 	void OnKey(bool up, BYTE key, LPARAM lParam, bool* block);
 	void OnLeftClick(bool up, unsigned int x, unsigned int y, bool* block);
+	void OnRightClick(bool up, unsigned int x, unsigned int y, bool* block);
+	void OnGamePacketRecv(BYTE* packet, bool* block);
 
 	// The palette colour to draw an item's backdrop in, or -1 to leave it as the
 	// game drew it. Asked once per grid cell per frame, so it only looks up.
@@ -96,7 +99,6 @@ private:
 	// The gamble window being refreshed: its NPC, and the tab it had selected.
 	GambleRefresh::Machine refresher;
 	DWORD refreshNpcId;
-	DWORD refreshNpcClass;
 	BYTE refreshTab;
 
 	// Set from the input thread, carried out on the game loop.
@@ -106,15 +108,22 @@ private:
 	std::atomic<int> pendingRefresh;
 	// The refresh button is down: pressed on it, not yet let go.
 	std::atomic<bool> buttonHeld;
-	// A refresh is under way, which the window it closes cannot say.
+	// A refresh is under way, and it has the store empty while the new stock
+	// comes.
 	std::atomic<bool> refreshBusy;
+	std::atomic<bool> storeRestocking;
+	// The NPC whose answer to a refresh's talk is still to come, and whether it
+	// has come: set on the game loop, answered from the packet handler.
+	std::atomic<DWORD> awaitingTalk;
+	std::atomic<bool> talkAnswered;
 
 	void ApplyPatches();
 	void RequestRefresh(bool untilMarked);
 	void StartRefresh(bool untilMarked);
 	void TickRefresh();
 	void RefreshFinished(GambleRefresh::Outcome outcome);
-	void ClickGamble();
+	void EndTalk(UnitAny* npc);
+	bool KeepOffStore(unsigned int x);
 	bool RefreshButtonShown();
 	void DrawRefreshButton();
 	void ApplyPendingKeys();

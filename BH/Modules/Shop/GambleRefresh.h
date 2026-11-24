@@ -2,13 +2,19 @@
 #include <string>
 #include <vector>
 
-// Rerolling a gamble window by closing it and asking the NPC for it again, and
-// the button in the window that asks for it. Nothing here touches the game: the
-// Shop module looks at the game, hands what it sees in, and carries out what it
-// is told to.
+// Rerolling a gamble window in place, and the button in the window that asks for
+// it. The server keeps a player's gamble stock until their talk with the NPC
+// ends (D2Game 1.13c, 0xBF1C0), so a refresh ends the talk, starts it again and
+// asks for the gamble stock, sending what the game itself sends for that. The
+// window stays open throughout: the old stock is cleared from it and the new
+// stock arrives in it, and the talk menu the server's answer would open is
+// never shown.
+//
+// Nothing here touches the game: the Shop module looks at the game, hands what
+// it sees in, and carries out what it is told to.
 namespace GambleRefresh {
 
-// How long each step may wait on the game before the refresh gives up.
+// How long each step may wait on the server before the refresh gives up.
 const unsigned int STEP_TIMEOUT_MS = 1500;
 
 // How long the window's items have to stay as they are before they are taken
@@ -22,8 +28,8 @@ const unsigned int MIN_GAP_MS = 250;
 // What the game is doing, as the Shop module sees it on one tick.
 struct View {
 	bool gambleOpen;		// the gamble window is up
-	bool menuOpen;			// the NPC's talk menu is up
 	bool npcHere;			// the NPC can still be talked to
+	bool talkAnswered;		// the server has answered the last talk asked for
 	unsigned int items;		// how many items the window holds
 	bool marked;			// one of them is of a marked base
 };
@@ -31,10 +37,11 @@ struct View {
 // What the game has to be made to do on this tick.
 enum Step {
 	StepNone,
-	StepClose,			// close the gamble window
-	StepTalk,			// ask to talk to the NPC
-	StepGamble,			// pick gamble in the NPC's menu
-	StepRestoreTab,		// put back the tab that was selected
+	StepEnd,			// end the talk with the NPC and clear the window's items
+	StepTalk,			// talk to the NPC again, keeping its menu from opening
+	StepGamble,			// ask for the gamble stock
+	StepRestoreTab,		// show the tab that was selected
+	StepAbandon,		// close the window, which the server has stopped stocking
 };
 
 // How the last refresh or run ended. Taken once by TakeOutcome.
@@ -45,14 +52,14 @@ enum Outcome {
 	OutcomeCapped,		// a run reached its most refreshes
 	OutcomeStopped,		// a run was stopped, or its window closed
 	OutcomeLost,		// the NPC went or the player moved away
-	OutcomeTimedOut,	// the game did not answer in time
+	OutcomeTimedOut,	// the server did not answer in time
 };
 
 enum State {
 	StateIdle,
-	StateClosing,
+	StateEnding,
 	StateTalking,
-	StateOpening,
+	StateStocking,
 	StateSettling,
 	StatePausing,
 };
@@ -66,8 +73,8 @@ public:
 	// is going or too soon after the last.
 	bool Start(unsigned int now, bool untilMarked, unsigned int cap, unsigned int pauseMs);
 
-	// Ends a run. One in the middle of reopening the window finishes reopening
-	// first, so the window is never left closed.
+	// Ends a run. One in the middle of a refresh finishes it first, so the
+	// window is never left without its stock.
 	void Stop();
 
 	// Forgets everything, for leaving a game.
@@ -89,7 +96,7 @@ private:
 	bool finishedOnce;
 	bool untilMarked;
 	bool stopAsked;
-	bool closeAsked;
+	bool talkAsked;
 	unsigned int cap;
 	unsigned int pauseMs;
 	unsigned int refreshes;
@@ -97,6 +104,7 @@ private:
 	unsigned int itemsChangedAt;
 	Outcome outcome;
 
+	Step BeginCycle(unsigned int now, const View& view);
 	void Enter(State next, unsigned int now);
 	void Finish(Outcome result, unsigned int now);
 };
@@ -125,19 +133,6 @@ int ArtBottom(int panelY, int screenHeight);
 // Where the game puts a button's tooltip.
 int TooltipX(int panelX);
 int TooltipY(int panelY, int screenHeight);
-
-// An NPC's talk menu as D2Client's table holds it.
-struct MenuRecord {
-	unsigned int npcClass;
-	unsigned int entries;
-	unsigned short ids[4];
-};
-
-// The record and the entry in it that is the NPC's gamble option, or false
-// where the table has no record for the class or the record no gamble entry.
-// The first record for a class is the one the game uses.
-bool FindEntry(const std::vector<MenuRecord>& menus, unsigned int npcClass,
-	unsigned short entryId, unsigned int* record, unsigned int* entry);
 
 // The refresh icon drawn over the blank button, as runs of one palette colour
 // along a row, relative to the button art's top left corner. There is one for
