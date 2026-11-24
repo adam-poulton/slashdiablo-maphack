@@ -46,6 +46,7 @@
     <ClCompile Include="Modules\Item\Item.cpp" />
     <ClCompile Include="Modules\Item\ItemDisplay.cpp" />
     <ClCompile Include="Modules\ItemMover\ItemMover.cpp" />
+    <ClCompile Include="Modules\ItemMover\ItemGrid.cpp" />
     <ClCompile Include="Modules\Maphack\Maphack.cpp" />
     <ClCompile Include="Modules\Maphack\RoomFrontier.cpp" />
     <ClCompile Include="Modules\Module.cpp" />
@@ -144,6 +145,7 @@
     <ClInclude Include="Modules\Item\Item.h" />
     <ClInclude Include="Modules\Item\ItemDisplay.h" />
     <ClInclude Include="Modules\ItemMover\ItemMover.h" />
+    <ClInclude Include="Modules\ItemMover\ItemGrid.h" />
     <ClInclude Include="Modules\Maphack\Maphack.h" />
     <ClInclude Include="Modules\Maphack\RoomFrontier.h" />
     <ClInclude Include="Modules\Module.h" />

@@ -193,6 +193,7 @@ if defined D2Path (
     <ClCompile Include="Modules\Item\ItemFilter.cpp" />
     <ClCompile Include="Modules\Item\ItemDisplay.cpp" />
     <ClCompile Include="Modules\ItemMover\ItemMover.cpp" />
+    <ClCompile Include="Modules\ItemMover\ItemGrid.cpp" />
     <ClCompile Include="Modules\Maphack\Maphack.cpp" />
     <ClCompile Include="Modules\Maphack\RoomFrontier.cpp" />
     <ClCompile Include="Modules\Module.cpp" />
@@ -307,6 +308,7 @@ if defined D2Path (
     <ClInclude Include="Modules\Item\ItemFilter.h" />
     <ClInclude Include="Modules\Item\ItemDisplay.h" />
     <ClInclude Include="Modules\ItemMover\ItemMover.h" />
+    <ClInclude Include="Modules\ItemMover\ItemGrid.h" />
     <ClInclude Include="Modules\Maphack\Maphack.h" />
     <ClInclude Include="Modules\Maphack\RoomFrontier.h" />
     <ClInclude Include="Modules\Module.h" />
