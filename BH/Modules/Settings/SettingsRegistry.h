@@ -34,6 +34,7 @@ namespace Settings {
 	namespace Heading {
 		const char* const PanelHotkeys = "Panel hotkeys";
 		const char* const Notifications = "Notifications";
+		const char* const Gambling = "Gambling";
 	}
 
 	enum Kind {

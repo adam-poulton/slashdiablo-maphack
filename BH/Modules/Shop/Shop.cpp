@@ -114,7 +114,7 @@ void Shop::OnLoad() {
 		"to buy or the next item dropped on the NPC to sell. The game's own wait is 500 ms.",
 		"", &shortenBuyCooldown);
 
-	Settings::AddHeading(GetName(), Settings::Category::Input, "Gambling");
+	Settings::AddHeading(GetName(), Settings::Category::Input, Settings::Heading::Gambling);
 	Settings::AddKey(GetName(), Settings::Category::Input, "Gamble Mark",
 		"Mark base in gamble window", &markKey,
 		"Marks the base of the item under the cursor; every item of that base is highlighted.");
