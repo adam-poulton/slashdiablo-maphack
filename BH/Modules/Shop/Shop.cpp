@@ -3,6 +3,7 @@
 #include <utility>
 #include "ShopHighlights.h"
 #include "../Settings/SettingsRegistry.h"
+#include "../Item/Item.h"
 #include "../Item/ItemDisplay.h"
 #include "../Item/ItemFactsLive.h"
 #include "../../BH.h"
@@ -144,7 +145,9 @@ void Shop::OnLoad() {
 	Settings::AddBool(GetName(), Settings::Category::Filter, "Shop Highlight Tabs",
 		"Mark tabs with matches", &markTabs, "", "Shop Highlights");
 	Settings::AddBool(GetName(), Settings::Category::Filter, "Shop Highlight Announce",
-		"Announce matches in chat", &announceMatches, "", "Shop Highlights");
+		"Announce matches in chat", &announceMatches,
+		"When the shop opens or restocks, says in chat which matches it has. Leaves out "
+		"items whose rule turns off their drop notification.", "Shop Highlights");
 }
 
 void Shop::LoadConfig() {
@@ -409,15 +412,24 @@ void Shop::Rebuild(UnitAny* npc) {
 	for (UnitAny* item = npc->pInventory->pFirstItem; item && item->pItemData;
 			item = item->pItemData->pNextInvItem) {
 		unsigned int color;
+		bool announce = true;
 		if (trade) {
 			LiveItem live(item);
 			if (!live.Known())
 				continue;
-			std::vector<const Action*> actions = GetItemMapActions(&live.Unit());
-			if (actions.empty())
+			// The same tests an item dropping on the ground is put to before it
+			// is shown on the map and said in chat.
+			RuleMatch match = GetItemMatch(&live.Unit());
+			if (!match.showOnMap || match.blocked)
 				continue;
-			color = ShopHighlights::BackdropColor(actions,
+			std::vector<const Action*> shown;
+			for (unsigned int i = 0; i < match.mapActions.size(); i++) {
+				if (match.mapActions[i]->pingLevel <= Item::GetPingLevel())
+					shown.push_back(match.mapActions[i]);
+			}
+			color = ShopHighlights::BackdropColor(shown,
 				(ShopHighlights::ColorSource)highlightSource, highlightColor);
+			announce = match.color != DEAD_COLOR;
 		} else {
 			if (markedCodes.find(CodeOf(item)) == markedCodes.end())
 				continue;
@@ -431,7 +443,8 @@ void Shop::Rebuild(UnitAny* npc) {
 		BYTE tab = item->pItemData->ItemLocation;
 		if (tab < SHOP_TABS && tabColor[tab] < 0)
 			tabColor[tab] = color;
-		matchNames.push_back(ItemDescription::NameLine(GetItemName(item)) + "\377c0");
+		if (announce)
+			matchNames.push_back(ItemDescription::NameLine(GetItemName(item)) + "\377c0");
 	}
 	std::sort(backdrops.begin(), backdrops.end());
 }
