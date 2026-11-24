@@ -39,3 +39,8 @@ Release/*
 /.vs/*
 /BH.VC.db
 /out/*
+
+# Local agent setup, specific to one machine
+/CLAUDE.local.md
+/.worktreeinclude
+/.claude/skills/deploy-dev-bh/
