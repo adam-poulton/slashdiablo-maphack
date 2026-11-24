@@ -27,7 +27,7 @@ void TownPortal::OnLoad() {
 
 	Settings::AddHeading(GetName(), Settings::Category::Input, "Town portal");
 	Settings::AddSlider(GetName(), Settings::Category::Input, "Portal Reentry Delay",
-		"Portal re-entry delay", &delay, 0, MAX_PORTAL_DELAY, STEP_PORTAL_DELAY, " ms",
+		"Portal re-entry delay", &delay, MIN_PORTAL_DELAY, MAX_PORTAL_DELAY, STEP_PORTAL_DELAY, " ms",
 		"How long after taking a town portal before you can take one again. "
 		"Off leaves the game's own wait.",
 		"", &shorten);
@@ -40,6 +40,8 @@ void TownPortal::OnUnload() {
 void TownPortal::LoadConfig() {
 	BH::config->ReadBoolean("Shorten Portal Reentry Delay", shorten);
 	BH::config->ReadInt("Portal Reentry Delay", delay, DEFAULT_PORTAL_DELAY);
+	if (delay < MIN_PORTAL_DELAY)
+		delay = MIN_PORTAL_DELAY;
 	if (delay > MAX_PORTAL_DELAY)
 		delay = MAX_PORTAL_DELAY;
 	ApplyPatch();
