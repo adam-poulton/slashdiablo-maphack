@@ -21,6 +21,7 @@ bool GambleRefresh::Init() {
 void GambleRefresh::OnLoad() {
     LoadConfig();
 
+    Settings::AddHeading(GetName(), Settings::Category::Input, Settings::Heading::Gambling);
     Settings::AddToggle(GetName(), Settings::Category::Input, "Gamble Refresh", "Gamble refresh",
         &Toggles["Gamble Refresh"],
         "Closes and reopens the gambling window so it reloads, "

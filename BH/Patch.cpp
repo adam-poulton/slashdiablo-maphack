@@ -67,14 +67,17 @@ bool Patch::Install() {
 	ReadProcessMemory(GetCurrentProcess(), (void*)address, oldCode, length, NULL);
 
 	//Set the code with all NOPs by default
-	if (type == 0x68) {
+	if (type == Bytes) {
+		memcpy(code, &function, length);
+	}
+	else if (type == 0x68) {
 		memset(code, 0x00, length);
 	}
 	else {
 		memset(code, 0x90, length);
 	}
 
-	if (type != NOP) {
+	if (type != NOP && type != Bytes) {
 		//Set the opcode
 		code[0] = type;
 
@@ -96,6 +99,15 @@ bool Patch::Install() {
 	injected = true;
 
 	return true;
+}
+
+void Patch::SetValue(int value) {
+	function = value;
+	if (!IsInstalled())
+		return;
+
+	int offset = *(&offsets._113c + D2Version::GetGameVersionID());
+	WriteBytes(GetDllOffset(dll, offset), length, (BYTE*)&function);
 }
 
 bool Patch::Remove() {

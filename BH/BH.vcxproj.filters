@@ -85,6 +85,9 @@
     <ClCompile Include="TablesFromMPQ.cpp" />
     <ClCompile Include="Task.cpp" />
     <ClCompile Include="Modules\GambleRefresh\GambleRefresh.cpp" />
+    <ClCompile Include="Modules\Shop\GambleMarks.cpp" />
+    <ClCompile Include="Modules\Shop\Shop.cpp" />
+    <ClCompile Include="Modules\Shop\ShopHighlights.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AsyncDrawBuffer.h" />
@@ -186,5 +189,8 @@
     <ClInclude Include="TableReader.h" />
     <ClInclude Include="Task.h" />
     <ClInclude Include="Modules\GambleRefresh\GambleRefresh.h" />
+    <ClInclude Include="Modules\Shop\GambleMarks.h" />
+    <ClInclude Include="Modules\Shop\Shop.h" />
+    <ClInclude Include="Modules\Shop\ShopHighlights.h" />
   </ItemGroup>
 </Project>

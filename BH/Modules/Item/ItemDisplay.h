@@ -53,5 +53,10 @@ void ResetItemVerdicts();
 // The same, for the parts of the world a rule reads that change while a game is
 // being played: how far the character has got and where they are standing.
 void ForgetVerdictsIfWorldChanged();
+
+// Counts the times what was worked out has been forgotten, by either of the
+// two above. Something keeping answers of its own about items can tell from it
+// that they were reached under rules or a world that are no longer in force.
+unsigned int ItemVerdictsGeneration();
 void SubstituteNameVariables(UnitItemInfo *uInfo, string &name, const string &action_name);
 BYTE GetRequiredLevel(UnitAny* item);

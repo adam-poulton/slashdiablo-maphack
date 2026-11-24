@@ -208,9 +208,17 @@ VARPTR(D2CLIENT, MercLayout, InventoryLayout, 0x11BD94, 0x11CC84)
 ASMPTR(D2CLIENT, clickParty_I, 0x9E180, 0xA2250)
 
 VARPTR(D2CLIENT, PanelOffsetX, int, 0x11B9A0, 0x11D354);
+VARPTR(D2CLIENT, PanelOffsetY, int, 0x11B9A4, 0x11B9A4);
 
 VARPTR(D2CLIENT, RegularCursorType, DWORD, 0x11B864, 0x11C98C)
 VARPTR(D2CLIENT, ShopCursorType, DWORD, 0x11BC34, 0x11CB24)
+
+// The trade window, 1.13c only. The kind is 1 for gambling and 3 for trade. Each
+// of the four tabs is a record of SHOP_TAB_STRIDE bytes, and a tab the NPC has
+// is one whose record starts with a nonzero DWORD.
+VARPTR(D2CLIENT, ShopKind, BYTE, 0x11BC50, 0x11BC50)
+VARPTR(D2CLIENT, ShopTabs, BYTE, 0xE1186, 0xE1186)
+#define SHOP_TAB_STRIDE 0x12
 
 
 VARPTR(D2CLIENT, Ping, DWORD, 0x119804, 0x108764)

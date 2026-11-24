@@ -5,7 +5,11 @@ All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
 in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
 
 # Unreleased
+* Add `Buy cooldown` under `Shopping` on the Input tab, off by default. Shortens the 500 ms the game waits between buying with a right click or selling to an NPC, down to as little as 100 ms.
+* Add `Shop highlights` on the Filter tab, on by default. Colours the items in an NPC's shop that your item filter would mark on the map, in the rule's map colour or a fixed one, and marks the shop tabs that hold one. Can also announce the matches in chat.
+* Add gamble marks under `Gambling` on the Input tab. Press F2 over an item in a gamble window to highlight every item of its base, and its exceptional and elite versions with `Match base tiers`. Marks survive a gamble refresh, can be kept between games with `Remember marks`, and the marked items on offer are announced when the window opens or refreshes.
 * Add `Portal re-entry delay` under `Town portal` on the Input tab, off by default. Lets you take a town portal again sooner after taking one, timed from when you took it: 0 to 3000 ms, 1000 ms by default. Off leaves the game's own wait.
+* Move `Gamble refresh` under the new `Gambling` heading on the Input tab.
 * Fix rare crashes when shift-clicking or ctrl-clicking items to move or identify them while items are being moved.
 
 # Release Notes for 1.10.1 (2026-10-04)
