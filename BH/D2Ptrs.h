@@ -219,6 +219,14 @@ VARPTR(D2CLIENT, ShopCursorType, DWORD, 0x11BC34, 0x11CB24)
 VARPTR(D2CLIENT, ShopKind, BYTE, 0x11BC50, 0x11BC50)
 VARPTR(D2CLIENT, ShopTabs, BYTE, 0xE1186, 0xE1186)
 #define SHOP_TAB_STRIDE 0x12
+// The selected tab, and the game's own tab switch, which counts the NPC's items
+// on each tab and moves on to the next tab with any where the one asked for has
+// none. It sends nothing to the server.
+VARPTR(D2CLIENT, ShopTab, BYTE, 0x11BC48, 0x11BC48)
+FUNCPTR(D2CLIENT, SelectShopTab, void __stdcall, (DWORD tab), 0x8F710, 0x8F710)
+// buysellbtn.dc6, the art of the buttons along the bottom of the trade window,
+// as the game loads it the first time it draws one.
+VARPTR(D2CLIENT, ShopButtonCells, CellFile*, 0x11B9C4, 0x11B9C4)
 
 
 VARPTR(D2CLIENT, Ping, DWORD, 0x119804, 0x108764)

@@ -13,7 +13,6 @@
 #include "Modules\AutoTele\AutoTele.h"
 #include "Modules\Party\Party.h"
 #include "Modules\ChatColor\ChatColor.h"
-#include "Modules\GambleRefresh\GambleRefresh.h"
 #include "Modules\Shop\Shop.h"
 #include "Modules\TownPortal\TownPortal.h"
 #include "Modules\StashExport\StashExport.h"
