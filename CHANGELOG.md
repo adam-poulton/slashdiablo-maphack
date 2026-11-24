@@ -4,6 +4,9 @@ Changelog
 All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
 in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
 
+# Unreleased
+* Fix rare crashes when shift-clicking or ctrl-clicking items to move or identify them while items are being moved.
+
 # Release Notes for 1.10.1 (2026-10-04)
 * Add stat filter conditions to the codex.
 * Add `Hide redundant gold piles` toggle in the Filter tab, off by default. Hides gold on the ground while you are already carrying the max gold for your level. Doesn't apply in town.

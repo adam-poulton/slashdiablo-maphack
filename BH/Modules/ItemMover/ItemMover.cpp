@@ -9,30 +9,19 @@
 #include "../../D2Stubs.h"
 #include "../../D2Helpers.h"
 #include "../ScreenInfo/ScreenInfo.h"
+#include "ItemGrid.h"
 
 // This module was inspired by the RedVex plugin "Item Mover", written by kaiks.
 // Thanks to kaiks for sharing his code.
 
 #define INVENTORY_WIDTH  inventoryLayout->SlotWidth
 #define INVENTORY_HEIGHT inventoryLayout->SlotHeight
-#define INVENTORY_LEFT   inventoryLayout->Left
-#define INVENTORY_RIGHT  inventoryLayout->Right
-#define INVENTORY_TOP    inventoryLayout->Top
-#define INVENTORY_BOTTOM inventoryLayout->Bottom
 
 #define STASH_WIDTH  stashLayout->SlotWidth
 #define STASH_HEIGHT stashLayout->SlotHeight
-#define STASH_LEFT   stashLayout->Left
-#define STASH_RIGHT  stashLayout->Right
-#define STASH_TOP    stashLayout->Top
-#define STASH_BOTTOM stashLayout->Bottom
 
 #define CUBE_WIDTH  cubeLayout->SlotWidth
 #define CUBE_HEIGHT cubeLayout->SlotHeight
-#define CUBE_LEFT   cubeLayout->Left
-#define CUBE_RIGHT  cubeLayout->Right
-#define CUBE_TOP    cubeLayout->Top
-#define CUBE_BOTTOM cubeLayout->Bottom
 
 #define CELL_SIZE inventoryLayout->SlotPixelHeight
 
@@ -41,15 +30,24 @@ std::string POTIONS[] = { "hp", "mp", "rv" };
 DWORD idBookId;
 DWORD unidItemId;
 
+// Items in the list can be half built while they move, so each step checks
+// pItemData before following it.
+static UnitAny* NextInvItem(UnitAny *item) {
+	return item->pItemData ? item->pItemData->pNextInvItem : NULL;
+}
+
 // True when nothing in the inventory has room for the scroll: every matching tome
 // is above the threshold, or no matching tome is carried at all.
 static bool NoTomeWantsScroll(UnitAny *unit, const char *tomeCode, unsigned int threshold) {
 	if (!unit || !unit->pInventory)
 		return false;
-	for (UnitAny *pItem = unit->pInventory->pFirstItem; pItem; pItem = pItem->pItemData->pNextInvItem) {
-		if (pItem->pItemData->ItemLocation != STORAGE_INVENTORY)
+	for (UnitAny *pItem = unit->pInventory->pFirstItem; pItem; pItem = NextInvItem(pItem)) {
+		if (!pItem->pItemData || pItem->pItemData->ItemLocation != STORAGE_INVENTORY)
 			continue;
-		char* code = D2COMMON_GetItemText(pItem->dwTxtFileNo)->szCode;
+		ItemText *text = D2COMMON_GetItemText(pItem->dwTxtFileNo);
+		if (!text)
+			continue;
+		char* code = text->szCode;
 		if (code[0] != tomeCode[0] || code[1] != tomeCode[1] || code[2] != tomeCode[2])
 			continue;
 		if ((unsigned int)D2COMMON_GetUnitStat(pItem, STAT_AMMOQUANTITY, 0) <= threshold)
@@ -167,24 +165,12 @@ bool ItemMover::Init() {
 
 	if (xpac) {
 		stashLayout = p_D2CLIENT_StashLayout;
-		StashItemIds = LODStashItemIds;
 	}
 	else {
 		stashLayout = p_D2CLIENT_ClassicStashLayout;
-		StashItemIds = ClassicStashItemIds;
 	}
 	inventoryLayout = p_D2CLIENT_InventoryLayout;
 	cubeLayout = p_D2CLIENT_CubeLayout;
-
-	if (!InventoryItemIds) {
-		InventoryItemIds = new int[INVENTORY_WIDTH * INVENTORY_HEIGHT];
-	}
-	if (!StashItemIds) {
-		StashItemIds = new int[STASH_WIDTH * STASH_HEIGHT];
-	}
-	if (!CubeItemIds) {
-		CubeItemIds = new int[CUBE_WIDTH * CUBE_HEIGHT];
-	}
 
 	//PrintText(1, "Got positions: %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d",
 	//	INVENTORY_WIDTH,
@@ -205,39 +191,74 @@ bool ItemMover::Init() {
 	return true;
 }
 
+ItemGrid::Grid ItemMover::GridFor(int location) const {
+	const InventoryLayout *layout;
+	if (location == STORAGE_INVENTORY) {
+		layout = inventoryLayout;
+	} else if (location == STORAGE_STASH) {
+		layout = stashLayout;
+	} else if (location == STORAGE_CUBE) {
+		layout = cubeLayout;
+	} else {
+		return ItemGrid::Grid();
+	}
+	ItemGrid::Grid grid;
+	grid.columns = layout->SlotWidth;
+	grid.rows = layout->SlotHeight;
+	grid.left = layout->Left;
+	grid.top = layout->Top;
+	grid.right = layout->Right;
+	grid.bottom = layout->Bottom;
+	grid.cellSize = CELL_SIZE;
+	return grid;
+}
+
 bool ItemMover::LoadInventory(UnitAny *unit, int source, int sourceX, int sourceY, bool shiftState, bool ctrlState, int stashUI, int invUI) {
 	bool returnValue = false;
 
-	memset(InventoryItemIds, 0, INVENTORY_WIDTH * INVENTORY_HEIGHT * sizeof(int));
-	memset(StashItemIds, 0, STASH_WIDTH * STASH_HEIGHT * sizeof(int));
-	memset(CubeItemIds, 0, CUBE_WIDTH * CUBE_HEIGHT * sizeof(int));
+	InventoryItemIds.assign(INVENTORY_WIDTH * INVENTORY_HEIGHT, 0);
+	StashItemIds.assign(STASH_WIDTH * STASH_HEIGHT, 0);
+	CubeItemIds.assign(CUBE_WIDTH * CUBE_HEIGHT, 0);
 
 	unsigned int itemId = 0;
 	BYTE itemXSize, itemYSize;
 	bool cubeInInventory = false, cubeAnywhere = false;
-	for (UnitAny *pItem = unit->pInventory->pFirstItem; pItem; pItem = pItem->pItemData->pNextInvItem) {
-		int *p, width;
-		if (pItem->pItemData->ItemLocation == STORAGE_INVENTORY) {
-			p = InventoryItemIds;
+	for (UnitAny *pItem = unit->pInventory->pFirstItem; pItem; pItem = NextInvItem(pItem)) {
+		if (!pItem->pItemData || !pItem->pObjectPath) {
+			continue;
+		}
+		ItemText *text = D2COMMON_GetItemText(pItem->dwTxtFileNo);
+		if (!text) {
+			continue;
+		}
+
+		BYTE location = pItem->pItemData->ItemLocation;
+		std::vector<int> *cells;
+		int width, height;
+		if (location == STORAGE_INVENTORY) {
+			cells = &InventoryItemIds;
 			width = INVENTORY_WIDTH;
-		} else if (pItem->pItemData->ItemLocation == STORAGE_STASH) {
-			p = StashItemIds;
+			height = INVENTORY_HEIGHT;
+		} else if (location == STORAGE_STASH) {
+			cells = &StashItemIds;
 			width = STASH_WIDTH;
-		} else if (pItem->pItemData->ItemLocation == STORAGE_CUBE) {
-			p = CubeItemIds;
+			height = STASH_HEIGHT;
+		} else if (location == STORAGE_CUBE) {
+			cells = &CubeItemIds;
 			width = CUBE_WIDTH;
+			height = CUBE_HEIGHT;
 		} else {
 			continue;
 		}
 
 		bool box = false;
-		char *code = D2COMMON_GetItemText(pItem->dwTxtFileNo)->szCode;
+		char *code = text->szCode;
 		if (code[0] == 'b' && code[1] == 'o' && code[2] == 'x') {
-			if (pItem->pItemData->ItemLocation == STORAGE_INVENTORY) {
+			if (location == STORAGE_INVENTORY) {
 				cubeInInventory = true;
 				cubeAnywhere = true;
 			}
-			if (pItem->pItemData->ItemLocation == STORAGE_STASH) {
+			if (location == STORAGE_STASH) {
 				cubeAnywhere = true;
 			}
 			box = true;
@@ -245,23 +266,20 @@ bool ItemMover::LoadInventory(UnitAny *unit, int source, int sourceX, int source
 
 		int xStart = pItem->pObjectPath->dwPosX;
 		int yStart = pItem->pObjectPath->dwPosY;
-		BYTE xSize = D2COMMON_GetItemText(pItem->dwTxtFileNo)->xSize;
-		BYTE ySize = D2COMMON_GetItemText(pItem->dwTxtFileNo)->ySize;
-		for (int x = xStart; x < xStart + xSize; x++) {
-			for (int y = yStart; y < yStart + ySize; y++) {
-				p[y*width + x] = pItem->dwUnitId;
+		BYTE xSize = text->xSize;
+		BYTE ySize = text->ySize;
+		ItemGrid::Mark(cells->data(), width, height, xStart, yStart, xSize, ySize, pItem->dwUnitId);
 
-				// If you click to move the cube into itself, your character ends up in
-				// the amusing (and apparently permanent) state where he has no visible
-				// cube and yet is unable to pick one up. Logging out does not fix it.
-				// So we disable all cube movements to be on the safe side.
-				if (x == sourceX && y == sourceY && pItem->pItemData->ItemLocation == source && !box) {
-					// This is the item we want to move
-					itemId = pItem->dwUnitId;
-					itemXSize = xSize;
-					itemYSize = ySize;
-				}
-			}
+		// If you click to move the cube into itself, your character ends up in
+		// the amusing (and apparently permanent) state where he has no visible
+		// cube and yet is unable to pick one up. Logging out does not fix it.
+		// So we disable all cube movements to be on the safe side.
+		if (location == source && !box &&
+			ItemGrid::Fits(width, height, xStart, yStart, xSize, ySize) &&
+			ItemGrid::Covers(xStart, yStart, xSize, ySize, sourceX, sourceY)) {
+			itemId = pItem->dwUnitId;
+			itemXSize = xSize;
+			itemYSize = ySize;
 		}
 	}
 
@@ -290,17 +308,18 @@ bool ItemMover::LoadInventory(UnitAny *unit, int source, int sourceX, int source
 }
 
 bool ItemMover::FindDestination(int destination, unsigned int itemId, BYTE xSize, BYTE ySize) {
-	int *p, width = 0, height = 0;
+	const int *p = NULL;
+	int width = 0, height = 0;
 	if (destination == STORAGE_INVENTORY) {
-		p = InventoryItemIds;
+		p = InventoryItemIds.data();
 		width = INVENTORY_WIDTH;
 		height = INVENTORY_HEIGHT;
 	} else if (destination == STORAGE_STASH) {
-		p = StashItemIds;
+		p = StashItemIds.data();
 		width = STASH_WIDTH;
 		height = STASH_HEIGHT;
 	} else if (destination == STORAGE_CUBE) {
-		p = CubeItemIds;
+		p = CubeItemIds.data();
 		width = CUBE_WIDTH;
 		height = CUBE_HEIGHT;
 	}
@@ -311,22 +330,7 @@ bool ItemMover::FindDestination(int destination, unsigned int itemId, BYTE xSize
 		bool first_y = true;
 		for (int x = 0; x < width; x++) {
 			for (int y = 0; y < height; y++) {
-				bool abort = false;
-				int vacancies = 0;
-				for (int testx = x; testx < x + xSize && testx < width; testx++) {
-					for (int testy = y; testy < y + ySize && testy < height; testy++) {
-						if (p[testy*width + testx]) {
-							abort = true;
-							break;
-						} else {
-							vacancies++;
-						}
-					}
-					if (abort) {
-						break;
-					}
-				}
-				if (vacancies == xSize * ySize) {
+				if (ItemGrid::IsVacant(p, width, height, x, y, xSize, ySize)) {
 					// Found an empty spot that's big enough for the item
 					found = true;
 					destX = x;
@@ -359,6 +363,7 @@ bool ItemMover::FindDestination(int destination, unsigned int itemId, BYTE xSize
 		found = true;
 	}
 
+	bool queued = false;
 	if (found) {
 		Lock();
 		if (ActivePacket.startTicks == 0) {
@@ -367,11 +372,12 @@ bool ItemMover::FindDestination(int destination, unsigned int itemId, BYTE xSize
 			ActivePacket.y = destY;
 			ActivePacket.startTicks = BHGetTickCount();
 			ActivePacket.destination = destination;
+			queued = true;
 		}
 		Unlock();
 	}
 
-	return found;
+	return queued;
 }
 
 void ItemMover::PickUpItem() {
@@ -399,7 +405,7 @@ void ItemMover::OnLeftClick(bool up, unsigned int x, unsigned int y, bool* block
 	UnitAny *unit = D2CLIENT_GetPlayerUnit();
 	bool shiftState = ((GetKeyState(VK_LSHIFT) & 0x80) || (GetKeyState(VK_RSHIFT) & 0x80));
 	
-	if (up || !unit || !shiftState || D2CLIENT_GetCursorItem()>0 ||
+	if (up || !unit || !unit->pInventory || !unit->pPath || !shiftState || D2CLIENT_GetCursorItem()>0 ||
 		(!D2CLIENT_GetUIState(UI_INVENTORY) && !D2CLIENT_GetUIState(UI_STASH)
 			&& !D2CLIENT_GetUIState(UI_CUBE) && !D2CLIENT_GetUIState(UI_NPCSHOP)) ||
 		!Init()) {
@@ -408,38 +414,31 @@ void ItemMover::OnLeftClick(bool up, unsigned int x, unsigned int y, bool* block
 
 	unidItemId = 0;
 	idBookId = 0;
-	
-	int mouseX,mouseY;	
 
-	for (UnitAny *pItem = unit->pInventory->pFirstItem; pItem; pItem = pItem->pItemData->pNextInvItem) {
-		char *code = D2COMMON_GetItemText(pItem->dwTxtFileNo)->szCode;
-		if ((pItem->pItemData->dwFlags & ITEM_IDENTIFIED) <= 0) {
-			int xStart = pItem->pObjectPath->dwPosX;
-			int yStart = pItem->pObjectPath->dwPosY;
-			BYTE xSize = D2COMMON_GetItemText(pItem->dwTxtFileNo)->xSize;
-			BYTE ySize = D2COMMON_GetItemText(pItem->dwTxtFileNo)->ySize;
-			if (pItem->pItemData->ItemLocation == STORAGE_INVENTORY) {
-				mouseX = (*p_D2CLIENT_MouseX - INVENTORY_LEFT) / CELL_SIZE;
-				mouseY = (*p_D2CLIENT_MouseY - INVENTORY_TOP) / CELL_SIZE;
-			} else if(pItem->pItemData->ItemLocation == STORAGE_STASH) {
-				mouseX = (*p_D2CLIENT_MouseX - STASH_LEFT) / CELL_SIZE;
-				mouseY = (*p_D2CLIENT_MouseY - STASH_TOP) / CELL_SIZE;
-			} else if(pItem->pItemData->ItemLocation == STORAGE_CUBE) {
-				mouseX = (*p_D2CLIENT_MouseX - CUBE_LEFT) / CELL_SIZE;
-				mouseY = (*p_D2CLIENT_MouseY - CUBE_TOP) / CELL_SIZE;
-			}
-			for (int x = xStart; x < xStart + xSize; x++) {
-				for (int y = yStart; y < yStart + ySize; y++) {
-					if (x == mouseX && y == mouseY) {
-						if ((pItem->pItemData->ItemLocation == STORAGE_STASH && !D2CLIENT_GetUIState(UI_STASH)) || (pItem->pItemData->ItemLocation == STORAGE_CUBE && !D2CLIENT_GetUIState(UI_CUBE))) {
-							return;
-						}
-						unidItemId = pItem->dwUnitId;								
-					}
-				}
-			}
+	int mouseX = *p_D2CLIENT_MouseX;
+	int mouseY = *p_D2CLIENT_MouseY;
+	for (UnitAny *pItem = unit->pInventory->pFirstItem; pItem; pItem = NextInvItem(pItem)) {
+		if (!pItem->pItemData || !pItem->pObjectPath) {
+			continue;
 		}
-		if (code[0] == 'i' && code[1] == 'b' && code[2] == 'k' && pItem->pItemData->ItemLocation == STORAGE_INVENTORY && D2COMMON_GetUnitStat(pItem, STAT_AMMOQUANTITY, 0)>0) {
+		ItemText *text = D2COMMON_GetItemText(pItem->dwTxtFileNo);
+		if (!text) {
+			continue;
+		}
+
+		char *code = text->szCode;
+		BYTE location = pItem->pItemData->ItemLocation;
+		int column, row;
+		if (!(pItem->pItemData->dwFlags & ITEM_IDENTIFIED) &&
+			ItemGrid::CellAt(GridFor(location), mouseX, mouseY, &column, &row) &&
+			ItemGrid::Covers((int)pItem->pObjectPath->dwPosX, (int)pItem->pObjectPath->dwPosY,
+				text->xSize, text->ySize, column, row)) {
+			if ((location == STORAGE_STASH && !D2CLIENT_GetUIState(UI_STASH)) || (location == STORAGE_CUBE && !D2CLIENT_GetUIState(UI_CUBE))) {
+				return;
+			}
+			unidItemId = pItem->dwUnitId;
+		}
+		if (code[0] == 'i' && code[1] == 'b' && code[2] == 'k' && location == STORAGE_INVENTORY && D2COMMON_GetUnitStat(pItem, STAT_AMMOQUANTITY, 0)>0) {
 			idBookId = pItem->dwUnitId;
 		}
 		if (unidItemId > 0 && idBookId > 0) {
@@ -458,7 +457,7 @@ void ItemMover::OnRightClick(bool up, unsigned int x, unsigned int y, bool* bloc
 	UnitAny *unit = D2CLIENT_GetPlayerUnit();
 	bool shiftState = ((GetKeyState(VK_LSHIFT) & 0x80) || (GetKeyState(VK_RSHIFT) & 0x80));
 	bool ctrlState = ((GetKeyState(VK_LCONTROL) & 0x80) || (GetKeyState(VK_RCONTROL) & 0x80));
-	if (up || !unit || !(shiftState || ctrlState) || !Init()) {
+	if (up || !unit || !unit->pInventory || !unit->pPath || !(shiftState || ctrlState) || !Init()) {
 		return;
 	}
 
@@ -466,18 +465,12 @@ void ItemMover::OnRightClick(bool up, unsigned int x, unsigned int y, bool* bloc
 	int invUI = D2CLIENT_GetUIState(UI_INVENTORY);
 	int stashUI = D2CLIENT_GetUIState(UI_STASH);
 	int cubeUI = D2CLIENT_GetUIState(UI_CUBE);
-	if ((invUI || stashUI || cubeUI) && x >= INVENTORY_LEFT && x <= INVENTORY_RIGHT && y >= INVENTORY_TOP && y <= INVENTORY_BOTTOM) {
+	if ((invUI || stashUI || cubeUI) && ItemGrid::CellAt(GridFor(STORAGE_INVENTORY), (int)x, (int)y, &sourceX, &sourceY)) {
 		source = STORAGE_INVENTORY;
-		sourceX = (x - INVENTORY_LEFT) / CELL_SIZE;
-		sourceY = (y - INVENTORY_TOP) / CELL_SIZE;
-	} else if (stashUI && x >= STASH_LEFT && x <= STASH_RIGHT && y >= STASH_TOP && y <= STASH_BOTTOM) {
+	} else if (stashUI && ItemGrid::CellAt(GridFor(STORAGE_STASH), (int)x, (int)y, &sourceX, &sourceY)) {
 		source = STORAGE_STASH;
-		sourceX = (x - STASH_LEFT) / CELL_SIZE;
-		sourceY = (y - STASH_TOP) / CELL_SIZE;
-	} else if (cubeUI && x >= CUBE_LEFT && x <= CUBE_RIGHT && y >= CUBE_TOP && y <= CUBE_BOTTOM) {
+	} else if (cubeUI && ItemGrid::CellAt(GridFor(STORAGE_CUBE), (int)x, (int)y, &sourceX, &sourceY)) {
 		source = STORAGE_CUBE;
-		sourceX = (x - CUBE_LEFT) / CELL_SIZE;
-		sourceY = (y - CUBE_TOP) / CELL_SIZE;
 	} else {
 		return;
 	}
@@ -523,7 +516,7 @@ void ItemMover::OnLoad() {
 
 void ItemMover::OnKey(bool up, BYTE key, LPARAM lParam, bool* block)  {
 	UnitAny *unit = D2CLIENT_GetPlayerUnit();
-	if (!unit)
+	if (!unit || !unit->pInventory || !unit->pPath)
 		return;
 
 	if (!up && (key == HealKey || key == ManaKey || key == JuvKey)) {
@@ -532,10 +525,15 @@ void ItemMover::OnKey(bool up, BYTE key, LPARAM lParam, bool* block)  {
 		char minPotion = 127;
 		DWORD minItemId = 0;
 		bool isBelt = false;
-		for (UnitAny *pItem = unit->pInventory->pFirstItem; pItem; pItem = pItem->pItemData->pNextInvItem) {
+		for (UnitAny *pItem = unit->pInventory->pFirstItem; pItem; pItem = NextInvItem(pItem)) {
+			if (!pItem->pItemData)
+				continue;
 			if (pItem->pItemData->ItemLocation == STORAGE_INVENTORY ||
 				pItem->pItemData->ItemLocation == STORAGE_NULL && pItem->pItemData->NodePage == NODEPAGE_BELTSLOTS) {
-				char* code = D2COMMON_GetItemText(pItem->dwTxtFileNo)->szCode;
+				ItemText *text = D2COMMON_GetItemText(pItem->dwTxtFileNo);
+				if (!text)
+					continue;
+				char* code = text->szCode;
 				if (code[0] == startChars[0] && code[1] == startChars[1] && code[2] < minPotion) {
 					minPotion = code[2];
 					minItemId = pItem->dwUnitId;
@@ -571,9 +569,12 @@ void ItemMover::OnKey(bool up, BYTE key, LPARAM lParam, bool* block)  {
 	if (!up && (key == TpKey)) {
 		DWORD tpId = 0;
 		int tp_quantity = 0;
-		for (UnitAny *pItem = unit->pInventory->pFirstItem; pItem; pItem = pItem->pItemData->pNextInvItem) {
-			if (pItem->pItemData->ItemLocation == STORAGE_INVENTORY) {
-				char* code = D2COMMON_GetItemText(pItem->dwTxtFileNo)->szCode;
+		for (UnitAny *pItem = unit->pInventory->pFirstItem; pItem; pItem = NextInvItem(pItem)) {
+			if (pItem->pItemData && pItem->pItemData->ItemLocation == STORAGE_INVENTORY) {
+				ItemText *text = D2COMMON_GetItemText(pItem->dwTxtFileNo);
+				if (!text)
+					continue;
+				char* code = text->szCode;
 				if (code[0] == 't' && code[1] == 'b' && code[2] =='k') {
 					tp_quantity = D2COMMON_GetUnitStat(pItem, STAT_AMMOQUANTITY, 0);
 					if (tp_quantity > 0) {

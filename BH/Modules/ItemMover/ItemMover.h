@@ -7,6 +7,8 @@
 #include "../../BitReader.h"
 #include "../Item/ItemDisplay.h"
 #include "../../MPQInit.h"
+#include "ItemGrid.h"
+#include <vector>
 
 extern int INVENTORY_WIDTH;
 extern int INVENTORY_HEIGHT;
@@ -37,11 +39,9 @@ struct ItemPacketData {
 class ItemMover : public Module {
 private:
 	bool FirstInit;
-	int *InventoryItemIds;
-	int *StashItemIds;
-	int *LODStashItemIds;
-	int *ClassicStashItemIds;
-	int *CubeItemIds;
+	std::vector<int> InventoryItemIds;
+	std::vector<int> StashItemIds;
+	std::vector<int> CubeItemIds;
 	int tp_warn_quantity;
 	InventoryLayout *stashLayout;
 	InventoryLayout *inventoryLayout;
@@ -56,11 +56,6 @@ public:
 	ItemMover() : Module("Item Mover"),
 		ActivePacket(),
 		FirstInit(false),
-		InventoryItemIds(NULL),
-		StashItemIds(NULL),
-		LODStashItemIds(NULL),
-		ClassicStashItemIds(NULL),
-		CubeItemIds(NULL),
 		stashLayout(NULL),
 		inventoryLayout(NULL),
 		cubeLayout(NULL),
@@ -70,25 +65,11 @@ public:
 	};
 
 	~ItemMover() {
-		if (InventoryItemIds) {
-			delete [] InventoryItemIds;
-		}
-		if (StashItemIds) {
-			delete [] StashItemIds;
-		}
-		if (LODStashItemIds) {
-			delete [] LODStashItemIds;
-		}
-		if (ClassicStashItemIds) {
-			delete [] ClassicStashItemIds;
-		}
-		if (CubeItemIds) {
-			delete [] CubeItemIds;
-		}
 		DeleteCriticalSection(&crit);
 	};
 
 	bool Init();
+	ItemGrid::Grid GridFor(int location) const;
 
 	void Lock() { EnterCriticalSection(&crit); };
 	void Unlock() { LeaveCriticalSection(&crit); };
