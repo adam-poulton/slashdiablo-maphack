@@ -13,12 +13,14 @@ See [CHANGELOG.md](CHANGELOG.md) for the release history.
 
 To install, download the archive from the
 [latest release](https://github.com/adam-poulton/slashdiablo-maphack/releases/latest)
-and follow [docs/Installation.md](docs/Installation.md).
+and follow [docs/Installation.md](docs/Installation.md). Release candidates for
+testing are listed as pre-releases on the
+[releases page](https://github.com/adam-poulton/slashdiablo-maphack/releases).
 
 Configuration is documented in [docs/](docs/Home.md), which is the source of
 truth. It is published to the
-[wiki](https://github.com/adam-poulton/slashdiablo-maphack/wiki) when a release
-is tagged, so the wiki tracks the latest release while `docs/` on `master` also
+[wiki](https://github.com/adam-poulton/slashdiablo-maphack/wiki) when a stable
+release is tagged, so the wiki tracks the latest release while `docs/` on `master` also
 covers unreleased changes. These pages originated in the upstream
 [planqi wiki](https://github.com/planqi/slashdiablo-maphack/wiki). Send
 documentation changes as pull requests against `docs/` rather than editing the

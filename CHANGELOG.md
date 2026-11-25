@@ -3,6 +3,8 @@ Changelog
 
 All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
 in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
+A release candidate adds a suffix, as in `v1.11.0-rc.1`, and is published as a
+GitHub pre-release with the notes under `# Unreleased`.
 
 # Unreleased
 * Add `Buy cooldown` under `Shopping` on the Input tab, off by default. Shortens the 500 ms the game waits between buying with a right click or selling to an NPC, down to as little as 100 ms.

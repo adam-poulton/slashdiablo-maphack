@@ -1,8 +1,8 @@
 Documentation for slashdiablo-maphack.
 
 These pages live in [`docs/`](https://github.com/adam-poulton/slashdiablo-maphack/tree/master/docs)
-in the main repository and are published to the wiki from there when a release
-is tagged, so they describe the latest release rather than unreleased work. For
+in the main repository and are published to the wiki from there when a stable
+release is tagged, so they describe the latest release rather than unreleased work. For
 documentation of changes that have not shipped yet, read `docs/` on `master`.
 
 **Edit these pages via a pull request against `docs/`** — changes made directly
