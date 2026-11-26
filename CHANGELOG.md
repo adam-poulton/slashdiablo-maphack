@@ -7,6 +7,10 @@ A release candidate adds a suffix, as in `v1.11.0-rc.1`, and is published as a
 GitHub pre-release with the notes under `# Unreleased`.
 
 # Unreleased
+* BH's windows stay solid when they do not have focus, instead of turning see-through. The window with focus has a white title and the others a grey one. Slider rails, scrollbar tracks and the band behind a selected row are now drawn in greys of their own, so they show on the solid panel.
+* The Forge's preview shows a shape magnified, with its real size beside it under `Actual scale`.
+* Fix a window opened by ctrl-clicking its bar not taking focus until it was clicked.
+* Fix the line above a window's footer, and the one beside the Forge's list, being drawn dark red instead of grey.
 * Add `Shorten buy cooldown` under `Shopping` on the Input tab, on by default. Cuts the game's 500 ms wait between buying with a right click or selling to an NPC to 250 ms.
 * Add `Shop highlights` on the Filter tab, on by default. Colours the items in an NPC's shop that your item filter would mark on the map, in the rule's map colour or a fixed one, and marks the shop tabs that hold one. It follows the filter level and hidden items as the map does. Can also announce the matches in chat, leaving out items whose rule has no drop notification.
 * Add gamble marks under `Gambling` on the Input tab. Press F2 over an item in a gamble window to highlight every item of its base, and its exceptional and elite versions with `Match base tiers`. Marks survive a gamble refresh and can be kept between games with `Remember marks`.

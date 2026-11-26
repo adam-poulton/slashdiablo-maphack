@@ -1,5 +1,6 @@
 #include "MapIconhook.h"
 #include "../../../D2Ptrs.h"
+#include "../../Basic/Boxhook/Boxhook.h"
 #include "../../Basic/Framehook/Framehook.h"
 #include "../../Basic/Linehook/Linehook.h"
 #include "../../Basic/Texthook/Texthook.h"
@@ -39,6 +40,19 @@ static_assert(MIH_CELL >= MapIcon::ChestHeight + 4,
 // The preview across the top, and the gap under it.
 #define MIH_PREVIEW_HEIGHT		56
 #define MIH_PREVIEW_GAP			10
+
+// A shape is shown twice: magnified, where its border and fill can be made out,
+// and beside that at the size the map draws it, in a pane of its own wide enough
+// for its caption. Each pane's caption sits along the bottom of the preview. The
+// magnified shape keeps clear of the frame and of the captions, and a preview
+// with less than the least room for it shows the marker at the map's size alone.
+#define MIH_PREVIEW_ACTUAL_WIDTH	96
+#define MIH_PREVIEW_ACTUAL_TEXT		"Actual scale"
+#define MIH_PREVIEW_MAGNIFIED_MIN	64
+#define MIH_PREVIEW_MAGNIFY_MOST	6
+#define MIH_PREVIEW_PAD				4
+#define MIH_PREVIEW_CAPTION_INSET	4
+#define MIH_PREVIEW_CAPTION_COLOR	Grey
 
 // Where the line in the preview starts: in from the bottom, and no further to
 // the left of the icon than this, so it keeps one slope however wide the preview.
@@ -155,24 +169,73 @@ void MapIconPreviewhook::OnDraw() {
 	int left = (int)GetX();
 	int top = (int)GetY();
 	Framehook::Draw(left, top, xSize, ySize, 0, BTNormal);
-	int cx = left + (int)xSize / 2;
-	int cy = top + (int)ySize / 2;
 	if (!style->Draws()) {
-		Texthook::Draw(cx, cy - MIH_TEXT_HEIGHT / 2, Center, 0, MIH_PREVIEW_EMPTY_COLOR,
-			MIH_PREVIEW_EMPTY_TEXT);
+		Texthook::Draw(left + (int)xSize / 2, top + ((int)ySize - MIH_TEXT_HEIGHT) / 2,
+			Center, 0, MIH_PREVIEW_EMPTY_COLOR, MIH_PREVIEW_EMPTY_TEXT);
 		Unlock();
 		return;
 	}
+
+	// The game's sprite is big enough to read as it is, and a preview too narrow
+	// for two panes keeps the one that is true to the map.
+	bool magnified = MapIcon::IsShape(style->Icon()) && style->Look().Draws() &&
+		xSize >= MIH_PREVIEW_ACTUAL_WIDTH + MIH_PREVIEW_MAGNIFIED_MIN;
+	if (!magnified) {
+		DrawPane(left, top, (int)xSize, (int)ySize, 1);
+		Unlock();
+		return;
+	}
+
+	int actualLeft = left + (int)xSize - MIH_PREVIEW_ACTUAL_WIDTH;
+	int captionTop = top + (int)ySize - MIH_PREVIEW_CAPTION_INSET - MIH_TEXT_HEIGHT;
+	int paneHeight = captionTop - top;
+	int magnifiedWidth = actualLeft - left;
+
+	bool bordered = style->borderColor != MapIcon::NoColor;
+	MapIcon::Rect bounds = MapIcon::Extent(MapIcon::Rasterize(style->Icon(),
+		style->size, bordered ? style->borderWidth : 0));
+	unsigned int scale = MapIcon::FitScale(bounds,
+		magnifiedWidth - 2 * MIH_PREVIEW_PAD, paneHeight - MIH_PREVIEW_PAD,
+		MIH_PREVIEW_MAGNIFY_MOST);
+
+	DrawPane(left, top, magnifiedWidth, paneHeight, scale);
+	Texthook::Draw(left + MIH_PREVIEW_CAPTION_INSET, captionTop, None, 0,
+		MIH_PREVIEW_CAPTION_COLOR, "%ux", scale);
+
+	Boxhook::Draw(actualLeft, top + MIH_PREVIEW_PAD, 1, ySize - 2 * MIH_PREVIEW_PAD,
+		UI_SURFACE_RULE, BTNormal);
+	DrawPane(actualLeft + 1, top, MIH_PREVIEW_ACTUAL_WIDTH - 1, paneHeight, 1);
+	Texthook::Draw(actualLeft + MIH_PREVIEW_ACTUAL_WIDTH / 2, captionTop, Center, 0,
+		MIH_PREVIEW_CAPTION_COLOR, MIH_PREVIEW_ACTUAL_TEXT);
+	Unlock();
+}
+
+// The marker in the middle of a patch of the preview, each of its pixels drawn
+// scale pixels square, with its line running in from the bottom left.
+void MapIconPreviewhook::DrawPane(int left, int top, int width, int height,
+		unsigned int scale) {
+	int cx = left + width / 2;
+	int cy = top + height / 2;
 	// Drawn first so the icon sits on top of it, as it does on the map.
 	if (style->line) {
-		int fromX = cx - MIH_PREVIEW_LINE_RUN;
+		int fromX = cx - MIH_PREVIEW_LINE_RUN * (int)scale;
 		if (fromX < left + MIH_PREVIEW_LINE_INSET)
 			fromX = left + MIH_PREVIEW_LINE_INSET;
-		Linehook::Draw(fromX, top + (int)ySize - MIH_PREVIEW_LINE_INSET, cx, cy,
-			style->lineColor);
+		int fromY = top + height - MIH_PREVIEW_LINE_INSET;
+		// As many pixels thick as the pane is magnified: that many lines, stacked
+		// across whichever way the line runs least, so they lie side by side
+		// instead of along one another.
+		bool shallow = (cx - fromX) > (fromY - cy);
+		for (int i = 0; i < (int)scale; i++) {
+			int offset = i - (int)scale / 2;
+			int dx = shallow ? 0 : offset, dy = shallow ? offset : 0;
+			Linehook::Draw(fromX + dx, fromY + dy, cx + dx, cy + dy, style->lineColor);
+		}
 	}
-	MapIcon::Draw(style->Icon(), style->size, cx, cy, style->Look());
-	Unlock();
+	if (scale > 1)
+		MapIcon::DrawMagnified(style->Icon(), style->size, scale, cx, cy, style->Look());
+	else
+		MapIcon::Draw(style->Icon(), style->size, cx, cy, style->Look());
 }
 
 /* MapIconContent

@@ -40,13 +40,16 @@ namespace MapIcon {
 			return found->second;
 		}
 
-		void DrawRects(const std::vector<Rect>& rects, int x, int y, unsigned int color) {
+		void DrawRects(const std::vector<Rect>& rects, int x, int y, unsigned int color,
+				int scale) {
 			for (const Rect& rect : rects)
-				D2GFX_DrawRectangle(x + rect.x, y + rect.y, x + rect.x + rect.width,
-					y + rect.y + rect.height, color, Drawing::BTHighlight);
+				D2GFX_DrawRectangle(x + rect.x * scale, y + rect.y * scale,
+					x + (rect.x + rect.width) * scale, y + (rect.y + rect.height) * scale,
+					color, Drawing::BTHighlight);
 		}
 
-		void DrawShape(Icon icon, unsigned int size, int x, int y, const Look& look) {
+		void DrawShape(Icon icon, unsigned int size, int x, int y, const Look& look,
+				int scale) {
 			if (!look.Draws())
 				return;
 			// Without a border the fill is the whole shape, and without a fill the
@@ -54,9 +57,9 @@ namespace MapIcon {
 			bool bordered = look.border != NoColor;
 			const Raster& raster = Cached(icon, size, bordered ? look.borderWidth : 0);
 			if (look.fill != NoColor)
-				DrawRects(raster.fill, x, y, look.fill);
+				DrawRects(raster.fill, x, y, look.fill, scale);
 			if (bordered)
-				DrawRects(raster.border, x, y, look.border);
+				DrawRects(raster.border, x, y, look.border, scale);
 		}
 
 		// A cell is drawn from the bottom left of its frame. The super chest's
@@ -71,7 +74,13 @@ namespace MapIcon {
 		if (icon == Chest)
 			DrawCell(ChestCell, x - ChestCentreX, y + ChestCentreY);
 		else
-			DrawShape(icon, size, x, y, look);
+			DrawShape(icon, size, x, y, look, 1);
+	}
+
+	void DrawMagnified(Icon icon, unsigned int size, unsigned int scale, int x, int y,
+			const Look& look) {
+		if (IsShape(icon))
+			DrawShape(icon, size, x, y, look, scale < 1 ? 1 : (int)scale);
 	}
 
 	void DrawAt(Icon icon, unsigned int size, int worldX, int worldY,
@@ -93,7 +102,7 @@ namespace MapIcon {
 		}
 		POINT point;
 		Drawing::Hook::ScreenToAutomap(&point, worldX, worldY);
-		DrawShape(icon, size, point.x, point.y, look);
+		DrawShape(icon, size, point.x, point.y, look, 1);
 	}
 
 	// Kept as the rasters are, for the monster X drawn for every monster.

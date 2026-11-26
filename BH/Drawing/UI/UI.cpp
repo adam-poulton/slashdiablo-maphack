@@ -488,7 +488,7 @@ void UI::DrawFooterRule() {
 	if (!footerLeft)
 		return;
 	unsigned int ruleY = GetY() + GetYSize() - GetFooterBandHeight();
-	Boxhook::Draw(chrome->GetX(), ruleY, chrome->GetXSize(), 1, Grey, BTNormal);
+	Boxhook::Draw(chrome->GetX(), ruleY, chrome->GetXSize(), 1, UI_SURFACE_RULE, BTNormal);
 }
 
 void UI::SetResizing(bool state, bool write_file) {
@@ -615,9 +615,13 @@ void UI::OnDraw() {
 			DragResizeTo(Hook::GetMouseX(), Hook::GetMouseY());
 
 		LayoutChrome();
-		Framehook::Draw(GetX(), GetY(), GetXSize(), GetYSize(), 0, (IsActive()?BTNormal:BTOneHalf));
+		Framehook::Draw(GetX(), GetY(), GetXSize(), GetYSize(), 0, BTNormal);
 		Framehook::Draw(GetX(), GetY(), GetXSize(), TITLE_BAR_HEIGHT, 0, BTNormal);
-		Texthook::Draw(GetX() + 4, GetY() + 3, false, 0, InTitle(Hook::GetMouseX(), Hook::GetMouseY())?Silver:White, GetName());
+		// The panel is solid whether or not the window has focus, so the title
+		// is what says which window the keyboard is in.
+		TextColor titleColor = InTitle(Hook::GetMouseX(), Hook::GetMouseY()) ? Silver :
+			(IsActive() ? White : Grey);
+		Texthook::Draw(GetX() + 4, GetY() + 3, false, 0, titleColor, GetName());
 		for (list<UITab*>::iterator it = Tabs.begin(); it != Tabs.end(); it++)
 			(*it)->OnDraw();
 		DrawChrome();
@@ -724,6 +728,7 @@ bool UI::OnLeftClick(bool up, unsigned int mouseX, unsigned int mouseY) {
 			{
 				if (up) {
 					SetMinimized(false);
+					SetActive(true);
 					Sort(this);
 				}
 				return true;

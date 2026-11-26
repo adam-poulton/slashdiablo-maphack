@@ -3,9 +3,10 @@
 
 using namespace Drawing;
 
-// The rail is a dark groove and the thumb a lighter fill on top of it, inset by a
-// pixel so a sliver of the rail shows either side of it. Palette indices are from
-// the same set the automap markers are drawn with.
+// The rail is a tone just off the panel behind it, so it reads as a groove rather
+// than as another object; the thumb is a solid fill on top of it, inset by a pixel so
+// a sliver of the rail shows either side of it. Palette indices are from the same
+// set the automap markers are drawn with.
 #define SCROLLBAR_WIDTH			5
 #define SCROLLBAR_GAP			3
 #define SCROLLBAR_WHEEL_ROWS	3
@@ -61,8 +62,7 @@ unsigned int Scrollbar::ScrollForThumbTop(int thumbTop, unsigned int travel,
 void Scrollbar::Draw(unsigned int barLeft, unsigned int trackTop,
 		unsigned int trackHeight, unsigned int thumbTop, unsigned int thumbHeight,
 		bool lit) {
-	Boxhook::Draw(barLeft, trackTop, SCROLLBAR_WIDTH, trackHeight, UI_BAND_COLOR,
-		BTNormal);
+	Boxhook::Draw(barLeft, trackTop, SCROLLBAR_WIDTH, trackHeight, UI_SURFACE_WELL, BTNormal);
 	Boxhook::Draw(barLeft + SCROLLBAR_THUMB_INSET, thumbTop,
 		SCROLLBAR_WIDTH - (2 * SCROLLBAR_THUMB_INSET), thumbHeight,
 		lit ? SCROLLBAR_THUMB_LIT : SCROLLBAR_THUMB, BTNormal);

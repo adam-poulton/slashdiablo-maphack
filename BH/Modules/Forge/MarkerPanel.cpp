@@ -47,7 +47,7 @@ static_assert(MM_ROW_HEIGHT >= MapIcon::ChestHeight + 4,
 // Either side of the rule between the list and the editor, which is drawn as the
 // footer's is.
 #define MM_DIVIDER_GAP		8
-#define MM_DIVIDER_COLOR	Grey
+#define MM_DIVIDER_COLOR	UI_SURFACE_RULE
 
 // The widest the editor is laid out. Past it the preview only gets emptier.
 #define MM_DETAIL_MAX		360
@@ -65,6 +65,7 @@ static_assert(MM_ROW_HEIGHT >= MapIcon::ChestHeight + 4,
 #define MM_ROW_HOVER		Tan
 #define MM_ROW_SELECTED		White
 #define MM_ROW_OFF			Grey
+#define MM_ROW_BAND			UI_SURFACE_BAND
 
 /* MarkerRowhook
  */
@@ -98,8 +99,7 @@ void MarkerRowhook::OnDraw() {
 	Lock();
 	bool chosen = (*selected == index);
 	if (chosen)
-		Boxhook::Draw(GetX(), GetY(), xSize, MM_ROW_HEIGHT, UI_BAND_COLOR,
-			BTNormal);
+		Boxhook::Draw(GetX(), GetY(), xSize, MM_ROW_HEIGHT, MM_ROW_BAND, BTNormal);
 
 	int iconX = (int)GetX() + MM_ROW_INSET + MM_ROW_ICON_CENTRE;
 	int centreY = (int)GetY() + MM_ROW_HEIGHT / 2;

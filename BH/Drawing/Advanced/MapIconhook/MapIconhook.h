@@ -46,12 +46,15 @@ namespace Drawing {
 			void OnDraw();
 	};
 
-	// The style as it will look on the automap: the icon at its real size on a
-	// patch of map, with its line running in to it from where the player might be.
+	// The style as it will look on the automap: the icon on a patch of map, with
+	// its line running in to it from where the player might be. A shape is shown
+	// magnified and, beside that, at its real size.
 	class MapIconPreviewhook : public Hook {
 		private:
 			MapIconStyle* style;
 			unsigned int xSize, ySize;
+
+			void DrawPane(int left, int top, int width, int height, unsigned int scale);
 		public:
 			MapIconPreviewhook(HookGroup* group, unsigned int x, unsigned int y,
 				MapIconStyle* style);
