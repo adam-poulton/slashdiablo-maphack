@@ -5,6 +5,7 @@
     python AgentHarness/bhctl.py launch ID [-- ARGS]  # start its game, hidden
     python AgentHarness/bhctl.py enter ID             # into a game in Normal
     python AgentHarness/bhctl.py input ID ACTION...   # click, type, press keys
+    python AgentHarness/bhctl.py drop ID --capture F  # an item lands, as recorded
     python AgentHarness/bhctl.py shot ID FILE.png     # screenshot the game
     python AgentHarness/bhctl.py state ID             # the screen, the character
     python AgentHarness/bhctl.py wait ID SCREEN...    # until the game shows one
@@ -51,6 +52,8 @@ import time
 import winreg
 import zlib
 from pathlib import Path
+
+import captures
 
 REPO = Path(__file__).resolve().parent.parent
 HARNESS_BIN = REPO / "AgentHarness" / "bin" / "Release"
@@ -169,18 +172,47 @@ def run_key(run_id):
     return rf"{RUNS_KEY}\{run_id}\HKCU"
 
 
-def create(bh_dll, settings=None):
+D2S_SIGNATURE = b"\x55\xaa\x55\xaa"
+D2S_VERSION = 96  # every version from 1.10 on, 1.13c's included
+
+
+def character_name(save):
+    """The name a character's save file holds, which the game also needs it to
+    be called, or why it is not a 1.13c character save."""
+    try:
+        data = Path(save).read_bytes()
+    except OSError as error:
+        raise HarnessError(f"cannot read the character {save}: {error.strerror}") from None
+    if len(data) < 36 or data[:4] != D2S_SIGNATURE:
+        raise HarnessError(f"{save} is not a character save (.d2s)")
+    version, size = struct.unpack_from("<II", data, 4)
+    if version != D2S_VERSION:
+        raise HarnessError(f"{save} is a save from another version of the game ({version}, not {D2S_VERSION})")
+    if size != len(data):
+        raise HarnessError(f"{save} is cut short: it says {size} bytes and holds {len(data)}")
+    name = data[20:36].split(b"\0")[0].decode("latin-1")
+    if not 2 <= len(name) <= 15:
+        raise HarnessError(f"{save} holds no character name")
+    return name
+
+
+def create(bh_dll, settings=None, character=None):
     """A new sandbox, with BH's shipped settings except for those given, a
-    dict of BH_settings.cfg keys to the values to write for them."""
+    dict of BH_settings.cfg keys to the values to write for them, and with the
+    character in the save file given, if one is. The run plays a copy: the
+    file itself is never written."""
     for name in BASE_FILES:
         if not (BASE / name).exists():
             raise HarnessError("the base is missing or incomplete: run `bhctl.py base` first")
     if not bh_dll.exists():
         raise HarnessError(f"no BH.dll at {bh_dll}")
+    character_file = character and f"{character_name(character)}.d2s"
 
     run_id = time.strftime("%Y%m%d-%H%M%S-") + secrets.token_hex(2)
     path = RUNS / run_id
     (path / "Save").mkdir(parents=True)
+    if character_file:
+        shutil.copyfile(character, path / "Save" / character_file)
     for name in BASE_FILES:
         os.link(BASE / name, path / name)
     for name, source in SANDBOX_COPIES.items():
@@ -631,6 +663,15 @@ def drawlog(run_id):
     return ask(run_id, {"cmd": "drawlog"})
 
 
+def drop(run_id, packet, offset=(0, 0)):
+    """Lands an item packet the server once sent (0x9C, an item on the ground)
+    offset from the character, in map tiles, as though the server had sent it
+    now: as an item of its own, through BH's item filter. The server knows
+    nothing of it, so it cannot be picked up. Returns the item's id and place,
+    and whether it landed, which it does not when the filter hides it."""
+    return ask(run_id, {"cmd": "drop", "packet": bytes(packet).hex(), "offset": list(offset)})
+
+
 def leave(run_id, timeout):
     """Leaves the game as Save and Exit does, and returns the screen once the
     menus are back: the main menu, in single player."""
@@ -651,10 +692,17 @@ OK_BUTTON = (690, 555)
 CLASS_PICK_SECONDS = 2
 
 
-def enter(run_id, name, timeout):
-    """From the main menu or the character list, into a single player game in
-    Normal: with the run's character if it has one, else with a new Sorceress
-    called name. Returns the game's state."""
+DIFFICULTIES = ("normal", "nightmare", "hell")
+DIFFICULTY_BUTTON_WIDTH = 272  # the three buttons on the difficulty screen, and no other button there
+
+
+def enter(run_id, name, timeout, difficulty="normal"):
+    """From the main menu or the character list, into a single player game:
+    with the run's character if it has one, else with a new Sorceress called
+    name. A character that has reached Nightmare is asked which difficulty,
+    and a new one plays Normal. Returns the game's state."""
+    if difficulty not in DIFFICULTIES:
+        raise HarnessError(f"a difficulty is one of {', '.join(DIFFICULTIES)}, not {difficulty!r}")
     screen = state(run_id)["screen"]
     if screen == "main_menu":
         send_input(run_id, [f"click:{SINGLE_PLAYER[0]},{SINGLE_PLAYER[1]}"])
@@ -662,12 +710,26 @@ def enter(run_id, name, timeout):
     if screen == "new_character":
         if not name.isalpha():
             raise HarnessError(f"a character name is letters only, not {name!r}")
+        if difficulty != "normal":
+            raise HarnessError(f"a new character plays Normal, not {difficulty.title()}")
         send_input(run_id, [f"click:{SORCERESS[0]},{SORCERESS[1]}", f"wait:{CLASS_PICK_SECONDS}",
                             f"text:{name}", f"click:{OK_BUTTON[0]},{OK_BUTTON[1]}"])
     elif screen == "character_list":
         send_input(run_id, [f"click:{OK_BUTTON[0]},{OK_BUTTON[1]}"])
     else:
         raise HarnessError(f"enter starts from main_menu or character_list, not {screen}")
+    reached = wait_screen(run_id, ["game", "difficulty"], timeout)
+    if reached["screen"] == "game":
+        if difficulty != "normal":
+            raise HarnessError(f"the character has not reached {difficulty.title()}: the game went straight into Normal")
+        return reached
+    buttons = sorted((c for c in reached["controls"]
+                      if c["type"] == "button" and c["rect"][2] == DIFFICULTY_BUTTON_WIDTH),
+                     key=lambda c: c["center"][1])
+    button = buttons[DIFFICULTIES.index(difficulty)]
+    if button["disabled"]:
+        raise HarnessError(f"the character has not reached {difficulty.title()}")
+    send_input(run_id, [f"click:{button['center'][0]},{button['center'][1]}"])
     return wait_screen(run_id, ["game"], timeout)
 
 
@@ -741,7 +803,7 @@ ACTIONS_HELP = """actions, run in order:
   key:NAME       press and release a key      down:NAME / up:NAME   hold, release
   text:STRING    type STRING as a keyboard would, into whatever has focus
   wait:SECONDS   pause, for the game to react
-  shot:FILE      screenshot to FILE.png, with any held keys still held
+  shot:FILE.png  screenshot to FILE.png, with any held keys still held
 NAME is a letter or digit, F1-F12, NUMPAD0-NUMPAD9, a virtual-key code as 0xNN,
 or one of: """ + ", ".join(sorted(k for k in KEYS if not k.startswith(("f", "numpad"))))
 
@@ -902,7 +964,10 @@ def validate_action(action):
             float(arg)
         except ValueError:
             raise HarnessError(f"{action!r}: expected wait:SECONDS") from None
-    elif kind not in ("text", "shot") or not arg:
+    elif kind == "shot":
+        if not arg.lower().endswith(".png"):
+            raise HarnessError(f"{action!r}: expected shot:FILE.png")
+    elif kind != "text" or not arg:
         raise HarnessError(f"unknown action {action!r}\n{ACTIONS_HELP}")
 
 
@@ -1085,6 +1150,27 @@ def setting(text):
     return key.strip(), value.strip()
 
 
+DROP_HELP = """The packet is one BH's item capture recorded ("Capture Item Drops: True" in
+BH_settings.cfg writes item-captures.txt): BHTests\\fixtures\\filter-cases.txt
+holds 1351 of them. The item lands where the offset puts it, named and coloured
+by the run's item filter, or not at all if the filter hides it."""
+
+
+def drop_packet(args):
+    """The packet the drop command was given, or the one it picked from a capture."""
+    if args.packet is not None:
+        if args.code or args.name or args.nth:
+            raise HarnessError("--code, --name and --nth pick from a --capture")
+        try:
+            return bytes.fromhex(args.packet)
+        except ValueError:
+            raise HarnessError("--packet is the item packet as hex") from None
+    try:
+        return captures.pick(captures.read_drops(args.capture), args.code, args.name, args.nth)["packet"]
+    except captures.CaptureError as error:
+        raise HarnessError(str(error)) from None
+
+
 def emit(value):
     print(value if isinstance(value, str) else json.dumps(value, indent=2, ensure_ascii=False))
 
@@ -1097,6 +1183,8 @@ def main():
     create_cmd.add_argument("--bh", type=Path, default=REPO / "AgentRelease" / "BH.dll")
     create_cmd.add_argument("--setting", type=setting, action="append", default=[], metavar="KEY=VALUE",
                             help="a BH_settings.cfg line to write in place of the shipped one; repeatable")
+    create_cmd.add_argument("--character", type=Path, metavar="FILE.d2s",
+                            help="play a copy of this character, for enter to pick from the character list")
     launch_cmd = commands.add_parser("launch")
     launch_cmd.add_argument("id")
     launch_cmd.add_argument("--lifetime", type=float, default=LIFETIME_SECONDS,
@@ -1104,7 +1192,18 @@ def main():
     enter_cmd = commands.add_parser("enter")
     enter_cmd.add_argument("id")
     enter_cmd.add_argument("--name", default="Agent", help="for a new character: letters only")
+    enter_cmd.add_argument("--difficulty", choices=DIFFICULTIES, default="normal")
     enter_cmd.add_argument("--timeout", type=float, default=60)
+    drop_cmd = commands.add_parser("drop", epilog=DROP_HELP, formatter_class=argparse.RawDescriptionHelpFormatter)
+    drop_cmd.add_argument("id")
+    source = drop_cmd.add_mutually_exclusive_group(required=True)
+    source.add_argument("--packet", metavar="HEX", help="the item packet itself")
+    source.add_argument("--capture", type=Path, metavar="FILE", help="an item capture to take a drop from")
+    drop_cmd.add_argument("--code", help="with --capture: a drop of this item code")
+    drop_cmd.add_argument("--name", help="with --capture: a drop with this in its name")
+    drop_cmd.add_argument("--nth", type=int, default=0, help="with --capture: which of those, from 0")
+    drop_cmd.add_argument("--offset", type=lambda s: tuple(int(v) for v in s.split(",")), default=(0, 0),
+                          metavar="DX,DY", help="from the character, in map tiles")
     input_cmd = commands.add_parser("input", epilog=ACTIONS_HELP, formatter_class=argparse.RawDescriptionHelpFormatter)
     input_cmd.add_argument("id")
     input_cmd.add_argument("actions", nargs="+")
@@ -1148,7 +1247,7 @@ def main():
         if args.command == "base":
             build_base()
         elif args.command == "create":
-            emit(create(args.bh, dict(args.setting)))
+            emit(create(args.bh, dict(args.setting), args.character))
             for key, _ in args.setting:
                 if key not in shipped_settings_keys():
                     print(f"note: {key!r} is not in the shipped BH_settings.cfg; it was added, "
@@ -1156,7 +1255,9 @@ def main():
         elif args.command == "launch":
             emit(launch(args.id, game_args or ["-w", "-ns"], args.lifetime))
         elif args.command == "enter":
-            emit(enter(args.id, args.name, args.timeout)["game"])
+            emit(enter(args.id, args.name, args.timeout, args.difficulty)["game"])
+        elif args.command == "drop":
+            emit(drop(args.id, drop_packet(args), args.offset))
         elif args.command == "input":
             send_input(args.id, args.actions)
         elif args.command == "shot":

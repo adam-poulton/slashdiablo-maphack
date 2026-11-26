@@ -110,7 +110,7 @@ class ReadingScenarios(unittest.TestCase):
         self.assertRefused(scenario_with({"do": ["key:hyper"]}), "unknown key")
         self.assertRefused(scenario_with({"do": ["fly:1"]}), "unknown action")
         self.assertRefused(scenario_with({"wait": "game", "count": 1}), "does not take count")
-        self.assertRefused(scenario_with({"check": "x"}), 'a check has "state", "drawn" or both')
+        self.assertRefused(scenario_with({"check": "x"}), 'a check has "state", and "drawn" or "item"')
         self.assertRefused(scenario_with({"check": "x", "drawn": {"txt": "a"}}), "no field 'txt'")
         self.assertRefused(scenario_with({"check": "x", "drawn": {"kind": "circle"}}), '"kind"')
         self.assertRefused(scenario_with({"check": "x", "drawn": {"rect": [1, 2, 3]}}), '"rect"')
@@ -120,6 +120,37 @@ class ReadingScenarios(unittest.TestCase):
                            "unknown key")
         self.assertRefused(scenario_with({"shot": "../x"}), "a name of letters")
         self.assertRefused(scenario_with({"leave": "yes"}), '"leave" is true')
+
+    def test_a_scenario_can_play_a_character_in_a_difficulty_it_has_reached(self):
+        loaded = scenario.load_scenario(scenario_with({"leave": True}, character="fixtures/Hero.d2s",
+                                                      difficulty="hell"))
+        self.assertEqual((loaded["character"], loaded["difficulty"]), ("fixtures/Hero.d2s", "hell"))
+        self.assertIsNone(scenario.load_scenario(scenario_with({"leave": True}))["character"])
+
+    def test_a_character_is_refused_alongside_a_new_ones_name_or_a_new_one_out_of_normal(self):
+        self.assertRefused(scenario_with({"leave": True}, character="Hero.d2s", name="Hero"), '"name" names')
+        self.assertRefused(scenario_with({"leave": True}, difficulty="hell"), "a new character plays Normal")
+        self.assertRefused(scenario_with({"leave": True}, character="Hero.d2s", difficulty="easy"), '"difficulty"')
+        self.assertRefused(scenario_with({"leave": True}, character=""), '"character"')
+
+    def test_drops_and_item_checks_are_read(self):
+        scenario.load_scenario(scenario_with(
+            {"drop": {"capture": "BHTests/fixtures/filter-cases.txt", "code": "rin", "nth": 2}, "offset": [2, -1]},
+            {"drop": {"packet": "9c0016"}},
+            {"check": "the ring lies there", "item": {"code": "rin", "contains": "Ring"}, "count": 1,
+             "hold": ["alt"]}))
+
+    def test_a_drop_or_item_check_is_refused_with_its_reason(self):
+        self.assertRefused(scenario_with({"drop": {}}), 'a "capture" to pick from or a "packet"')
+        self.assertRefused(scenario_with({"drop": {"capture": "c.txt", "packet": "9c"}}), "one of them")
+        self.assertRefused(scenario_with({"drop": {"packet": "9c0", }}), "as hex")
+        self.assertRefused(scenario_with({"drop": {"packet": "9c", "code": "rin"}}), "pick from a")
+        self.assertRefused(scenario_with({"drop": {"capture": "c.txt", "nth": -1}}), '"nth"')
+        self.assertRefused(scenario_with({"drop": {"capture": "c.txt", "quality": "unique"}}), "does not take quality")
+        self.assertRefused(scenario_with({"drop": {"capture": "c.txt"}, "offset": [1]}), '"offset"')
+        self.assertRefused(scenario_with({"check": "x", "item": {"colour": 3}}), "no field 'colour'")
+        self.assertRefused(scenario_with({"check": "x", "item": {"code": "rin"}, "drawn": {"text": "a"}}),
+                           '"drawn" or "item", not both')
 
 
 class StateChecks(unittest.TestCase):
@@ -190,6 +221,51 @@ class DrawnChecks(unittest.TestCase):
                          'at least one item with text "Codex", font 0')
         self.assertEqual(scenario.describe_matcher({"kind": "box"}, 0), 'no item with kind "box"')
         self.assertEqual(scenario.describe_matcher({"kind": "box"}, 2), 'exactly 2 items with kind "box"')
+
+
+RING = {"id": 2130706433, "code": "rin", "name": "ÿc5T6 ÿc3Ringÿc3", "position": [4876, 4230]}
+SCROLL = {"id": 2130706432, "code": "isc", "name": "ÿc:+ ÿc0ID", "position": [4875, 4230]}
+GROUND = [SCROLL, RING]
+
+
+class ItemChecks(unittest.TestCase):
+    def test_an_item_is_named_as_a_player_reads_it(self):
+        self.assertTrue(scenario.check_items({"code": "rin", "name": "T6 Ring"}, None, GROUND)[0])
+        self.assertFalse(scenario.check_items({"code": "rin", "name": "Ring"}, None, GROUND)[0])
+
+    def test_every_field_given_must_match(self):
+        self.assertEqual(scenario.check_items({"contains": "Ring", "id": RING["id"]}, None, GROUND)[1], [RING])
+        self.assertFalse(scenario.check_items({"contains": "Ring", "code": "isc"}, None, GROUND)[0])
+
+    def test_count_zero_means_it_is_not_on_the_ground(self):
+        self.assertTrue(scenario.check_items({"code": "amu"}, 0, GROUND)[0])
+        self.assertFalse(scenario.check_items({"code": "rin"}, 0, GROUND)[0])
+
+    def test_a_check_that_found_nothing_shows_the_items_most_like_it(self):
+        self.assertEqual(scenario.near_item_misses({"code": "rin", "name": "T5 Ring"}, GROUND), [RING])
+        self.assertEqual(scenario.near_item_misses({"contains": "id"}, GROUND), [SCROLL])
+
+    def test_an_item_is_described_by_its_code_name_and_place(self):
+        self.assertEqual(scenario.describe_ground_item(RING), 'rin "T6 Ring" at 4876,4230, id 2130706433')
+        self.assertEqual(scenario.describe_item_matcher({"code": "rin"}, 0), 'no item on the ground with code "rin"')
+
+
+class ResolvingDrops(unittest.TestCase):
+    def test_a_drop_is_picked_from_its_capture_before_the_game_starts(self):
+        loaded = scenario.load_scenario(scenario_with(
+            {"drop": {"capture": "BHTests/fixtures/filter-cases.txt", "code": "rin"}}, {"leave": True},
+            {"drop": {"packet": "9c0016"}}))
+        drops = scenario.resolve_drops(loaded)
+        packet, dropped = drops[1]
+        self.assertEqual((packet[0], dropped["code"], dropped["name"]), (0x9C, "rin", "ring"))
+        self.assertEqual(dropped["capture"], "BHTests\\fixtures\\filter-cases.txt")
+        self.assertEqual(drops[3], (b"\x9c\x00\x16", {"packet": "9c0016"}))
+
+    def test_a_drop_the_capture_lacks_is_refused_with_its_step(self):
+        loaded = scenario.load_scenario(scenario_with(
+            {"leave": True}, {"drop": {"capture": "BHTests/fixtures/filter-cases.txt", "code": "zzz"}}))
+        with self.assertRaisesRegex(HarnessError, "step 2: the capture has 0 drops with code 'zzz'"):
+            scenario.resolve_drops(loaded)
 
 
 class Marking(unittest.TestCase):
@@ -299,6 +375,31 @@ class Reports(unittest.TestCase):
         records[1].update(outcome="failed", found=[], near_misses=[SETTINGS_TEXT])
         text = scenario.render_markdown(self.report(records))
         self.assertIn("Found 0.\n\nWhat read most like it, outlined in yellow:\n- text \"Settings\"", text)
+
+    def drop_report(self, **landing):
+        steps = [{"drop": {"capture": "BHTests/fixtures/filter-cases.txt", "code": "rin"}, "offset": [2, 0]},
+                 {"check": "the ring lies there", "item": {"code": "rin", "name": "T6 Ring"}}]
+        records = [{"index": 1, "outcome": "done", "id": RING["id"], "position": [4876, 4230], "landed": True,
+                    "dropped": {"capture": "BHTests\\fixtures\\filter-cases.txt", "line": 6533, "code": "rin",
+                                "name": "ring"}, **landing},
+                   {"index": 2, "outcome": "passed", "check": "the ring lies there", "found_items": [RING],
+                    "ground_items": 2, "looked_for": 'at least one item on the ground with code "rin"',
+                    "evidence": ["02-the-ring-lies-there.png"]}]
+        return self.report(records, character="AgentHarness/fixtures/Hero.d2s", difficulty="hell",
+                           steps=steps)
+
+    def test_a_drop_says_what_it_was_and_where_it_landed(self):
+        text = scenario.render_markdown(self.drop_report())
+        self.assertIn("### 1. drop from `BHTests/fixtures/filter-cases.txt`, code `rin`, 2,0 from the character",
+                      text)
+        self.assertIn('`rin` "ring", recorded at line 6533 of `BHTests\\fixtures\\filter-cases.txt`, landed at'
+                      ' 4876,4230 as item 2130706433.', text)
+        self.assertIn("Found 1:\n- rin \"T6 Ring\" at 4876,4230, id 2130706433", text)
+        self.assertIn("| Character | `AgentHarness/fixtures/Hero.d2s`, in Hell |", text)
+
+    def test_a_drop_the_filter_hid_says_so(self):
+        text = scenario.render_markdown(self.drop_report(landed=False))
+        self.assertIn("did not land at 4876,4230: BH's item filter stopped it", text)
 
     def test_evidence_files_are_named_from_the_check(self):
         self.assertEqual(scenario.slug("The Codex button sits under Settings!"), "the-codex-button-sits-under-settings")

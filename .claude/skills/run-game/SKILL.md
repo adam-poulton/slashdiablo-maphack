@@ -8,7 +8,7 @@ description: Run Diablo II with a BH build yourself, hidden and sandboxed, to ch
 `AgentHarness/bhctl.py` runs single player Diablo II in a sandbox on a hidden
 desktop: nothing appears on the user's screen, and nothing reaches their installs,
 saves or settings. The game runs the agent build of BH, which says what is on
-screen and records everything BH draws. ADRs 0011 to 0013 are why it works this
+screen and records everything BH draws. ADRs 0011 to 0014 are why it works this
 way; `AgentHarness/README.md` is the reference for every command and the
 scenario format.
 
@@ -20,10 +20,15 @@ scenario format.
    MSBuild is found with vswhere, as in the README. A missing base is reported
    by the first command, with what to run.
 2. **Write a scenario** for what the change should do: each claim a `check`, on
-   `state` for what the game is doing and on `drawn` for what BH shows and
-   exactly where. Put it in your scratchpad, or in `AgentHarness\scenarios\` if
-   it is worth running again. `scenarios\smoke.json` is a worked example. When
-   you do not yet know what to check, look first (below).
+   `state` for what the game is doing, on `drawn` for what BH shows and exactly
+   where, and on `item` for what lies on the ground and the name the item filter
+   gave it. A `drop` step lands an item the item capture recorded
+   (`BHTests\fixtures\filter-cases.txt` has 1351). A change that needs a
+   particular character plays a `character` save from `AgentHarness\fixtures\`;
+   when none there fits, ask the user for one rather than making do. Put the
+   scenario in your scratchpad, or in `AgentHarness\scenarios\` if it is worth
+   running again: `smoke.json` and `item-drops.json` there are worked examples.
+   When you do not yet know what to check, look first (below).
 3. **Run it**: `python AgentHarness\bhctl.py scenario FILE.json`. It tears its
    run down whatever happens and prints where the report is.
 4. **Read the report**: `report.md`, then the marked screenshots of each check
@@ -41,12 +46,12 @@ scenario format.
 To explore before writing checks, drive a run by hand:
 
 ```powershell
-$id = python AgentHarness\bhctl.py create     # --setting "KEY=VALUE" to change one of BH's settings
+$id = python AgentHarness\bhctl.py create     # --setting "KEY=VALUE", --character FILE.d2s
 python AgentHarness\bhctl.py launch $id       # returns at the main menu
-python AgentHarness\bhctl.py enter $id        # into a game in Normal
+python AgentHarness\bhctl.py enter $id        # into a game in Normal, or --difficulty
 ```
 
-then loop on `state`, `drawlog --out FILE`, `shot FILE.png` and `input`, keeping
+then loop on `state`, `drawlog --out FILE`, `shot FILE.png`, `input` and `drop`, keeping
 the files in your scratchpad, and finish with `teardown $id`, every time,
 including after a failure. `scenario --keep` leaves a scenario's run up for the
 same.
@@ -62,7 +67,15 @@ same.
   shortcuts) are seen as held, but only within one `input` call or `do` step,
   which releases them at its end. A check that needs a key held says `hold`.
 - **Settings** are BH's shipped defaults (`Packaging/BH_settings.cfg`, which
-  also lists the hotkeys) and the game's defaults, not the user's.
+  also lists the hotkeys) and the game's defaults, not the user's, and the
+  item filter is the shipped `Packaging/BH.cfg`.
+- **BH's windows** start collapsed into bars at the bottom left. Ctrl+click a
+  bar to open its window (`down:ctrl`, `click:`, `up:ctrl`); numpad 8 also opens
+  Settings.
+- **The world** is the Rogue Encampment, with nothing on the ground until a
+  drop lands there. A dropped item exists only for the client: clicking it
+  does nothing, and the filter's own rules decide whether it shows, by the
+  character's level among other things.
 - **What the draw log holds** is everything BH draws, and nothing the game draws
   itself. A `frame` is the game's ornate border art, logged as the pixels it
   covers: one past each side of the box BH framed.

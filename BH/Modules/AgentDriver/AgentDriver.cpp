@@ -19,6 +19,7 @@
 #include "AgentKeys.h"
 #include "AgentScreen.h"
 #include "DrawLog.h"
+#include "ItemDrop.h"
 
 using nlohmann::json;
 
@@ -35,6 +36,19 @@ struct Request {
 };
 typedef std::shared_ptr<Request> RequestPtr;
 
+// A recorded item packet rewritten to land near the character, waiting for the
+// game loop, which is where the client takes in what the server sends.
+struct Drop {
+	RequestPtr request;
+	std::vector<unsigned char> packet;
+	DWORD id;
+	unsigned int x, y;
+};
+
+// Far above any id the server gives a unit in a game, so a dropped item is never
+// taken for one already in the world.
+constexpr DWORD kFirstDropId = 0x7F000000;
+
 bool serving = false;
 Agent::KeyState keys;
 
@@ -44,6 +58,8 @@ std::deque<RequestPtr> incoming;
 // Touched only on the game's thread.
 std::vector<RequestPtr> waitingForFrame;
 std::vector<RequestPtr> waitingForExit;
+std::vector<Drop> waitingForLoop;
+DWORD nextDropId = kFirstDropId;
 
 json Failure(const std::string& error) {
 	return {{"ok", false}, {"error", error}};
@@ -62,6 +78,28 @@ const Panel kPanels[] = {
 	{UI_CHAT_CONSOLE, "chat"}, {UI_ESCMENU_MAIN, "menu"}, {UI_NPCSHOP, "shop"}, {UI_QUEST, "quests"},
 	{UI_PARTY, "party"}, {UI_STASH, "stash"}, {UI_CUBE, "cube"}, {UI_MERC, "mercenary"},
 };
+
+// The items on the ground in the rooms the client has loaded, named as the game
+// names them on screen, which is after BH's item filter has had its say.
+json GroundItems(UnitAny* player) {
+	json items = json::array();
+	for (Room1* room = player->pAct->pRoom1; room; room = room->pRoomNext) {
+		for (UnitAny* unit = room->pUnitFirst; unit; unit = unit->pListNext) {
+			if (unit->dwType != UNIT_ITEM || !unit->pItemPath ||
+					(unit->dwMode != ITEM_MODE_ON_GROUND && unit->dwMode != ITEM_MODE_BEING_DROPPED))
+				continue;
+			wchar_t name[256] = L"";
+			D2CLIENT_GetItemName(unit, name, 256);
+			items.push_back({
+				{"id", unit->dwUnitId},
+				{"code", GetItemCode(unit->dwTxtFileNo)},
+				{"position", {unit->pItemPath->dwPosX, unit->pItemPath->dwPosY}},
+				{"name", ToUtf8(name)},
+			});
+		}
+	}
+	return items;
+}
 
 json GameState() {
 	if (!IsGameReady())
@@ -84,6 +122,7 @@ json GameState() {
 			panels.push_back(panel.name);
 	}
 	game["panels"] = panels;
+	game["items"] = GroundItems(player);
 	// Last, and with nothing read from the player after it: the call leaves the
 	// player unit pointer stale (see ScreenInfo::OnAutomapDraw).
 	if (const wchar_t* name = D2CLIENT_GetLevelName(area))
@@ -112,6 +151,43 @@ json FrameRecord(bool inGame) {
 	return {{"ok", true}, {"screen", inGame ? "game" : "menu"}, {"items", items}};
 }
 
+// Readies {"packet": HEX, "offset": [DX, DY]} to land that far from the
+// character, or says why it cannot.
+json PrepareDrop(const RequestPtr& request, Drop& drop) {
+	const json& body = request->body;
+	if (!body.contains("packet") || !body["packet"].is_string() ||
+			!Agent::BytesFromHex(body["packet"].get<std::string>(), drop.packet))
+		return Failure("a drop's \"packet\" is the item packet as hex");
+	json offset = body.value("offset", json::array({0, 0}));
+	if (!offset.is_array() || offset.size() != 2 || !offset[0].is_number_integer() ||
+			!offset[1].is_number_integer())
+		return Failure("a drop's \"offset\" is [dx, dy] from the character");
+
+	UnitAny* player = D2CLIENT_GetPlayerUnit();
+	drop.request = request;
+	drop.id = nextDropId++;
+	drop.x = (unsigned int)((int)player->pPath->xPos + offset[0].get<int>());
+	drop.y = (unsigned int)((int)player->pPath->yPos + offset[1].get<int>());
+	std::string wrong = Agent::PlaceDrop(drop.packet, drop.id, drop.x, drop.y);
+	if (!wrong.empty())
+		return Failure("cannot drop the packet: " + wrong);
+	return json();
+}
+
+// Hands a packet to the client as though the server had sent it, through the
+// same call the game loop makes for each batch it receives, BH's own packet
+// hook included.
+void ReceiveFromServer(std::vector<unsigned char>& packet) {
+	BYTE* bytes = packet.data();
+	DWORD byteCount = (DWORD)packet.size();
+	DWORD receive = D2CLIENT_ReceivePackets_I;
+	__asm {
+		mov eax, bytes
+		push byteCount
+		call receive
+	}
+}
+
 // Answers what can be answered now and parks what waits on a later frame or
 // the game loop. On the game's thread.
 void Dispatch(const RequestPtr& request, bool inGame) {
@@ -120,11 +196,19 @@ void Dispatch(const RequestPtr& request, bool inGame) {
 		request->reply.set_value(inGame ? GameState() : MenuState());
 	} else if (command == "drawlog") {
 		waitingForFrame.push_back(request);
-	} else if (command == "exit") {
-		if (inGame)
-			waitingForExit.push_back(request);
-		else
+	} else if (command == "exit" || command == "drop") {
+		if (!inGame || !IsGameReady()) {
 			request->reply.set_value(Failure("not in a game"));
+		} else if (command == "exit") {
+			waitingForExit.push_back(request);
+		} else {
+			Drop drop;
+			json failure = PrepareDrop(request, drop);
+			if (failure.is_null())
+				waitingForLoop.push_back(std::move(drop));
+			else
+				request->reply.set_value(failure);
+		}
 	} else {
 		request->reply.set_value(Failure("unknown command '" + command + "'"));
 	}
@@ -283,7 +367,20 @@ void AgentDriver::OnLoad() {
 }
 
 void AgentDriver::OnLoop() {
-	if (!serving || waitingForExit.empty())
+	if (!serving)
+		return;
+	// Dropped first, so a drop asked for with an exit lands before the game ends.
+	for (Drop& drop : waitingForLoop) {
+		ReceiveFromServer(drop.packet);
+		// The item filter hides an item by stopping its packet, and then there is
+		// no unit.
+		bool landed = D2CLIENT_FindServerSideUnit(drop.id, UNIT_ITEM) != NULL;
+		drop.request->reply.set_value({{"ok", true}, {"id", drop.id},
+			{"position", {drop.x, drop.y}}, {"landed", landed}});
+	}
+	waitingForLoop.clear();
+
+	if (waitingForExit.empty())
 		return;
 	D2CLIENT_ExitGame();
 	for (const RequestPtr& request : waitingForExit)

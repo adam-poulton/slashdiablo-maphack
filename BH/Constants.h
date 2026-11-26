@@ -102,6 +102,13 @@ enum TextColor {
 #define CONTROL_POPUP			0x0b
 #define CONTROL_ACCOUNTLIST		0x0c
 
+// Control::dwState, as a 1.13c client's control lists show it: an ordinary
+// button is 0x05, one that cannot be pressed (Convert to Expansion, for an
+// expansion character) 0x04, and the difficulty dialog's buttons 0x0D, or 0x0C
+// for a difficulty the character has not reached.
+#define CONTROL_STATE_ENABLED	0x01	// takes clicks
+#define CONTROL_STATE_DIALOG	0x08	// belongs to a dialog open over the screen
+
 //////////////////////////////////////////////////////////////////////
 // PVP Flags
 //////////////////////////////////////////////////////////////////////

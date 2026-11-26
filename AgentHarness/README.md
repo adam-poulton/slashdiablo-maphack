@@ -13,8 +13,9 @@ $msb = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe
 ```
 
 A sandbox runs the agent build of BH, Release with the driver that answers
-`state`, `wait`, `drawlog` and `leave` (ADR 0012). It builds into folders of its
-own, so it and Release can both be built without either rebuilding the other.
+`state`, `wait`, `drawlog`, `drop` and `leave` (ADR 0012). It builds into folders
+of its own, so it and Release can both be built without either rebuilding the
+other.
 
 ## Running
 
@@ -24,8 +25,9 @@ $id = python AgentHarness\bhctl.py create          # takes AgentRelease\BH.dll, 
 python AgentHarness\bhctl.py launch $id            # hidden, returns at the main menu
 python AgentHarness\bhctl.py enter $id             # a new Sorceress, into Normal
 python AgentHarness\bhctl.py input $id key:numpad8 wait:0.5 text:Name
+python AgentHarness\bhctl.py drop $id --capture BHTests\fixtures\filter-cases.txt --code rin --offset 3,2
 python AgentHarness\bhctl.py wait $id main_menu    # until the game shows that screen
-python AgentHarness\bhctl.py state $id             # the screen and its controls, or the character
+python AgentHarness\bhctl.py state $id             # the screen and its controls, or the character and the items around it
 python AgentHarness\bhctl.py drawlog $id           # everything BH drew in one frame
 python AgentHarness\bhctl.py shot $id out.png      # --crop X,Y,W,H for part of it
 python AgentHarness\bhctl.py leave $id             # save and exit the game
@@ -33,8 +35,29 @@ python AgentHarness\bhctl.py teardown $id          # always, when done
 ```
 
 `create --setting "KEY=VALUE"`, repeatable, writes a line of `BH_settings.cfg`
-in place of the shipped one. `input --help` lists every action. The `run-game`
-skill is the walkthrough for agents, from building to reporting.
+in place of the shipped one. `input --help` and `drop --help` list what they
+take. The `run-game` skill is the walkthrough for agents, from building to
+reporting.
+
+## Characters and drops
+
+A run plays a new level 1 Sorceress unless it is given a character:
+`create --character FILE.d2s` plays a copy of that save, which `enter` picks
+from the character list (`--difficulty nightmare` or `hell` for one that has
+reached it). The file itself is never written. Characters worth playing again
+are kept in `AgentHarness\fixtures\`.
+
+`drop` lands an item next to the character as though the server had just sent
+it: an item packet BH's item capture recorded ("Capture Item Drops: True"
+writes `item-captures.txt` beside BH's configs), given a unit of its own and a
+place `--offset` tiles away. It goes through BH's packet hook like any drop, so
+it is named, coloured, noted and put on the map by the run's item filter, and
+an item the filter hides never lands. `BHTests\fixtures\filter-cases.txt` holds
+1351 recorded drops. The server knows nothing of a dropped item, so clicking
+it does nothing.
+
+`state` lists the items on the ground with the name the game shows for each,
+which is the name the item filter gave it (ADR 0014).
 
 ## Scenarios
 
@@ -65,10 +88,15 @@ leaves the run up afterwards and prints its id.
 ```
 
 - `title` says what the scenario shows.
-- `start` is `game` (the default: a new Sorceress named `name`, default
-  `Agent`, in Normal) or `main_menu`.
+- `start` is `game` (the default) or `main_menu`.
+- `character` is a character save to play, as `create --character` takes it,
+  and `difficulty` the one to play it in (`normal`, the default, `nightmare` or
+  `hell`). Without one the game is a new Sorceress named `name`, default
+  `Agent`, in Normal.
 - `settings` maps `BH_settings.cfg` keys to values, as `create --setting` does.
   A key the shipped file does not set is added, and the report notes it.
+
+Paths in a scenario are from the repository's root unless absolute.
 
 Each step names one kind:
 
@@ -77,6 +105,7 @@ Each step names one kind:
 | `{"do": [ACTION, ...]}` | input, as `bhctl input` takes it |
 | `{"wait": SCREEN or [SCREEN, ...], "timeout": 60}` | until the game shows one |
 | `{"check": "what should be true", ...}` | a check, below |
+| `{"drop": {"capture": FILE, "code": CODE, "nth": N}, "offset": [dx, dy]}` | a recorded item lands, as `bhctl drop` lands it; `"name"` picks by name, and `{"packet": HEX}` gives the packet itself |
 | `{"shot": NAME, "crop": [x, y, w, h]}` | a screenshot for the report |
 | `{"drawlog": NAME}` | a draw log for the report |
 | `{"leave": true}` | save and exit the game |
@@ -95,14 +124,22 @@ Whatever the outcome, its screenshot goes in the report.
   `[x, y, w, h]`; a line's is the box around it) and `inside` (wholly within
   `[x, y, w, h]`). With `"count": N` exactly N items match, and `"count": 0`
   means nothing like it was drawn.
-- `"hold": [KEY, ...]` keeps keys held down while the check runs.
+- `"item": {FIELD: VALUE, ...}`: an item on the ground has every field given:
+  `code`, `name` (all of it as the game shows it, colour codes aside),
+  `contains` (part of the name) and `id`. `count` works as for `drawn`, so
+  `{"item": {"code": "aqv"}, "count": 0}` says the filter hid the arrows. A
+  check has `drawn` or `item`, not both.
+- `"hold": [KEY, ...]` keeps keys held down while the check runs: `["alt"]`
+  shows the items' names in its screenshot.
 
 What a check matched is outlined in magenta on its screenshot. A text check
 that matched nothing lists what read most like it, outlined in yellow, which is
 usually the right text a pixel or a colour away.
 
-`AgentHarness\scenarios\` holds scenarios worth running again. One written to
-check a single change can stay in a scratch folder.
+`AgentHarness\scenarios\` holds scenarios worth running again: `smoke.json`
+for BH loading and its settings, `item-drops.json` for the item filter on
+recorded drops. One written to check a single change can stay in a scratch
+folder.
 
 ## Tests
 

@@ -45,6 +45,13 @@ const std::vector<Button> kDifficulty = {
 	{264, 470, 272, 35},	// Hell
 	{33, 537, 128, 35},		// Cancel
 };
+// The same choice as single player asks it, in a dialog over the character
+// list, for a character that has finished Normal.
+const std::vector<Button> kDifficultyDialog = {
+	{264, 262, 272, 35},	// Normal
+	{264, 305, 272, 35},	// Nightmare
+	{264, 348, 272, 35},	// Hell
+};
 // The class choice, which is the same screen once a class is picked.
 const std::vector<Button> kNewCharacter = {
 	{33, 537, 128, 35},		// Exit
@@ -67,7 +74,8 @@ ControlShape ShapeOf(const Control* control) {
 	shape.y = (int)control->dwPosY - (int)control->dwSizeY;
 	shape.width = (int)control->dwSizeX;
 	shape.height = (int)control->dwSizeY;
-	shape.disabled = control->dwDisabled != 0;
+	shape.disabled = (control->dwState & CONTROL_STATE_ENABLED) == 0;
+	shape.inDialog = (control->dwState & CONTROL_STATE_DIALOG) != 0;
 	if (control->dwType == CONTROL_EDITBOX) {
 		const wchar_t* text = control->wText;
 		size_t length = 0;
@@ -109,18 +117,24 @@ nlohmann::json ToJson(const ControlShape& control) {
 		{"center", {control.x + control.width / 2, control.y + control.height / 2}},
 		{"disabled", control.disabled},
 	};
+	if (control.inDialog)
+		json["dialog"] = true;
 	if (control.type == CONTROL_EDITBOX)
 		json["text"] = ToUtf8(control.text);
 	return json;
 }
 
 std::string NameScreen(const std::vector<ControlShape>& controls) {
+	bool dialog = std::any_of(controls.begin(), controls.end(),
+		[](const ControlShape& control) { return control.inDialog; });
 	std::vector<Button> buttons;
 	for (const ControlShape& control : controls) {
-		if (control.type == CONTROL_BUTTON)
+		if (control.type == CONTROL_BUTTON && control.inDialog == dialog)
 			buttons.push_back({control.x, control.y, control.width, control.height});
 	}
 	buttons = Sorted(buttons);
+	if (dialog)
+		return buttons == Sorted(kDifficultyDialog) ? "difficulty" : "menu";
 	if (buttons == Sorted(kMainMenu))
 		return "main_menu";
 	if (buttons == Sorted(kCharacterList))

@@ -1,0 +1,16 @@
+{
+  "title": "Recorded drops land named by the item filter, and what it hides does not land",
+  "start": "game",
+  "steps": [
+    {"do": ["move:900,200"]},
+    {"drop": {"capture": "BHTests/fixtures/filter-cases.txt", "code": "rin"}, "offset": [3, 2]},
+    {"drop": {"capture": "BHTests/fixtures/filter-cases.txt", "code": "isc"}, "offset": [4, 2]},
+    {"drop": {"capture": "BHTests/fixtures/filter-cases.txt", "code": "aqv"}, "offset": [5, 2]},
+    {"check": "the ring is named with its tier",
+     "item": {"code": "rin", "name": "T6 Ring"}, "hold": ["alt"]},
+    {"check": "the Identify Scroll is shortened to ID",
+     "item": {"code": "isc", "name": "+ ID"}},
+    {"check": "the default filter level hides arrows",
+     "item": {"code": "aqv"}, "count": 0}
+  ]
+}

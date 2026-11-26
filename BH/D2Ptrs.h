@@ -362,6 +362,12 @@ ASMPTR(D2WIN, DrawTextBuffer, 0x12940, 0x134D0)
 
 ASMPTR(D2CLIENT, ParseStats_J, 0x54E10, 0x2CE40)
 
+#ifdef BH_AGENT
+// What the game loop hands each batch of packets from the server to: the batch
+// in eax and its length on the stack, which it pops.
+ASMPTR(D2CLIENT, ReceivePackets_I, 0xACE20, 0xACE20)
+#endif
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // D2Common Ordinals
 ////////////////////////////////////////////////////////////////////////////////////////////////

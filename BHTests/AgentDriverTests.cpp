@@ -7,6 +7,8 @@
 #include "Modules/AgentDriver/AgentScreen.h"
 #include "Modules/AgentDriver/DrawLog.h"
 #include "Drawing/Basic/Framehook/FrameArt.h"
+#include "Modules/AgentDriver/ItemDrop.h"
+#include "BitReader.h"
 #include "D2Structs.h"
 #include "Constants.h"
 
@@ -26,10 +28,12 @@ class Screen {
 		std::vector<std::unique_ptr<Control>> built;
 
 	public:
-		Control* Add(DWORD type, DWORD posX, DWORD posY, DWORD sizeX, DWORD sizeY) {
+		// An ordinary control unless given a state, as the client's lists show it.
+		Control* Add(DWORD type, DWORD posX, DWORD posY, DWORD sizeX, DWORD sizeY, DWORD state = 0x05) {
 			std::unique_ptr<Control> control(new Control());
 			std::memset(control.get(), 0, sizeof(Control));
 			control->dwType = type;
+			control->dwState = state;
 			control->dwPosX = posX;
 			control->dwPosY = posY;
 			control->dwSizeX = sizeX;
@@ -75,6 +79,17 @@ void AddPopup(Screen& screen) {
 	screen.Add(CONTROL_IMAGE, 268, 350, 264, 176);
 	screen.Add(CONTROL_BUTTON, 351, 337, 96, 32);
 	screen.Add(CONTROL_TEXTBOX, 268, 300, 264, 100);
+}
+
+// The difficulty dialog single player opens over the character list, for a
+// character that has finished Normal and not Nightmare.
+void AddDifficultyDialog(Screen& screen) {
+	screen.Add(CONTROL_IMAGE, 237, 400, 326, 200, 0x0D);
+	screen.Add(CONTROL_TEXTBOX, 264, 260, 272, 35, 0x0D);
+	screen.Add(CONTROL_BUTTON, 264, 297, 272, 35, 0x0D);
+	screen.Add(CONTROL_BUTTON, 264, 340, 272, 35, 0x0D);
+	screen.Add(CONTROL_BUTTON, 264, 383, 272, 35, 0x0C);
+	screen.Add(CONTROL_BUTTON, 900, 900, 10, 10);
 }
 
 }  // namespace
@@ -139,6 +154,34 @@ TEST_CASE("the difficulty choice is named") {
 	screen.Add(CONTROL_BUTTON, 264, 505, 272, 35);
 	screen.Add(CONTROL_BUTTON, 33, 572, 128, 35);
 	CHECK(Agent::NameScreen(screen.Shapes()) == "difficulty");
+}
+
+TEST_CASE("the difficulty dialog over the character list is named for its buttons") {
+	Screen screen;
+	BuildCharacterList(screen);
+	AddDifficultyDialog(screen);
+	CHECK(Agent::NameScreen(screen.Shapes()) == "difficulty");
+}
+
+TEST_CASE("a dialog that is not one the driver knows leaves the screen a menu") {
+	Screen screen;
+	BuildCharacterList(screen);
+	screen.Add(CONTROL_BUTTON, 351, 337, 96, 32, 0x0D);
+	CHECK(Agent::NameScreen(screen.Shapes()) == "menu");
+}
+
+TEST_CASE("a control says whether it takes clicks and whether it is in a dialog") {
+	Screen screen;
+	screen.Add(CONTROL_BUTTON, 233, 528, 168, 60, 0x04);
+	AddDifficultyDialog(screen);
+	std::vector<Agent::ControlShape> shapes = screen.Shapes();
+	CHECK(shapes[0].disabled);
+	CHECK_FALSE(shapes[0].inDialog);
+	CHECK_FALSE(shapes[3].disabled);
+	CHECK(shapes[3].inDialog);
+	CHECK(shapes[5].disabled);
+	CHECK(Agent::ToJson(shapes[3])["dialog"] == true);
+	CHECK_FALSE(Agent::ToJson(shapes[0]).contains("dialog"));
 }
 
 TEST_CASE("the class choice is named, and not with a popup over it") {
@@ -298,4 +341,73 @@ TEST_CASE("a line is reported by its ends") {
 	CHECK(json["from"] == nlohmann::json({3, 4}));
 	CHECK(json["to"] == nlohmann::json({30, 40}));
 	CHECK_FALSE(json.contains("rect"));
+}
+
+/*
+ * Putting an item a session recorded down again in a sandboxed game.
+ *
+ * The packet is the one the server sent when an Identify Scroll landed in the
+ * Worldstone Keep, as the item capture recorded it (fixtures/filter-cases.txt).
+ */
+
+namespace {
+
+const std::vector<unsigned char> kScrollDrop = {
+	0x9c, 0x00, 0x16, 0x10, 0x15, 0x01, 0x00, 0x00, 0x10, 0x20, 0xa0,
+	0x00, 0x65, 0x8c, 0xcb, 0xe3, 0xaa, 0x22, 0x6d, 0x6e, 0x0c, 0x04,
+};
+
+unsigned int BitsAt(const std::vector<unsigned char>& packet, unsigned int at, unsigned int count) {
+	BitReader reader(packet.data());
+	reader.offset = at;
+	return reader.read(count);
+}
+
+}  // namespace
+
+TEST_CASE("a recorded drop is given its own unit and a place on the ground") {
+	std::vector<unsigned char> packet = kScrollDrop;
+	CHECK(Agent::PlaceDrop(packet, 0x7F000001, 5123, 4321) == "");
+	CHECK(BitsAt(packet, 32, 32) == 0x7F000001);
+	CHECK(BitsAt(packet, 109, 16) == 5123);
+	CHECK(BitsAt(packet, 125, 16) == 4321);
+}
+
+TEST_CASE("placing a drop changes nothing else about the item") {
+	std::vector<unsigned char> packet = kScrollDrop;
+	Agent::PlaceDrop(packet, 0x7F000001, 5123, 4321);
+	for (unsigned int bit = 0; bit < packet.size() * 8; bit++) {
+		bool placed = (bit >= 32 && bit < 64) || (bit >= 109 && bit < 141);
+		if (!placed)
+			CHECK(BitsAt(packet, bit, 1) == BitsAt(kScrollDrop, bit, 1));
+	}
+}
+
+TEST_CASE("only an item packet for the ground can be placed") {
+	std::vector<unsigned char> other = kScrollDrop;
+	other[0] = 0x9d;
+	CHECK(Agent::PlaceDrop(other, 1, 1, 1) != "");
+
+	std::vector<unsigned char> stored = kScrollDrop;
+	stored[13] &= ~0x04;  // bit 106, the destination's lowest: 3 (ground) becomes 2
+	CHECK(Agent::PlaceDrop(stored, 1, 1, 1) != "");
+
+	std::vector<unsigned char> cut(kScrollDrop.begin(), kScrollDrop.begin() + 12);
+	CHECK(Agent::PlaceDrop(cut, 1, 1, 1) != "");
+
+	std::vector<unsigned char> mislabelled = kScrollDrop;
+	mislabelled.push_back(0);
+	CHECK(Agent::PlaceDrop(mislabelled, 1, 1, 1) != "");
+
+	std::vector<unsigned char> offMap = kScrollDrop;
+	CHECK(Agent::PlaceDrop(offMap, 1, 0x10000, 1) != "");
+}
+
+TEST_CASE("a packet arrives as hex, two digits to a byte") {
+	std::vector<unsigned char> bytes;
+	CHECK(Agent::BytesFromHex("9c0016Ab", bytes));
+	CHECK(bytes == std::vector<unsigned char>({0x9c, 0x00, 0x16, 0xab}));
+	CHECK_FALSE(Agent::BytesFromHex("9c0", bytes));
+	CHECK_FALSE(Agent::BytesFromHex("9g", bytes));
+	CHECK_FALSE(Agent::BytesFromHex("", bytes));
 }

@@ -133,6 +133,7 @@
     <ClCompile Include="..\BH\Modules\AgentDriver\AgentKeys.cpp" />
     <ClCompile Include="..\BH\Modules\AgentDriver\AgentScreen.cpp" />
     <ClCompile Include="..\BH\Modules\AgentDriver\DrawLog.cpp" />
+    <ClCompile Include="..\BH\Modules\AgentDriver\ItemDrop.cpp" />
     <ClCompile Include="..\BH\Modules\Shop\GambleMarks.cpp" />
     <ClCompile Include="..\BH\Modules\Shop\GambleRefresh.cpp" />
     <ClCompile Include="..\BH\Modules\Shop\ShopHighlights.cpp" />
