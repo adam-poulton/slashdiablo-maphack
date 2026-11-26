@@ -11,9 +11,6 @@ namespace Drawing {
 	#define COMBO_PADDING_TOP		3
 	#define COMBO_PADDING_BOTTOM	1
 
-	// The arrow on the right, in from the frame.
-	#define COMBO_ARROW_GAP			8
-
 	class Combohook : public Hook {
 		private:
 			std::vector<std::string> options;

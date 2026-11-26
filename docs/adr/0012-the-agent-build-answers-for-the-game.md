@@ -73,7 +73,8 @@ is not recorded, since it never calls through BH.
 
 The frame function takes its rectangle in `eax`, which no C calling convention
 passes, so its stand-in is written in assembly and keeps every register for the
-jump.
+jump. Its art does not land on that rectangle, so a frame is logged as the
+pixels the art covers (`FrameArt.h`), which is what a check of it can see.
 
 A recording runs from the end of one frame to the end of the next, which takes in
 the automap's drawing as well as the frame's, whichever the game does first.

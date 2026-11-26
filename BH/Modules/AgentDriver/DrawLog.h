@@ -38,8 +38,8 @@ namespace DrawLog {
 	// As D2GFX_DrawRectangle and D2GFX_DrawLine are called: by two corners.
 	void Box(int x1, int y1, int x2, int y2, unsigned int color, int trans);
 	void Line(int x1, int y1, int x2, int y2, unsigned int color);
-	// As D2CLIENT_DrawRectFrame is called: the RECT the game draws its border
-	// art around, which has no colour of its own.
+	// As D2CLIENT_DrawRectFrame is called, recorded as the box its art covers
+	// (see FrameArt.h). A frame has no colour of its own.
 	void Frame(int left, int top, int right, int bottom);
 }
 

@@ -1,4 +1,5 @@
 #include "Framehook.h"
+#include "FrameArt.h"
 #include "../../../Common.h"
 #include "../../../D2Ptrs.h"
 
@@ -17,8 +18,6 @@ bool GameBorderAvailable() {
 // window on the login screen still reads as a window, without the flourish.
 void DrawPlainEdges(unsigned int x, unsigned int y, unsigned int xSize,
 		unsigned int ySize, BoxTrans trans) {
-	if (xSize == 0 || ySize == 0)
-		return;
 	const unsigned int edge = 0xD0;
 	D2GFX_DrawRectangle(x, y, x + xSize, y + 1, edge, trans);
 	D2GFX_DrawRectangle(x, y + ySize - 1, x + xSize, y + ySize, edge, trans);
@@ -30,9 +29,12 @@ void DrawPlainEdges(unsigned int x, unsigned int y, unsigned int xSize,
 
 void Framehook::DrawBorder(unsigned int x, unsigned int y, unsigned int xSize,
 		unsigned int ySize, BoxTrans trans) {
+	if (xSize == 0 || ySize == 0)
+		return;
 	if (GameBorderAvailable()) {
-		RECT pRect = { static_cast<long>(x), static_cast<long>(y),
-			static_cast<long>(x + xSize), static_cast<long>(y + ySize) };
+		FrameRect frame = FrameRectFor({static_cast<int>(x), static_cast<int>(y),
+			static_cast<int>(xSize), static_cast<int>(ySize)});
+		RECT pRect = {frame.left, frame.top, frame.right, frame.bottom};
 		Framehook::DrawRectStub(&pRect);
 		return;
 	}

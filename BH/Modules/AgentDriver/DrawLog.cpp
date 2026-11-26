@@ -1,6 +1,7 @@
 #include "DrawLog.h"
 
 #include "../../StringUtil.h"
+#include "../../Drawing/Basic/Framehook/FrameArt.h"
 #include "../../Drawing/Basic/Texthook/TextMetrics.h"
 
 namespace Agent {
@@ -96,10 +97,11 @@ void Frame(int left, int top, int right, int bottom) {
 		return;
 	DrawRecord record;
 	record.kind = "frame";
-	record.x = left;
-	record.y = top;
-	record.width = right - left;
-	record.height = bottom - top;
+	Drawing::FrameBox box = Drawing::FrameBoxOf({left, top, right, bottom});
+	record.x = box.x;
+	record.y = box.y;
+	record.width = box.width;
+	record.height = box.height;
 	records.push_back(std::move(record));
 }
 

@@ -17,6 +17,7 @@ GitHub pre-release with the notes under `# Unreleased`.
 * Gamble refresh keeps the gamble window on screen while it refreshes, instead of flickering out to the world and back.
 * Gamble refresh now says why it stopped when the NPC is out of reach or does not answer, instead of a bare timeout.
 * Fix rare crashes when shift-clicking or ctrl-clicking items to move or identify them while items are being moved.
+* Fix the gold frame around BH's windows, buttons and boxes sitting a pixel right of the box it surrounds. It now sits evenly on every side, checkboxes show their whole frame, and a window at the edge of the screen keeps all of its frame in view.
 
 # Release Notes for 1.10.1 (2026-10-04)
 * Add stat filter conditions to the codex.

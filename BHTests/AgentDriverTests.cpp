@@ -6,6 +6,7 @@
 #include "Modules/AgentDriver/AgentKeys.h"
 #include "Modules/AgentDriver/AgentScreen.h"
 #include "Modules/AgentDriver/DrawLog.h"
+#include "Drawing/Basic/Framehook/FrameArt.h"
 #include "D2Structs.h"
 #include "Constants.h"
 
@@ -269,12 +270,23 @@ TEST_CASE("text is placed by its top, where it was drawn by its baseline") {
 	CHECK(json["text"] == "Codex");
 }
 
-TEST_CASE("a frame is reported by the rectangle it borders, with no colour") {
+TEST_CASE("a frame's art reaches the same way past every side of the box it borders") {
+	const int out = Drawing::kFrameOutset;
+	Drawing::FrameBox box = {234, 566, 46, 15};
+	Drawing::FrameBox art = Drawing::FrameBoxOf(Drawing::FrameRectFor(box));
+	CHECK(out == 1);
+	CHECK(art.x == box.x - out);
+	CHECK(art.y == box.y - out);
+	CHECK(art.width == box.width + 2 * out);
+	CHECK(art.height == box.height + 2 * out);
+}
+
+TEST_CASE("a frame is reported by the box its art covers, with no colour") {
 	Agent::DrawLog::Begin();
-	Agent::DrawLog::Frame(234, 566, 280, 581);
+	Agent::DrawLog::Frame(232, 566, 279, 581);
 	nlohmann::json json = Agent::ToJson(Agent::DrawLog::End()[0]);
 	CHECK(json["kind"] == "frame");
-	CHECK(json["rect"] == nlohmann::json({234, 566, 46, 15}));
+	CHECK(json["rect"] == nlohmann::json({233, 565, 48, 17}));
 	CHECK_FALSE(json.contains("color"));
 	CHECK_FALSE(json.contains("trans"));
 }

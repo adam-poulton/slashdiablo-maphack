@@ -64,8 +64,8 @@ same.
 - **Settings** are BH's shipped defaults (`Packaging/BH_settings.cfg`, which
   also lists the hotkeys) and the game's defaults, not the user's.
 - **What the draw log holds** is everything BH draws, and nothing the game draws
-  itself. A `frame` is the game's ornate border art drawn around a rectangle BH
-  gives it, so the art's own pixels can stray from that rectangle.
+  itself. A `frame` is the game's ornate border art, logged as the pixels it
+  covers: one past each side of the box BH framed.
 - **Stopping a game** is `teardown`, or the end of a scenario. The user's own
   clients are `Game.exe` too, so a game is never ended by name. A run also ends
   itself after an hour.
