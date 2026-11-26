@@ -4,7 +4,6 @@
 #include "../../Basic/Boxhook/Boxhook.h"
 #include "../../Basic/Framehook/Framehook.h"
 #include "../../Basic/Texthook/Texthook.h"
-#include "../../Basic/Crosshook/Crosshook.h"
 
 using namespace Drawing;
 
@@ -12,14 +11,68 @@ using namespace Drawing;
 // reported width was the label's alone, so the hook answered for a box sitting to
 // the left of everything it draws.
 //
-// The swatch is a diamond drawn about a centre, so it is placed half its width in
-// from the hook's left edge.
+// The swatch is drawn about a centre, so it is placed half its width in from the
+// hook's left edge. The X is as wide as the slot; anything else is narrower and
+// sits in the middle of it, so the labels stay in one column whatever each row's
+// swatch is.
 #define COLOR_SWATCH_HALF_WIDTH		8
 #define COLOR_SWATCH_HALF_HEIGHT	4
 #define COLOR_SWATCH_GAP			5
 #define COLOR_SWATCH_WIDTH	((2 * COLOR_SWATCH_HALF_WIDTH) + COLOR_SWATCH_GAP)
 
+// A swatch that is a shape is drawn at the size that fills the slot's height.
+#define COLOR_SWATCH_ICON_SIZE		4
+
+// The filled square's rim, in the grey every other control's edge is drawn in, so a
+// dark colour still reads as a square against the panel.
+#define COLOR_SWATCH_EDGE			0xD0
+
+// The picker: a frame centred on the screen holding the palette as a grid, with
+// what a click does written under it.
+#define PICKER_WIDTH			180
+#define PICKER_HEIGHT			220
+#define PICKER_GRID_LEFT		11
+#define PICKER_GRID_TOP			20
+#define PICKER_CELL				10
+#define PICKER_COLUMNS			16
+#define PICKER_ENTRIES			256
+#define PICKER_TEXT_LEFT		10
+#define PICKER_SELECT_TOP		188
+#define PICKER_CLOSE_TOP		204
+#define PICKER_PREVIEW_X		158
+#define PICKER_PREVIEW_Y		201
+
+// What the hovered entry and the one already chosen are outlined in.
+#define PICKER_HOVER_EDGE		0x20	// white
+#define PICKER_CHOSEN_EDGE		0xD0	// grey
+
 Colorhook* Colorhook::current;
+
+static int PickerLeft() {
+	return ((int)Hook::GetScreenWidth() - PICKER_WIDTH) / 2;
+}
+
+static int PickerTop() {
+	return ((int)Hook::GetScreenHeight() - PICKER_HEIGHT) / 2;
+}
+
+static int PickerRows() {
+	return PICKER_ENTRIES / PICKER_COLUMNS;
+}
+
+// A one pixel rim around the given extent, inside it.
+static void DrawEdges(int x, int y, int width, int height, unsigned int color) {
+	D2GFX_DrawRectangle(x, y, x + width, y + 1, color, BTNormal);
+	D2GFX_DrawRectangle(x, y + height - 1, x + width, y + height, color, BTNormal);
+	D2GFX_DrawRectangle(x, y, x + 1, y + height, color, BTNormal);
+	D2GFX_DrawRectangle(x + width - 1, y, x + width, y + height, color, BTNormal);
+}
+
+static void DrawPaletteEdge(unsigned int entry, unsigned int color) {
+	int x = PickerLeft() + PICKER_GRID_LEFT + (int)(entry % PICKER_COLUMNS) * PICKER_CELL;
+	int y = PickerTop() + PICKER_GRID_TOP + (int)(entry / PICKER_COLUMNS) * PICKER_CELL;
+	DrawEdges(x, y, PICKER_CELL, PICKER_CELL, color);
+}
 
 /* Basic Hook Initializer
  *		Used for just drawing basics.
@@ -31,6 +84,7 @@ Hook(visibility, x, y) {
 	textColor = Gold;
 	hoverColor = Tan;
 	disabledColor = DISABLED_TEXT_COLOR;
+	swatch = MapIcon::Square;
 	char buffer[4096];
 	va_list arg;
 	va_start(arg, formatString);
@@ -49,6 +103,7 @@ Hook(group, x, y) {
 	textColor = Gold;
 	hoverColor = Tan;
 	disabledColor = DISABLED_TEXT_COLOR;
+	swatch = MapIcon::Square;
 	char buffer[4096];
 	va_list arg;
 	va_start(arg, formatString);
@@ -58,13 +113,8 @@ Hook(group, x, y) {
 }
 
 void Colorhook::SetText(std::string newText) {
-	char buffer[4096];
-	va_list arg;
-	va_start(arg, newText);
-	vsprintf_s(buffer, 4096, newText.c_str(), arg);
-	va_end(arg);
 	Lock();
-	text = buffer;
+	text = newText;
 	Unlock();
 }
 
@@ -86,8 +136,14 @@ void Colorhook::SetDisabledColor(TextColor newColor) {
 	Unlock();
 }
 
+void Colorhook::SetSwatch(MapIcon::Icon newSwatch) {
+	Lock();
+	swatch = newSwatch;
+	Unlock();
+}
+
 void Colorhook::SetColor(unsigned int newColor) {
-	if (newColor < 0 || newColor > 255)
+	if (newColor >= PICKER_ENTRIES)
 		return;
 	Lock();
 	*currentColor = newColor;
@@ -99,12 +155,31 @@ Colorhook::~Colorhook() {
 		Colorhook::current = NULL;
 }
 
+unsigned int Colorhook::PaletteAt(int x, int y) {
+	int left = PickerLeft() + PICKER_GRID_LEFT;
+	int top = PickerTop() + PICKER_GRID_TOP;
+	if (x < left || y < top)
+		return 0;
+	int column = (x - left) / PICKER_CELL;
+	int row = (y - top) / PICKER_CELL;
+	if (column >= PICKER_COLUMNS || row >= PickerRows())
+		return 0;
+	return (unsigned int)(row * PICKER_COLUMNS + column);
+}
+
+/* The entry is the one under the release, wherever the pointer was last seen
+ * before it, and a release anywhere but on an entry leaves the picker open.
+ */
 bool Colorhook::OnLeftClick(bool up, unsigned int x, unsigned int y) {
-	if (Colorhook::current == this && x >= 310 && y >= 205 && x <= 490 && y <= 385 && up) {
-		SetColor(curColor);
-		Colorhook::current = false;
+	if (Colorhook::current == this) {
+		unsigned int entry = PaletteAt((int)x, (int)y);
+		if (up && entry) {
+			SetColor(entry);
+			Colorhook::current = NULL;
+		}
 		return true;
-	} else if (InRange(x,y) && Colorhook::current == false) {
+	}
+	if (InRange(x, y) && !Colorhook::current) {
 		if (up)
 			Colorhook::current = this;
 		return true;
@@ -114,7 +189,7 @@ bool Colorhook::OnLeftClick(bool up, unsigned int x, unsigned int y) {
 
 bool Colorhook::OnRightClick(bool up, unsigned int x, unsigned int y) {
 	if (Colorhook::current == this) {
-		Colorhook::current = false;
+		Colorhook::current = NULL;
 		return true;
 	}
 	return false;
@@ -142,7 +217,7 @@ unsigned int Colorhook::GetXSize() {
 	D2WIN_GetTextWidthFileNo(wString, &width, &fileNo);
 	D2WIN_SetTextSize(oldFont);
 	delete[] wString;
-	return width + COLOR_SWATCH_WIDTH; 
+	return width + COLOR_SWATCH_WIDTH;
 }
 
 /* GetYSize()
@@ -152,41 +227,49 @@ unsigned int Colorhook::GetYSize() {
 	return 10;
 }
 
+/* DrawSwatch()
+ *	The colour as the given shape, centred on a point. A filled square is drawn
+ *	opaque, as the palette is, with a rim; a shape is drawn as the map draws it.
+ */
+void Colorhook::DrawSwatch(MapIcon::Icon swatch, int x, int y, unsigned int color) {
+	if (swatch != MapIcon::Square) {
+		MapIcon::Draw(swatch, COLOR_SWATCH_ICON_SIZE, x, y, color);
+		return;
+	}
+	int half = COLOR_SWATCH_HALF_HEIGHT;
+	int side = 2 * half + 1;
+	DrawEdges(x - half, y - half, side, side, COLOR_SWATCH_EDGE);
+	D2GFX_DrawRectangle(x - half + 1, y - half + 1, x + half, y + half, color, BTNormal);
+}
+
 void Colorhook::OnDraw() {
 	Lock();
 	if (Colorhook::current == this) {
+		int left = PickerLeft();
+		int top = PickerTop();
 		//Draw the shaded background
 		Boxhook::Draw(0, 0, Hook::GetScreenWidth(), Hook::GetScreenHeight(), 0, BTOneHalf);
-		//Draw the actual choose color box
-		Framehook::Draw(310, 180, 180, 220, 0, BTNormal);
-		//Draw title
-		Texthook::Draw(360, 186, false, 0, White, "Choose Color");
-		int col = 1, boxX1, boxX2, boxY1, boxY2;
-		int mX = Hook::GetMouseX();
-		int mY = Hook::GetMouseY();
-		for (int n = 1, row = 1; n <= 255; n++, row++) {
-			if (row == 16) {
-				col++;
-				row = 0;
-			}
-			//Color square begin/end pixel coordinates
-			boxX1 = 321 + (row * 10);
-			boxX2 = 331 + (row * 10);
-			boxY1 = 190 + (col * 10);
-			boxY2 = 200 + (col * 10);
-			//Set current color based on mouse location
-			if (mX >= boxX1 && mY >= boxY1 && mX <= boxX2 && mY <= boxY2)
-				curColor = n;
-			//Draw each color box
-			D2GFX_DrawRectangle(boxX1, boxY1, boxX2, boxY2, n, 5);
+		Framehook::Draw(left, top, PICKER_WIDTH, PICKER_HEIGHT, 0, BTNormal);
+		Texthook::Draw(left + PICKER_WIDTH / 2, top + 6, Center, 0, White, "Choose color");
+		for (unsigned int n = 1; n < PICKER_ENTRIES; n++) {
+			int x = left + PICKER_GRID_LEFT + (int)(n % PICKER_COLUMNS) * PICKER_CELL;
+			int y = top + PICKER_GRID_TOP + (int)(n / PICKER_COLUMNS) * PICKER_CELL;
+			D2GFX_DrawRectangle(x, y, x + PICKER_CELL, y + PICKER_CELL, n, BTNormal);
 		}
-		//Draw the +ish symbol showing the currently hovered color
-		CHAR szLines[][2] = { 0,-2, 4,-4, 8,-2, 4,0, 8,2, 4,4, 0,2, -4,4, -8,2, -4,0, -8,-2, -4,-4, 0,-2 };
-		for (unsigned int x = 0; x < 12; x++)
-			D2GFX_DrawLine(457 + szLines[x][0], 380 + szLines[x][1], 457 + szLines[x + 1][0], 380 + szLines[x + 1][1], curColor, -1);
-		//Draw instructions
-		Texthook::Draw(320, 384, false, 0, White, "Left Click - Select");
-		Texthook::Draw(320, 368, false, 0, White, "Right Click / Esc - Close");
+		unsigned int hovered = PaletteAt(Hook::GetMouseX(), Hook::GetMouseY());
+		unsigned int chosen = GetColor();
+		if (chosen > 0 && chosen < PICKER_ENTRIES)
+			DrawPaletteEdge(chosen, PICKER_CHOSEN_EDGE);
+		if (hovered)
+			DrawPaletteEdge(hovered, PICKER_HOVER_EDGE);
+		// What a click would choose, or what is chosen while the pointer is off
+		// the palette.
+		DrawSwatch(swatch, left + PICKER_PREVIEW_X, top + PICKER_PREVIEW_Y,
+			hovered ? hovered : chosen);
+		Texthook::Draw(left + PICKER_TEXT_LEFT, top + PICKER_SELECT_TOP, None, 0,
+			White, "Left click - Select");
+		Texthook::Draw(left + PICKER_TEXT_LEFT, top + PICKER_CLOSE_TOP, None, 0,
+			White, "Right click / Esc - Close");
 	} else {
 		DWORD size = D2WIN_SetTextSize(0);
 		wchar_t* wText = AnsiToUnicode(GetText().c_str());
@@ -199,7 +282,7 @@ void Colorhook::OnDraw() {
 		delete[] wText;
 		D2WIN_SetTextSize(size);
 		// Centred on the bottom of the line: the glyphs beside it sit on their baseline
-		Crosshook::Draw(GetX() + COLOR_SWATCH_HALF_WIDTH,
+		DrawSwatch(swatch, GetX() + COLOR_SWATCH_HALF_WIDTH,
 			GetY() + GetYSize() - COLOR_SWATCH_HALF_HEIGHT, GetColor());
 	}
 	Unlock();

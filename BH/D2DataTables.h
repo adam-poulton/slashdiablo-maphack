@@ -417,12 +417,19 @@ struct ObjectTxt
 	BYTE nSubClass;					//0x166
 	BYTE _3[0x11];					//0x167
 	BYTE nParm0;					//0x178
-	BYTE _4[0x39];					//0x179
+	BYTE _4[0x38];					//0x179
+	BYTE nInitFn;					//0x1B1
 	BYTE nPopulateFn;				//0x1B2
 	BYTE nOperateFn;				//0x1B3
 	BYTE _5[8];						//0x1B4
-	DWORD nAutoMap;					//0x1BB
-}; 
+	DWORD nAutoMap;					//0x1BC
+};
+
+// As objects.bin holds a row; the chest markers read InitFn off it.
+static_assert(offsetof(ObjectTxt, nInitFn) == 0x1B1, "ObjectTxt layout");
+static_assert(offsetof(ObjectTxt, nOperateFn) == 0x1B3, "ObjectTxt layout");
+static_assert(offsetof(ObjectTxt, nAutoMap) == 0x1BC, "ObjectTxt layout");
+static_assert(sizeof(ObjectTxt) == 0x1C0, "ObjectTxt layout");
 
 struct LevelsTxt
 {

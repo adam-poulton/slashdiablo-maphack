@@ -2,6 +2,7 @@
 #include "../../../Constants.h"
 #include "../../Hook.h"
 #include <string>
+#include <vector>
 
 namespace Drawing {
 	class Texthook : public Hook {
@@ -67,6 +68,12 @@ namespace Drawing {
 
 			//Handy function to have!
 			static POINT GetTextSize(std::string text, unsigned int font);
+
+			// The text broken into lines no wider than the width, on spaces where
+			// it can. A Texthook is one line and knows nothing about wrapping, so
+			// wrapped text is drawn as several of them.
+			static std::vector<std::string> Wrap(const std::string& text,
+				unsigned int width, unsigned int font);
 			static POINT GetTextSize(wchar_t* text, unsigned int font);
 
 			//Static draw text function

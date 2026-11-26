@@ -188,6 +188,10 @@ VARPTR(D2CLIENT, Offset, POINT, 0x11C1F8, 0x11CF5C)
 VARPTR(D2CLIENT, xShake, int, 0x11BF00, 0x11CA6C) //ScreenShake
 VARPTR(D2CLIENT, yShake, int, 0x10B9DC, 0xFC3DC) //ScreenShake
 VARPTR(D2CLIENT, AutomapLayer, AutomapLayer*, 0x11C1C4, 0x11CF28)
+// The sprite sheet the automap's object layer is drawn from (D2Client 0x60E05
+// passes it for the floor, wall and object layers alike). Null until the automap
+// has been set up for a game.
+VARPTR(D2CLIENT, AutomapCells, CellFile*, 0x11C1C8, 0x11C1C8)
 
 VARPTR(D2CLIENT, MercStrIndex, WORD, 0xF23E8, 0xF02D8)
 VARPTR(D2CLIENT, MercReviveCost, DWORD, 0x11C334, 0x11CEE8)

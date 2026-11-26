@@ -67,6 +67,60 @@ static DWORD mSkipQuestMessage = 1;
 
 DrawDirective automapDraw(true, DEFAULT_MINIMAP_GHOST);
 
+// Each kind of chest marker, in ChestKind order: the config key its five style
+// keys start with, and what it is called and said to be where it is styled.
+static const struct {
+	const char* key;
+	const char* label;
+	const char* help;
+} ChestMarkers[ChestKind::KindCount] = {
+	{ "Chest Marker", "Chests", "Chests that open with a click." },
+	{ "Locked Chest Marker", "Locked chests", "Chests that need a key." },
+	{ "Super Chest Marker", "Super chests", "Chests by Lower Kurast's fires, and if chosen, sparkly chests." },
+	{ "Container Marker", "Barrels and containers", "Barrels, urns, corpses, racks and stashes." },
+	{ "Trapped Marker", "Trapped", "Anything trapped, and exploding barrels." },
+};
+
+// Chests as they have always been marked, a 2x2 white square, and super chests as
+// Lower Kurast's were: the game's own sprite, and the line LK Chest Lines drew in
+// its colour, 0 having been no line.
+static MapIconStyle DefaultChestStyle(ChestKind::Kind kind, int lkLinesColor) {
+	MapIconStyle style(MapIcon::Square, 1, 0xFF, false, 0xFF);
+	if (kind == ChestKind::SuperChest) {
+		style.icon = MapIcon::Game;
+		style.line = lkLinesColor > 0;
+		style.lineColor = lkLinesColor > 0 ? (unsigned int)lkLinesColor : 105;
+	}
+	return style;
+}
+
+// Every icon, the game's super chest sprite included, for every kind: one strip
+// for all of them keeps each editor the same shape as the rest.
+static std::vector<MapIcon::Icon> ChestIcons() {
+	std::vector<MapIcon::Icon> icons;
+	for (int icon = 0; icon < MapIcon::IconCount; icon++)
+		icons.push_back((MapIcon::Icon)icon);
+	return icons;
+}
+
+static void DrawChestMarker(const MapIconStyle& style, int x, int y, POINT player) {
+	if (style.line) {
+		POINT at;
+		Hook::ScreenToAutomap(&at, x, y);
+		Linehook::Draw(player.x, player.y, at.x, at.y, style.lineColor);
+	}
+	MapIcon::DrawAt(style.Icon(), style.size, x, y, style.color);
+}
+
+// How near a sparkly chest's preset a live chest has to be to be that chest. They
+// stand where the preset put them.
+#define SPARKLY_PRESET_REACH	1
+
+// The rows of objects.txt. A preset object past them is a placeholder the game
+// turns into an object as the room is populated (D2Game 0x2F3A0 refuses one as an
+// object itself), so it has no row to look up.
+#define OBJECT_TXT_ROWS			573
+
 // The resistance a monster needs before its automap dot is marked as resisting.
 // Immunities are marked at 100 whatever this says, so anything above 100 leaves
 // the immunity letters and nothing else, which is what this asks for.
@@ -178,6 +232,8 @@ Maphack::Maphack() : Module("Maphack") {
 
 	monsterResistanceThreshold = DEFAULT_MONSTER_RESISTANCE_THRESHOLD;
 	lkLinesColor = 105;
+	superChestScope = ChestKind::LowerKurastOnly;
+	forgetOpenedAnchors = false;
 	experienceRangeColor = DEFAULT_EXPERIENCE_RANGE_COLOR;
 	roomFrontierColor = DEFAULT_ROOM_FRONTIER_COLOR;
 
@@ -203,6 +259,12 @@ void Maphack::ReadConfig() {
 	BH::config->ReadInt("Show Monster Resistance", monsterResistanceThreshold,
 		DEFAULT_MONSTER_RESISTANCE_THRESHOLD);
 	BH::config->ReadInt("LK Chest Lines", lkLinesColor, 105);
+	for (int kind = 0; kind < ChestKind::KindCount; kind++)
+		ReadMapIconStyle(BH::config, ChestMarkers[kind].key, chestStyles[kind],
+			DefaultChestStyle((ChestKind::Kind)kind, lkLinesColor));
+	BH::config->ReadInt("Super Chest Scope", superChestScope, ChestKind::LowerKurastOnly);
+	if (superChestScope >= ChestKind::SuperScopeCount)
+		superChestScope = ChestKind::LowerKurastOnly;
 
 
 	BH::config->ReadAssoc("Missile Color", missileColors);
@@ -490,12 +552,23 @@ void Maphack::OnLoad() {
 	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Missiles", "Show missiles",
 		&Toggles["Show Missiles"], "Marks missiles in flight on the automap.");
 	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Chests", "Show chests",
-		&Toggles["Show Chests"], "Marks chests and other containers.");
+		&Toggles["Show Chests"],
+		"Marks chests and other containers. How each kind is marked is set in the "
+		"map markers window.");
 	Settings::AddToggle(GetName(), Settings::Category::Map, "Display Level Names", "Level names",
 		&Toggles["Display Level Names"], "Names each level on the automap.");
 	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Automap On Join", "Show automap on join",
 		&Toggles["Show Automap On Join"],
 		"Opens the automap as you enter a game rather than waiting to be asked.");
+
+	for (int kind = 0; kind < ChestKind::KindCount; kind++)
+		Settings::AddMapIcon(GetName(), Settings::Category::MapMarkers,
+			ChestMarkers[kind].key, ChestMarkers[kind].label, &chestStyles[kind],
+			MapIconOptions(ChestIcons(), true, true),
+			ChestMarkers[kind].help, "Show Chests");
+	Settings::AddEnum(GetName(), Settings::Category::MapMarkers, "Super Chest Scope",
+		"Marked in", &superChestScope, { "Lower Kurast", "Every area" }, "",
+		ChestMarkers[ChestKind::SuperChest].key);
 
 	Settings::AddSlider(GetName(), Settings::Category::Map, "Minimap Max Ghost",
 		"Minimap ghost frames", &automapDraw.maxGhost,
@@ -506,13 +579,13 @@ void Maphack::OnLoad() {
 
 	Settings::AddHeading(GetName(), Settings::Category::Map, "Monster colors");
 	Settings::AddColor(GetName(), Settings::Category::Map, "Monster Color: Normal", "Normal",
-		&monsterColors["Normal"], "", "Show Monsters");
+		&monsterColors["Normal"], "", "Show Monsters", MapIcon::Cross);
 	Settings::AddColor(GetName(), Settings::Category::Map, "Monster Color: Minion", "Minion",
-		&monsterColors["Minion"], "", "Show Monsters");
+		&monsterColors["Minion"], "", "Show Monsters", MapIcon::Cross);
 	Settings::AddColor(GetName(), Settings::Category::Map, "Monster Color: Champion", "Champion",
-		&monsterColors["Champion"], "", "Show Monsters");
+		&monsterColors["Champion"], "", "Show Monsters", MapIcon::Cross);
 	Settings::AddColor(GetName(), Settings::Category::Map, "Monster Color: Boss", "Boss",
-		&monsterColors["Boss"], "", "Show Monsters");
+		&monsterColors["Boss"], "", "Show Monsters", MapIcon::Cross);
 
 	Settings::AddHeading(GetName(), Settings::Category::Map, "Missile colors");
 	Settings::AddColor(GetName(), Settings::Category::Map, "Missile Color: Player", "Player",
@@ -590,23 +663,34 @@ void Maphack::OnLoop() {
 	}
 }
 
-bool IsObjectChest(ObjectTxt *obj)
-{
-	//ObjectTxt *obj = D2COMMON_GetObjectTxt(objno);
-	return (obj->nSelectable0 && (
-		(obj->nOperateFn == 1) || //bed, undef grave, casket, sarc
-		//(obj->nOperateFn == 3) || //basket, urn, rockpile, trapped soul
-		(obj->nOperateFn == 4) || //chest, corpse, wooden chest, buriel chest, skull and rocks, dead barb
-		(obj->nOperateFn == 5) || //barrel
-		(obj->nOperateFn == 7) || //exploding barrel
-		(obj->nOperateFn == 14) || //loose bolder etc....*
-		(obj->nOperateFn == 19) || //armor stand
-		(obj->nOperateFn == 20) || //weapon rack
-		(obj->nOperateFn == 33) || //writ
-		(obj->nOperateFn == 48) || //trapped soul
-		(obj->nOperateFn == 51) || //stash
-		(obj->nOperateFn == 68)    //evil urn
-		));
+// Lower Kurast's fires stand in the huts that hold its super chests, and a level
+// says where its sparkly chests are. Both are known for the whole level, where a
+// live chest is known only once its room is.
+std::vector<SuperChestAnchor> Maphack::FindSuperChestAnchors(Level* level) {
+	std::vector<SuperChestAnchor> anchors;
+	bool lowerKurast = level->dwLevelNo == MAP_A3_LOWER_KURAST;
+	bool everywhere = superChestScope == ChestKind::Everywhere;
+	if (!lowerKurast && !everywhere)
+		return anchors;
+	for (Room2* room = level->pRoom2First; room; room = room->pRoom2Next) {
+		for (PresetUnit* preset = room->pPreset; preset; preset = preset->pPresetNext) {
+			if (preset->dwType != UNIT_OBJECT)
+				continue;
+			ChestKind::Point at = { (int)(preset->dwPosX + room->dwPosX * 5),
+				(int)(preset->dwPosY + room->dwPosY * 5) };
+			if (lowerKurast && preset->dwTxtFileNo == ChestKind::LowerKurastFire) {
+				anchors.push_back(SuperChestAnchor{ at, ChestKind::LowerKurastFireReach,
+					false, false });
+				continue;
+			}
+			if (!everywhere || preset->dwTxtFileNo >= OBJECT_TXT_ROWS)
+				continue;
+			ObjectTxt* txt = D2COMMON_GetObjectTxt(preset->dwTxtFileNo);
+			if (txt && txt->nInitFn == ChestKind::InitSparklyChest)
+				anchors.push_back(SuperChestAnchor{ at, SPARKLY_PRESET_REACH, false, false });
+		}
+	}
+	return anchors;
 }
 
 Act* lastAct = NULL;
@@ -687,6 +771,14 @@ void Maphack::OnAutomapDraw() {
 				DrawExperienceRange(myX, myY, rangeColor);
 			});
 		}
+
+		Level* level = player->pPath->pRoom1->pRoom2->pLevel;
+		if (forgetOpenedAnchors.exchange(false))
+			openedAnchors.clear();
+		bool showChests = Toggles["Show Chests"].state;
+		std::vector<SuperChestAnchor> anchors;
+		if (showChests)
+			anchors = FindSuperChestAnchors(level);
 
 		if (Toggles["Show Active Area Range"].state) {
 			std::vector<RoomFrontier::Edge> frontier = TraceRoomFrontier(player->pPath->pRoom1);
@@ -888,33 +980,64 @@ void Maphack::OnAutomapDraw() {
 						HandleUnknownItemCode(uInfo.itemCode, "on map");
 					}
 				}
-				else if (unit->dwType == UNIT_OBJECT && !unit->dwMode /* Not opened */ && Toggles["Show Chests"].state && IsObjectChest(unit->pObjectData->pTxt)) {
-					xPos = unit->pObjectPath->dwPosX;
-					yPos = unit->pObjectPath->dwPosY;
-					automapBuffer.push([xPos, yPos]()->void{
-						POINT automapLoc;
-						Drawing::Hook::ScreenToAutomap(&automapLoc, xPos, yPos);
-						Drawing::Boxhook::Draw(automapLoc.x - 1, automapLoc.y - 1, 2, 2, 255, Drawing::BTHighlight);
-					});
-				}				
-			}
-		}
-		if (lkLinesColor > 0 && player->pPath->pRoom1->pRoom2->pLevel->dwLevelNo == MAP_A3_LOWER_KURAST) {
-			for(Room2 *pRoom =  player->pPath->pRoom1->pRoom2->pLevel->pRoom2First; pRoom; pRoom = pRoom->pRoom2Next) {
-				for (PresetUnit* preset = pRoom->pPreset; preset; preset = preset->pPresetNext) {
-					DWORD xPos, yPos;
-					int lkLineColor = lkLinesColor;
-					if (preset->dwTxtFileNo == 160) {
-						xPos = (preset->dwPosX) + (pRoom->dwPosX * 5);
-						yPos = (preset->dwPosY) + (pRoom->dwPosY * 5);
-						automapBuffer.push([xPos, yPos, MyPos, lkLineColor]()->void{
-							POINT automapLoc;
-							Drawing::Hook::ScreenToAutomap(&automapLoc, xPos, yPos);
-							Drawing::Linehook::Draw(MyPos.x, MyPos.y, automapLoc.x, automapLoc.y, lkLineColor);
-						});
+				else if (unit->dwType == UNIT_OBJECT && showChests && unit->pObjectData &&
+						unit->pObjectData->pTxt) {
+					ObjectTxt* txt = unit->pObjectData->pTxt;
+					ChestKind::ObjectFacts facts = { txt->nSelectable0 != 0, txt->nOperateFn,
+						txt->nInitFn, unit->pObjectData->Type };
+					if (!ChestKind::IsMarkable(facts))
+						continue;
+					ChestKind::Point at = { (int)unit->pObjectPath->dwPosX,
+						(int)unit->pObjectPath->dwPosY };
+					bool opened = unit->dwMode != 0;
+
+					// A chest by an anchor is the chest the anchor stands for: the
+					// anchor is drawn only while nothing in its place has been seen.
+					bool atAnchor = false;
+					if (facts.operateFn == ChestKind::OperateChest) {
+						for (SuperChestAnchor& anchor : anchors) {
+							if (!ChestKind::NearAny(at, { anchor.position }, anchor.reach))
+								continue;
+							if (opened)
+								anchor.sawOpened = true;
+							else
+								anchor.matched = true;
+							atAnchor = true;
+						}
 					}
+					if (opened)
+						continue;
+
+					ChestKind::Kind kind = ChestKind::Classify(facts, atAnchor,
+						(ChestKind::SuperScope)superChestScope);
+					if (kind == ChestKind::NotMarked)
+						continue;
+					MapIconStyle style = chestStyles[kind];
+					if (!style.Draws())
+						continue;
+					int x = at.x, y = at.y;
+					automapBuffer.push([style, x, y, MyPos]()->void {
+						DrawChestMarker(style, x, y, MyPos);
+					});
 				}
 			}
+		}
+		// The super chests no live chest has been seen in the place of: in rooms
+		// not loaded yet, or that the chest has gone from.
+		MapIconStyle superStyle = chestStyles[ChestKind::SuperChest];
+		for (const SuperChestAnchor& anchor : anchors) {
+			if (anchor.matched)
+				continue;
+			std::tuple<DWORD, int, int> id(level->dwLevelNo, anchor.position.x,
+				anchor.position.y);
+			if (anchor.sawOpened)
+				openedAnchors.insert(id);
+			if (openedAnchors.count(id) || !superStyle.Draws())
+				continue;
+			int x = anchor.position.x, y = anchor.position.y;
+			automapBuffer.push([superStyle, x, y, MyPos]()->void {
+				DrawChestMarker(superStyle, x, y, MyPos);
+			});
 		}
 		if (!Toggles["Display Level Names"].state)
 			return;
@@ -939,10 +1062,14 @@ void Maphack::OnAutomapDraw() {
 // rather than being reapplied every frame in case one had.
 void Maphack::OnSettingsChanged(const vector<string>& keys) {
 	ResetPatches();
+	// So a marker restyled in its window is seen on the map at once rather than
+	// when the drawing is next worked out.
+	automapDraw.forceUpdate();
 }
 
 void Maphack::OnGameJoin() {
 	ResetRevealed();
+	forgetOpenedAnchors = true;
 	automapLevels.clear();
 	*p_D2CLIENT_AutomapOn = Toggles["Show Automap On Join"].state;
 }
@@ -1156,12 +1283,8 @@ void Maphack::RevealRoom(Room2* room) {
 				cellNo = 745;
 		// Special Object Check
 		} else if (preset->dwType == UNIT_OBJECT) {
-			// Uber Chest in Lower Kurast Check
-			if (preset->dwTxtFileNo == 580 && room->pLevel->dwLevelNo == MAP_A3_LOWER_KURAST)
-				cellNo = 318;
-
 			// Countess Chest Check
-			else if (preset->dwTxtFileNo == 371) 
+			if (preset->dwTxtFileNo == 371) 
 				cellNo = 301;
 			// Act 2 Orifice Check
 			else if (preset->dwTxtFileNo == 152) 
@@ -1177,7 +1300,7 @@ void Maphack::RevealRoom(Room2* room) {
 				cellNo = 376;
 
 			// If it isn't special, check for a preset.
-			if (cellNo == -1 && preset->dwTxtFileNo <= 572) {
+			if (cellNo == -1 && preset->dwTxtFileNo < OBJECT_TXT_ROWS) {
 				ObjectTxt *obj = D2COMMON_GetObjectTxt(preset->dwTxtFileNo);
 				if (obj)
 					cellNo = obj->nAutoMap;//Set the cell number then.

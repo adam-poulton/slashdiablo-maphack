@@ -26,7 +26,8 @@ enum ConfigType {
 	CTArray,
 	CTAssoc,
 	CTAssocInt,
-	CTAssocBool
+	CTAssocBool,
+	CTNamed
 };
 
 class ConfigEntry {
@@ -38,6 +39,7 @@ public:
 	int line = 0;
 	void* pointer = NULL;
 	Toggle* toggle = NULL;
+	std::vector<std::string> names;	// CTNamed, what each value is written as
 };
 
 inline bool operator< (const ConfigEntry& lhs, const ConfigEntry& rhs) {
@@ -77,6 +79,13 @@ public:
 	int					ReadInt(std::string key, int& value, int defaultValue);
 	unsigned int    	ReadInt(std::string key, unsigned int& value, unsigned int defaultValue);
 	unsigned int		ReadKey(std::string key, std::string toggle, unsigned int &value);
+
+	// A value that is one of a list, kept as its position in the list and written
+	// as its name, so the file says what it means. Names are read whatever their
+	// case; one that is not in the list is the default.
+	unsigned int		ReadNamed(std::string key, unsigned int& value,
+							const std::vector<std::string>& names,
+							unsigned int defaultValue);
 	Toggle				ReadToggle(std::string key, std::string toggle, bool defaultState, Toggle& value);
 	std::vector<string> ReadArray(std::string key, std::vector<string>& value);
 	map<string, string> ReadAssoc(std::string key, std::map<string, string>& value);

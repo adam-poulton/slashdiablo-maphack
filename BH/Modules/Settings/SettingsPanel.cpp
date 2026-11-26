@@ -219,43 +219,6 @@ bool SettingsHeadingBar::OnLeftClick(bool up, unsigned int x, unsigned int y) {
 	return true;
 }
 
-// Breaks text to a width, on spaces where it can. A Texthook is one line and
-// knows nothing about wrapping, so a note is drawn as several of them.
-static std::vector<std::string> WrapText(const std::string& text,
-		unsigned int width, unsigned int font) {
-	std::vector<std::string> lines;
-	if (width == 0 || text.empty()) {
-		lines.push_back(text);
-		return lines;
-	}
-
-	std::string line;
-	std::string::size_type start = 0;
-	while (start <= text.length()) {
-		std::string::size_type space = text.find(' ', start);
-		std::string word = (space == std::string::npos) ?
-			text.substr(start) : text.substr(start, space - start);
-
-		std::string candidate = line.empty() ? word : (line + " " + word);
-		if (!line.empty() &&
-				(unsigned int)Texthook::GetTextSize(candidate, font).x > width) {
-			lines.push_back(line);
-			line = word;
-		} else {
-			line = candidate;
-		}
-
-		if (space == std::string::npos)
-			break;
-		start = space + 1;
-	}
-	if (!line.empty())
-		lines.push_back(line);
-	if (lines.empty())
-		lines.push_back("");
-	return lines;
-}
-
 // Wide enough for the largest value the setting will take, so a ceiling in the
 // thousands is not typed into a box that shows four digits. Measured the way the
 // box measures itself, and never narrower than the minimum, since a box for a two
@@ -476,6 +439,7 @@ void SettingsPanel::BuildCategory(HookGroup* content, const std::string& categor
 			case Settings::KindColor:
 				row.control = new Colorhook(content, 0, 0, setting->intValue,
 					"%s", setting->label.c_str());
+				((Colorhook*)row.control)->SetSwatch(setting->swatch);
 				break;
 
 			case Settings::KindNumber:
@@ -774,7 +738,7 @@ void SettingsPanel::Relayout() {
 		if (note) {
 			unsigned int room = (contentWidth > left) ?
 				(contentWidth - left) : 0;
-			lines = WrapText(row.setting->label, room, 0);
+			lines = Texthook::Wrap(row.setting->label, room, 0);
 			if (lines.size() > row.noteLines.size())
 				lines.resize(row.noteLines.size());
 			row.height = (unsigned int)lines.size() * SETTINGS_NOTE_LINE;

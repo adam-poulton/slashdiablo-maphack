@@ -131,6 +131,7 @@ void BH::Initialize()
 	new StashExport();
 	new AccountsWindow();
 	new CodexWindow();
+	new MapMarkersWindow();
 	new SettingsWindow();
 
 	moduleManager->LoadModules();

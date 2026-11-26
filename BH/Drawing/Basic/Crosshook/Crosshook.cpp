@@ -1,6 +1,7 @@
 #include "Crosshook.h"
 #include "../../../Common.h"
 #include "../../../D2Ptrs.h"
+#include "../../MapIcon/MapIcon.h"
 
 using namespace std;
 using namespace Drawing;
@@ -56,15 +57,11 @@ void Crosshook::OnDraw() {
 		return;
 	
 	Lock();
-	CHAR szLines[][2] = {0,-2, 4,-4, 8,-2, 4,0, 8,2, 4,4, 0,2, -4,4, -8,2, -4,0, -8,-2, -4,-4, 0,-2};
-	for(unsigned int x = 0; x < 12; x++)
-		D2GFX_DrawLine(GetX() + szLines[x][0], GetY() + szLines[x][1], GetX() + szLines[x+1][0], GetY() + szLines[x+1][1], GetColor(), -1);
+	Draw(GetX(), GetY(), GetColor());
 	Unlock();
 }
 
 bool Crosshook::Draw(unsigned int x, unsigned int y, unsigned int color) {
-	CHAR szLines[][2] = {0,-2, 4,-4, 8,-2, 4,0, 8,2, 4,4, 0,2, -4,4, -8,2, -4,0, -8,-2, -4,-4, 0,-2};
-	for(unsigned int n = 0; n < 12; n++)
-		D2GFX_DrawLine(x + szLines[n][0], y + szLines[n][1], x + szLines[n+1][0], y + szLines[n+1][1], color, -1);
+	MapIcon::Draw(MapIcon::Cross, MONSTER_CROSS_SIZE, x, y, color);
 	return true;
 }

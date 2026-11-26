@@ -196,6 +196,44 @@ bool Texthook::OnRightClick(bool up, unsigned int x, unsigned int y) {
 	return false;
 }
 
+/* Wrap(string text, unsigned int width, unsigned int font)
+ *	Breaks text to a width, on spaces where it can.
+ */
+std::vector<std::string> Texthook::Wrap(const std::string& text,
+		unsigned int width, unsigned int font) {
+	std::vector<std::string> lines;
+	if (width == 0 || text.empty()) {
+		lines.push_back(text);
+		return lines;
+	}
+
+	std::string line;
+	std::string::size_type start = 0;
+	while (start <= text.length()) {
+		std::string::size_type space = text.find(' ', start);
+		std::string word = (space == std::string::npos) ?
+			text.substr(start) : text.substr(start, space - start);
+
+		std::string candidate = line.empty() ? word : (line + " " + word);
+		if (!line.empty() &&
+				(unsigned int)GetTextSize(candidate, font).x > width) {
+			lines.push_back(line);
+			line = word;
+		} else {
+			line = candidate;
+		}
+
+		if (space == std::string::npos)
+			break;
+		start = space + 1;
+	}
+	if (!line.empty())
+		lines.push_back(line);
+	if (lines.empty())
+		lines.push_back("");
+	return lines;
+}
+
 /* GetTextSize(string text, unsigned int font)
  *	Returns the dimensions of the given text!
  */
