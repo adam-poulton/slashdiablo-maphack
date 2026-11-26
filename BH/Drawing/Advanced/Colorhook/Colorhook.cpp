@@ -98,11 +98,11 @@ static void DrawSlash(int x, int y, int side, BoxTrans trans) {
 // The bar under the palette, as wide as it: filled with the colour, or the shape
 // the colour is drawn as in it, or no colour said in words, which a slash across a
 // bar this shape would not say as plainly.
-static void DrawPreview(MapIcon::Icon swatch, int x, int y, unsigned int color) {
+static void DrawPreview(MapIcon::Icon swatch, int x, int y, unsigned int color, bool none) {
 	int width = PICKER_GRID_WIDTH;
 	int height = PICKER_PREVIEW_HEIGHT;
 	DrawEdges(x, y, width, height, COLOR_SWATCH_EDGE);
-	if (color == MapIcon::NoColor)
+	if (none)
 		Texthook::Draw(x + width / 2, y + (height - 10) / 2, Center, 0, Grey,
 			PICKER_NONE_TEXT);
 	else if (swatch == MapIcon::Square)
@@ -210,10 +210,7 @@ int Colorhook::PaletteAt(int x, int y) {
 	int row = (y - top) / PICKER_CELL;
 	if (column >= PICKER_COLUMNS || row >= PickerRows())
 		return -1;
-	int entry = row * PICKER_COLUMNS + column;
-	if (entry == (int)MapIcon::NoColor && !allowNone)
-		return -1;
-	return entry;
+	return row * PICKER_COLUMNS + column;
 }
 
 /* The entry is the one under the release, wherever the pointer was last seen
@@ -282,8 +279,8 @@ unsigned int Colorhook::GetYSize() {
  *	No colour is the square's rim with a slash through it, whatever the shape.
  */
 void Colorhook::DrawSwatch(MapIcon::Icon swatch, int x, int y, unsigned int color,
-		bool muted) {
-	if (swatch != MapIcon::Square && color != MapIcon::NoColor) {
+		bool none, bool muted) {
+	if (swatch != MapIcon::Square && !none) {
 		MapIcon::DrawOutline(swatch, COLOR_SWATCH_ICON_SIZE, x, y,
 			muted ? COLOR_SWATCH_EDGE : color);
 		return;
@@ -292,7 +289,7 @@ void Colorhook::DrawSwatch(MapIcon::Icon swatch, int x, int y, unsigned int colo
 	int side = 2 * half + 1;
 	BoxTrans trans = muted ? COLOR_SWATCH_MUTED : BTNormal;
 	DrawEdges(x - half, y - half, side, side, COLOR_SWATCH_EDGE, trans);
-	if (color == MapIcon::NoColor)
+	if (none)
 		DrawSlash(x - half + 1, y - half + 1, side - 2, trans);
 	else
 		D2GFX_DrawRectangle(x - half + 1, y - half + 1, x + half, y + half, color, trans);
@@ -307,23 +304,25 @@ void Colorhook::OnDraw() {
 		Boxhook::Draw(0, 0, Hook::GetScreenWidth(), Hook::GetScreenHeight(), 0, BTOneHalf);
 		Framehook::Draw(left, top, PICKER_WIDTH, PICKER_HEIGHT, 0, BTNormal);
 		Texthook::Draw(left + PICKER_WIDTH / 2, top + 6, Center, 0, White, "Choose color");
-		for (unsigned int n = 1; n < PICKER_ENTRIES; n++) {
+		for (unsigned int n = 0; n < PICKER_ENTRIES; n++) {
 			int x = left + PICKER_GRID_LEFT + (int)(n % PICKER_COLUMNS) * PICKER_CELL;
 			int y = top + PICKER_GRID_TOP + (int)(n / PICKER_COLUMNS) * PICKER_CELL;
-			D2GFX_DrawRectangle(x, y, x + PICKER_CELL, y + PICKER_CELL, n, BTNormal);
+			if (IsNone(n))
+				DrawSlash(x, y, PICKER_CELL, BTNormal);
+			else
+				D2GFX_DrawRectangle(x, y, x + PICKER_CELL, y + PICKER_CELL, n, BTNormal);
 		}
-		if (allowNone)
-			DrawSlash(left + PICKER_GRID_LEFT, top + PICKER_GRID_TOP, PICKER_CELL, BTNormal);
 		int hovered = PaletteAt(Hook::GetMouseX(), Hook::GetMouseY());
 		unsigned int chosen = GetColor();
-		if (chosen < PICKER_ENTRIES && (chosen != MapIcon::NoColor || allowNone))
+		if (chosen < PICKER_ENTRIES)
 			DrawPaletteEdge(chosen, PICKER_CHOSEN_EDGE);
 		if (hovered >= 0)
 			DrawPaletteEdge((unsigned int)hovered, PICKER_HOVER_EDGE);
 		// What a click would choose, or what is chosen while the pointer is off
 		// the palette.
-		DrawPreview(swatch, left + PICKER_GRID_LEFT, top + PICKER_PREVIEW_TOP,
-			hovered >= 0 ? (unsigned int)hovered : chosen);
+		unsigned int previewed = hovered >= 0 ? (unsigned int)hovered : chosen;
+		DrawPreview(swatch, left + PICKER_GRID_LEFT, top + PICKER_PREVIEW_TOP, previewed,
+			IsNone(previewed));
 		Texthook::Draw(left + PICKER_TEXT_LEFT, top + PICKER_SELECT_TOP, None, 0,
 			White, "Left click - Select");
 		Texthook::Draw(left + PICKER_TEXT_LEFT, top + PICKER_CLOSE_TOP, None, 0,
@@ -340,7 +339,7 @@ void Colorhook::OnDraw() {
 		delete[] wText;
 		D2WIN_SetTextSize(size);
 		DrawSwatch(swatch, GetX() + COLOR_SWATCH_HALF_WIDTH,
-			GetY() + COLOR_SWATCH_CENTRE_Y, GetColor(), !IsEnabled());
+			GetY() + COLOR_SWATCH_CENTRE_Y, GetColor(), IsNone(GetColor()), !IsEnabled());
 	}
 	Unlock();
 }
