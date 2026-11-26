@@ -22,7 +22,8 @@ namespace Drawing {
 			//will be used.
 			MapIcon::Icon swatch;
 
-			static void DrawSwatch(MapIcon::Icon swatch, int x, int y, unsigned int color);
+			static void DrawSwatch(MapIcon::Icon swatch, int x, int y, unsigned int color,
+				bool muted);
 
 			//The palette entry under a point on screen, or 0 for none: entry 0 is
 			//never offered.

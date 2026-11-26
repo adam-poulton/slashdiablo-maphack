@@ -23,9 +23,19 @@ using namespace Drawing;
 // A swatch that is a shape is drawn at the size that fills the slot's height.
 #define COLOR_SWATCH_ICON_SIZE		4
 
+// How far below the top of the line the swatch is centred. Font 0 stands its
+// letters on a baseline above the bottom of its line, so what reads of the label
+// is centred here, which is also where a checkbox's middle sits beside its label.
+#define COLOR_SWATCH_CENTRE_Y		4
+
 // The filled square's rim, in the grey every other control's edge is drawn in, so a
 // dark colour still reads as a square against the panel.
 #define COLOR_SWATCH_EDGE			0xD0
+
+// A swatch whose colour is not in use: a square shown through, so the colour is
+// still there to see but plainly not live, and a shape in the rim's grey, since a
+// line cannot be drawn see-through.
+#define COLOR_SWATCH_MUTED			BTOneHalf
 
 // The picker: a frame centred on the screen holding the palette as a grid, with
 // what a click does written under it.
@@ -60,12 +70,14 @@ static int PickerRows() {
 	return PICKER_ENTRIES / PICKER_COLUMNS;
 }
 
-// A one pixel rim around the given extent, inside it.
-static void DrawEdges(int x, int y, int width, int height, unsigned int color) {
-	D2GFX_DrawRectangle(x, y, x + width, y + 1, color, BTNormal);
-	D2GFX_DrawRectangle(x, y + height - 1, x + width, y + height, color, BTNormal);
-	D2GFX_DrawRectangle(x, y, x + 1, y + height, color, BTNormal);
-	D2GFX_DrawRectangle(x + width - 1, y, x + width, y + height, color, BTNormal);
+// A one pixel rim around the given extent, inside it. The sides stop short of the
+// top and bottom rows, so a see-through rim is not drawn twice at its corners.
+static void DrawEdges(int x, int y, int width, int height, unsigned int color,
+		BoxTrans trans = BTNormal) {
+	D2GFX_DrawRectangle(x, y, x + width, y + 1, color, trans);
+	D2GFX_DrawRectangle(x, y + height - 1, x + width, y + height, color, trans);
+	D2GFX_DrawRectangle(x, y + 1, x + 1, y + height - 1, color, trans);
+	D2GFX_DrawRectangle(x + width - 1, y + 1, x + width, y + height - 1, color, trans);
 }
 
 static void DrawPaletteEdge(unsigned int entry, unsigned int color) {
@@ -231,15 +243,18 @@ unsigned int Colorhook::GetYSize() {
  *	The colour as the given shape, centred on a point. A filled square is drawn
  *	opaque, as the palette is, with a rim; a shape is drawn as the map draws it.
  */
-void Colorhook::DrawSwatch(MapIcon::Icon swatch, int x, int y, unsigned int color) {
+void Colorhook::DrawSwatch(MapIcon::Icon swatch, int x, int y, unsigned int color,
+		bool muted) {
 	if (swatch != MapIcon::Square) {
-		MapIcon::Draw(swatch, COLOR_SWATCH_ICON_SIZE, x, y, color);
+		MapIcon::Draw(swatch, COLOR_SWATCH_ICON_SIZE, x, y,
+			muted ? COLOR_SWATCH_EDGE : color);
 		return;
 	}
 	int half = COLOR_SWATCH_HALF_HEIGHT;
 	int side = 2 * half + 1;
-	DrawEdges(x - half, y - half, side, side, COLOR_SWATCH_EDGE);
-	D2GFX_DrawRectangle(x - half + 1, y - half + 1, x + half, y + half, color, BTNormal);
+	BoxTrans trans = muted ? COLOR_SWATCH_MUTED : BTNormal;
+	DrawEdges(x - half, y - half, side, side, COLOR_SWATCH_EDGE, trans);
+	D2GFX_DrawRectangle(x - half + 1, y - half + 1, x + half, y + half, color, trans);
 }
 
 void Colorhook::OnDraw() {
@@ -265,7 +280,7 @@ void Colorhook::OnDraw() {
 		// What a click would choose, or what is chosen while the pointer is off
 		// the palette.
 		DrawSwatch(swatch, left + PICKER_PREVIEW_X, top + PICKER_PREVIEW_Y,
-			hovered ? hovered : chosen);
+			hovered ? hovered : chosen, false);
 		Texthook::Draw(left + PICKER_TEXT_LEFT, top + PICKER_SELECT_TOP, None, 0,
 			White, "Left click - Select");
 		Texthook::Draw(left + PICKER_TEXT_LEFT, top + PICKER_CLOSE_TOP, None, 0,
@@ -281,9 +296,8 @@ void Colorhook::OnDraw() {
 			drawColor, 0);
 		delete[] wText;
 		D2WIN_SetTextSize(size);
-		// Centred on the bottom of the line: the glyphs beside it sit on their baseline
 		DrawSwatch(swatch, GetX() + COLOR_SWATCH_HALF_WIDTH,
-			GetY() + GetYSize() - COLOR_SWATCH_HALF_HEIGHT, GetColor());
+			GetY() + COLOR_SWATCH_CENTRE_Y, GetColor(), !IsEnabled());
 	}
 	Unlock();
 }

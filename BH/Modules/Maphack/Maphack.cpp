@@ -77,7 +77,7 @@ static const struct {
 	{ "Chest Marker", "Chests", "Chests that open with a click." },
 	{ "Locked Chest Marker", "Locked chests", "Chests that need a key." },
 	{ "Super Chest Marker", "Super chests", "Lower Kurast's hut chests, and if chosen, every other super chest and sparkly chest." },
-	{ "Container Marker", "Barrels and containers", "Barrels, urns, corpses, racks and stashes." },
+	{ "Container Marker", "Containers", "Whatever is opened for loot that is not a chest: barrels, urns, jars, baskets, caskets, corpses, racks and stashes." },
 	{ "Trapped Marker", "Trapped", "Anything trapped, and exploding barrels." },
 };
 

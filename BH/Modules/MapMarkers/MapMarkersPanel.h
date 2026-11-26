@@ -43,9 +43,10 @@ class MapMarkerRowhook : public Drawing::Hook {
 // map icon setting is a marker; any other setting whose parent is a marker is
 // shown with it, under its editor.
 //
-// The list is as wide as its names; the editor takes the rest, up to a width
-// past which a form only gets harder to read. What the two need between them is
-// the smallest the window can be made.
+// The list is as wide as its names, and what each marker covers is the tip over
+// its name. The editor takes the rest of the width, up to a width past which a
+// form only gets harder to read. What the two need between them is the smallest
+// the window can be made.
 class MapMarkersPanel : public UIPanel {
 	private:
 		struct Attached {
@@ -62,10 +63,8 @@ class MapMarkersPanel : public UIPanel {
 			Drawing::MapIconhook* editor;
 			std::vector<Attached> attached;
 
-			// What the marker is, under its editor, a line to a hook.
+			// What the marker covers, shown over its name while it is pointed at.
 			std::string help;
-			std::vector<Drawing::Texthook*> helpLines;
-			unsigned int helpWidth;		// what the lines were last broken to
 
 			// The setting the marker hangs off, where that is one that can be
 			// switched off, and what it is called.
@@ -79,6 +78,11 @@ class MapMarkersPanel : public UIPanel {
 		unsigned int builtVersion;	// registry version the markers were built for
 
 		Drawing::Boxhook* divider;
+
+		// Not in the tab: a tip sits wherever there is room for it, which may be
+		// outside the window.
+		Drawing::Tooltiphook* tip;
+		int shownTip;				// the marker it was last filled for, or -1
 
 		// Measured when the markers are built: the list's width, the label column
 		// the editors and what is attached to them share, and the least the
@@ -95,17 +99,17 @@ class MapMarkersPanel : public UIPanel {
 		void FindParent(Marker& marker, const std::string& parentKey);
 		void Measure();
 		void Layout();
-
-		// The help broken to a width, no more lines than there are hooks for.
-		std::vector<std::string> HelpLines(const Marker& marker, unsigned int width);
-		unsigned int DetailHeight(const Marker& marker, unsigned int width);
+		void UpdateTip();
+		void HideTip();
 
 		void Select(int index);
 
 	public:
 		MapMarkersPanel(Drawing::UI* ui);
+		~MapMarkersPanel();
 
 		void OnDraw();
+		void OnClose();
 		bool OnKey(bool up, BYTE key);
 		std::string GetStatus();
 

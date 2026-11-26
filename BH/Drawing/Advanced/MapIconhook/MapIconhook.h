@@ -9,10 +9,10 @@ namespace Drawing {
 	class Colorhook;
 	class Checkhook;
 
-	// The pitch every row of the editor is laid out on, how far down a row its
-	// text sits, and the space between a label and the control it names. Public
-	// so that whoever shows the editor can lay rows of its own on the same lines:
-	// next to it, and under it.
+	// The pitch the editor's rows are laid out on, the icon strip's apart, how
+	// far down a row its text sits, and the space between a label and the
+	// control it names. Public so that whoever shows the editor can lay rows of
+	// its own under it to the same rhythm.
 	#define MAP_ICON_ROW_HEIGHT		22
 	#define MAP_ICON_ROW_TEXT_TOP	6
 	#define MAP_ICON_LABEL_GAP		10
@@ -82,8 +82,7 @@ namespace Drawing {
 	// panel, moved and put away as one, and is drawn by whatever draws the panel.
 	//
 	// The preview runs across the top at whatever width the editor is given, and
-	// the controls are a form under it: labels in a column of their own, every row
-	// on the same pitch.
+	// the controls are a form under it, with labels in a column of their own.
 	//
 	// It shows only what the options offer, and greys out what the style in hand
 	// has no use for: an icon drawn in the game's own colours has no colour to

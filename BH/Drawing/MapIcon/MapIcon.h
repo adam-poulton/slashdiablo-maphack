@@ -69,13 +69,17 @@ namespace MapIcon {
 	// What the icon is called where it is offered, in sentence case.
 	const char* Label(Icon icon);
 
-	// The automap frame of the game's super chest sprite.
+	// The automap frame of the game's super chest sprite, and how much of it
+	// shows.
 	const unsigned int GameCell = 318;
+	const unsigned int GameWidth = 14;
+	const unsigned int GameHeight = 23;
 
 	// Both defined in MapIconDraw.cpp.
 	//
 	// Draws the icon centred on a point on screen, for showing what an icon looks
-	// like away from the automap.
+	// like away from the automap. The game's sprite, GameWidth by GameHeight,
+	// stands taller than a shape at any size, so whatever holds one leaves room.
 	void Draw(Icon icon, unsigned int size, int x, int y, unsigned int color);
 
 	// Draws the icon at a position in the world on the automap. Apart from Draw()

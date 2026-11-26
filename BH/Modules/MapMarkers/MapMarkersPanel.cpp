@@ -7,6 +7,7 @@
 #include "../../Drawing/Basic/Texthook/Texthook.h"
 #include "../../Drawing/Advanced/Colorhook/Colorhook.h"
 #include "../../Drawing/Advanced/Combohook/Combohook.h"
+#include "../../Drawing/Advanced/Tooltiphook/Tooltiphook.h"
 
 using namespace Drawing;
 
@@ -14,10 +15,14 @@ using namespace Drawing;
 // footer's rule.
 #define MM_TOP				8
 #define MM_BOTTOM			8
+#define MM_TEXT_HEIGHT		10		// font 0
 
-// A row of the list is on the editor's pitch, so each name sits on the same line
-// as the row of the form beside it.
-#define MM_ROW_HEIGHT		MAP_ICON_ROW_HEIGHT
+// Tall enough for the game's sprite with room above and below it, so a marker
+// drawn as it stays clear of the rows on either side. The name is centred on it.
+#define MM_ROW_HEIGHT		28
+#define MM_ROW_TEXT_TOP		((MM_ROW_HEIGHT - MM_TEXT_HEIGHT) / 2)
+static_assert(MM_ROW_HEIGHT >= MapIcon::GameHeight + 4,
+	"a row holds the game's sprite clear of its neighbours");
 
 // The selected row's band reaches this far out past what is drawn on it, as a
 // list's does, so the marker does not sit against the band's edge.
@@ -42,20 +47,15 @@ using namespace Drawing;
 #define MM_DIVIDER_GAP		8
 #define MM_DIVIDER_COLOR	Grey
 
-// The widest the editor is laid out. Past it the preview only gets emptier and
-// the help harder to read.
+// The widest the editor is laid out. Past it the preview only gets emptier.
 #define MM_DETAIL_MAX		360
 
 // A list setting under the editor, as wide as the settings window draws one.
 #define MM_ATTACHED_WIDTH	120
 
-// The help under the form: a little apart from it, broken to the editor's width,
-// and cut short past a few lines.
-#define MM_HELP_GAP			6
-#define MM_HELP_LINE		12
-#define MM_HELP_LINES		4
-#define MM_HELP_COLOR		Grey
-#define MM_TEXT_HEIGHT		10		// font 0
+// The tip over a name, in the colour the settings window's are drawn in.
+#define MM_TIP_WIDTH		240
+#define MM_TIP_COLOR		Grey
 
 // Gold for what can be clicked, white on a band for the one in hand, grey for a
 // marker that draws nothing at all.
@@ -125,7 +125,7 @@ void MapMarkerRowhook::OnDraw() {
 	else if (!style->Draws())
 		color = MM_ROW_OFF;
 	Texthook::Draw(GetX() + MM_ROW_INSET + MM_ROW_LABEL_LEFT,
-		GetY() + MAP_ICON_ROW_TEXT_TOP, None, 0, color, "%s", fitted.c_str());
+		GetY() + MM_ROW_TEXT_TOP, None, 0, color, "%s", fitted.c_str());
 	Unlock();
 }
 
@@ -133,10 +133,18 @@ void MapMarkerRowhook::OnDraw() {
  */
 MapMarkersPanel::MapMarkersPanel(UI* ui) :
 		UIPanel("Markers", ui), selected(0), builtVersion(0), divider(NULL),
-		listWidth(0), labelWidth(0), detailMinWidth(0), minWidth(0), minHeight(0) {
+		tip(NULL), shownTip(-1), listWidth(0), labelWidth(0), detailMinWidth(0),
+		minWidth(0), minHeight(0) {
 	divider = new Boxhook(tab, 0, 0, 1, 0);
 	divider->SetColor(MM_DIVIDER_COLOR);
 	divider->SetTransparency(BTNormal);
+	// Placed and switched on by UpdateTip().
+	tip = new Tooltiphook(InGame, 0, 0);
+	tip->SetActive(false);
+}
+
+MapMarkersPanel::~MapMarkersPanel() {
+	delete tip;
 }
 
 // Only a setting that can be off says anything about whether the marker is drawn.
@@ -188,12 +196,6 @@ void MapMarkersPanel::EnsureMarkers() {
 		marker.editor = new MapIconhook(tab, 0, 0, setting->styleValue,
 			setting->styleOptions);
 		marker.help = setting->help;
-		marker.helpWidth = 0;
-		for (unsigned int line = 0; line < MM_HELP_LINES; line++) {
-			Texthook* text = new Texthook(tab, 0, 0, "");
-			text->SetColor(MM_HELP_COLOR);
-			marker.helpLines.push_back(text);
-		}
 		FindParent(marker, setting->parent);
 		markers.push_back(marker);
 	}
@@ -224,35 +226,8 @@ void MapMarkersPanel::EnsureMarkers() {
 	Measure();
 }
 
-std::vector<std::string> MapMarkersPanel::HelpLines(const Marker& marker,
-		unsigned int width) {
-	if (marker.help.empty() || width == 0)
-		return std::vector<std::string>();
-	std::vector<std::string> lines = Texthook::Wrap(marker.help, width, 0);
-	if (lines.size() <= MM_HELP_LINES)
-		return lines;
-	// The last line there is room for carries the rest, cut to the width.
-	std::string rest = lines[MM_HELP_LINES - 1];
-	for (unsigned int line = MM_HELP_LINES; line < lines.size(); line++)
-		rest += " " + lines[line];
-	lines.resize(MM_HELP_LINES);
-	lines[MM_HELP_LINES - 1] = Texthook::Fit(rest, width, 0);
-	return lines;
-}
-
-unsigned int MapMarkersPanel::DetailHeight(const Marker& marker, unsigned int width) {
-	unsigned int height = marker.editor->GetYSize() +
-		(unsigned int)marker.attached.size() * MM_ROW_HEIGHT;
-	unsigned int lines = (unsigned int)HelpLines(marker, width).size();
-	if (lines > 0)
-		height += MM_HELP_GAP + (lines - 1) * MM_HELP_LINE + MM_TEXT_HEIGHT;
-	return height;
-}
-
 // Everything here measures text, so it is worked out once per set of markers
-// rather than every frame. The help is broken to the narrowest the editor can
-// be, which is where it runs to the most lines, so the height is enough at any
-// width.
+// rather than every frame.
 void MapMarkersPanel::Measure() {
 	listWidth = 0;
 	labelWidth = 0;
@@ -280,7 +255,8 @@ void MapMarkersPanel::Measure() {
 
 	unsigned int tallest = (unsigned int)markers.size() * MM_ROW_HEIGHT;
 	for (const Marker& marker : markers)
-		tallest = (std::max)(tallest, DetailHeight(marker, detailMinWidth));
+		tallest = (std::max)(tallest, marker.editor->GetYSize() +
+			(unsigned int)marker.attached.size() * MAP_ICON_ROW_HEIGHT);
 	minHeight = markers.empty() ? 0 : MM_TOP + tallest + MM_BOTTOM;
 }
 
@@ -326,26 +302,50 @@ void MapMarkersPanel::Layout() {
 			attached.label->SetBaseY(MapIconhook::RowY(y, attached.label));
 			attached.control->SetBaseX(detailX + labelWidth);
 			attached.control->SetBaseY(MapIconhook::RowY(y, attached.control));
-			y += MM_ROW_HEIGHT;
-		}
-
-		// Broken to the width only while it is the one shown: measuring text is a
-		// call into the game, and the others are not drawn.
-		if (editing && marker.helpWidth != detailWidth) {
-			marker.helpWidth = detailWidth;
-			std::vector<std::string> lines = HelpLines(marker, detailWidth);
-			for (unsigned int line = 0; line < marker.helpLines.size(); line++)
-				marker.helpLines[line]->SetText("%s",
-					line < lines.size() ? lines[line].c_str() : "");
-		}
-		y += MM_HELP_GAP;
-		for (Texthook* line : marker.helpLines) {
-			line->SetActive(editing && line->GetText().length() > 0);
-			line->SetBaseX(detailX);
-			line->SetBaseY(y);
-			y += MM_HELP_LINE;
+			y += MAP_ICON_ROW_HEIGHT;
 		}
 	}
+}
+
+// Over the name the pointer is on, rebuilt only when that changes: the pointer
+// rests on one row for many frames. Not while a picker or a dropdown is open,
+// which the tip would be drawn over.
+void MapMarkersPanel::UpdateTip() {
+	int over = -1;
+	if (IsActive() && !Colorhook::current && !Combohook::current) {
+		for (unsigned int i = 0; i < markers.size() && over < 0; i++) {
+			if (!markers[i].help.empty() &&
+					markers[i].row->InRange(Hook::GetMouseX(), Hook::GetMouseY()))
+				over = (int)i;
+		}
+	}
+	if (over < 0) {
+		HideTip();
+		return;
+	}
+
+	if (over != shownTip) {
+		std::vector<TooltipLine> lines;
+		lines.push_back(TooltipLine(markers[over].help, MM_TIP_COLOR));
+		tip->SetMaxWidth(MM_TIP_WIDTH);
+		tip->SetLines(lines);
+		shownTip = over;
+	}
+	// After SetLines(): where it fits depends on how big it turned out.
+	MapMarkerRowhook* row = markers[over].row;
+	tip->PlaceAbove(row->GetX(), row->GetY(), row->GetXSize(), row->GetYSize());
+	tip->SetActive(true);
+}
+
+void MapMarkersPanel::HideTip() {
+	tip->SetActive(false);
+	shownTip = -1;
+}
+
+// The tip is drawn with the screen rather than the window, so it has to be put
+// away as the window goes.
+void MapMarkersPanel::OnClose() {
+	HideTip();
 }
 
 void MapMarkersPanel::Select(int index) {
@@ -397,4 +397,5 @@ std::string MapMarkersPanel::GetStatus() {
 void MapMarkersPanel::OnDraw() {
 	EnsureMarkers();
 	Layout();
+	UpdateTip();
 }

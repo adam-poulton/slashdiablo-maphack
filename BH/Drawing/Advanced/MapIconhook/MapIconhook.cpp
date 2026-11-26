@@ -9,13 +9,17 @@
 
 using namespace Drawing;
 
-// The strip: one square cell per icon, the icon drawn in it at a size that leaves
-// room around the largest of them. A cell is a little shorter than a row, and its
-// text inset is what centres the line of font 0 on it.
-#define MIH_CELL				20
-#define MIH_CELL_ICON_SIZE		3
+// The strip: one square cell per icon, tall enough for the game's sprite with a
+// pixel clear of the outline above and below it, the shapes drawn at the size the
+// list draws them. Odd, so a cell has a middle pixel to centre on. Its row keeps a
+// pixel clear around it in turn, and its text inset centres a line of font 0 on it.
+#define MIH_CELL				27
+#define MIH_CELL_ICON_SIZE		4
+#define MIH_STRIP_ROW_HEIGHT	(MIH_CELL + 2)
 #define MIH_TEXT_HEIGHT			10		// font 0
 #define MIH_CELL_TEXT_INSET		((MIH_CELL - MIH_TEXT_HEIGHT) / 2)
+static_assert(MIH_CELL >= MapIcon::GameHeight + 4,
+	"a cell holds the game's sprite clear of its outline");
 
 // What the chosen and the hovered cell are outlined in, as in the colour picker.
 #define MIH_CHOSEN_EDGE			0xD0	// grey
@@ -25,13 +29,9 @@ using namespace Drawing;
 #define MIH_NONE_HALF_WIDTH		4
 #define MIH_NONE_COLOR			0xD0
 
-// The preview across the top, and the gap under it. Together a whole number of
-// rows, so the form's rows land on the same lines as rows laid beside the editor
-// from its top.
+// The preview across the top, and the gap under it.
 #define MIH_PREVIEW_HEIGHT		56
 #define MIH_PREVIEW_GAP			10
-static_assert((MIH_PREVIEW_HEIGHT + MIH_PREVIEW_GAP) % MAP_ICON_ROW_HEIGHT == 0,
-	"the form under the preview has to start on a row");
 
 // Where the line in the preview starts: in from the bottom, and no further to
 // the left of the icon than this, so it keeps one slope however wide the preview.
@@ -61,9 +61,7 @@ static void DrawEdges(int x, int y, int width, int height, unsigned int color) {
 	D2GFX_DrawRectangle(x + width - 1, y, x + width, y + height, color, BTNormal);
 }
 
-// Where the icon is drawn from: the cell's middle. An even cell has no middle
-// pixel, and the shapes lean a pixel to the top left, so the centre is taken on
-// the right of the two.
+// Where the icon is drawn from: the cell's middle pixel.
 static int CellCentre(int origin) {
 	return origin + MIH_CELL / 2;
 }
@@ -303,10 +301,12 @@ void MapIconhook::Layout() {
 
 	unsigned int row = MIH_PREVIEW_HEIGHT + MIH_PREVIEW_GAP;
 	if (strip) {
-		iconLabel->SetBaseY(RowY(row, iconLabel));
+		// A row of its own height, its label centred on it as the others are.
+		unsigned int textTop = (MIH_STRIP_ROW_HEIGHT - MIH_TEXT_HEIGHT) / 2;
+		iconLabel->SetBaseY(row + textTop);
 		strip->SetBaseX(labelWidth);
-		strip->SetBaseY(RowY(row, strip));
-		row += MAP_ICON_ROW_HEIGHT;
+		strip->SetBaseY(row + textTop - strip->GetTextInset());
+		row += MIH_STRIP_ROW_HEIGHT;
 	}
 	if (size) {
 		unsigned int wanted = strip ? strip->GetXSize() : MIH_SLIDER_WIDTH;

@@ -36,16 +36,17 @@ namespace MapIcon {
 					color, -1);
 		}
 
-		// Where the game's sprite lands relative to the point a shape is centred
-		// on, on the full size automap: the difference between DrawAt()'s
-		// transform and Hook::ScreenToAutomap() with the divisor at 10.
-		const int GameOffsetX = -7;
-		const int GameOffsetY = 5;
+		// A cell is drawn from the bottom left of its frame. The super chest's
+		// frame is 16 by 32 with what shows of it in columns 2 to 15 and rows 7 to
+		// 29 (MaxiMap.dc6, frame 318), so it is placed with that centred on the
+		// point, leaning a pixel left as the shapes do.
+		const int GameCentreX = 9;
+		const int GameCentreY = 14;
 	}
 
 	void Draw(Icon icon, unsigned int size, int x, int y, unsigned int color) {
 		if (icon == Game)
-			DrawCell(GameCell, x + GameOffsetX, y + GameOffsetY);
+			DrawCell(GameCell, x - GameCentreX, y + GameCentreY);
 		else
 			DrawShape(icon, size, x, y, color);
 	}
