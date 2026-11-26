@@ -179,24 +179,30 @@ LONG WINAPI GameWindowEvent(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 	int mouseX = Drawing::Hook::GetMouseX();
 	int mouseY = Drawing::Hook::GetMouseY();
 
+	// A click on an open colour picker or dropdown list is that overlay's alone:
+	// the windows, panels and game under it never hear it.
 	if (uMsg == WM_LBUTTONDOWN) {
 		if (Drawing::Hook::LeftClick(screen, false, mouseX, mouseY))
 			blockEvent = true;
-		if (Drawing::UI::LeftClick(screen, false, mouseX, mouseY))
-			blockEvent = true;
-		if (inGame && Drawing::StatsDisplay::Click(false, mouseX, mouseY))
-			blockEvent = true;
-		__raise BH::moduleManager->OnLeftClick(false, mouseX, mouseY, &blockEvent);
+		if (!Drawing::Hook::ClickOnOverlay()) {
+			if (Drawing::UI::LeftClick(screen, false, mouseX, mouseY))
+				blockEvent = true;
+			if (inGame && Drawing::StatsDisplay::Click(false, mouseX, mouseY))
+				blockEvent = true;
+			__raise BH::moduleManager->OnLeftClick(false, mouseX, mouseY, &blockEvent);
+		}
 	}
 
 	if (uMsg == WM_LBUTTONUP) {
 		if (Drawing::Hook::LeftClick(screen, true, mouseX, mouseY))
 			blockEvent = true;
-		if (Drawing::UI::LeftClick(screen, true, mouseX, mouseY))
-			blockEvent = true;
-		if (inGame && Drawing::StatsDisplay::Click(true, mouseX, mouseY))
-			blockEvent = true;
-		__raise BH::moduleManager->OnLeftClick(true, mouseX, mouseY, &blockEvent);
+		if (!Drawing::Hook::ClickOnOverlay()) {
+			if (Drawing::UI::LeftClick(screen, true, mouseX, mouseY))
+				blockEvent = true;
+			if (inGame && Drawing::StatsDisplay::Click(true, mouseX, mouseY))
+				blockEvent = true;
+			__raise BH::moduleManager->OnLeftClick(true, mouseX, mouseY, &blockEvent);
+		}
 	}
 
 	if (uMsg == WM_RBUTTONDOWN) {

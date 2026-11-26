@@ -20,6 +20,7 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
 * Super chests in Lower Kurast are marked with the game's own super chest icon and the line `LK Chest Lines` drew, which carries over as the super chest line's colour. The marker shows before the chest's room has loaded, moves onto the chest once it has, and goes away for the rest of the game once the chest is opened. Set `Marked in` to `Every area` to mark the super chests of other areas, and their sparkly chests, too.
 * Colour settings now show their colour as the shape it is drawn as: an X for monster and path colours, a filled square for the rest. A colour that is not in use is shown faded.
 * Dropdown lists open upward when there is no room for them below their box.
+* Fix clicking an option in a dropdown list, or a colour in the colour picker, also clicking whatever was under it.
 * Fix the colour picker choosing the last colour the pointer passed over when clicked below the palette, and ignoring clicks along the top of the first row. The picker now opens in the middle of the screen at any resolution and outlines the colour already chosen.
 
 # Release Notes for 1.10.1 (2026-10-04)

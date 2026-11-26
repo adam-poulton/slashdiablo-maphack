@@ -47,6 +47,10 @@ namespace Drawing {
 			//the gesture and not of any one control.
 			static Hook* pressedHook;
 
+			//Whether the gesture in hand is on something drawn over everything
+			//else: the open colour picker, or an open dropdown's list.
+			static bool overlayGesture;
+
 			// The cursor, as the window procedure last reported it. Only read
 			// outside a game, where nothing else keeps it.
 			static int oogMouseX;
@@ -208,6 +212,12 @@ namespace Drawing {
 			static bool RightClick(HookVisibility screen, bool up, unsigned int x, unsigned int y);
 			static bool KeyClick(HookVisibility screen, bool bUp, BYTE bKey, LPARAM lParam);
 			static bool MouseWheel(HookVisibility screen, int notches, unsigned int x, unsigned int y);
+
+			// Whether the left click LeftClick() was just given, press or release,
+			// went to the open colour picker or an open dropdown's list. Those are
+			// drawn over everything else, so nothing else is to hear that click:
+			// not a window under them, and not the game.
+			static bool ClickOnOverlay() { return overlayGesture; };
 
 			// The canvas the current screen is drawn on, which is what a
 			// position or a size is clamped against.
