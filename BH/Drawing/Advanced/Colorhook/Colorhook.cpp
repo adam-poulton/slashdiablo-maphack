@@ -41,20 +41,24 @@ using namespace Drawing;
 // over, from the bottom left corner to the top right.
 #define COLOR_NONE_SLASH			0x0A	// red
 
-// The picker: a frame centred on the screen holding the palette as a grid, with
-// what a click does written under it.
+// The picker: a frame centred on the screen holding the palette as a grid, the
+// colour a click would choose in a bar under it, and what a click does under
+// that. Nothing is drawn beside the text, which a text scaling mod widens past
+// what the game measures it as.
 #define PICKER_WIDTH			180
-#define PICKER_HEIGHT			220
-#define PICKER_GRID_LEFT		11
+#define PICKER_HEIGHT			238
+#define PICKER_GRID_LEFT		10
 #define PICKER_GRID_TOP			20
 #define PICKER_CELL				10
 #define PICKER_COLUMNS			16
 #define PICKER_ENTRIES			256
+#define PICKER_GRID_WIDTH		(PICKER_COLUMNS * PICKER_CELL)
+#define PICKER_PREVIEW_TOP		186
+#define PICKER_PREVIEW_HEIGHT	14
 #define PICKER_TEXT_LEFT		10
-#define PICKER_SELECT_TOP		188
-#define PICKER_CLOSE_TOP		204
-#define PICKER_PREVIEW_X		158
-#define PICKER_PREVIEW_Y		201
+#define PICKER_SELECT_TOP		206
+#define PICKER_CLOSE_TOP		222
+#define PICKER_NONE_TEXT		"No color"
 
 // What the hovered entry and the one already chosen are outlined in.
 #define PICKER_HOVER_EDGE		0x20	// white
@@ -89,6 +93,23 @@ static void DrawSlash(int x, int y, int side, BoxTrans trans) {
 	for (int i = 0; i < side; i++)
 		D2GFX_DrawRectangle(x + i, y + side - 1 - i, x + i + 1, y + side - i,
 			COLOR_NONE_SLASH, trans);
+}
+
+// The bar under the palette, as wide as it: filled with the colour, or the shape
+// the colour is drawn as in it, or no colour said in words, which a slash across a
+// bar this shape would not say as plainly.
+static void DrawPreview(MapIcon::Icon swatch, int x, int y, unsigned int color) {
+	int width = PICKER_GRID_WIDTH;
+	int height = PICKER_PREVIEW_HEIGHT;
+	DrawEdges(x, y, width, height, COLOR_SWATCH_EDGE);
+	if (color == MapIcon::NoColor)
+		Texthook::Draw(x + width / 2, y + (height - 10) / 2, Center, 0, Grey,
+			PICKER_NONE_TEXT);
+	else if (swatch == MapIcon::Square)
+		D2GFX_DrawRectangle(x + 1, y + 1, x + width - 1, y + height - 1, color, BTNormal);
+	else
+		MapIcon::DrawOutline(swatch, COLOR_SWATCH_ICON_SIZE, x + width / 2,
+			y + height / 2, color);
 }
 
 static void DrawPaletteEdge(unsigned int entry, unsigned int color) {
@@ -301,8 +322,8 @@ void Colorhook::OnDraw() {
 			DrawPaletteEdge((unsigned int)hovered, PICKER_HOVER_EDGE);
 		// What a click would choose, or what is chosen while the pointer is off
 		// the palette.
-		DrawSwatch(swatch, left + PICKER_PREVIEW_X, top + PICKER_PREVIEW_Y,
-			hovered >= 0 ? (unsigned int)hovered : chosen, false);
+		DrawPreview(swatch, left + PICKER_GRID_LEFT, top + PICKER_PREVIEW_TOP,
+			hovered >= 0 ? (unsigned int)hovered : chosen);
 		Texthook::Draw(left + PICKER_TEXT_LEFT, top + PICKER_SELECT_TOP, None, 0,
 			White, "Left click - Select");
 		Texthook::Draw(left + PICKER_TEXT_LEFT, top + PICKER_CLOSE_TOP, None, 0,

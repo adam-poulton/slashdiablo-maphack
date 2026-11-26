@@ -21,7 +21,7 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
 * Colour settings now show their colour as the shape it is drawn as: an X for monster and path colours, a filled square for the rest. A colour that is not in use is shown faded.
 * Dropdown lists open upward when there is no room for them below their box.
 * Fix clicking an option in a dropdown list, or a colour in the colour picker, also clicking whatever was under it.
-* Fix the colour picker choosing the last colour the pointer passed over when clicked below the palette, and ignoring clicks along the top of the first row. The picker now opens in the middle of the screen at any resolution and outlines the colour already chosen.
+* Fix the colour picker choosing the last colour the pointer passed over when clicked below the palette, and ignoring clicks along the top of the first row. The picker now opens in the middle of the screen at any resolution, outlines the colour already chosen, and shows the colour under the pointer in a bar under the palette.
 
 # Release Notes for 1.10.1 (2026-10-04)
 * Add stat filter conditions to the codex.
