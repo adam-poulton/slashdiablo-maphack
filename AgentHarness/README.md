@@ -1,0 +1,165 @@
+# Agent harness
+
+Runs Diablo II for an agent, single player only, in a sandbox that cannot reach
+the player's installs, saves, settings, realm accounts, screen, mouse or
+keyboard. Why it is built this way is ADR 0011.
+
+## Building
+
+```powershell
+$msb = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe" | Select-Object -First 1
+& $msb /t:AgentLaunch /p:Configuration=Release /m BH.sln                    # -> AgentHarness\bin\Release
+& $msb /t:BH /p:Configuration=Release /p:BHAgent=true /m BH.sln             # -> AgentRelease\BH.dll
+```
+
+A sandbox runs the agent build of BH, Release with the driver that answers
+`state`, `wait`, `drawlog`, `drop` and `leave` (ADR 0012). It builds into folders
+of its own, so it and Release can both be built without either rebuilding the
+other.
+
+## Running
+
+```powershell
+python AgentHarness\bhctl.py base                  # once, and after the game files change
+$id = python AgentHarness\bhctl.py create          # takes AgentRelease\BH.dll, or --bh <path>
+python AgentHarness\bhctl.py launch $id            # hidden, returns at the main menu
+python AgentHarness\bhctl.py enter $id             # a new Sorceress, into Normal
+python AgentHarness\bhctl.py input $id key:numpad8 wait:0.5 text:Name
+python AgentHarness\bhctl.py drop $id --capture BHTests\fixtures\filter-cases.txt --code rin --offset 3,2
+python AgentHarness\bhctl.py wait $id main_menu    # until the game shows that screen
+python AgentHarness\bhctl.py state $id             # the screen and its controls, or the character and the items around it
+python AgentHarness\bhctl.py drawlog $id           # everything BH drew in one frame
+python AgentHarness\bhctl.py shot $id out.png      # --crop X,Y,W,H for part of it
+python AgentHarness\bhctl.py leave $id             # save and exit the game
+python AgentHarness\bhctl.py teardown $id          # always, when done
+```
+
+`create --setting "KEY=VALUE"`, repeatable, writes a line of `BH_settings.cfg`
+in place of the shipped one. `input --help` and `drop --help` list what they
+take. The `run-game` skill is the walkthrough for agents, from building to
+reporting.
+
+## Characters and drops
+
+A run plays a new level 1 Sorceress unless it is given a character:
+`create --character FILE.d2s` plays a copy of that save, which `enter` picks
+from the character list (`--difficulty nightmare` or `hell` for one that has
+reached it). The file itself is never written. Characters worth playing again
+are kept in `AgentHarness\fixtures\`:
+
+| Save | Character |
+|---|---|
+| `Daicos.d2s` | level 99 Sorceress, Nightmare finished, so Hell is open |
+| `Adam.d2s` | level 96 Necromancer, Hell finished |
+
+`drop` lands an item next to the character as though the server had just sent
+it: an item packet BH's item capture recorded ("Capture Item Drops: True"
+writes `item-captures.txt` beside BH's configs), given a unit of its own and a
+place `--offset` tiles away. It goes through BH's packet hook like any drop, so
+it is named, coloured, noted and put on the map by the run's item filter, and
+an item the filter hides never lands. `BHTests\fixtures\filter-cases.txt` holds
+1351 recorded drops. The server knows nothing of a dropped item, so clicking
+it does nothing.
+
+`state` lists the items on the ground with the name the game shows for each,
+which is the name the item filter gave it (ADR 0014).
+
+## Scenarios
+
+A scenario is a check of BH in a running game, written down so that it runs the
+same way every time and reports what it found (ADR 0013):
+
+```powershell
+python AgentHarness\bhctl.py scenario AgentHarness\scenarios\smoke.json
+```
+
+It creates and launches a run, goes through the steps, tears the run down, and
+writes `report.md` and `report.json` to `AgentHarness\reports\<time>-<name>\`
+(or `--out DIR`), with a screenshot for every check. It exits 0 when every check
+holds, 1 when one does not, and 2 when the scenario could not finish. `--keep`
+leaves the run up afterwards and prints its id.
+
+```json
+{
+  "title": "The settings hotkey opens BH's settings",
+  "start": "game",
+  "name": "Agent",
+  "settings": {"Show Settings": "True, VK_F10"},
+  "steps": [
+    {"do": ["key:f10"]},
+    {"check": "the window opens at the top left", "drawn": {"text": "Settings", "rect": [4, 3, 52, 10]}}
+  ]
+}
+```
+
+- `title` says what the scenario shows.
+- `start` is `game` (the default) or `main_menu`.
+- `character` is a character save to play, as `create --character` takes it,
+  and `difficulty` the one to play it in (`normal`, the default, `nightmare` or
+  `hell`). Without one the game is a new Sorceress named `name`, default
+  `Agent`, in Normal.
+- `settings` maps `BH_settings.cfg` keys to values, as `create --setting` does.
+  A key the shipped file does not set is added, and the report notes it.
+
+Paths in a scenario are from the repository's root unless absolute.
+
+Each step names one kind:
+
+| Step | Does |
+|---|---|
+| `{"do": [ACTION, ...]}` | input, as `bhctl input` takes it |
+| `{"wait": SCREEN or [SCREEN, ...], "timeout": 60}` | until the game shows one |
+| `{"check": "what should be true", ...}` | a check, below |
+| `{"drop": {"capture": FILE, "code": CODE, "nth": N}, "offset": [dx, dy]}` | a recorded item lands, as `bhctl drop` lands it; `"name"` picks by name, and `{"packet": HEX}` gives the packet itself |
+| `{"shot": NAME, "crop": [x, y, w, h]}` | a screenshot for the report |
+| `{"drawlog": NAME}` | a draw log for the report |
+| `{"leave": true}` | save and exit the game |
+| `{"enter": true}` | back into a game, with the run's character |
+
+A check holds when every part it has does, and is tried again until it does or
+its `timeout` (default 5 seconds) runs out, so it needs no `wait:` before it.
+Whatever the outcome, its screenshot goes in the report.
+
+- `"state": {PATH: VALUE, ...}`: each dotted path into `bhctl state`'s answer
+  equals its value, as in `{"screen": "game", "game.panels": []}`. A list takes
+  an index: `"size.0": 1344`.
+- `"drawn": {FIELD: VALUE, ...}`: BH drew an item with every field given. The
+  fields are `kind` (`text`, `box`, `frame` or `line`), `text` (all of it, colour
+  codes aside), `contains` (part of it), `font`, `color`, `rect` (exactly
+  `[x, y, w, h]`; a line's is the box around it) and `inside` (wholly within
+  `[x, y, w, h]`). With `"count": N` exactly N items match, and `"count": 0`
+  means nothing like it was drawn.
+- `"item": {FIELD: VALUE, ...}`: an item on the ground has every field given:
+  `code`, `name` (all of it as the game shows it, colour codes aside),
+  `contains` (part of the name) and `id`. `count` works as for `drawn`, so
+  `{"item": {"code": "aqv"}, "count": 0}` says the filter hid the arrows. A
+  check has `drawn` or `item`, not both.
+- `"hold": [KEY, ...]` keeps keys held down while the check runs: `["alt"]`
+  shows the items' names in its screenshot.
+
+What a check matched is outlined in magenta on its screenshot. A text check
+that matched nothing lists what read most like it, outlined in yellow, which is
+usually the right text a pixel or a colour away.
+
+`AgentHarness\scenarios\` holds scenarios worth running again: `smoke.json`
+for BH loading and its settings, `item-drops.json` and
+`item-drops-high-level.json` for the item filter on recorded drops, for a new
+character and for Daicos in Hell. One written to check a single change can stay
+in a scratch folder.
+
+## Tests
+
+The harness's logic that needs no game is tested with
+`python -m unittest discover -s AgentHarness`.
+
+`snapshot` and `compare` record the player's registry keys and game folders, to
+show a run changed none of them.
+
+## Rules
+
+- A run is torn down when its work is done. `sweep` removes any whose launcher
+  has gone, and the launcher ends its game after an hour regardless.
+- The harness reads the dev install to build the base and never writes to either
+  install. It never connects to a realm and holds no credentials.
+- Only `bhctl` and `AgentLaunch` stop a game. Never kill a `Game.exe` by name:
+  the player's own clients are `Game.exe` too.

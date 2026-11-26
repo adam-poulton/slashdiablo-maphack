@@ -19,6 +19,8 @@ std::string ToLower(const std::string& text);
 // The parts one after another with the separator between them.
 std::string Join(const std::vector<std::string>& parts, const std::string& separator);
 
+std::string ToUtf8(const std::wstring& text);
+
 // True for the several ways a setting can say yes.
 bool IsTrue(const char *str);
 bool StringToBool(std::string str);

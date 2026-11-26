@@ -81,6 +81,11 @@
     <ClCompile Include="Modules\StashExport\StashExport.cpp" />
     <ClCompile Include="Modules\TownPortal\PortalDelay.cpp" />
     <ClCompile Include="Modules\TownPortal\TownPortal.cpp" />
+    <ClCompile Include="Modules\AgentDriver\AgentDriver.cpp" />
+    <ClCompile Include="Modules\AgentDriver\AgentKeys.cpp" />
+    <ClCompile Include="Modules\AgentDriver\AgentScreen.cpp" />
+    <ClCompile Include="Modules\AgentDriver\DrawLog.cpp" />
+    <ClCompile Include="Modules\AgentDriver\ItemDrop.cpp" />
     <ClCompile Include="TableReader.cpp" />
     <ClCompile Include="TablesFromMPQ.cpp" />
     <ClCompile Include="Task.cpp" />
@@ -119,9 +124,11 @@
     <ClInclude Include="Drawing\Advanced\Tooltiphook\Tooltiphook.h" />
     <ClInclude Include="Drawing\Basic\Boxhook\Boxhook.h" />
     <ClInclude Include="Drawing\Basic\Crosshook\Crosshook.h" />
+    <ClInclude Include="Drawing\Basic\Framehook\FrameArt.h" />
     <ClInclude Include="Drawing\Basic\Framehook\Framehook.h" />
     <ClInclude Include="Drawing\Basic\Linehook\Linehook.h" />
     <ClInclude Include="Drawing\Basic\Texthook\Texthook.h" />
+    <ClInclude Include="Drawing\Basic\Texthook\TextMetrics.h" />
     <ClInclude Include="Drawing\Hook.h" />
     <ClInclude Include="Drawing\Stats\StatsDisplay.h" />
     <ClInclude Include="Drawing\UI\UI.h" />
@@ -186,6 +193,11 @@
     <ClInclude Include="Modules\StashExport\StashExport.h" />
     <ClInclude Include="Modules\TownPortal\PortalDelay.h" />
     <ClInclude Include="Modules\TownPortal\TownPortal.h" />
+    <ClInclude Include="Modules\AgentDriver\AgentDriver.h" />
+    <ClInclude Include="Modules\AgentDriver\AgentKeys.h" />
+    <ClInclude Include="Modules\AgentDriver\AgentScreen.h" />
+    <ClInclude Include="Modules\AgentDriver\DrawLog.h" />
+    <ClInclude Include="Modules\AgentDriver\ItemDrop.h" />
     <ClInclude Include="TableReader.h" />
     <ClInclude Include="Task.h" />
     <ClInclude Include="Modules\Shop\GambleMarks.h" />

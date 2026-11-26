@@ -18,3 +18,4 @@
 #include "Modules\StashExport\StashExport.h"
 #include "Modules\Codex\CodexWindow.h"
 #include "Modules\Settings\SettingsWindow.h"
+#include "Modules\AgentDriver\AgentDriver.h"

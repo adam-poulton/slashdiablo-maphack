@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include "../../Hook.h"
+#include "../../Basic/Texthook/TextMetrics.h"
 
 namespace Drawing {
 	// Space between the frame and the text inside it, matching what the box has
@@ -9,9 +10,6 @@ namespace Drawing {
 	#define COMBO_PADDING_X			5
 	#define COMBO_PADDING_TOP		3
 	#define COMBO_PADDING_BOTTOM	1
-
-	// The arrow on the right, in from the frame.
-	#define COMBO_ARROW_GAP			8
 
 	class Combohook : public Hook {
 		private:
@@ -77,7 +75,7 @@ namespace Drawing {
 			void SetXSize(unsigned int size) { Lock(); xSize = size; Unlock(); };
 
 			//The frame as drawn, not just the text in it.
-			unsigned int GetYSize() { unsigned int height[] = {10,11,18,24,10,13,7,13,10,12,8,8,7,12}; return height[GetFont()] + COMBO_PADDING_TOP + COMBO_PADDING_BOTTOM; };
+			unsigned int GetYSize() { return BaselineOffset(GetFont()) + COMBO_PADDING_TOP + COMBO_PADDING_BOTTOM; };
 
 			unsigned int GetTextInset() { return COMBO_PADDING_TOP; };
 

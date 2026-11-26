@@ -132,6 +132,9 @@ void BH::Initialize()
 	new AccountsWindow();
 	new CodexWindow();
 	new SettingsWindow();
+#ifdef BH_AGENT
+	new AgentDriver();
+#endif
 
 	moduleManager->LoadModules();
 

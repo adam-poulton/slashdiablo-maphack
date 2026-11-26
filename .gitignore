@@ -39,6 +39,12 @@ Release/*
 /.vs/*
 /BH.VC.db
 /out/*
+/AgentHarness/bin/
+/AgentHarness/obj/
+/AgentHarness/reports/
+/AgentRelease/
+/BH/AgentRelease/
+__pycache__/
 
 # Local agent setup, specific to one machine
 /CLAUDE.local.md

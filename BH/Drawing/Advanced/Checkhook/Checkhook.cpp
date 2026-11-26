@@ -12,7 +12,8 @@ void Checkhook::DrawBox(unsigned int x, unsigned int y, bool checked,
 		TextColor color) {
 	Framehook::Draw(x, y, CHECK_BOX_SIZE, CHECK_BOX_SIZE, 0, BTFull);
 	if (checked)
-		Texthook::Draw(x + 3, y + CHECK_LABEL_TOP, false, 0, color, "X");
+		// The mark is as wide as the box inside its frame, exactly.
+		Texthook::Draw(x + 2, y + CHECK_LABEL_TOP, false, 0, color, "X");
 }
 
 /* Basic Hook Initializer

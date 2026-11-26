@@ -155,7 +155,13 @@ FUNCPTR(D2CLIENT, ExitGame, void __fastcall, (void), 0x42850, 0x43870)
 
 FUNCPTR(D2CLIENT, GetUiVar_I, DWORD __fastcall, (DWORD dwVarNo), 0xBE400, 0x17C50)
 
+// Takes the RECT in eax, not ecx (see Framehook::DrawRectStub).
+#ifdef BH_AGENT
+FUNCPTR(D2CLIENT, DrawRectFrame_Game, void __fastcall, (DWORD Rect), 0xBE4C0, 0x17D10)
+void __fastcall D2CLIENT_DrawRectFrame(DWORD Rect);
+#else
 FUNCPTR(D2CLIENT, DrawRectFrame, void __fastcall, (DWORD Rect), 0xBE4C0, 0x17D10)
+#endif
 
 FUNCPTR(D2CLIENT, PerformGoldDialogAction, void __fastcall, (void), 0xBFDF0, 0x197F0)
 
@@ -356,6 +362,12 @@ ASMPTR(D2WIN, DrawTextBuffer, 0x12940, 0x134D0)
 
 ASMPTR(D2CLIENT, ParseStats_J, 0x54E10, 0x2CE40)
 
+#ifdef BH_AGENT
+// What the game loop hands each batch of packets from the server to: the batch
+// in eax and its length on the stack, which it pops.
+ASMPTR(D2CLIENT, ReceivePackets_I, 0xACE20, 0xACE20)
+#endif
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // D2Common Ordinals
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -454,8 +466,18 @@ VARPTR(D2NET, CriticalPacketSection, CRITICAL_SECTION, 0xB400, 0xB400) // unused
 // D2Gfx Ordinals
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
+#ifdef BH_AGENT
+// The agent build records what BH draws (Modules/AgentDriver/DrawLog.h). There
+// these and D2WIN_DrawText are BH's own functions, which record the call and
+// then make it through the _Game pointer.
+FUNCPTR(D2GFX, DrawLine_Game, void __stdcall, (int X1, int Y1, int X2, int Y2, DWORD dwColor, DWORD dwUnk), -10010, -10013)
+FUNCPTR(D2GFX, DrawRectangle_Game, void __stdcall, (int X1, int Y1, int X2, int Y2, DWORD dwColor, DWORD dwTrans), -10014, -10028)
+void __stdcall D2GFX_DrawLine(int X1, int Y1, int X2, int Y2, DWORD dwColor, DWORD dwUnk);
+void __stdcall D2GFX_DrawRectangle(int X1, int Y1, int X2, int Y2, DWORD dwColor, DWORD dwTrans);
+#else
 FUNCPTR(D2GFX, DrawLine, void __stdcall, (int X1, int Y1, int X2, int Y2, DWORD dwColor, DWORD dwUnk), -10010, -10013)
 FUNCPTR(D2GFX, DrawRectangle, void __stdcall, (int X1, int Y1, int X2, int Y2, DWORD dwColor, DWORD dwTrans), -10014, -10028)
+#endif
 FUNCPTR(D2GFX, DrawAutomapCell2, void __stdcall, (CellContext* context, DWORD xpos, DWORD ypos, DWORD bright2, DWORD bright, BYTE *coltab), -10041, -10042)
 FUNCPTR(D2GFX, DrawCellContextEx, void __stdcall, (CellContext *context, int Xpos, int Ypos, int dwl, int nTransLvl, BYTE Color), -10019, -10067)
 
@@ -555,7 +577,12 @@ FUNCPTR(D2WIN, DrawCellFile, void __fastcall, (CellFile * pCellFile, int xPos, i
 // D2Win Ordinals
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
+#ifdef BH_AGENT
+FUNCPTR(D2WIN, DrawText_Game, void __fastcall, (const wchar_t *wStr, int xPos, int yPos, DWORD dwColor, DWORD dwUnk), -10150, -10076)
+void __fastcall D2WIN_DrawText(const wchar_t *wStr, int xPos, int yPos, DWORD dwColor, DWORD dwUnk);
+#else
 FUNCPTR(D2WIN, DrawText, void __fastcall, (const wchar_t *wStr, int xPos, int yPos, DWORD dwColor, DWORD dwUnk), -10150, -10076)
+#endif
 FUNCPTR(D2WIN, DrawFramedText, void __fastcall, (const wchar_t* wStr, int xPos, int yPos,int nColor, int centered), -10085, -10137)
 FUNCPTR(D2WIN, DrawRectText, void __fastcall, (const wchar_t* wStr, int X, int Y, int nRectColor, int nRectTrans, int nColor), -10013, -10078)
 

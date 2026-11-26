@@ -58,6 +58,13 @@
     <IncludePath>$(INCLUDE);$(IncludePath);..\ThirdParty\cpp-lru-cache\include</IncludePath>
     <LibraryPath>..\ThirdParty\;$(LIBPATH);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
+  <!-- The agent build, msbuild /p:Configuration=Release /p:BHAgent=true: Release
+       with the agent driver (Modules\AgentDriver, ADR 0012) compiled in, built in
+       folders of its own so that switching between the two rebuilds nothing. -->
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32' And '$(BHAgent)'=='true'">
+    <OutDir>$(SolutionDir)AgentRelease\</OutDir>
+    <IntDir>AgentRelease\</IntDir>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Packaging|Win32'">
     <TargetExt>.dll</TargetExt>
     <IncludePath>$(INCLUDE);$(IncludePath);..\ThirdParty\cpp-lru-cache\include</IncludePath>
@@ -118,6 +125,11 @@ if defined D2Path (
     xcopy "$(SolutionDir)$(Configuration)" "$(D2Path)" /h /i /c /k /e /r /y
 )</Command>
     </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32' And '$(BHAgent)'=='true'">
+    <ClCompile>
+      <PreprocessorDefinitions>BH_AGENT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Packaging|Win32'">
     <ClCompile>
@@ -242,6 +254,11 @@ if defined D2Path (
     <ClCompile Include="Modules\StashExport\StashExport.cpp" />
     <ClCompile Include="Modules\TownPortal\PortalDelay.cpp" />
     <ClCompile Include="Modules\TownPortal\TownPortal.cpp" />
+    <ClCompile Include="Modules\AgentDriver\AgentDriver.cpp" />
+    <ClCompile Include="Modules\AgentDriver\AgentKeys.cpp" />
+    <ClCompile Include="Modules\AgentDriver\AgentScreen.cpp" />
+    <ClCompile Include="Modules\AgentDriver\DrawLog.cpp" />
+    <ClCompile Include="Modules\AgentDriver\ItemDrop.cpp" />
     <ClCompile Include="TableReader.cpp" />
     <ClCompile Include="TablesFromMPQ.cpp" />
     <ClCompile Include="Task.cpp" />
@@ -275,9 +292,11 @@ if defined D2Path (
     <ClInclude Include="Drawing\Advanced\Tooltiphook\Tooltiphook.h" />
     <ClInclude Include="Drawing\Basic\Boxhook\Boxhook.h" />
     <ClInclude Include="Drawing\Basic\Crosshook\Crosshook.h" />
+    <ClInclude Include="Drawing\Basic\Framehook\FrameArt.h" />
     <ClInclude Include="Drawing\Basic\Framehook\Framehook.h" />
     <ClInclude Include="Drawing\Basic\Linehook\Linehook.h" />
     <ClInclude Include="Drawing\Basic\Texthook\Texthook.h" />
+    <ClInclude Include="Drawing\Basic\Texthook\TextMetrics.h" />
     <ClInclude Include="Drawing\GroupStyle.h" />
     <ClInclude Include="Drawing\Hook.h" />
     <ClInclude Include="Drawing\Stats\StatsDisplay.h" />
@@ -365,6 +384,11 @@ if defined D2Path (
     <ClInclude Include="Modules\StashExport\StashExport.h" />
     <ClInclude Include="Modules\TownPortal\PortalDelay.h" />
     <ClInclude Include="Modules\TownPortal\TownPortal.h" />
+    <ClInclude Include="Modules\AgentDriver\AgentDriver.h" />
+    <ClInclude Include="Modules\AgentDriver\AgentKeys.h" />
+    <ClInclude Include="Modules\AgentDriver\AgentScreen.h" />
+    <ClInclude Include="Modules\AgentDriver\DrawLog.h" />
+    <ClInclude Include="Modules\AgentDriver\ItemDrop.h" />
     <ClInclude Include="TableReader.h" />
     <ClInclude Include="Task.h" />
   </ItemGroup>

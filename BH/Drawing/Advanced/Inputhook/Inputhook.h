@@ -3,6 +3,7 @@
 #include <string>
 #include "../../Hook.h"
 #include "../../Basic/Texthook/Texthook.h"
+#include "../../Basic/Texthook/TextMetrics.h"
 
 namespace Drawing {
 	// Space between the border and the text inside it. A little more above than
@@ -89,7 +90,7 @@ namespace Drawing {
 
 			//Y Size. This is the height of the box as drawn, not just of the
 			//text, so that the clickable area matches what the user sees.
-			unsigned int GetYSize() { unsigned int height[] = {10,11,18,24,10,13,7,13,10,12,8,8,7,12}; return height[GetFont()] + paddingTop + paddingBottom; };
+			unsigned int GetYSize() { return BaselineOffset(GetFont()) + paddingTop + paddingBottom; };
 
 			//Hint shown in place of the text while the box is empty
 			std::string GetPlaceholder() { return placeholder; };
