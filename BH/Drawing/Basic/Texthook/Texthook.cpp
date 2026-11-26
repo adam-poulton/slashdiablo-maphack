@@ -234,6 +234,29 @@ std::vector<std::string> Texthook::Wrap(const std::string& text,
 	return lines;
 }
 
+// Starts from a proportional guess, so wide text doesn't need a measurement per
+// character.
+std::string Texthook::Fit(const std::string& text, unsigned int width,
+		unsigned int font) {
+	if (text.length() == 0 || width == 0)
+		return "";
+
+	unsigned int full = (unsigned int)GetTextSize(text, font).x;
+	if (full <= width)
+		return text;
+
+	size_t length = (size_t)(((double)text.length() * width) / full) + 1;
+	if (length > text.length())
+		length = text.length();
+	while (length > 0) {
+		std::string candidate = text.substr(0, length) + TEXT_ELLIPSIS;
+		if ((unsigned int)GetTextSize(candidate, font).x <= width)
+			return candidate;
+		length--;
+	}
+	return "";
+}
+
 /* GetTextSize(string text, unsigned int font)
  *	Returns the dimensions of the given text!
  */

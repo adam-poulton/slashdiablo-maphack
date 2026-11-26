@@ -2,8 +2,10 @@
 #include "MapMarkersPanel.h"
 #include "../Settings/SettingsRegistry.h"
 
-#define MAP_MARKERS_WINDOW_WIDTH	478
-#define MAP_MARKERS_WINDOW_HEIGHT	250
+// What a window nobody has sized yet opens at. The panel keeps it from being
+// made smaller than its contents, whatever it is asked to open at.
+#define MAP_MARKERS_WINDOW_WIDTH	480
+#define MAP_MARKERS_WINDOW_HEIGHT	300
 
 void MapMarkersWindow::OnLoad() {
 	LoadConfig();

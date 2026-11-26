@@ -276,7 +276,22 @@ void WindowModule::OnDraw() {
 
 	// Likewise last, so the footer reports what the panels just worked out.
 	ui->SetFooterRight(front ? front->GetStatus() : std::string());
+	ApplyMinSize();
 	Unlock();
+}
+
+// A tab spans the window's width, and its height is what the chrome leaves.
+void WindowModule::ApplyMinSize() {
+	unsigned int width = 0, height = 0;
+	for (unsigned int i = 0; i < panels.size(); i++) {
+		if (panels[i]->GetMinWidth() > width)
+			width = panels[i]->GetMinWidth();
+		if (panels[i]->GetMinHeight() > height)
+			height = panels[i]->GetMinHeight();
+	}
+	if (height > 0)
+		height += ui->GetChromeAboveHeight() + ui->GetChromeBelowHeight();
+	ui->SetMinSize(width, height);
 }
 
 std::string WindowModule::ReadCommandArgument(const wchar_t* msg) {

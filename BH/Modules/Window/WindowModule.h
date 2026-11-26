@@ -39,6 +39,10 @@ class WindowModule : public Module {
 		// held.
 		void DeliverSearch(const std::string& text);
 
+		// Keeps the window at least as large as its panels say they need. 0 from
+		// every panel leaves the window's own minimum. Assumes the lock is held.
+		void ApplyMinSize();
+
 	protected:
 		std::map<std::string, Toggle> Toggles;
 
