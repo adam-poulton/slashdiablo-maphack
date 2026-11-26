@@ -1,0 +1,17 @@
+{
+  "title": "The item filter's level rules, for a level 99 character in Hell at filter level 2",
+  "character": "AgentHarness/fixtures/Daicos.d2s",
+  "difficulty": "hell",
+  "settings": {"Filter Level": "2"},
+  "steps": [
+    {"check": "Daicos is in Hell at level 99",
+     "state": {"screen": "game", "game.name": "Daicos", "game.difficulty": 2, "game.level": 99}},
+    {"do": ["move:900,200"]},
+    {"drop": {"capture": "BHTests/fixtures/filter-cases.txt", "code": "rin"}, "offset": [3, 2]},
+    {"drop": {"capture": "BHTests/fixtures/filter-cases.txt", "code": "hp4"}, "offset": [4, 2]},
+    {"check": "the magic ring lands plain, without the T6 it carries below level 20",
+     "item": {"code": "rin", "name": "Ring"}, "hold": ["alt"]},
+    {"check": "the Strong Healing Potion is hidden from level 60",
+     "item": {"code": "hp4"}, "count": 0}
+  ]
+}

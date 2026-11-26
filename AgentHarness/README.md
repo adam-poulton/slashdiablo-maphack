@@ -45,7 +45,12 @@ A run plays a new level 1 Sorceress unless it is given a character:
 `create --character FILE.d2s` plays a copy of that save, which `enter` picks
 from the character list (`--difficulty nightmare` or `hell` for one that has
 reached it). The file itself is never written. Characters worth playing again
-are kept in `AgentHarness\fixtures\`.
+are kept in `AgentHarness\fixtures\`:
+
+| Save | Character |
+|---|---|
+| `Daicos.d2s` | level 99 Sorceress, Nightmare finished, so Hell is open |
+| `Adam.d2s` | level 96 Necromancer, Hell finished |
 
 `drop` lands an item next to the character as though the server had just sent
 it: an item packet BH's item capture recorded ("Capture Item Drops: True"
@@ -137,9 +142,10 @@ that matched nothing lists what read most like it, outlined in yellow, which is
 usually the right text a pixel or a colour away.
 
 `AgentHarness\scenarios\` holds scenarios worth running again: `smoke.json`
-for BH loading and its settings, `item-drops.json` for the item filter on
-recorded drops. One written to check a single change can stay in a scratch
-folder.
+for BH loading and its settings, `item-drops.json` and
+`item-drops-high-level.json` for the item filter on recorded drops, for a new
+character and for Daicos in Hell. One written to check a single change can stay
+in a scratch folder.
 
 ## Tests
 
