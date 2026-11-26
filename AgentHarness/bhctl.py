@@ -3,6 +3,8 @@
     python AgentHarness/bhctl.py base                 # (re)build the shared base
     python AgentHarness/bhctl.py create [--bh DLL]    # new sandbox, prints its id
     python AgentHarness/bhctl.py launch ID [-- ARGS]  # start its game, hidden
+    python AgentHarness/bhctl.py input ID ACTION...   # click, type, press keys
+    python AgentHarness/bhctl.py shot ID FILE.png     # screenshot the game
     python AgentHarness/bhctl.py status ID            # running, and its windows
     python AgentHarness/bhctl.py close ID             # ask the game to quit
     python AgentHarness/bhctl.py teardown ID          # kill, delete files and key
@@ -35,11 +37,13 @@ import json
 import os
 import secrets
 import shutil
+import struct
 import subprocess
 import sys
 import threading
 import time
 import winreg
+import zlib
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -51,6 +55,7 @@ RUNS_KEY = r"Software\BHAgent\runs"
 SANDBOX_MARKER = "BHAgent.sandbox"
 RUN_FILE = "run.json"
 LIFETIME_SECONDS = 3600
+READY_TIMEOUT_SECONDS = 60
 # A sandbox nobody has launched yet is left alone by sweep for this long, so
 # that one agent's sweep cannot take another's sandbox between create and launch.
 UNLAUNCHED_GRACE_SECONDS = 600
@@ -311,6 +316,7 @@ def launch(run_id, game_args, lifetime):
         sys.exit(f"launch failed ({process.returncode}): {(path / 'launcher.log').read_text().strip()}")
     run = {"launcher": process.pid, "game": int(line[4:]), "args": game_args, "started": time.time()}
     (path / RUN_FILE).write_text(json.dumps(run, indent=2))
+    wait_ready(run_id, run, READY_TIMEOUT_SECONDS)
     print(json.dumps(run))
 
 
@@ -396,6 +402,8 @@ def on_desktop(run_id, work):
                 result["error"] = ctypes.WinError(ctypes.get_last_error())
                 return
             result["value"] = work(desktop)
+        except BaseException as error:  # sys.exit included: it only ends a thread
+            result["error"] = error
         finally:
             user32.CloseDesktop(desktop)
 
@@ -487,6 +495,296 @@ def close(run_id, timeout):
             sys.exit(f"the game did not exit within {timeout}s")
         time.sleep(0.2)
     print(f"{run_id} exited")
+
+
+GAME_WINDOW_CLASS = "Diablo II"
+DIALOG_CLASS = "#32770"
+
+
+def game_window(desktop, pid):
+    for window in list_windows(desktop, pid):
+        if window["class"] == GAME_WINDOW_CLASS and window["visible"]:
+            return window
+    sys.exit("the game has no window")
+
+
+# The main menu's Single Player and Exit Diablo II buttons, at the 800x600 the
+# menus always run at. They are pale stone where the title screen shown while
+# the game loads is near black, so their brightness tells the two apart: about
+# 83 on the menu against 20 or less on the title, character and class screens.
+MAIN_MENU_BUTTONS = [(275, 297, 250, 20), (275, 541, 250, 20)]
+MAIN_MENU_MIN_LUMA = 50
+
+
+def brightness(bgra):
+    pixels = len(bgra) // 4
+    return (sum(bgra[2::4]) * 299 + sum(bgra[1::4]) * 587 + sum(bgra[0::4]) * 114) / (1000 * pixels)
+
+
+def at_main_menu(hwnd, client):
+    if client != [800, 600]:
+        return False
+    return all(brightness(capture(hwnd, *button)) >= MAIN_MENU_MIN_LUMA for button in MAIN_MENU_BUTTONS)
+
+
+def wait_ready(run_id, run, timeout):
+    """Returns once the main menu takes clicks. A dialog in its place is how
+    the game and its mods report a failed start, so one ends the wait at once
+    with its text."""
+
+    def look(desktop):
+        windows = [w for w in list_windows(desktop, run["game"]) if w["visible"]]
+        dialogs = [w for w in windows if w["class"] == DIALOG_CLASS]
+        if dialogs:
+            texts = " / ".join(t for d in dialogs for t in [d["title"], *d.get("text", [])] if t != "OK")
+            sys.exit(f"the game stopped at a dialog: {texts}")
+        game = [w for w in windows if w["class"] == GAME_WINDOW_CLASS]
+        return bool(game) and at_main_menu(game[0]["hwnd"], game[0]["client"])
+
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if not running(run):
+            sys.exit(f"the game exited during startup (see {RUNS / run_id / 'launcher.log'})")
+        try:
+            if on_desktop(run_id, look):
+                # The menu is drawn a moment before its buttons are live.
+                time.sleep(0.5)
+                return
+        except OSError:
+            pass
+        time.sleep(0.25)
+    sys.exit(f"the main menu did not appear within {timeout}s")
+
+
+# --- driving ------------------------------------------------------------------
+#
+# Input is posted to the game window. D2 reads the cursor from the messages
+# themselves, so a click lands where it is aimed without the real cursor moving.
+# Posted keys do not change what GetKeyState reports, so anything the game asks
+# of the keyboard directly, rather than through its messages, does not see them.
+
+WM_KEYDOWN, WM_KEYUP, WM_CHAR, WM_SYSKEYDOWN, WM_SYSKEYUP = 0x100, 0x101, 0x102, 0x104, 0x105
+WM_MOUSEMOVE, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_RBUTTONDOWN, WM_RBUTTONUP = 0x200, 0x201, 0x202, 0x204, 0x205
+MK_LBUTTON, MK_RBUTTON, MK_SHIFT, MK_CONTROL = 0x1, 0x2, 0x4, 0x8
+VK_SHIFT, VK_CONTROL, VK_MENU = 0x10, 0x11, 0x12
+MAPVK_VK_TO_VSC = 0
+user32.MapVirtualKeyW.argtypes = [wt.UINT, wt.UINT]
+
+KEYS = {
+    "backspace": 0x08, "tab": 0x09, "enter": 0x0D, "shift": VK_SHIFT, "ctrl": VK_CONTROL, "alt": VK_MENU,
+    "pause": 0x13, "esc": 0x1B, "space": 0x20, "pageup": 0x21, "pagedown": 0x22, "end": 0x23,
+    "home": 0x24, "left": 0x25, "up": 0x26, "right": 0x27, "down": 0x28, "insert": 0x2D, "delete": 0x2E,
+    **{f"f{n}": 0x6F + n for n in range(1, 13)},
+    **{f"numpad{n}": 0x60 + n for n in range(10)},
+    "multiply": 0x6A, "add": 0x6B, "subtract": 0x6D, "decimal": 0x6E, "divide": 0x6F,
+}
+EXTENDED_KEYS = {0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x2D, 0x2E}
+
+ACTIONS_HELP = """actions, run in order:
+  move:X,Y       move the cursor to client coordinates X,Y
+  click:X,Y      left click at X,Y            rclick:X,Y   right click
+  key:NAME       press and release a key      down:NAME / up:NAME   hold, release
+  text:STRING    type STRING into the focused box
+  wait:SECONDS   pause, for the game to react
+NAME is a letter or digit, F1-F12, NUMPAD0-NUMPAD9, a virtual-key code as 0xNN,
+or one of: """ + ", ".join(sorted(k for k in KEYS if not k.startswith(("f", "numpad"))))
+
+
+def virtual_key(name):
+    lowered = name.lower()
+    if lowered in KEYS:
+        return KEYS[lowered]
+    if len(name) == 1 and name.isalnum():
+        return ord(name.upper())
+    if lowered.startswith("0x"):
+        try:
+            code = int(lowered, 16)
+        except ValueError:
+            code = 0
+        if 0 < code < 0xFF:
+            return code
+    sys.exit(f"unknown key {name!r}")
+
+
+def mouse_param(x, y):
+    return (y << 16) | (x & 0xFFFF)
+
+
+def key_param(vk, releasing, alt_held):
+    scan = user32.MapVirtualKeyW(vk, MAPVK_VK_TO_VSC)
+    param = 1 | (scan << 16)
+    if vk in EXTENDED_KEYS:
+        param |= 1 << 24
+    if alt_held:
+        param |= 1 << 29
+    if releasing:
+        param |= (1 << 30) | (1 << 31)
+    return param
+
+
+class Input:
+    """Posts one action at a time to the game window, keeping the modifier keys
+    held across actions so that a click while Shift is down says so."""
+
+    def __init__(self, hwnd):
+        self.hwnd = hwnd
+        self.held = set()
+
+    def post(self, message, wparam, lparam):
+        if not user32.PostMessageW(self.hwnd, message, wparam, lparam):
+            raise ctypes.WinError(ctypes.get_last_error())
+
+    def modifiers(self):
+        return (MK_SHIFT if VK_SHIFT in self.held else 0) | (MK_CONTROL if VK_CONTROL in self.held else 0)
+
+    def key(self, vk, releasing):
+        # Windows sends keys pressed with Alt down, and Alt itself, as system
+        # keys, and marks each with whether Alt is down once it has happened.
+        alt_after = (vk != VK_MENU and VK_MENU in self.held) or (vk == VK_MENU and not releasing)
+        system = vk == VK_MENU or VK_MENU in self.held
+        if releasing:
+            message = WM_SYSKEYUP if system else WM_KEYUP
+        else:
+            message = WM_SYSKEYDOWN if system else WM_KEYDOWN
+        self.post(message, vk, key_param(vk, releasing, alt_after))
+        (self.held.discard if releasing else self.held.add)(vk)
+
+    def click(self, x, y, down, up, button):
+        self.post(WM_MOUSEMOVE, self.modifiers(), mouse_param(x, y))
+        time.sleep(0.08)
+        self.post(down, self.modifiers() | button, mouse_param(x, y))
+        time.sleep(0.08)
+        self.post(up, self.modifiers(), mouse_param(x, y))
+
+    def run(self, action):
+        kind, _, arg = action.partition(":")
+        if kind in ("move", "click", "rclick"):
+            try:
+                x, y = (int(v) for v in arg.split(","))
+            except ValueError:
+                sys.exit(f"{action!r}: expected {kind}:X,Y")
+            if kind == "move":
+                self.post(WM_MOUSEMOVE, self.modifiers(), mouse_param(x, y))
+            elif kind == "click":
+                self.click(x, y, WM_LBUTTONDOWN, WM_LBUTTONUP, MK_LBUTTON)
+            else:
+                self.click(x, y, WM_RBUTTONDOWN, WM_RBUTTONUP, MK_RBUTTON)
+        elif kind == "key":
+            vk = virtual_key(arg)
+            self.key(vk, False)
+            time.sleep(0.05)
+            self.key(vk, True)
+        elif kind in ("down", "up"):
+            self.key(virtual_key(arg), kind == "up")
+        elif kind == "text":
+            for char in arg:
+                self.post(WM_CHAR, ord(char), 1)
+                time.sleep(0.03)
+        elif kind == "wait":
+            time.sleep(float(arg))
+        else:
+            sys.exit(f"unknown action {action!r}\n{ACTIONS_HELP}")
+
+
+def send_input(run_id, actions):
+    run = read_run(run_dir(run_id))
+    if not running(run):
+        sys.exit(f"{run_id} is not running")
+
+    def drive(desktop):
+        source = Input(game_window(desktop, run["game"])["hwnd"])
+        try:
+            for action in actions:
+                source.run(action)
+                # A frame at the game's 25 fps, so each action is seen before the next.
+                time.sleep(0.04)
+        finally:
+            for vk in list(source.held):
+                source.key(vk, True)
+
+    on_desktop(run_id, drive)
+
+
+# --- seeing -------------------------------------------------------------------
+
+SRCCOPY = 0x00CC0020
+DIB_RGB_COLORS = 0
+gdi32 = ctypes.WinDLL("gdi32", use_last_error=True)
+user32.GetDC.restype = wt.HANDLE
+user32.GetDC.argtypes = [wt.HWND]
+user32.ReleaseDC.argtypes = [wt.HWND, wt.HANDLE]
+gdi32.CreateCompatibleDC.restype = wt.HANDLE
+gdi32.CreateCompatibleDC.argtypes = [wt.HANDLE]
+gdi32.CreateCompatibleBitmap.restype = wt.HANDLE
+gdi32.CreateCompatibleBitmap.argtypes = [wt.HANDLE, ctypes.c_int, ctypes.c_int]
+gdi32.SelectObject.restype = wt.HANDLE
+gdi32.SelectObject.argtypes = [wt.HANDLE, wt.HANDLE]
+gdi32.BitBlt.argtypes = [wt.HANDLE, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                         wt.HANDLE, ctypes.c_int, ctypes.c_int, wt.DWORD]
+gdi32.GetDIBits.argtypes = [wt.HANDLE, wt.HANDLE, wt.UINT, wt.UINT, ctypes.c_void_p, ctypes.c_void_p, wt.UINT]
+gdi32.DeleteObject.argtypes = [wt.HANDLE]
+gdi32.DeleteDC.argtypes = [wt.HANDLE]
+
+
+class BITMAPINFOHEADER(ctypes.Structure):
+    _fields_ = [("biSize", wt.DWORD), ("biWidth", wt.LONG), ("biHeight", wt.LONG), ("biPlanes", wt.WORD),
+                ("biBitCount", wt.WORD), ("biCompression", wt.DWORD), ("biSizeImage", wt.DWORD),
+                ("biXPelsPerMeter", wt.LONG), ("biYPelsPerMeter", wt.LONG), ("biClrUsed", wt.DWORD),
+                ("biClrImportant", wt.DWORD)]
+
+
+def capture(hwnd, x, y, width, height):
+    """The window's client area as drawn, read back as top-down BGRA."""
+    source = user32.GetDC(hwnd)
+    memory = gdi32.CreateCompatibleDC(source)
+    bitmap = gdi32.CreateCompatibleBitmap(source, width, height)
+    previous = gdi32.SelectObject(memory, bitmap)
+    try:
+        if not gdi32.BitBlt(memory, 0, 0, width, height, source, x, y, SRCCOPY):
+            raise ctypes.WinError(ctypes.get_last_error())
+        header = BITMAPINFOHEADER(ctypes.sizeof(BITMAPINFOHEADER), width, -height, 1, 32, 0, 0, 0, 0, 0, 0)
+        pixels = ctypes.create_string_buffer(width * height * 4)
+        if gdi32.GetDIBits(memory, bitmap, 0, height, pixels, ctypes.byref(header), DIB_RGB_COLORS) != height:
+            raise ctypes.WinError(ctypes.get_last_error())
+        return pixels.raw
+    finally:
+        gdi32.SelectObject(memory, previous)
+        gdi32.DeleteObject(bitmap)
+        gdi32.DeleteDC(memory)
+        user32.ReleaseDC(hwnd, source)
+
+
+def write_png(path, width, height, bgra):
+    rgb = bytearray(width * height * 3)
+    rgb[0::3], rgb[1::3], rgb[2::3] = bgra[2::4], bgra[1::4], bgra[0::4]
+    stride = width * 3
+    rows = b"".join(b"\0" + rgb[y * stride:(y + 1) * stride] for y in range(height))
+
+    def chunk(kind, data):
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    Path(path).write_bytes(b"\x89PNG\r\n\x1a\n"
+                           + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+                           + chunk(b"IDAT", zlib.compress(bytes(rows), 6)) + chunk(b"IEND", b""))
+
+
+def shot(run_id, out, crop):
+    run = read_run(run_dir(run_id))
+    if not running(run):
+        sys.exit(f"{run_id} is not running")
+
+    def grab(desktop):
+        window = game_window(desktop, run["game"])
+        width, height = window["client"]
+        x, y, w, h = crop or (0, 0, width, height)
+        if x < 0 or y < 0 or w <= 0 or h <= 0 or x + w > width or y + h > height:
+            sys.exit(f"crop {x},{y},{w},{h} is outside the {width}x{height} window")
+        return w, h, capture(window["hwnd"], x, y, w, h), (width, height)
+
+    w, h, pixels, client = on_desktop(run_id, grab)
+    write_png(out, w, h, pixels)
+    print(json.dumps({"path": str(Path(out).resolve()), "size": [w, h], "window": list(client)}))
 
 
 # --- the player's state -------------------------------------------------------
@@ -583,6 +881,13 @@ def main():
     launch_cmd.add_argument("id")
     launch_cmd.add_argument("--lifetime", type=float, default=LIFETIME_SECONDS,
                             help="seconds before the launcher ends the game regardless")
+    input_cmd = commands.add_parser("input", epilog=ACTIONS_HELP, formatter_class=argparse.RawDescriptionHelpFormatter)
+    input_cmd.add_argument("id")
+    input_cmd.add_argument("actions", nargs="+")
+    shot_cmd = commands.add_parser("shot")
+    shot_cmd.add_argument("id")
+    shot_cmd.add_argument("file", type=Path)
+    shot_cmd.add_argument("--crop", type=lambda s: tuple(int(v) for v in s.split(",")), metavar="X,Y,W,H")
     for name in ("status", "teardown"):
         commands.add_parser(name).add_argument("id")
     close_cmd = commands.add_parser("close")
@@ -605,6 +910,10 @@ def main():
         create(args.bh)
     elif args.command == "launch":
         launch(args.id, game_args or ["-w", "-ns"], args.lifetime)
+    elif args.command == "input":
+        send_input(args.id, args.actions)
+    elif args.command == "shot":
+        shot(args.id, args.file, args.crop)
     elif args.command == "status":
         status(args.id)
     elif args.command == "close":

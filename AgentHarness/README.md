@@ -17,10 +17,15 @@ $msb = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe
 ```powershell
 python AgentHarness\bhctl.py base                  # once, and after the game files change
 $id = python AgentHarness\bhctl.py create          # takes Release\BH.dll, or --bh <path>
-python AgentHarness\bhctl.py launch $id            # hidden; -- <game args> replaces -w -ns
+python AgentHarness\bhctl.py launch $id            # hidden, returns at the main menu
+python AgentHarness\bhctl.py input $id click:400,307 wait:2 key:esc text:Name
+python AgentHarness\bhctl.py shot $id out.png      # --crop X,Y,W,H for part of it
 python AgentHarness\bhctl.py status $id            # running, and the game's windows
 python AgentHarness\bhctl.py teardown $id          # always, when done
 ```
+
+`input --help` lists every action. The `run-game` skill is the walkthrough for
+agents, from building to reporting.
 
 `snapshot` and `compare` record the player's registry keys and game folders, to
 show a run changed none of them.
