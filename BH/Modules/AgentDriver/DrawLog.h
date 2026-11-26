@@ -6,10 +6,10 @@
 
 namespace Agent {
 
-// One thing BH drew, in window pixels: text and boxes as a rectangle (top-left
-// corner and size), lines as their two ends.
+// One thing BH drew, in window pixels: text, boxes and frames as a rectangle
+// (top-left corner and size), lines as their two ends.
 struct DrawRecord {
-	std::string kind;	// "text", "box" or "line"
+	std::string kind;	// "text", "box", "frame" or "line"
 	int x = 0;
 	int y = 0;
 	int width = 0;
@@ -24,7 +24,7 @@ struct DrawRecord {
 
 nlohmann::json ToJson(const DrawRecord& record);
 
-// What BH draws in one frame, recorded only while asked for, from the three
+// What BH draws in one frame, recorded only while asked for, from the four
 // game calls everything BH draws goes through (see D2Ptrs.h). Everything is
 // drawn on the game's thread, so the log is too, and the rest of the time it
 // costs a test of one flag.
@@ -38,6 +38,9 @@ namespace DrawLog {
 	// As D2GFX_DrawRectangle and D2GFX_DrawLine are called: by two corners.
 	void Box(int x1, int y1, int x2, int y2, unsigned int color, int trans);
 	void Line(int x1, int y1, int x2, int y2, unsigned int color);
+	// As D2CLIENT_DrawRectFrame is called: the RECT the game draws its border
+	// art around, which has no colour of its own.
+	void Frame(int left, int top, int right, int bottom);
 }
 
 }

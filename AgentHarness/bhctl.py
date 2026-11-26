@@ -3,6 +3,7 @@
     python AgentHarness/bhctl.py base                 # (re)build the shared base
     python AgentHarness/bhctl.py create [--bh DLL]    # new sandbox, prints its id
     python AgentHarness/bhctl.py launch ID [-- ARGS]  # start its game, hidden
+    python AgentHarness/bhctl.py enter ID             # into a game in Normal
     python AgentHarness/bhctl.py input ID ACTION...   # click, type, press keys
     python AgentHarness/bhctl.py shot ID FILE.png     # screenshot the game
     python AgentHarness/bhctl.py state ID             # the screen, the character
@@ -12,6 +13,7 @@
     python AgentHarness/bhctl.py status ID            # running, and its windows
     python AgentHarness/bhctl.py close ID             # quit the game as a player
     python AgentHarness/bhctl.py teardown ID          # kill, delete files and key
+    python AgentHarness/bhctl.py scenario FILE.json   # all of it, with a report
     python AgentHarness/bhctl.py sweep                # tear down every dead run
     python AgentHarness/bhctl.py snapshot FILE        # the player's state, for
     python AgentHarness/bhctl.py compare A B          #   proving a run left it be
@@ -115,6 +117,10 @@ kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
 user32 = ctypes.WinDLL("user32", use_last_error=True)
 
 
+class HarnessError(Exception):
+    """A run cannot go on. The message is for the agent, and says why."""
+
+
 # --- base --------------------------------------------------------------------
 
 def build_base():
@@ -155,7 +161,7 @@ def clear_readonly(path):
 def run_dir(run_id):
     path = RUNS / run_id
     if not (path / SANDBOX_MARKER).exists():
-        sys.exit(f"no sandbox {run_id}")
+        raise HarnessError(f"no sandbox {run_id}")
     return path
 
 
@@ -163,12 +169,14 @@ def run_key(run_id):
     return rf"{RUNS_KEY}\{run_id}\HKCU"
 
 
-def create(bh_dll):
+def create(bh_dll, settings=None):
+    """A new sandbox, with BH's shipped settings except for those given, a
+    dict of BH_settings.cfg keys to the values to write for them."""
     for name in BASE_FILES:
         if not (BASE / name).exists():
-            sys.exit("the base is missing or incomplete: run `bhctl.py base` first")
+            raise HarnessError("the base is missing or incomplete: run `bhctl.py base` first")
     if not bh_dll.exists():
-        sys.exit(f"no BH.dll at {bh_dll}")
+        raise HarnessError(f"no BH.dll at {bh_dll}")
 
     run_id = time.strftime("%Y%m%d-%H%M%S-") + secrets.token_hex(2)
     path = RUNS / run_id
@@ -177,11 +185,53 @@ def create(bh_dll):
         os.link(BASE / name, path / name)
     for name, source in SANDBOX_COPIES.items():
         shutil.copyfile(source, path / name)
+    if settings:
+        target = path / "BH_settings.cfg"
+        target.write_bytes(override_settings(target.read_bytes(), settings))
     write_sgd2_config(path / SGD2_CONFIG)
     shutil.copyfile(bh_dll, path / "BH.dll")
     write_registry(run_id, path)
     (path / SANDBOX_MARKER).write_text(run_id + "\n")
-    print(run_id)
+    return run_id
+
+
+def settings_key(line):
+    """The key a line of BH_settings.cfg sets, or None for a comment or a line
+    that sets nothing. A key ends at its first colon, after any [subkey]."""
+    stripped = line.strip()
+    if not stripped or stripped.startswith(b"//"):
+        return None
+    close = stripped.find(b"]")
+    colon = stripped.find(b":", close + 1 if close >= 0 else 0)
+    if colon <= 0:
+        return None
+    return stripped[:colon].strip().decode("latin-1")
+
+
+def override_settings(text, settings):
+    """BH_settings.cfg with each key in settings set to its value, in place
+    where the file sets the key and at its end where it does not. Bytes in
+    and out, so the rest of the file, encoding and line endings included,
+    is left exactly as it was."""
+    lines = text.splitlines(keepends=True)
+    newline = b"\r\n" if b"\r\n" in text else b"\n"
+    remaining = dict(settings)
+    for i, line in enumerate(lines):
+        key = settings_key(line)
+        if key in settings:
+            ending = line[len(line.rstrip(b"\r\n")):] or newline
+            lines[i] = f"{key}: {settings[key]}".encode("latin-1") + ending
+            remaining.pop(key, None)
+    if lines and not lines[-1].endswith(b"\n"):
+        lines[-1] += newline
+    for key, value in remaining.items():
+        lines.append(f"{key}: {value}".encode("latin-1") + newline)
+    return b"".join(lines)
+
+
+def shipped_settings_keys():
+    return {key for line in SANDBOX_COPIES["BH_settings.cfg"].read_bytes().splitlines()
+            if (key := settings_key(line))}
 
 
 def write_sgd2_config(target):
@@ -194,7 +244,7 @@ def write_sgd2_config(target):
     settings = config["SlashGaming Diablo II Free Resolution"]
     resolutions = settings["Ingame Resolutions"]
     if RESOLUTION not in resolutions:
-        sys.exit(f"{GAME_SOURCE / SGD2_CONFIG} does not offer {RESOLUTION}")
+        raise HarnessError(f"{GAME_SOURCE / SGD2_CONFIG} does not offer {RESOLUTION}")
     settings["Ingame Resolution Mode"] = resolutions.index(RESOLUTION)
     target.write_text(json.dumps(config, indent=4) + "\n")
 
@@ -272,21 +322,25 @@ def teardown(run_id):
         stop(run["launcher"])
     if path.exists():
         if not (path / SANDBOX_MARKER).exists():
-            sys.exit(f"{path} is not a sandbox; not deleting it")
+            raise HarnessError(f"{path} is not a sandbox; not deleting it")
         delete_sandbox(path)
     delete_tree(winreg.HKEY_CURRENT_USER, rf"{RUNS_KEY}\{run_id}")
-    print(f"torn down {run_id}")
 
 
 def sweep():
+    """Tears down every run whose launcher has gone, and returns their ids."""
+    swept = []
     if RUNS.exists():
         for path in RUNS.iterdir():
             run = read_run(path)
             if run is None:
                 if time.time() - path.stat().st_ctime > UNLAUNCHED_GRACE_SECONDS:
-                    teardown(path.name)
+                    swept.append(path.name)
             elif not process_alive(run["launcher"]):
-                teardown(path.name)
+                swept.append(path.name)
+    for run_id in swept:
+        teardown(run_id)
+    return swept
 
 
 # --- running ----------------------------------------------------------------
@@ -305,7 +359,7 @@ def desktop_name(run_id):
 def launch(run_id, game_args, lifetime):
     path = run_dir(run_id)
     if read_run(path) and process_alive(read_run(path)["launcher"]):
-        sys.exit(f"{run_id} is already running")
+        raise HarnessError(f"{run_id} is already running")
     launcher = HARNESS_BIN / "AgentLaunch.exe"
     log = open(path / "launcher.log", "w")
     process = subprocess.Popen(
@@ -317,11 +371,11 @@ def launch(run_id, game_args, lifetime):
     if not line.startswith("pid="):
         process.wait()
         log.close()
-        sys.exit(f"launch failed ({process.returncode}): {(path / 'launcher.log').read_text().strip()}")
+        raise HarnessError(f"launch failed ({process.returncode}): {(path / 'launcher.log').read_text().strip()}")
     run = {"launcher": process.pid, "game": int(line[4:]), "args": game_args, "started": time.time()}
     (path / RUN_FILE).write_text(json.dumps(run, indent=2))
     wait_screen(run_id, ["main_menu"], READY_TIMEOUT_SECONDS)
-    print(json.dumps(run))
+    return run
 
 
 PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
@@ -406,7 +460,7 @@ def on_desktop(run_id, work):
                 result["error"] = ctypes.WinError(ctypes.get_last_error())
                 return
             result["value"] = work(desktop)
-        except BaseException as error:  # sys.exit included: it only ends a thread
+        except BaseException as error:  # re-raised on the caller's thread
             result["error"] = error
         finally:
             user32.CloseDesktop(desktop)
@@ -472,7 +526,7 @@ def status(run_id):
     if report["running"]:
         windows = on_desktop(run_id, lambda desktop: list_windows(desktop, run["game"]))
         report["windows"] = [w for w in windows if w["visible"]]
-    print(json.dumps(report, indent=2))
+    return report
 
 
 # --- asking the game ----------------------------------------------------------
@@ -517,13 +571,13 @@ def request(run, body, timeout=15):
 def ask(run_id, body, timeout=15):
     run = read_run(run_dir(run_id))
     if not running(run):
-        sys.exit(f"{run_id} is not running")
+        raise HarnessError(f"{run_id} is not running")
     try:
         answer = request(run, body, timeout)
     except RuntimeError as error:
-        sys.exit(str(error))
+        raise HarnessError(str(error)) from None
     if answer is None:
-        sys.exit(NO_DRIVER)
+        raise HarnessError(NO_DRIVER)
     return answer
 
 
@@ -540,15 +594,15 @@ def wait_screen(run_id, screens, timeout):
     answered = False
     while True:
         if not running(run):
-            sys.exit(f"the game exited (see {RUNS / run_id / 'launcher.log'})")
+            raise HarnessError(f"the game exited (see {RUNS / run_id / 'launcher.log'})")
         dialogs = [w for w in on_desktop(run_id, lambda d: list_windows(d, run["game"]))
                    if w["visible"] and w["class"] == DIALOG_CLASS]
         if dialogs:
             texts = " / ".join(t for d in dialogs for t in [d["title"], *d.get("text", [])] if t != "OK")
-            sys.exit(f"the game stopped at a dialog: {texts}")
+            raise HarnessError(f"the game stopped at a dialog: {texts}")
         remaining = deadline - time.time()
         if remaining <= 0:
-            sys.exit(f"the game did not reach {' or '.join(screens)} within {timeout}s")
+            raise HarnessError(f"the game did not reach {' or '.join(screens)} within {timeout}s")
         try:
             state = request(run, {"cmd": "state"}, min(remaining, 2))
             answered = answered or state is not None
@@ -558,7 +612,7 @@ def wait_screen(run_id, screens, timeout):
             state = None
             answered = True
         if not answered and time.time() - run["started"] > DRIVER_GRACE_SECONDS:
-            sys.exit(NO_DRIVER)
+            raise HarnessError(NO_DRIVER)
         if state and state["screen"] in screens:
             return state
         time.sleep(0.2)
@@ -569,26 +623,52 @@ DRIVER_GRACE_SECONDS = 30
 
 
 def state(run_id):
-    print(json.dumps(ask(run_id, {"cmd": "state"}), indent=2))
+    return ask(run_id, {"cmd": "state"})
 
 
-def drawlog(run_id, out):
-    frame = ask(run_id, {"cmd": "drawlog"})
-    text = json.dumps(frame, indent=1)
-    if out:
-        Path(out).write_text(text)
-        print(json.dumps({"path": str(Path(out).resolve()), "items": len(frame["items"])}))
-    else:
-        print(text)
+def drawlog(run_id):
+    """Everything BH drew in one whole frame."""
+    return ask(run_id, {"cmd": "drawlog"})
 
 
 def leave(run_id, timeout):
-    """Leaves the game as Save and Exit does, and returns once the menus are
-    back: the main menu, in single player."""
-    if ask(run_id, {"cmd": "state"})["screen"] != "game":
-        sys.exit("not in a game")
+    """Leaves the game as Save and Exit does, and returns the screen once the
+    menus are back: the main menu, in single player."""
+    if state(run_id)["screen"] != "game":
+        raise HarnessError("not in a game")
     ask(run_id, {"cmd": "exit"})
-    print(json.dumps(wait_screen(run_id, ["main_menu", "character_list"], timeout)["screen"]))
+    return wait_screen(run_id, ["main_menu", "character_list"], timeout)["screen"]
+
+
+# Where enter clicks, in the menus' 800x600. The class is aimed at the
+# Sorceress herself, since the class screen's controls do not include the
+# heroes.
+SINGLE_PLAYER = (400, 306)
+SORCERESS = (615, 300)
+OK_BUTTON = (690, 555)
+# The heroes walk forward when picked, and the screen takes no name until they
+# have.
+CLASS_PICK_SECONDS = 2
+
+
+def enter(run_id, name, timeout):
+    """From the main menu or the character list, into a single player game in
+    Normal: with the run's character if it has one, else with a new Sorceress
+    called name. Returns the game's state."""
+    screen = state(run_id)["screen"]
+    if screen == "main_menu":
+        send_input(run_id, [f"click:{SINGLE_PLAYER[0]},{SINGLE_PLAYER[1]}"])
+        screen = wait_screen(run_id, ["new_character", "character_list"], timeout)["screen"]
+    if screen == "new_character":
+        if not name.isalpha():
+            raise HarnessError(f"a character name is letters only, not {name!r}")
+        send_input(run_id, [f"click:{SORCERESS[0]},{SORCERESS[1]}", f"wait:{CLASS_PICK_SECONDS}",
+                            f"text:{name}", f"click:{OK_BUTTON[0]},{OK_BUTTON[1]}"])
+    elif screen == "character_list":
+        send_input(run_id, [f"click:{OK_BUTTON[0]},{OK_BUTTON[1]}"])
+    else:
+        raise HarnessError(f"enter starts from main_menu or character_list, not {screen}")
+    return wait_screen(run_id, ["game"], timeout)
 
 
 WM_CLOSE = 0x0010
@@ -599,8 +679,8 @@ def close(run_id, timeout):
     saves and writes its options as it would for them."""
     run = read_run(run_dir(run_id))
     if not running(run):
-        sys.exit(f"{run_id} is not running")
-    if ask(run_id, {"cmd": "state"})["screen"] == "game":
+        raise HarnessError(f"{run_id} is not running")
+    if state(run_id)["screen"] == "game":
         leave(run_id, timeout)
 
     def post_close(desktop):
@@ -610,13 +690,12 @@ def close(run_id, timeout):
         return len(windows)
 
     if not on_desktop(run_id, post_close):
-        sys.exit("the game has no window to close")
+        raise HarnessError("the game has no window to close")
     deadline = time.time() + timeout
     while running(run):
         if time.time() > deadline:
-            sys.exit(f"the game did not exit within {timeout}s")
+            raise HarnessError(f"the game did not exit within {timeout}s")
         time.sleep(0.2)
-    print(f"{run_id} exited")
 
 
 GAME_WINDOW_CLASS = "Diablo II"
@@ -627,7 +706,7 @@ def game_window(desktop, pid):
     for window in list_windows(desktop, pid):
         if window["class"] == GAME_WINDOW_CLASS and window["visible"]:
             return window
-    sys.exit("the game has no window")
+    raise HarnessError("the game has no window")
 
 
 # --- driving ------------------------------------------------------------------
@@ -680,7 +759,7 @@ def virtual_key(name):
             code = 0
         if 0 < code < 0xFF:
             return code
-    sys.exit(f"unknown key {name!r}")
+    raise HarnessError(f"unknown key {name!r}")
 
 
 def mouse_param(x, y):
@@ -753,12 +832,10 @@ class Input:
         self.post(up, self.modifiers(), mouse_param(x, y))
 
     def run(self, action):
+        """One action, as validate_action has already accepted it."""
         kind, _, arg = action.partition(":")
         if kind in ("move", "click", "rclick"):
-            try:
-                x, y = (int(v) for v in arg.split(","))
-            except ValueError:
-                sys.exit(f"{action!r}: expected {kind}:X,Y")
+            x, y = (int(v) for v in arg.split(","))
             if kind == "move":
                 self.post(WM_MOUSEMOVE, self.modifiers(), mouse_param(x, y))
             elif kind == "click":
@@ -780,27 +857,53 @@ class Input:
         elif kind == "shot":
             width, height = self.client
             write_png(arg, width, height, capture(self.hwnd, 0, 0, width, height))
-        else:
-            sys.exit(f"unknown action {action!r}\n{ACTIONS_HELP}")
 
 
-def send_input(run_id, actions):
+# A frame at the game's 25 fps, so each action is seen before the next.
+FRAME_SECONDS = 0.04
+
+
+def send_input(run_id, actions, then=None):
+    """Runs the actions in order, then then() if given, and returns what it
+    returns. Keys the actions hold down stay down through then(), and are
+    released at the end."""
+    for action in actions:
+        validate_action(action)
     run = read_run(run_dir(run_id))
     if not running(run):
-        sys.exit(f"{run_id} is not running")
+        raise HarnessError(f"{run_id} is not running")
 
     def drive(desktop):
         source = Input(game_window(desktop, run["game"]))
         try:
             for action in actions:
                 source.run(action)
-                # A frame at the game's 25 fps, so each action is seen before the next.
-                time.sleep(0.04)
+                time.sleep(FRAME_SECONDS)
+            return then() if then else None
         finally:
             for vk in list(source.held):
                 source.key(vk, True)
 
-    on_desktop(run_id, drive)
+    return on_desktop(run_id, drive)
+
+
+def validate_action(action):
+    """Raises for an action Input.run would refuse, before any is sent."""
+    kind, _, arg = action.partition(":")
+    if kind in ("move", "click", "rclick"):
+        try:
+            x, y = (int(v) for v in arg.split(","))
+        except ValueError:
+            raise HarnessError(f"{action!r}: expected {kind}:X,Y") from None
+    elif kind in ("key", "down", "up"):
+        virtual_key(arg)
+    elif kind == "wait":
+        try:
+            float(arg)
+        except ValueError:
+            raise HarnessError(f"{action!r}: expected wait:SECONDS") from None
+    elif kind not in ("text", "shot") or not arg:
+        raise HarnessError(f"unknown action {action!r}\n{ACTIONS_HELP}")
 
 
 # --- seeing -------------------------------------------------------------------
@@ -867,22 +970,28 @@ def write_png(path, width, height, bgra):
                            + chunk(b"IDAT", zlib.compress(bytes(rows), 6)) + chunk(b"IEND", b""))
 
 
-def shot(run_id, out, crop):
+def grab(run_id, crop=None):
+    """The game window's client area, or the crop X,Y,W,H of it, as
+    (width, height, top-down BGRA, the window's [width, height])."""
     run = read_run(run_dir(run_id))
     if not running(run):
-        sys.exit(f"{run_id} is not running")
+        raise HarnessError(f"{run_id} is not running")
 
-    def grab(desktop):
+    def read(desktop):
         window = game_window(desktop, run["game"])
         width, height = window["client"]
         x, y, w, h = crop or (0, 0, width, height)
         if x < 0 or y < 0 or w <= 0 or h <= 0 or x + w > width or y + h > height:
-            sys.exit(f"crop {x},{y},{w},{h} is outside the {width}x{height} window")
-        return w, h, capture(window["hwnd"], x, y, w, h), (width, height)
+            raise HarnessError(f"crop {x},{y},{w},{h} is outside the {width}x{height} window")
+        return w, h, capture(window["hwnd"], x, y, w, h), [width, height]
 
-    w, h, pixels, client = on_desktop(run_id, grab)
+    return on_desktop(run_id, read)
+
+
+def shot(run_id, out, crop=None):
+    w, h, pixels, client = grab(run_id, crop)
     write_png(out, w, h, pixels)
-    print(json.dumps({"path": str(Path(out).resolve()), "size": [w, h], "window": list(client)}))
+    return {"path": str(Path(out).resolve()), "size": [w, h], "window": client}
 
 
 # --- the player's state -------------------------------------------------------
@@ -969,16 +1078,33 @@ def compare(a, b):
     return changed
 
 
+def setting(text):
+    key, equals, value = text.partition("=")
+    if not equals or not key.strip():
+        raise argparse.ArgumentTypeError(f"expected KEY=VALUE, as in \"Show Settings=True, VK_NUMPAD8\", not {text!r}")
+    return key.strip(), value.strip()
+
+
+def emit(value):
+    print(value if isinstance(value, str) else json.dumps(value, indent=2, ensure_ascii=False))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("base")
     create_cmd = commands.add_parser("create")
     create_cmd.add_argument("--bh", type=Path, default=REPO / "AgentRelease" / "BH.dll")
+    create_cmd.add_argument("--setting", type=setting, action="append", default=[], metavar="KEY=VALUE",
+                            help="a BH_settings.cfg line to write in place of the shipped one; repeatable")
     launch_cmd = commands.add_parser("launch")
     launch_cmd.add_argument("id")
     launch_cmd.add_argument("--lifetime", type=float, default=LIFETIME_SECONDS,
                             help="seconds before the launcher ends the game regardless")
+    enter_cmd = commands.add_parser("enter")
+    enter_cmd.add_argument("id")
+    enter_cmd.add_argument("--name", default="Agent", help="for a new character: letters only")
+    enter_cmd.add_argument("--timeout", type=float, default=60)
     input_cmd = commands.add_parser("input", epilog=ACTIONS_HELP, formatter_class=argparse.RawDescriptionHelpFormatter)
     input_cmd.add_argument("id")
     input_cmd.add_argument("actions", nargs="+")
@@ -991,7 +1117,7 @@ def main():
     wait_cmd = commands.add_parser("wait")
     wait_cmd.add_argument("id")
     wait_cmd.add_argument("screens", nargs="+", metavar="screen",
-                          help="game, main_menu, character_list, difficulty, menu or loading")
+                          help="game, loading, main_menu, character_list, new_character, difficulty or menu")
     wait_cmd.add_argument("--timeout", type=float, default=60)
     drawlog_cmd = commands.add_parser("drawlog")
     drawlog_cmd.add_argument("id")
@@ -1002,6 +1128,11 @@ def main():
     close_cmd = commands.add_parser("close")
     close_cmd.add_argument("id")
     close_cmd.add_argument("--timeout", type=float, default=30)
+    scenario_cmd = commands.add_parser("scenario")
+    scenario_cmd.add_argument("file", type=Path)
+    scenario_cmd.add_argument("--out", type=Path, help="the report's folder (default AgentHarness\\reports\\<time>-<name>)")
+    scenario_cmd.add_argument("--bh", type=Path, default=REPO / "AgentRelease" / "BH.dll")
+    scenario_cmd.add_argument("--keep", action="store_true", help="leave the run up afterwards, for a closer look")
     commands.add_parser("sweep")
     commands.add_parser("snapshot").add_argument("file")
     compare_cmd = commands.add_parser("compare")
@@ -1013,37 +1144,66 @@ def main():
     game_args = argv[argv.index("--") + 1:] if "--" in argv else []
     args = parser.parse_args(argv[:argv.index("--")] if "--" in argv else argv)
 
-    if args.command == "base":
-        build_base()
-    elif args.command == "create":
-        create(args.bh)
-    elif args.command == "launch":
-        launch(args.id, game_args or ["-w", "-ns"], args.lifetime)
-    elif args.command == "input":
-        send_input(args.id, args.actions)
-    elif args.command == "shot":
-        shot(args.id, args.file, args.crop)
-    elif args.command == "status":
-        status(args.id)
-    elif args.command == "state":
-        state(args.id)
-    elif args.command == "wait":
-        print(json.dumps(wait_screen(args.id, args.screens, args.timeout)["screen"]))
-    elif args.command == "drawlog":
-        drawlog(args.id, args.out)
-    elif args.command == "leave":
-        leave(args.id, args.timeout)
-    elif args.command == "close":
-        close(args.id, args.timeout)
-    elif args.command == "teardown":
-        teardown(args.id)
-    elif args.command == "sweep":
-        sweep()
-    elif args.command == "snapshot":
-        snapshot(args.file)
-    elif args.command == "compare":
-        sys.exit(1 if compare(args.a, args.b) else 0)
+    try:
+        if args.command == "base":
+            build_base()
+        elif args.command == "create":
+            emit(create(args.bh, dict(args.setting)))
+            for key, _ in args.setting:
+                if key not in shipped_settings_keys():
+                    print(f"note: {key!r} is not in the shipped BH_settings.cfg; it was added, "
+                          "and does nothing unless BH reads it", file=sys.stderr)
+        elif args.command == "launch":
+            emit(launch(args.id, game_args or ["-w", "-ns"], args.lifetime))
+        elif args.command == "enter":
+            emit(enter(args.id, args.name, args.timeout)["game"])
+        elif args.command == "input":
+            send_input(args.id, args.actions)
+        elif args.command == "shot":
+            emit(shot(args.id, args.file, args.crop))
+        elif args.command == "status":
+            emit(status(args.id))
+        elif args.command == "state":
+            emit(state(args.id))
+        elif args.command == "wait":
+            emit(wait_screen(args.id, args.screens, args.timeout)["screen"])
+        elif args.command == "drawlog":
+            frame = drawlog(args.id)
+            if args.out:
+                args.out.write_text(json.dumps(frame, indent=1, ensure_ascii=False), encoding="utf-8")
+                emit({"path": str(args.out.resolve()), "items": len(frame["items"])})
+            else:
+                emit(frame)
+        elif args.command == "leave":
+            emit(leave(args.id, args.timeout))
+        elif args.command == "close":
+            close(args.id, args.timeout)
+            emit(f"{args.id} exited")
+        elif args.command == "scenario":
+            import scenario
+            report = scenario.run_scenario(args.file, args.out, args.bh, args.keep)
+            emit({"result": report["result"], "report": str(Path(report["out"]) / "report.md"),
+                  **({"error": report["error"]} if "error" in report else {}),
+                  **({"run": report["run"]} if args.keep and "run" in report else {})})
+            sys.exit({"passed": 0, "failed": 1}.get(report["result"], 2))
+        elif args.command == "teardown":
+            teardown(args.id)
+            emit(f"torn down {args.id}")
+        elif args.command == "sweep":
+            for run_id in sweep():
+                emit(f"torn down {run_id}")
+        elif args.command == "snapshot":
+            snapshot(args.file)
+        elif args.command == "compare":
+            sys.exit(1 if compare(args.a, args.b) else 0)
+    except HarnessError as error:
+        print(error, file=sys.stderr)
+        # A scenario's 1 means a check failed, so one that could not run is 2.
+        sys.exit(2 if args.command == "scenario" else 1)
 
 
 if __name__ == "__main__":
-    main()
+    # Through the module scenario.py imports, so that there is one HarnessError
+    # class and not a second one in __main__ that its errors do not belong to.
+    import bhctl
+    bhctl.main()

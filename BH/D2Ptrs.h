@@ -155,7 +155,13 @@ FUNCPTR(D2CLIENT, ExitGame, void __fastcall, (void), 0x42850, 0x43870)
 
 FUNCPTR(D2CLIENT, GetUiVar_I, DWORD __fastcall, (DWORD dwVarNo), 0xBE400, 0x17C50)
 
+// Takes the RECT in eax, not ecx (see Framehook::DrawRectStub).
+#ifdef BH_AGENT
+FUNCPTR(D2CLIENT, DrawRectFrame_Game, void __fastcall, (DWORD Rect), 0xBE4C0, 0x17D10)
+void __fastcall D2CLIENT_DrawRectFrame(DWORD Rect);
+#else
 FUNCPTR(D2CLIENT, DrawRectFrame, void __fastcall, (DWORD Rect), 0xBE4C0, 0x17D10)
+#endif
 
 FUNCPTR(D2CLIENT, PerformGoldDialogAction, void __fastcall, (void), 0xBFDF0, 0x197F0)
 

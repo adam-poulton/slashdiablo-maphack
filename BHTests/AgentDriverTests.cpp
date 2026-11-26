@@ -140,6 +140,20 @@ TEST_CASE("the difficulty choice is named") {
 	CHECK(Agent::NameScreen(screen.Shapes()) == "difficulty");
 }
 
+TEST_CASE("the class choice is named, and not with a popup over it") {
+	Screen screen;
+	screen.Add(CONTROL_IMAGE, 0, 599, 800, 600);
+	screen.Add(CONTROL_BUTTON, 33, 572, 128, 35);
+	screen.Add(CONTROL_EDITBOX, 318, 510, 157, 16);
+	screen.Add(CONTROL_BUTTON, 319, 540, 15, 16);
+	screen.Add(CONTROL_BUTTON, 319, 560, 15, 16);
+	screen.Add(CONTROL_BUTTON, 627, 572, 128, 35);
+	CHECK(Agent::NameScreen(screen.Shapes()) == "new_character");
+
+	AddPopup(screen);
+	CHECK(Agent::NameScreen(screen.Shapes()) == "menu");
+}
+
 TEST_CASE("a screen nobody has named is a menu") {
 	CHECK(Agent::NameScreen({}) == "menu");
 
@@ -253,6 +267,16 @@ TEST_CASE("text is placed by its top, where it was drawn by its baseline") {
 	CHECK(json["rect"] == nlohmann::json({40, 100, 55, 7}));
 	CHECK(json["font"] == 6);
 	CHECK(json["text"] == "Codex");
+}
+
+TEST_CASE("a frame is reported by the rectangle it borders, with no colour") {
+	Agent::DrawLog::Begin();
+	Agent::DrawLog::Frame(234, 566, 280, 581);
+	nlohmann::json json = Agent::ToJson(Agent::DrawLog::End()[0]);
+	CHECK(json["kind"] == "frame");
+	CHECK(json["rect"] == nlohmann::json({234, 566, 46, 15}));
+	CHECK_FALSE(json.contains("color"));
+	CHECK_FALSE(json.contains("trans"));
 }
 
 TEST_CASE("a line is reported by its ends") {

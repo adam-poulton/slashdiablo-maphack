@@ -1,0 +1,26 @@
+{
+  "title": "BH loads in a game, draws its overlays and opens its settings",
+  "start": "game",
+  "steps": [
+    {"do": ["move:672,150"]},
+    {"check": "the game is a new Sorceress in the Rogue Encampment, in Normal",
+     "state": {"screen": "game", "game.class": "sorceress", "game.area": 1, "game.difficulty": 0}},
+    {"check": "the info panel names the area at the top right",
+     "drawn": {"text": "Rogue Encampment", "font": 0, "inside": [1000, 0, 344, 250]}},
+    {"check": "the Settings and Codex buttons sit at the bottom left",
+     "drawn": {"kind": "box", "inside": [200, 530, 150, 60]}, "count": 2},
+    {"do": ["key:numpad8"]},
+    {"check": "the settings hotkey opens the settings window at the top left",
+     "drawn": {"text": "Settings", "rect": [4, 3, 52, 10]}},
+    {"check": "the window has the game's frame around it",
+     "drawn": {"kind": "frame", "rect": [0, 0, 460, 400]}},
+    {"check": "the window opens on the Map tab",
+     "drawn": {"text": "Draw paths", "inside": [0, 0, 460, 400]}},
+    {"do": ["key:numpad8"]},
+    {"check": "the hotkey closes it again",
+     "drawn": {"text": "Search all settings by name"}, "count": 0},
+    {"leave": true},
+    {"check": "leaving saves and returns to the main menu",
+     "state": {"screen": "main_menu"}}
+  ]
+}

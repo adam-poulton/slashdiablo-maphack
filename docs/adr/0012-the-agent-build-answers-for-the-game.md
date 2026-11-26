@@ -28,7 +28,8 @@ frames, so a request then is answered as not taken rather than read half-built.
 
 Out of a game the driver reports the game's own controls, each with its rectangle
 and the centre a click should aim at, and names the screen when the buttons are
-exactly one it knows: the main menu, the character list, the difficulty choice.
+exactly one it knows: the main menu, the character list, the class choice for a
+new character, the difficulty choice.
 Exactly, because a popup over a screen adds a button of its own, and a screen
 with a popup over it is not one that takes the click a harness is about to send.
 The measurements come from control lists dumped from a 1.13c client, and the
@@ -64,10 +65,15 @@ game's DLLs were linked with bound imports, whose slots keep no names.
 
 Every line, box and piece of text BH draws goes through three of the game's
 functions, `D2GFX_DrawLine`, `D2GFX_DrawRectangle` and `D2WIN_DrawText`, called
-from some thirty places. In the agent build those three names are BH's own
+from some thirty places, and the ornate frames around BH's windows through a
+fourth, `D2CLIENT_DrawRectFrame`. In the agent build those names are BH's own
 functions, which record the call and make it through the game's pointer, now
 named with `_Game`. Nothing that draws had to change, and the game's own drawing
 is not recorded, since it never calls through BH.
+
+The frame function takes its rectangle in `eax`, which no C calling convention
+passes, so its stand-in is written in assembly and keeps every register for the
+jump.
 
 A recording runs from the end of one frame to the end of the next, which takes in
 the automap's drawing as well as the frame's, whichever the game does first.

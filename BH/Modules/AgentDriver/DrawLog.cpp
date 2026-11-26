@@ -13,7 +13,9 @@ std::vector<DrawRecord> records;
 }  // namespace
 
 nlohmann::json ToJson(const DrawRecord& record) {
-	nlohmann::json json = {{"kind", record.kind}, {"color", record.color}};
+	nlohmann::json json = {{"kind", record.kind}};
+	if (record.kind != "frame")
+		json["color"] = record.color;
 	if (record.kind == "line") {
 		json["from"] = {record.x, record.y};
 		json["to"] = {record.x2, record.y2};
@@ -86,6 +88,18 @@ void Line(int x1, int y1, int x2, int y2, unsigned int color) {
 	record.x2 = x2;
 	record.y2 = y2;
 	record.color = color;
+	records.push_back(std::move(record));
+}
+
+void Frame(int left, int top, int right, int bottom) {
+	if (!recording)
+		return;
+	DrawRecord record;
+	record.kind = "frame";
+	record.x = left;
+	record.y = top;
+	record.width = right - left;
+	record.height = bottom - top;
 	records.push_back(std::move(record));
 }
 

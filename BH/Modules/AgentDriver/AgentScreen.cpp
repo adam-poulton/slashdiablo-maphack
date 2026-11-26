@@ -45,6 +45,13 @@ const std::vector<Button> kDifficulty = {
 	{264, 470, 272, 35},	// Hell
 	{33, 537, 128, 35},		// Cancel
 };
+// The class choice, which is the same screen once a class is picked.
+const std::vector<Button> kNewCharacter = {
+	{33, 537, 128, 35},		// Exit
+	{627, 537, 128, 35},	// OK
+	{319, 524, 15, 16},		// Expansion Character
+	{319, 544, 15, 16},		// Hardcore
+};
 
 std::vector<Button> Sorted(std::vector<Button> buttons) {
 	std::sort(buttons.begin(), buttons.end());
@@ -120,6 +127,8 @@ std::string NameScreen(const std::vector<ControlShape>& controls) {
 		return "character_list";
 	if (buttons == Sorted(kDifficulty))
 		return "difficulty";
+	if (buttons == Sorted(kNewCharacter))
+		return "new_character";
 	return "menu";
 }
 

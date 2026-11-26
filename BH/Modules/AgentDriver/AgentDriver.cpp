@@ -346,4 +346,20 @@ void __fastcall D2WIN_DrawText(const wchar_t* wStr, int xPos, int yPos, DWORD dw
 	D2WIN_DrawText_Game(wStr, xPos, yPos, dwColor, dwUnk);
 }
 
+static void __stdcall RecordFrame(const RECT* rect) {
+	Agent::DrawLog::Frame(rect->left, rect->top, rect->right, rect->bottom);
+}
+
+// The game's frame takes its RECT in eax, so this leaves every register as it
+// found it for the jump.
+__declspec(naked) void __fastcall D2CLIENT_DrawRectFrame(DWORD) {
+	__asm {
+		pushad
+		push eax
+		call RecordFrame
+		popad
+		jmp D2CLIENT_DrawRectFrame_Game
+	}
+}
+
 #endif

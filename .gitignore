@@ -41,6 +41,7 @@ Release/*
 /out/*
 /AgentHarness/bin/
 /AgentHarness/obj/
+/AgentHarness/reports/
 /AgentRelease/
 /BH/AgentRelease/
 __pycache__/
