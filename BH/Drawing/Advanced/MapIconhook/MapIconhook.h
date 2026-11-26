@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include "../../Hook.h"
+#include "../Combohook/Combohook.h"
 #include "../../MapIcon/MapIconStyle.h"
 
 namespace Drawing {
@@ -9,36 +10,40 @@ namespace Drawing {
 	class Colorhook;
 	class Checkhook;
 
-	// The pitch the editor's rows are laid out on, the icon strip's apart, how
-	// far down a row its text sits, and the space between a label and the
-	// control it names. Public so that whoever shows the editor can lay rows of
-	// its own under it to the same rhythm.
+	// The pitch the editor's rows are laid out on, the icon's row apart, how far
+	// down a row its text sits, and the space between a label and the control it
+	// names. Public so that whoever shows the editor can lay rows of its own under
+	// it to the same rhythm.
 	#define MAP_ICON_ROW_HEIGHT		22
 	#define MAP_ICON_ROW_TEXT_TOP	6
 	#define MAP_ICON_LABEL_GAP		10
 
-	// The icons a style can be given, side by side, each drawn in the style's own
-	// colour; a click picks one. The name of the icon under the pointer, or else
-	// of the one chosen, is written after them, as a slider writes its value.
-	class MapIconStriphook : public Hook {
+	// The icons a style can be given, as a dropdown: each option is the icon,
+	// drawn as the style draws it, and its name. Past a handful the list scrolls,
+	// so it stays the size it is however many icons there come to be.
+	class MapIconCombohook : public Combohook {
 		private:
 			MapIconStyle* style;
 			std::vector<MapIcon::Icon> icons;
-			unsigned int readoutWidth;	// the widest name, measured once
 
-			// The position in the strip under a point, or -1 for none.
-			int CellAt(unsigned int x, unsigned int y);
-			unsigned int CellsWidth();
+			// Where the style's icon is among those offered, which is what the box
+			// shows and the list picks; kept in step with the style as it draws.
+			unsigned int index;
+
+			static std::vector<std::string> Labels(const std::vector<MapIcon::Icon>& icons);
+			static unsigned int Width(const std::vector<MapIcon::Icon>& icons);
+		protected:
+			void DrawOption(unsigned int option, unsigned int x, unsigned int y,
+				unsigned int width, TextColor color);
+			unsigned int GetRowHeight();
+			void OnSelected(unsigned int option);
 		public:
-			MapIconStriphook(HookGroup* group, unsigned int x, unsigned int y,
+			MapIconCombohook(HookGroup* group, unsigned int x, unsigned int y,
 				MapIconStyle* style, std::vector<MapIcon::Icon> icons);
 
-			bool OnLeftClick(bool up, unsigned int x, unsigned int y);
-			void OnDraw();
-
-			unsigned int GetXSize();
 			unsigned int GetYSize();
 			unsigned int GetTextInset();
+			void OnDraw();
 	};
 
 	// The style as it will look on the automap: the icon at its real size on a
@@ -77,16 +82,18 @@ namespace Drawing {
 			HookVisibility GetVisibility();
 	};
 
-	// Edits how one kind of marker is drawn: its icon, size and colour, and the
-	// line to it. One hook holding its controls, so it can be dropped into any
-	// panel, moved and put away as one, and is drawn by whatever draws the panel.
+	// Edits how one kind of marker is drawn: its icon and size, the colours of the
+	// icon's fill and border and how wide the border is, and the line to it. One
+	// hook holding its controls, so it can be dropped into any panel, moved and put
+	// away as one, and is drawn by whatever draws the panel.
 	//
 	// The preview runs across the top at whatever width the editor is given, and
 	// the controls are a form under it, with labels in a column of their own.
 	//
 	// It shows only what the options offer, and greys out what the style in hand
-	// has no use for: an icon drawn in the game's own colours has no colour to
-	// choose, a line that is off has none either.
+	// has no use for: an icon drawn in the game's own colours has no size or
+	// colour to choose, a border of no colour has no width, a line that is off has
+	// no colour either.
 	class MapIconhook : public Hook {
 		private:
 			MapIconStyle* style;
@@ -94,10 +101,13 @@ namespace Drawing {
 			MapIconContent* content;
 
 			Texthook* iconLabel;
-			MapIconStriphook* strip;
+			MapIconCombohook* icon;
 			Texthook* sizeLabel;
 			Sliderhook* size;
-			Colorhook* color;
+			Colorhook* fill;
+			Colorhook* border;
+			Texthook* widthLabel;
+			Sliderhook* width;
 			Checkhook* line;
 			Colorhook* lineColor;
 			MapIconPreviewhook* preview;
@@ -105,10 +115,12 @@ namespace Drawing {
 			unsigned int xSize, ySize;
 			unsigned int labelWidth;
 
+			// The most the sliders' readouts take, so they can share one rail.
+			unsigned int ReadoutRoom();
+
 			void Layout();
 
-			// Brings the controls up to date with the style: which are greyed out,
-			// and what the colour swatch is drawn as.
+			// Brings the controls up to date with the style: which are greyed out.
 			void Refresh();
 		public:
 			MapIconhook(HookGroup* group, unsigned int x, unsigned int y,

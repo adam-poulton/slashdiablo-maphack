@@ -1,4 +1,4 @@
-﻿/* Maphack Module
+/* Maphack Module
  *
  */
 #include "../../D2Ptrs.h"
@@ -81,21 +81,21 @@ static const struct {
 	{ "Trapped Marker", "Trapped", "Anything trapped, and exploding barrels." },
 };
 
-// Chests as they have always been marked, a 2x2 white square, and super chests as
-// Lower Kurast's were: the game's own sprite, and the line LK Chest Lines drew in
-// its colour, 0 having been no line.
+// Chests as they have always been marked, a 2x2 white square with no border, and
+// super chests as Lower Kurast's were: the game's own sprite, and the line LK
+// Chest Lines drew in its colour, 0 having been no line.
 static MapIconStyle DefaultChestStyle(ChestKind::Kind kind, int lkLinesColor) {
-	MapIconStyle style(MapIcon::Square, 1, 0xFF, false, 0xFF);
+	MapIconStyle style;
 	if (kind == ChestKind::SuperChest) {
-		style.icon = MapIcon::Game;
+		style.icon = MapIcon::Chest;
 		style.line = lkLinesColor > 0;
 		style.lineColor = lkLinesColor > 0 ? (unsigned int)lkLinesColor : 105;
 	}
 	return style;
 }
 
-// Every icon, the game's super chest sprite included, for every kind: one strip
-// for all of them keeps each editor the same shape as the rest.
+// Every icon, the game's super chest sprite included, for every kind: one list
+// for all of them keeps each editor the same as the rest.
 static std::vector<MapIcon::Icon> ChestIcons() {
 	std::vector<MapIcon::Icon> icons;
 	for (int icon = 0; icon < MapIcon::IconCount; icon++)
@@ -109,7 +109,7 @@ static void DrawChestMarker(const MapIconStyle& style, int x, int y, POINT playe
 		Hook::ScreenToAutomap(&at, x, y);
 		Linehook::Draw(player.x, player.y, at.x, at.y, style.lineColor);
 	}
-	MapIcon::DrawAt(style.Icon(), style.size, x, y, style.color);
+	MapIcon::DrawAt(style.Icon(), style.size, x, y, style.Look());
 }
 
 // How near a chest's preset, in subtiles, a live chest has to be to be that

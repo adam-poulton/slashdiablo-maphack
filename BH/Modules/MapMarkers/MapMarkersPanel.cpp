@@ -21,7 +21,7 @@ using namespace Drawing;
 // drawn as it stays clear of the rows on either side. The name is centred on it.
 #define MM_ROW_HEIGHT		28
 #define MM_ROW_TEXT_TOP		((MM_ROW_HEIGHT - MM_TEXT_HEIGHT) / 2)
-static_assert(MM_ROW_HEIGHT >= MapIcon::GameHeight + 4,
+static_assert(MM_ROW_HEIGHT >= MapIcon::ChestHeight + 4,
 	"a row holds the game's sprite clear of its neighbours");
 
 // The selected row's band reaches this far out past what is drawn on it, as a
@@ -30,7 +30,7 @@ static_assert(MM_ROW_HEIGHT >= MapIcon::GameHeight + 4,
 
 // A row's marker is drawn in a column of its own, no larger than the row has
 // room for, and the name starts after it. A marker that is only its line shows
-// a short rule there, as the editor's strip does.
+// a short rule there, as the editor's icon list does for no icon.
 #define MM_ROW_ICON_CENTRE	10
 #define MM_ROW_ICON_SIZE	4
 #define MM_ROW_LABEL_LEFT	24
@@ -101,13 +101,12 @@ void MapMarkerRowhook::OnDraw() {
 
 	int iconX = (int)GetX() + MM_ROW_INSET + MM_ROW_ICON_CENTRE;
 	int centreY = (int)GetY() + MM_ROW_HEIGHT / 2;
-	MapIcon::Icon icon = style->Icon();
-	if (icon == MapIcon::None) {
+	if (!style->DrawsIcon()) {
 		D2GFX_DrawLine(iconX - MM_ROW_NONE_HALF, centreY, iconX + MM_ROW_NONE_HALF,
 			centreY, MM_ROW_NONE_COLOR, -1);
 	} else {
 		unsigned int size = (std::min)(style->size, (unsigned int)MM_ROW_ICON_SIZE);
-		MapIcon::Draw(icon, size, iconX, centreY, style->color);
+		MapIcon::Draw(style->Icon(), size, iconX, centreY, style->Look());
 	}
 
 	unsigned int taken = MM_ROW_INSET + MM_ROW_LABEL_LEFT + MM_LIST_PAD;

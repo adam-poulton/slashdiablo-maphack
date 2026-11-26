@@ -22,12 +22,15 @@ namespace Drawing {
 			//will be used.
 			MapIcon::Icon swatch;
 
+			//Whether no colour at all can be chosen, in the palette's first entry,
+			//which is otherwise never offered.
+			bool allowNone;
+
 			static void DrawSwatch(MapIcon::Icon swatch, int x, int y, unsigned int color,
 				bool muted);
 
-			//The palette entry under a point on screen, or 0 for none: entry 0 is
-			//never offered.
-			static unsigned int PaletteAt(int x, int y);
+			//The palette entry under a point on screen, or -1 for none.
+			int PaletteAt(int x, int y);
 		public:
 			static Colorhook* current;//Pointer to the current colorhook
 
@@ -56,6 +59,9 @@ namespace Drawing {
 
 			MapIcon::Icon GetSwatch() { return swatch; };
 			void SetSwatch(MapIcon::Icon newSwatch);
+
+			bool GetAllowNone() { return allowNone; };
+			void SetAllowNone(bool allowed) { Lock(); allowNone = allowed; Unlock(); };
 
 			bool OnLeftClick(bool up, unsigned int x, unsigned int y);
 			bool OnRightClick(bool up, unsigned int x, unsigned int y);

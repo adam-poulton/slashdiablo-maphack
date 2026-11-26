@@ -54,7 +54,7 @@ namespace Settings {
 		KindText,		// a line of text typed into a box
 		KindNote,		// no value at all: something the panel has to say
 		KindHeading,	// a rule across the panel, naming the settings below it
-		KindMapIcon,	// how a marker is drawn on the map: icon, size, colour, line
+		KindMapIcon,	// how a marker is drawn on the map: icon, size, colours, border, line
 	};
 
 	// Which value pointer means anything follows from the kind. The hotkey, enum,

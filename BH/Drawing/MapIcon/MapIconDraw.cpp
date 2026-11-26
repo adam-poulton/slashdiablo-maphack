@@ -1,5 +1,7 @@
 #include "MapIcon.h"
+#include <map>
 #include <string.h>
+#include <tuple>
 #include "../../D2Ptrs.h"
 #include "../Hook.h"
 
@@ -26,34 +28,55 @@ namespace MapIcon {
 			D2GFX_DrawAutomapCell(context, x, y, &clip, CellBrightness);
 		}
 
-		void DrawShape(Icon icon, unsigned int size, int x, int y, unsigned int color) {
-			Shape shape = Geometry(icon, size);
-			for (const Fill& fill : shape.fills)
-				D2GFX_DrawRectangle(x + fill.x, y + fill.y, x + fill.x + fill.width,
-					y + fill.y + fill.height, color, Drawing::BTHighlight);
-			for (const Line& line : shape.lines)
-				D2GFX_DrawLine(x + line.x1, y + line.y1, x + line.x2, y + line.y2,
-					color, -1);
+		// Worked out once for each icon, size and width there is: every chest on
+		// the map is drawn from it every frame. Only ever reached from the game's
+		// drawing, so it needs no lock.
+		const Raster& Cached(Icon icon, unsigned int size, unsigned int borderWidth) {
+			static std::map<std::tuple<int, unsigned int, unsigned int>, Raster> cache;
+			std::tuple<int, unsigned int, unsigned int> key((int)icon, size, borderWidth);
+			auto found = cache.find(key);
+			if (found == cache.end())
+				found = cache.emplace(key, Rasterize(icon, size, borderWidth)).first;
+			return found->second;
+		}
+
+		void DrawRects(const std::vector<Rect>& rects, int x, int y, unsigned int color) {
+			for (const Rect& rect : rects)
+				D2GFX_DrawRectangle(x + rect.x, y + rect.y, x + rect.x + rect.width,
+					y + rect.y + rect.height, color, Drawing::BTHighlight);
+		}
+
+		void DrawShape(Icon icon, unsigned int size, int x, int y, const Look& look) {
+			if (!look.Draws())
+				return;
+			// Without a border the fill is the whole shape, and without a fill the
+			// border is drawn alone.
+			bool bordered = look.border != NoColor;
+			const Raster& raster = Cached(icon, size, bordered ? look.borderWidth : 0);
+			if (look.fill != NoColor)
+				DrawRects(raster.fill, x, y, look.fill);
+			if (bordered)
+				DrawRects(raster.border, x, y, look.border);
 		}
 
 		// A cell is drawn from the bottom left of its frame. The super chest's
 		// frame is 16 by 32 with what shows of it in columns 2 to 15 and rows 7 to
 		// 29 (MaxiMap.dc6, frame 318), so it is placed with that centred on the
 		// point, leaning a pixel left as the shapes do.
-		const int GameCentreX = 9;
-		const int GameCentreY = 14;
+		const int ChestCentreX = 9;
+		const int ChestCentreY = 14;
 	}
 
-	void Draw(Icon icon, unsigned int size, int x, int y, unsigned int color) {
-		if (icon == Game)
-			DrawCell(GameCell, x - GameCentreX, y + GameCentreY);
+	void Draw(Icon icon, unsigned int size, int x, int y, const Look& look) {
+		if (icon == Chest)
+			DrawCell(ChestCell, x - ChestCentreX, y + ChestCentreY);
 		else
-			DrawShape(icon, size, x, y, color);
+			DrawShape(icon, size, x, y, look);
 	}
 
 	void DrawAt(Icon icon, unsigned int size, int worldX, int worldY,
-			unsigned int color) {
-		if (icon == Game) {
+			const Look& look) {
+		if (icon == Chest) {
 			// The cell's position as Maphack::RevealRoom has always worked it out
 			// for the cells it adds, then placed as the automap places every cell
 			// (D2Client 0x602A6): scaled by the divisor and moved by the offset.
@@ -65,11 +88,22 @@ namespace MapIcon {
 				return;
 			int x = (xPixel * 10) / divisor - (*p_D2CLIENT_Offset).x;
 			int y = (yPixel * 10) / divisor - (*p_D2CLIENT_Offset).y;
-			DrawCell(GameCell, x, y);
+			DrawCell(ChestCell, x, y);
 			return;
 		}
 		POINT point;
 		Drawing::Hook::ScreenToAutomap(&point, worldX, worldY);
-		DrawShape(icon, size, point.x, point.y, color);
+		DrawShape(icon, size, point.x, point.y, look);
+	}
+
+	// Kept as the rasters are, for the monster X drawn for every monster.
+	void DrawOutline(Icon icon, unsigned int size, int x, int y, unsigned int color) {
+		static std::map<std::pair<int, unsigned int>, std::vector<Line>> cache;
+		std::pair<int, unsigned int> key((int)icon, size);
+		auto found = cache.find(key);
+		if (found == cache.end())
+			found = cache.emplace(key, Outline(icon, size)).first;
+		for (const Line& line : found->second)
+			D2GFX_DrawLine(x + line.x1, y + line.y1, x + line.x2, y + line.y2, color, -1);
 	}
 }

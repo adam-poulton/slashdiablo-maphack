@@ -62,6 +62,6 @@ void Crosshook::OnDraw() {
 }
 
 bool Crosshook::Draw(unsigned int x, unsigned int y, unsigned int color) {
-	MapIcon::Draw(MapIcon::Cross, MONSTER_CROSS_SIZE, x, y, color);
+	MapIcon::DrawOutline(MapIcon::Cross, MONSTER_CROSS_SIZE, x, y, color);
 	return true;
 }

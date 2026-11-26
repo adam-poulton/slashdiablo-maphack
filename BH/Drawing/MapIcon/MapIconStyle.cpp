@@ -1,6 +1,13 @@
 #include "MapIconStyle.h"
 #include "../../Config.h"
 
+static void Clamp(unsigned int& value, unsigned int min, unsigned int max) {
+	if (value < min)
+		value = min;
+	if (value > max)
+		value = max;
+}
+
 void ReadMapIconStyle(Config* config, const std::string& prefix,
 		MapIconStyle& style, const MapIconStyle& defaults) {
 	std::vector<std::string> names;
@@ -9,13 +16,13 @@ void ReadMapIconStyle(Config* config, const std::string& prefix,
 
 	config->ReadNamed(prefix + " Icon", style.icon, names, defaults.icon);
 	config->ReadInt(prefix + " Size", style.size, defaults.size);
-	config->ReadInt(prefix + " Color", style.color, defaults.color);
+	config->ReadInt(prefix + " Fill Color", style.fillColor, defaults.fillColor);
+	config->ReadInt(prefix + " Border Color", style.borderColor, defaults.borderColor);
+	config->ReadInt(prefix + " Border Width", style.borderWidth, defaults.borderWidth);
 	style.line = defaults.line;
 	config->ReadBoolean(prefix + " Line", style.line);
 	config->ReadInt(prefix + " Line Color", style.lineColor, defaults.lineColor);
 
-	if (style.size < MapIcon::MinSize)
-		style.size = MapIcon::MinSize;
-	if (style.size > MapIcon::MaxSize)
-		style.size = MapIcon::MaxSize;
+	Clamp(style.size, MapIcon::MinSize, MapIcon::MaxSize);
+	Clamp(style.borderWidth, MapIcon::MinBorder, MapIcon::MaxBorder);
 }

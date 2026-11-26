@@ -46,12 +46,6 @@ namespace Drawing {
 			unsigned int font;
 			bool dragging;
 
-			// Where the number is written, and therefore how much of the hook is
-			// left for the rail. Measured for the largest value the slider will
-			// take rather than the one it is showing, so the rail does not breathe
-			// as the thumb is dragged along it.
-			unsigned int ReadoutWidth();
-
 			// Follows the cursor, in whole steps. Rounds at the halfway point of a
 			// step's worth of travel, so the thumb turns over where it looks like
 			// it should.
@@ -100,6 +94,13 @@ namespace Drawing {
 			// What the value reads as, which is the number and its unit. Public so
 			// that whoever lays the slider out can size a column to it.
 			std::string Readout(unsigned int raw) const;
+
+			// Where the number is written, and therefore how much of the hook is
+			// left for the rail. Measured for the largest value the slider will
+			// take rather than the one it is showing, so the rail does not breathe
+			// as the thumb is dragged along it. Public so that sliders laid out
+			// one above another can be given rails of one length.
+			unsigned int ReadoutWidth();
 
 			unsigned int GetFont() { return font; };
 			void SetFont(unsigned int newFont) { Lock(); font = newFont; Unlock(); };

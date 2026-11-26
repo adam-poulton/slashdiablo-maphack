@@ -236,7 +236,9 @@ namespace Settings {
 					const MapIconStyle& style = *descriptor.styleValue;
 					snapshot.numbers.push_back(style.icon);
 					snapshot.numbers.push_back(style.size);
-					snapshot.numbers.push_back(style.color);
+					snapshot.numbers.push_back(style.fillColor);
+					snapshot.numbers.push_back(style.borderColor);
+					snapshot.numbers.push_back(style.borderWidth);
 					snapshot.numbers.push_back(style.line ? 1 : 0);
 					snapshot.numbers.push_back(style.lineColor);
 				}
@@ -282,9 +284,11 @@ namespace Settings {
 					MapIconStyle& style = *descriptor.styleValue;
 					style.icon = snapshot.At(0);
 					style.size = snapshot.At(1);
-					style.color = snapshot.At(2);
-					style.line = (snapshot.At(3) != 0);
-					style.lineColor = snapshot.At(4);
+					style.fillColor = snapshot.At(2);
+					style.borderColor = snapshot.At(3);
+					style.borderWidth = snapshot.At(4);
+					style.line = (snapshot.At(5) != 0);
+					style.lineColor = snapshot.At(6);
 				}
 				break;
 			case KindText:

@@ -536,6 +536,12 @@ bool Hook::RightClick(HookVisibility screen, bool up, unsigned int x, unsigned i
  */
 bool Hook::MouseWheel(HookVisibility screen, int notches, unsigned int x, unsigned int y) {
 	Hooks.sort(ZSort);
+	// An open dropdown is over whatever scrolls behind it, so it hears the wheel
+	// first, as it does a click.
+	Hook* front = Combohook::current;
+	if (front && front->IsActive() && front->IsEnabled() && front->AnswersOn(screen) &&
+			front->OnMouseWheel(notches, x, y))
+		return true;
 	for (HookIterator it = Hooks.begin(); it!=Hooks.end(); ++it)
 		if ((*it)->IsActive() && (*it)->IsEnabled() && (*it)->AnswersOn(screen))
 			if ((*it)->OnMouseWheel(notches, x, y))

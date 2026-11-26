@@ -37,6 +37,10 @@ using namespace Drawing;
 // line cannot be drawn see-through.
 #define COLOR_SWATCH_MUTED			BTOneHalf
 
+// No colour, wherever it is shown: a slash, in red, as a "no" is drawn the world
+// over, from the bottom left corner to the top right.
+#define COLOR_NONE_SLASH			0x0A	// red
+
 // The picker: a frame centred on the screen holding the palette as a grid, with
 // what a click does written under it.
 #define PICKER_WIDTH			180
@@ -80,6 +84,13 @@ static void DrawEdges(int x, int y, int width, int height, unsigned int color,
 	D2GFX_DrawRectangle(x + width - 1, y + 1, x + width, y + height - 1, color, trans);
 }
 
+// A pixel at a time, so a muted slash can be drawn see-through as the rim is.
+static void DrawSlash(int x, int y, int side, BoxTrans trans) {
+	for (int i = 0; i < side; i++)
+		D2GFX_DrawRectangle(x + i, y + side - 1 - i, x + i + 1, y + side - i,
+			COLOR_NONE_SLASH, trans);
+}
+
 static void DrawPaletteEdge(unsigned int entry, unsigned int color) {
 	int x = PickerLeft() + PICKER_GRID_LEFT + (int)(entry % PICKER_COLUMNS) * PICKER_CELL;
 	int y = PickerTop() + PICKER_GRID_TOP + (int)(entry / PICKER_COLUMNS) * PICKER_CELL;
@@ -97,6 +108,7 @@ Hook(visibility, x, y) {
 	hoverColor = Tan;
 	disabledColor = DISABLED_TEXT_COLOR;
 	swatch = MapIcon::Square;
+	allowNone = false;
 	char buffer[4096];
 	va_list arg;
 	va_start(arg, formatString);
@@ -116,6 +128,7 @@ Hook(group, x, y) {
 	hoverColor = Tan;
 	disabledColor = DISABLED_TEXT_COLOR;
 	swatch = MapIcon::Square;
+	allowNone = false;
 	char buffer[4096];
 	va_list arg;
 	va_start(arg, formatString);
@@ -167,16 +180,19 @@ Colorhook::~Colorhook() {
 		Colorhook::current = NULL;
 }
 
-unsigned int Colorhook::PaletteAt(int x, int y) {
+int Colorhook::PaletteAt(int x, int y) {
 	int left = PickerLeft() + PICKER_GRID_LEFT;
 	int top = PickerTop() + PICKER_GRID_TOP;
 	if (x < left || y < top)
-		return 0;
+		return -1;
 	int column = (x - left) / PICKER_CELL;
 	int row = (y - top) / PICKER_CELL;
 	if (column >= PICKER_COLUMNS || row >= PickerRows())
-		return 0;
-	return (unsigned int)(row * PICKER_COLUMNS + column);
+		return -1;
+	int entry = row * PICKER_COLUMNS + column;
+	if (entry == (int)MapIcon::NoColor && !allowNone)
+		return -1;
+	return entry;
 }
 
 /* The entry is the one under the release, wherever the pointer was last seen
@@ -184,9 +200,9 @@ unsigned int Colorhook::PaletteAt(int x, int y) {
  */
 bool Colorhook::OnLeftClick(bool up, unsigned int x, unsigned int y) {
 	if (Colorhook::current == this) {
-		unsigned int entry = PaletteAt((int)x, (int)y);
-		if (up && entry) {
-			SetColor(entry);
+		int entry = PaletteAt((int)x, (int)y);
+		if (up && entry >= 0) {
+			SetColor((unsigned int)entry);
 			Colorhook::current = NULL;
 		}
 		return true;
@@ -242,11 +258,12 @@ unsigned int Colorhook::GetYSize() {
 /* DrawSwatch()
  *	The colour as the given shape, centred on a point. A filled square is drawn
  *	opaque, as the palette is, with a rim; a shape is drawn as the map draws it.
+ *	No colour is the square's rim with a slash through it, whatever the shape.
  */
 void Colorhook::DrawSwatch(MapIcon::Icon swatch, int x, int y, unsigned int color,
 		bool muted) {
-	if (swatch != MapIcon::Square) {
-		MapIcon::Draw(swatch, COLOR_SWATCH_ICON_SIZE, x, y,
+	if (swatch != MapIcon::Square && color != MapIcon::NoColor) {
+		MapIcon::DrawOutline(swatch, COLOR_SWATCH_ICON_SIZE, x, y,
 			muted ? COLOR_SWATCH_EDGE : color);
 		return;
 	}
@@ -254,7 +271,10 @@ void Colorhook::DrawSwatch(MapIcon::Icon swatch, int x, int y, unsigned int colo
 	int side = 2 * half + 1;
 	BoxTrans trans = muted ? COLOR_SWATCH_MUTED : BTNormal;
 	DrawEdges(x - half, y - half, side, side, COLOR_SWATCH_EDGE, trans);
-	D2GFX_DrawRectangle(x - half + 1, y - half + 1, x + half, y + half, color, trans);
+	if (color == MapIcon::NoColor)
+		DrawSlash(x - half + 1, y - half + 1, side - 2, trans);
+	else
+		D2GFX_DrawRectangle(x - half + 1, y - half + 1, x + half, y + half, color, trans);
 }
 
 void Colorhook::OnDraw() {
@@ -271,16 +291,18 @@ void Colorhook::OnDraw() {
 			int y = top + PICKER_GRID_TOP + (int)(n / PICKER_COLUMNS) * PICKER_CELL;
 			D2GFX_DrawRectangle(x, y, x + PICKER_CELL, y + PICKER_CELL, n, BTNormal);
 		}
-		unsigned int hovered = PaletteAt(Hook::GetMouseX(), Hook::GetMouseY());
+		if (allowNone)
+			DrawSlash(left + PICKER_GRID_LEFT, top + PICKER_GRID_TOP, PICKER_CELL, BTNormal);
+		int hovered = PaletteAt(Hook::GetMouseX(), Hook::GetMouseY());
 		unsigned int chosen = GetColor();
-		if (chosen > 0 && chosen < PICKER_ENTRIES)
+		if (chosen < PICKER_ENTRIES && (chosen != MapIcon::NoColor || allowNone))
 			DrawPaletteEdge(chosen, PICKER_CHOSEN_EDGE);
-		if (hovered)
-			DrawPaletteEdge(hovered, PICKER_HOVER_EDGE);
+		if (hovered >= 0)
+			DrawPaletteEdge((unsigned int)hovered, PICKER_HOVER_EDGE);
 		// What a click would choose, or what is chosen while the pointer is off
 		// the palette.
 		DrawSwatch(swatch, left + PICKER_PREVIEW_X, top + PICKER_PREVIEW_Y,
-			hovered ? hovered : chosen, false);
+			hovered >= 0 ? (unsigned int)hovered : chosen, false);
 		Texthook::Draw(left + PICKER_TEXT_LEFT, top + PICKER_SELECT_TOP, None, 0,
 			White, "Left click - Select");
 		Texthook::Draw(left + PICKER_TEXT_LEFT, top + PICKER_CLOSE_TOP, None, 0,
