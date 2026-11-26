@@ -166,7 +166,7 @@ struct ControlPreferences
 struct Control {
    DWORD dwType;					//0x00
    CellFile *pCellFile;				//0x04
-   DWORD dwDisabled;				//0x08
+   DWORD dwState;					//0x08 CONTROL_STATE_ flags
    DWORD dwPosX;					//0x0C
    DWORD dwPosY;					//0x10
    DWORD dwSizeX;					//0x14

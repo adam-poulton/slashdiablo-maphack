@@ -10,14 +10,6 @@
 
 struct UnitAny;
 
-// The buy cooldown, in milliseconds, and what one notch of its slider moves.
-// The floor keeps any setting from flooding the server with buy packets; the
-// ceiling is the game's own wait.
-#define MIN_BUY_COOLDOWN		100
-#define MAX_BUY_COOLDOWN		500
-#define STEP_BUY_COOLDOWN		50
-#define DEFAULT_BUY_COOLDOWN	200
-
 // What an NPC's trade window is made to say: the shop's items the item filter
 // would mark on the map, the gamble window's items of a base the player has
 // marked, and how soon the game lets the next buy or sell through. A gamble
@@ -51,7 +43,6 @@ public:
 private:
 	// Settings.
 	bool shortenBuyCooldown;
-	unsigned int buyCooldown;
 	Toggle highlights;
 	unsigned int highlightSource;
 	unsigned int highlightColor;
@@ -123,6 +114,7 @@ private:
 	void MarksChanged(bool writeText);
 	void BuildFamilies();
 
+	void EndUnansweredTrade();
 	void FollowWindow();
 	void Forget();
 	unsigned int ContentsKey(UnitAny* npc);

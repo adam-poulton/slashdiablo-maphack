@@ -200,7 +200,8 @@ void Combohook::OnDraw() {
 	Framehook::Draw(GetX(), GetY(), GetXSize(), GetYSize(), 0, BTNormal);
 	DrawOption(GetSelectedIndex(), GetX(), GetY(), GetXSize(), valueColor);
 	if (arrow) {
-		Texthook::Draw(GetX() + GetXSize() - COMBO_ARROW_GAP, GetY() + GetTextInset(), 0, GetFont(),
+		// As far in from the right of the frame as the value is from the left.
+		Texthook::Draw(GetX() + GetXSize() - COMBO_PADDING_X, GetY() + GetTextInset(), Right, GetFont(),
 			IsEnabled() ? (InHook(Hook::GetMouseX(), Hook::GetMouseY())||active?Tan:Gold)
 				: DISABLED_TEXT_COLOR, "v");
 	}

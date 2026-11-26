@@ -4,6 +4,7 @@
 #include "../../BH.h"
 #include "../Basic/Texthook/Texthook.h"
 #include "../Basic/Framehook/Framehook.h"
+#include "../Basic/Framehook/FrameArt.h"
 #include "../Basic/Boxhook/Boxhook.h"
 #include "../Advanced/Inputhook/Inputhook.h"
 #include "../Advanced/Buttonhook/Buttonhook.h"
@@ -11,6 +12,27 @@
 using namespace Drawing;
 
 std::list<UI*> UI::UIs;
+
+namespace {
+
+// Where a window of the given size can start along a screen of the given size
+// with its frame, which reaches past it, all on screen. One too big for that
+// starts where its frame just fits on the near side.
+int WithinScreen(int position, int size, int screen) {
+	int farthest = screen - size - kFrameOutset;
+	if (position > farthest)
+		position = farthest;
+	if (position < kFrameOutset)
+		position = kFrameOutset;
+	return position;
+}
+
+// The most of a screen a window can take with its frame on it too.
+unsigned int Room(unsigned int screen) {
+	return (screen > 2 * kFrameOutset) ? (screen - 2 * kFrameOutset) : 0;
+}
+
+}  // namespace
 
 // UIChrome sits on the window's content box: the full width less the margin down
 // either side, measured from the top of the window so that a band can be placed
@@ -200,8 +222,8 @@ void UI::SetFixedSize(unsigned int width, unsigned int height) {
 unsigned int UI::GetMinXSize() {
 	unsigned int wanted = minXOverride ? minXOverride : UI_MIN_WIDTH;
 	unsigned int screenWidth = Hook::GetScreenWidth();
-	if (screenWidth > 0 && wanted > screenWidth)
-		return screenWidth;
+	if (screenWidth > 0 && wanted > Room(screenWidth))
+		return Room(screenWidth);
 	return wanted;
 }
 
@@ -212,8 +234,8 @@ unsigned int UI::GetMinYSize() {
 	unsigned int wanted = minYOverride ? minYOverride :
 		(GetChromeAboveHeight() + GetChromeBelowHeight() + UI_MIN_CONTENT_HEIGHT);
 	unsigned int screenHeight = Hook::GetScreenHeight();
-	if (screenHeight > 0 && wanted > screenHeight)
-		return screenHeight;
+	if (screenHeight > 0 && wanted > Room(screenHeight))
+		return Room(screenHeight);
 	return wanted;
 }
 
@@ -495,10 +517,10 @@ void UI::DragResizeTo(unsigned int mouseX, unsigned int mouseY) {
 
 	// Not past the edge of the screen, and never smaller than the minimum, in
 	// that order so the minimum wins on a screen too small to hold it.
-	if (screenWidth > 0 && left + newXSize > (int)screenWidth)
-		newXSize = (int)screenWidth - left;
-	if (screenHeight > 0 && top + newYSize > (int)screenHeight)
-		newYSize = (int)screenHeight - top;
+	if (screenWidth > 0 && left + newXSize + kFrameOutset > (int)screenWidth)
+		newXSize = (int)screenWidth - kFrameOutset - left;
+	if (screenHeight > 0 && top + newYSize + kFrameOutset > (int)screenHeight)
+		newYSize = (int)screenHeight - kFrameOutset - top;
 	if (newXSize < (int)GetMinXSize())
 		newXSize = (int)GetMinXSize();
 	if (newYSize < (int)GetMinYSize())
@@ -559,18 +581,10 @@ void UI::OnDraw() {
 			int newY = Hook::GetMouseY() - dragY;
 			int screenWidth = (int)Hook::GetScreenWidth();
 			int screenHeight = (int)Hook::GetScreenHeight();
-
-			if (newX < 0)
-				newX = 0;
-
-			if (screenWidth > 0 && (newX + xSize + 2) > screenWidth)
-				newX = screenWidth - xSize - 2;
-
-			if (newY < 2)
-				newY = 2;
-
-			if (screenHeight > 0 && (newY + TITLE_BAR_HEIGHT) > screenHeight)
-				newY = screenHeight - TITLE_BAR_HEIGHT;
+			if (screenWidth > 0)
+				newX = WithinScreen(newX, xSize, screenWidth);
+			if (screenHeight > 0)
+				newY = WithinScreen(newY, TITLE_BAR_HEIGHT, screenHeight);
 
 			Hook::SetMousePosition(newX + dragX, newY + dragY);
 			SetMinimizedX(newX);
@@ -586,18 +600,10 @@ void UI::OnDraw() {
 			int newY = Hook::GetMouseY() - dragY;
 			int screenWidth = (int)Hook::GetScreenWidth();
 			int screenHeight = (int)Hook::GetScreenHeight();
-
-			if (newX < 0)
-				newX = 0;
-
-			if (screenWidth > 0 && (newX + (int)GetXSize() + 2) > screenWidth)
-				newX = screenWidth - (int)GetXSize() - 2;
-
-			if (newY < 2)
-				newY = 2;
-
-			if (screenHeight > 0 && (newY + (int)GetYSize()) > screenHeight)
-				newY = screenHeight - (int)GetYSize();
+			if (screenWidth > 0)
+				newX = WithinScreen(newX, (int)GetXSize(), screenWidth);
+			if (screenHeight > 0)
+				newY = WithinScreen(newY, (int)GetYSize(), screenHeight);
 
 			Hook::SetMousePosition(newX + dragX, newY + dragY);
 			SetX(newX);
@@ -638,10 +644,8 @@ void UI::EnsureInBounds() {
 		// against the full window width would drag wide windows back off their
 		// saved position every frame.
 		unsigned int titleWidth = TitleTextWidth() + 8;
-		if (titleWidth < screenWidth && GetMinimizedX() + titleWidth > screenWidth)
-			SetMinimizedX(screenWidth - titleWidth);
-		if (TITLE_BAR_HEIGHT < screenHeight && GetMinimizedY() + TITLE_BAR_HEIGHT > screenHeight)
-			SetMinimizedY(screenHeight - TITLE_BAR_HEIGHT);
+		SetMinimizedX(WithinScreen((int)GetMinimizedX(), (int)titleWidth, (int)screenWidth));
+		SetMinimizedY(WithinScreen((int)GetMinimizedY(), TITLE_BAR_HEIGHT, (int)screenHeight));
 	}
 	else {
 		// A window resized on a bigger screen, or saved before a resolution
@@ -650,22 +654,18 @@ void UI::EnsureInBounds() {
 		// that can be resized at all: a fixed one is the size its contents were
 		// laid out for and must be left alone.
 		if (IsResizable()) {
-			if (GetXSize() > screenWidth)
-				SetXSize(screenWidth);
-			if (GetYSize() > screenHeight)
-				SetYSize(screenHeight);
+			if (GetXSize() > Room(screenWidth))
+				SetXSize(Room(screenWidth));
+			if (GetYSize() > Room(screenHeight))
+				SetYSize(Room(screenHeight));
 			if (GetXSize() < GetMinXSize())
 				SetXSize(GetMinXSize());
 			if (GetYSize() < GetMinYSize())
 				SetYSize(GetMinYSize());
 		}
 
-		// Only pull a window back if it would hang off the screen, and only if
-		// it fits at all, so that the arithmetic can't wrap round.
-		if (GetXSize() < screenWidth && GetX() + GetXSize() > screenWidth)
-			SetX(screenWidth - GetXSize());
-		if (GetYSize() < screenHeight && GetY() + GetYSize() > screenHeight)
-			SetY(screenHeight - GetYSize());
+		SetX(WithinScreen((int)GetX(), (int)GetXSize(), (int)screenWidth));
+		SetY(WithinScreen((int)GetY(), (int)GetYSize(), (int)screenHeight));
 	}
 }
 

@@ -12,6 +12,9 @@ jobs:
     permissions:
       contents: write
 
+    outputs:
+      prerelease: ${{ steps.version.outputs.prerelease }}
+
     steps:
     - name: Setup MSBuild.exe
       uses: microsoft/setup-msbuild@v1.0.2
@@ -29,6 +32,12 @@ jobs:
         # named the way the version reads in game, product name and all.
         "number=$number" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
         "version=BH $number" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        # A suffix after a hyphen (1.11.0-rc.1) marks a release candidate. It is
+        # published as a pre-release, which GitHub never resolves as
+        # /releases/latest, so the public download link stays on the last
+        # stable version.
+        $prerelease = if ($number.Contains('-')) { 'true' } else { 'false' }
+        "prerelease=$prerelease" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
         # The tag names the version it builds, so a tag pushed against a stale
         # Constants.h fails here rather than shipping an archive and a release
         # page that disagree with the tag.
@@ -51,17 +60,27 @@ jobs:
     - name: Build the release notes
       # The changelog entry for this version, plus the installation page. The
       # commit log describes how the code changed, which is not what someone
-      # downloading a build needs to read.
+      # downloading a build needs to read. A release candidate has no entry of
+      # its own: it ships what is under Unreleased, which becomes the entry for
+      # the stable version once that is tagged.
       run: |
         $number = "${{ steps.version.outputs.number }}"
+        if ("${{ steps.version.outputs.prerelease }}" -eq 'true') {
+          $title = 'Unreleased'
+        } else {
+          $title = 'Release Notes for ' + $number
+        }
         $changelog = Get-Content CHANGELOG.md -Raw
-        $heading = '^# Release Notes for ' + [regex]::Escape($number) + '\b'
+        $heading = '^# ' + [regex]::Escape($title) + '\b'
         $section = [regex]::Match($changelog, "(?ms)$heading.*?(?=^# Release Notes for |\z)")
         if (-not $section.Success) {
-          throw "CHANGELOG.md has no 'Release Notes for $number' section. Add one before tagging."
+          throw "CHANGELOG.md has no '$title' section. Add one before tagging."
         }
         # Everything below the heading line, which the release title already says.
         $notes = (($section.Value -split "`n", 2)[1]).Trim()
+        if (-not $notes) {
+          throw "The '$title' section of CHANGELOG.md is empty. Add the changes before tagging."
+        }
         # The changelog links to files by repository-relative path, which only
         # resolves while the page is being viewed in the repository. Point them
         # at the tagged commit so they still work from the release page.
@@ -78,12 +97,15 @@ jobs:
         name: ${{ steps.version.outputs.version }}
         body_path: release-notes.md
         files: dist/slashdiablo-maphack-${{ steps.version.outputs.number }}.zip
+        prerelease: ${{ steps.version.outputs.prerelease }}
 
   # Publish docs/ to the wiki, but only once the release itself has succeeded,
   # so a failed build never puts documentation live for a release that does not
-  # exist. No-ops when docs/ has not changed since the last publish.
+  # exist. No-ops when docs/ has not changed since the last publish. The wiki
+  # tracks the latest stable release, so a release candidate leaves it alone.
   publish-wiki:
     needs: release
+    if: needs.release.outputs.prerelease != 'true'
     permissions:
       contents: write
     uses: ./.github/workflows/publish-wiki.yaml

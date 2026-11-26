@@ -76,7 +76,8 @@ unsigned int MapIconCombohook::Width(const std::vector<MapIcon::Icon>& icons) {
 		if (width > widest)
 			widest = width;
 	}
-	return MIH_OPTION_LABEL_LEFT + widest + MIH_OPTION_ARROW_ROOM + COMBO_ARROW_GAP;
+	unsigned int arrow = (unsigned int)Texthook::GetTextSize("v", 0).x;
+	return MIH_OPTION_LABEL_LEFT + widest + MIH_OPTION_ARROW_ROOM + arrow + COMBO_PADDING_X;
 }
 
 MapIconCombohook::MapIconCombohook(HookGroup* group, unsigned int x, unsigned int y,

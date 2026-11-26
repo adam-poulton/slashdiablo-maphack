@@ -140,6 +140,9 @@ void BH::Initialize()
 	new CodexWindow();
 	new ForgeWindow();
 	new SettingsWindow();
+#ifdef BH_AGENT
+	new AgentDriver();
+#endif
 
 	moduleManager->LoadModules();
 

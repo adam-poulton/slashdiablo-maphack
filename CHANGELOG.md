@@ -3,9 +3,11 @@ Changelog
 
 All notable changes to slashdiablo-maphack. Versions match the `VERSION` string
 in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
+A release candidate adds a suffix, as in `v1.11.0-rc.1`, and is published as a
+GitHub pre-release with the notes under `# Unreleased`.
 
 # Unreleased
-* Add `Buy cooldown` under `Shopping` on the Input tab, off by default. Shortens the 500 ms the game waits between buying with a right click or selling to an NPC, down to as little as 100 ms.
+* Add `Shorten buy cooldown` under `Shopping` on the Input tab, on by default. Cuts the game's 500 ms wait between buying with a right click or selling to an NPC to 250 ms.
 * Add `Shop highlights` on the Filter tab, on by default. Colours the items in an NPC's shop that your item filter would mark on the map, in the rule's map colour or a fixed one, and marks the shop tabs that hold one. It follows the filter level and hidden items as the map does. Can also announce the matches in chat, leaving out items whose rule has no drop notification.
 * Add gamble marks under `Gambling` on the Input tab. Press F2 over an item in a gamble window to highlight every item of its base, and its exceptional and elite versions with `Match base tiers`. Marks survive a gamble refresh and can be kept between games with `Remember marks`.
 * Add `Portal re-entry delay` under `Town portal` on the Input tab, off by default. Lets you take a town portal again sooner after taking one, timed from when you took it: 500 to 3000 ms, 1000 ms by default. Off leaves the game's own wait.
@@ -23,6 +25,8 @@ in [BH/Constants.h](BH/Constants.h); releases are tagged `v` plus that number.
 * Dropdown lists open upward when there is no room for them below their box.
 * Fix clicking an option in a dropdown list, or a colour in the colour picker, also clicking whatever was under it.
 * Fix the colour picker choosing the last colour the pointer passed over when clicked below the palette, and ignoring clicks along the top of the first row. The picker now opens in the middle of the screen at any resolution, outlines the colour already chosen, shows the colour under the pointer in a bar under the palette, and offers black in its first cell, which it used to leave empty.
+* Fix the gold frame around BH's windows, buttons and boxes sitting a pixel right of the box it surrounds. It now sits evenly on every side, checkboxes show their whole frame, and a window at the edge of the screen keeps all of its frame in view.
+
 # Release Notes for 1.10.1 (2026-10-04)
 * Add stat filter conditions to the codex.
 * Add `Hide redundant gold piles` toggle in the Filter tab, off by default. Hides gold on the ground while you are already carrying the max gold for your level. Doesn't apply in town.

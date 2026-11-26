@@ -19,10 +19,16 @@ jobs:
       run: msbuild /t:BHTests:Rebuild /p:Configuration=Release BH.sln
     - name: Run tests
       run: .\Tests\Release\BHTests.exe
+    - name: Run agent harness tests
+      run: python -m unittest discover -s AgentHarness
     - name: MSBuild
       run: |
         $sha = $env:GITHUB_SHA.substring(0,7)
         msbuild /t:BH:Rebuild /p:Configuration=Release /p:CustomDefinitions="SHA=$sha" BH.sln
+    # Nothing players get is built from these, so only a compile catches them
+    # breaking: the agent build's driver and the harness's launcher.
+    - name: Build agent harness
+      run: msbuild /t:AgentLaunch /t:BH /p:Configuration=Release /p:BHAgent=true BH.sln
     - uses: actions/upload-artifact@v4
       with:
         name: BH.dll

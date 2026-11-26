@@ -190,8 +190,7 @@ unsigned int Inputhook::GetCharacterLimit() {
 	 if (!Hook::IsActive())
 		 return;
 	 Lock();
-	 //Font height
-	 unsigned int height[] = {10,11,18,24,10,13,7,13,10,12,8,8,7,12};
+	 unsigned int baseline = BaselineOffset(GetFont());
 
 	 //A focused box gets a solid field, a bright outline and a blinking cursor;
 	 //an unfocused one is translucent with dimmed text, so it is obvious at a
@@ -229,7 +228,7 @@ unsigned int Inputhook::GetCharacterLimit() {
 		 wchar_t* wHint = AnsiToUnicode(FitToWidth(placeholder, GetFont(),
 			 GetXSize() - (2 * INPUT_PADDING_X)).c_str());
 		 D2WIN_DrawText(wHint, GetX() + INPUT_PADDING_X,
-			 GetY() + paddingTop + height[GetFont()], Grey, 0);
+			 GetY() + paddingTop + baseline, Grey, 0);
 		 delete[] wHint;
 		 D2WIN_SetTextSize(placeholderFont);
 	 }
@@ -262,7 +261,7 @@ unsigned int Inputhook::GetCharacterLimit() {
 	 DWORD oldFont = D2WIN_SetTextSize(GetFont());
 	 wchar_t* wText = AnsiToUnicode(drawnText.c_str());
 	 D2WIN_DrawText(wText, GetX() + INPUT_PADDING_X,
-		 GetY() + paddingTop + height[GetFont()], textColor, 0);
+		 GetY() + paddingTop + baseline, textColor, 0);
 	 delete[] wText;
 	 D2WIN_SetTextSize(oldFont);
 
@@ -275,7 +274,7 @@ unsigned int Inputhook::GetCharacterLimit() {
 		 wchar_t caret[] = { L'|', 0 };
 		 D2WIN_DrawText(caret,
 			 GetX() + INPUT_PADDING_X + textSize.x - INPUT_CARET_NUDGE,
-			 GetY() + paddingTop + height[GetFont()], textColor, 0);
+			 GetY() + paddingTop + baseline, textColor, 0);
 		 D2WIN_SetTextSize(cursorFont);
 	 }
 

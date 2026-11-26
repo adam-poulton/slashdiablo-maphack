@@ -17,7 +17,7 @@ namespace Drawing {
 	// it, an optional search box below that, and an optional footer line along
 	// the bottom. A tab measures itself against the window less all four.
 	#define TITLE_BAR_HEIGHT 15
-	#define TAB_HEIGHT 13
+	#define TAB_HEIGHT 14
 	#define MINIMIZED_Y_POS 585
 	#define MINIMIZED_X_POS 234
 
