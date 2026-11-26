@@ -43,17 +43,27 @@
 
 #define DEFAULT_HIGHLIGHT_COLOR	0x84
 
-void ItemBackdrop_Interception();
+// The shortened buy cooldown, in milliseconds. The Slashdiablo server drops a
+// trade sent about 200 ms or less after the last one without answering it.
+#define BUY_COOLDOWN			250
 
-// The immediate of the `cmp eax, 0x1F4` in D2CLIENT_ShopAction (0x47D60) that
-// holds back a click until 500 ms after the last trade went through. The check
-// runs only for a ShopAction called with its fifth stack argument set, which
-// D2Client does from two places, both clicks on an NPC's trade panel: a right
-// click on one of the NPC's items, which buys it (0x9CA37), and a left click
-// with an item on the cursor, which sells it (0x9C0AB). Buying through any other
-// path, and repairing, never wait on it.
-static Patch* buyCooldownPatch = new Patch(Bytes, D2CLIENT, { 0x47E54, 0 },
-	DEFAULT_BUY_COOLDOWN, 4);
+// How long a trade sent under the shortened cooldown waits for the server's
+// answer before the wait is ended without it. Answers take about one ping.
+#define TRADE_ANSWER_TIMEOUT	1000
+
+void ItemBackdrop_Interception();
+void BuyCooldown_Interception();
+
+// The check in D2CLIENT_ShopAction (0x47D60) that holds back a click until
+// 500 ms after the last trade was sent: `call GetTickCount`, `sub eax,
+// [LastTradeTick]` and `cmp eax, 0x1F4`, ahead of the `jb` that drops the click
+// when the carry is set. It runs only for a ShopAction called with its fifth
+// stack argument set, which D2Client does from two places, both clicks on an
+// NPC's trade panel: a right click on one of the NPC's items, which buys it
+// (0x9CA37), and a left click with an item on the cursor, which sells it
+// (0x9C0AB). Buying through any other path, and repairing, never wait on it.
+static Patch* buyCooldownPatch = new Patch(Call, D2CLIENT, { 0x47E47, 0 },
+	(int)BuyCooldown_Interception, 17);
 
 // The call to D2GFX_DrawRectangle inside D2Client's 0x8C600, which draws the
 // backdrop under an item one grid cell at a time. See ItemBackdrop_Interception.
@@ -105,11 +115,10 @@ void Shop::OnLoad() {
 	LoadConfig();
 
 	Settings::AddHeading(GetName(), Settings::Category::Input, "Shopping");
-	Settings::AddSlider(GetName(), Settings::Category::Input, "Buy Cooldown", "Buy cooldown",
-		&buyCooldown, MIN_BUY_COOLDOWN, MAX_BUY_COOLDOWN, STEP_BUY_COOLDOWN, " ms",
-		"How long the game waits after a trade before it takes the next right click "
-		"to buy or the next item dropped on the NPC to sell. The game's own wait is 500 ms.",
-		"", &shortenBuyCooldown);
+	Settings::AddBool(GetName(), Settings::Category::Input, "Shorten Buy Cooldown",
+		"Shorten buy cooldown", &shortenBuyCooldown,
+		"Takes the next right click to buy, or item dropped on the NPC to sell, 250 ms "
+		"after a trade instead of the game's 500 ms.");
 
 	Settings::AddHeading(GetName(), Settings::Category::Input, Settings::Heading::Gambling);
 	Settings::AddToggle(GetName(), Settings::Category::Input, "Gamble Refresh", "Gamble refresh",
@@ -153,15 +162,8 @@ void Shop::OnLoad() {
 }
 
 void Shop::LoadConfig() {
-	shortenBuyCooldown = false;
+	shortenBuyCooldown = true;
 	BH::config->ReadBoolean("Shorten Buy Cooldown", shortenBuyCooldown);
-	BH::config->ReadInt("Buy Cooldown", buyCooldown, DEFAULT_BUY_COOLDOWN);
-	// The slider cannot offer a value outside its range, but a file can name one,
-	// and below the floor is what the floor is there to prevent.
-	if (buyCooldown < MIN_BUY_COOLDOWN)
-		buyCooldown = MIN_BUY_COOLDOWN;
-	if (buyCooldown > MAX_BUY_COOLDOWN)
-		buyCooldown = MAX_BUY_COOLDOWN;
 
 	BH::config->ReadToggle("Shop Highlights", "None", true, highlights);
 	BH::config->ReadInt("Shop Highlight Color Source", highlightSource,
@@ -222,7 +224,6 @@ void Shop::OnSettingsChanged(const vector<string>& keys) {
 // the thread the settings poll and the game loop call from, so neither is ever
 // written under code that is running it.
 void Shop::ApplyPatches() {
-	buyCooldownPatch->SetValue(buyCooldown);
 	if (shortenBuyCooldown)
 		buyCooldownPatch->Install();
 	else
@@ -575,6 +576,7 @@ unsigned int Shop::ContentsKey(UnitAny* npc) {
 }
 
 void Shop::OnLoop() {
+	EndUnansweredTrade();
 	ApplyPendingKeys();
 
 	// The tables are read off the main thread after BH loads, so marks read
@@ -587,6 +589,19 @@ void Shop::OnLoop() {
 
 	FollowWindow();
 	TickRefresh();
+}
+
+// A trade the server dropped is never answered, and the game would hold input
+// until it gives up. Ending the wait as an answer would is safe if the answer
+// does come after all: the game takes it as it takes one for a trade not
+// waiting on it.
+void Shop::EndUnansweredTrade() {
+	if (!buyCooldownPatch->IsInstalled() || !*p_D2CLIENT_TradeWaitDialog ||
+			*p_D2CLIENT_TradeCloseAt != 0)
+		return;
+	if (GetTickCount() - *p_D2CLIENT_LastTradeTick < TRADE_ANSWER_TIMEOUT)
+		return;
+	D2CLIENT_FinishTrade();
 }
 
 void Shop::FollowWindow() {
@@ -787,6 +802,26 @@ void Shop::DrawTabMarkers() {
 		Drawing::Boxhook::Draw(x + TAB_MARKER_FRAME, y + TAB_MARKER_FRAME,
 			TAB_MARKER_SIZE - 2 * TAB_MARKER_FRAME, TAB_MARKER_SIZE - 2 * TAB_MARKER_FRAME,
 			tabColor[i], Drawing::BTNormal);
+	}
+}
+
+// The game's 500 ms outlasts the server's answer to a trade on most connections,
+// which is all that keeps two trades from waiting at once (see
+// p_D2CLIENT_TradeWaitDialog). A shorter cooldown can end first, so it also
+// waits for the answer.
+static BOOL __stdcall BuyCooldownElapsed() {
+	if (*p_D2CLIENT_TradeWaitDialog)
+		return FALSE;
+	return GetTickCount() - *p_D2CLIENT_LastTradeTick >= BUY_COOLDOWN;
+}
+
+// Stands in for the whole check and leaves the carry set to drop the click, as
+// the `cmp` did. eax, ecx and edx are free here, as GetTickCount left them.
+void __declspec(naked) BuyCooldown_Interception() {
+	__asm {
+		call BuyCooldownElapsed
+		cmp eax, 1
+		ret
 	}
 }
 

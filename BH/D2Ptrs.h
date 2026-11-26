@@ -253,6 +253,19 @@ VARPTR(D2CLIENT, RecentInteractId, DWORD, 0x11971D, 0x101895)
 VARPTR(D2CLIENT, ItemPriceList, DWORD, 0x11973B, 0x1018B3)
 
 VARPTR(D2CLIENT, TransactionDialog, void*, 0x11975B, 0x1018D3)
+// 1.13c only. The dialog that holds input while a trade with an NPC waits on the
+// server's answer, NULL when none is waiting, and when the last trade was sent.
+// Sending a trade (0x46EE0) makes a new dialog without closing one still up, so
+// a second trade sent in that time leaves the first one up for good. A server
+// that never answers leaves it up for 60 s, after which the game stops taking
+// input altogether.
+VARPTR(D2CLIENT, TradeWaitDialog, void*, 0x11975F, 0x11975F)
+VARPTR(D2CLIENT, LastTradeTick, DWORD, 0x122309, 0x122309)
+// When the answered trade's dialog closes, 0 until the answer has come, and the
+// game's own handling of an answer, which clears the trade and has the dialog
+// closed shortly after.
+VARPTR(D2CLIENT, TradeCloseAt, DWORD, 0x11974F, 0x11974F)
+FUNCPTR(D2CLIENT, FinishTrade, void __stdcall, (void), 0x47AB0, 0x47AB0)
 VARPTR(D2CLIENT, TransactionDialogs, DWORD, 0x11BC08, 0x11D58C)
 VARPTR(D2CLIENT, TransactionDialogs_2, DWORD, 0x11BC04, 0x11D588)
 

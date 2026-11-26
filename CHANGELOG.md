@@ -7,7 +7,7 @@ A release candidate adds a suffix, as in `v1.11.0-rc.1`, and is published as a
 GitHub pre-release with the notes under `# Unreleased`.
 
 # Unreleased
-* Add `Buy cooldown` under `Shopping` on the Input tab, off by default. Shortens the 500 ms the game waits between buying with a right click or selling to an NPC, down to as little as 100 ms.
+* Add `Shorten buy cooldown` under `Shopping` on the Input tab, on by default. Cuts the game's 500 ms wait between buying with a right click or selling to an NPC to 250 ms.
 * Add `Shop highlights` on the Filter tab, on by default. Colours the items in an NPC's shop that your item filter would mark on the map, in the rule's map colour or a fixed one, and marks the shop tabs that hold one. It follows the filter level and hidden items as the map does. Can also announce the matches in chat, leaving out items whose rule has no drop notification.
 * Add gamble marks under `Gambling` on the Input tab. Press F2 over an item in a gamble window to highlight every item of its base, and its exceptional and elite versions with `Match base tiers`. Marks survive a gamble refresh and can be kept between games with `Remember marks`.
 * Add `Portal re-entry delay` under `Town portal` on the Input tab, off by default. Lets you take a town portal again sooner after taking one, timed from when you took it: 500 to 3000 ms, 1000 ms by default. Off leaves the game's own wait.
