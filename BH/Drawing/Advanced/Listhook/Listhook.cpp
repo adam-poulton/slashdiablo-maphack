@@ -2,6 +2,7 @@
 #include "../../Basic/Scrollbar/Scrollbar.h"
 #include "../../Basic/Boxhook/Boxhook.h"
 #include "../../Basic/Framehook/Framehook.h"
+#include "../../Basic/Texthook/TextMetrics.h"
 #include "../../../D2Ptrs.h"
 #include "../../GroupStyle.h"
 
@@ -24,10 +25,6 @@ using namespace Drawing;
 // or not there is anything to scroll. How it looks and where its thumb goes are
 // Scrollbar's, so the list and the scrolling box cannot come to differ.
 
-static unsigned int FontHeight(unsigned int font) {
-	unsigned int height[] = {10,11,18,24,10,13,7,13,10,12,8,8,7,12};
-	return height[font];
-}
 
 Listhook::Listhook(HookVisibility visibility, unsigned int x, unsigned int y, unsigned int xSize, unsigned int ySize) :
 Hook(visibility, x, y), xSize(xSize), ySize(ySize), font(0), scrollTop(0), headerColor(Gold),
@@ -429,13 +426,13 @@ void Listhook::FitRows() {
 }
 
 unsigned int Listhook::GetRowHeight() {
-	return FontHeight(font) + LIST_ROW_PADDING;
+	return BaselineOffset(font) + LIST_ROW_PADDING;
 }
 
 unsigned int Listhook::GetHeaderHeight() {
 	for (unsigned int c = 0; c < columns.size(); c++) {
 		if (columns[c].header.length() > 0)
-			return FontHeight(font) + LIST_HEADER_GAP;
+			return BaselineOffset(font) + LIST_HEADER_GAP;
 	}
 	return 0;
 }
@@ -798,7 +795,7 @@ void Listhook::OnDraw() {
 		Texthook::Draw(GetX() + layout[c].x, y, None, font, headerColor, "%s", columns[c].header.c_str());
 	}
 	if (hasHeader)
-		y += FontHeight(font) + LIST_HEADER_GAP;
+		y += BaselineOffset(font) + LIST_HEADER_GAP;
 
 	int hovered = GetHoveredRow();
 	unsigned int first = GetFirstVisibleRow(), last = GetLastVisibleRow();

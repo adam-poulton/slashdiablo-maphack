@@ -1,6 +1,7 @@
 #include "Keyhook.h"
 #include "../../Basic/Framehook/Framehook.h"
 #include "../../Basic/Texthook/Texthook.h"
+#include "../../Basic/Texthook/TextMetrics.h"
 #include "../../../D2Ptrs.h"
 #include "../../../Common.h"
 #include "../../../Constants.h"
@@ -161,6 +162,5 @@ unsigned int Keyhook::GetXSize() {
 }
 
 unsigned int Keyhook::GetYSize() {
-	unsigned int height[] = {10,11,18,24,10,13,7,13,10,12,8,8,7,12};
-	return height[KEY_FONT] + KEY_PADDING_TOP + KEY_PADDING_BOTTOM;
+	return BaselineOffset(KEY_FONT) + KEY_PADDING_TOP + KEY_PADDING_BOTTOM;
 }

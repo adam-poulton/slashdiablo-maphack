@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "../../Basic/Boxhook/Boxhook.h"
 #include "../../Basic/Texthook/Texthook.h"
+#include "../../Basic/Texthook/TextMetrics.h"
 #include "../../../D2Ptrs.h"
 
 using namespace Drawing;
@@ -89,8 +90,7 @@ unsigned int Sliderhook::ReadoutWidth() {
 }
 
 unsigned int Sliderhook::GetYSize() {
-	unsigned int height[] = {10,11,18,24,10,13,7,13,10,12,8,8,7,12};
-	unsigned int text = height[GetFont()] + SLIDER_PADDING_TOP + SLIDER_PADDING_BOTTOM;
+	unsigned int text = BaselineOffset(GetFont()) + SLIDER_PADDING_TOP + SLIDER_PADDING_BOTTOM;
 	return (text > SLIDER_THUMB_HEIGHT) ? text : SLIDER_THUMB_HEIGHT;
 }
 

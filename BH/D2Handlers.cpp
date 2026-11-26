@@ -3,6 +3,7 @@
 #include "D2Stubs.h"
 #include "Constants.h"
 #include "D2Version.h"
+#include "Modules/AgentDriver/AgentDriver.h"
 
 #include <iterator>
 
@@ -11,6 +12,9 @@ void GameDraw() {
 	Drawing::UI::Draw(Drawing::InGame);
 	Drawing::StatsDisplay::Draw();
 	Drawing::Hook::Draw(Drawing::InGame);
+#ifdef BH_AGENT
+	AgentDriver::FrameEnd(true);
+#endif
 }
 
 void GameAutomapDraw() {
@@ -24,6 +28,9 @@ void OOGDraw() {
 	// its frame yet is one drawn before it has any columns, any rows or any size.
 	__raise BH::moduleManager->OnOOGDraw();
 	Drawing::UI::Draw(Drawing::OutOfGame);
+#ifdef BH_AGENT
+	AgentDriver::FrameEnd(false);
+#endif
 }
  
 void GameLoop() {
@@ -151,6 +158,10 @@ static bool charBelongsToHook = false;
 LONG WINAPI GameWindowEvent(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
 	bool blockEvent = false;
+
+#ifdef BH_AGENT
+	AgentDriver::ObserveMessage(uMsg, wParam);
+#endif
 
 	if (uMsg == WM_CHAR || uMsg == WM_SYSCHAR) {
 		if (charBelongsToHook)

@@ -74,6 +74,10 @@ set(MODULE_SOURCES "Modules/Module.cpp"
                    "Modules/Shop/ShopHighlights.cpp"
                    "Modules/TownPortal/PortalDelay.cpp"
                    "Modules/TownPortal/TownPortal.cpp"
+        "Modules/AgentDriver/AgentDriver.cpp"
+        "Modules/AgentDriver/AgentKeys.cpp"
+        "Modules/AgentDriver/AgentScreen.cpp"
+        "Modules/AgentDriver/DrawLog.cpp"
                    "Modules/StashExport/StashExport.cpp")
 
 set(DRAWING_SOURCES "Drawing/Hook.cpp"

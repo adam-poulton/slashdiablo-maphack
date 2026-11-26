@@ -1,4 +1,5 @@
 #include "StringUtil.h"
+#include <Windows.h>
 #include <algorithm>
 #include <string.h>
 
@@ -22,6 +23,14 @@ std::string Join(const std::vector<std::string>& parts, const std::string& separ
 		result += parts[i];
 	}
 	return result;
+}
+std::string ToUtf8(const std::wstring& text) {
+	if (text.empty())
+		return std::string();
+	int length = WideCharToMultiByte(CP_UTF8, 0, text.c_str(), (int)text.size(), NULL, 0, NULL, NULL);
+	std::string utf8(length, '\0');
+	WideCharToMultiByte(CP_UTF8, 0, text.c_str(), (int)text.size(), &utf8[0], length, NULL, NULL);
+	return utf8;
 }
 bool IsTrue(const char *str) {
 	return (_stricmp(str, "1") == 0 || _stricmp(str, "y") == 0 || _stricmp(str, "yes") == 0 || _stricmp(str, "true") == 0);

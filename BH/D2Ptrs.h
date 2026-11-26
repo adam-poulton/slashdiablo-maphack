@@ -454,8 +454,18 @@ VARPTR(D2NET, CriticalPacketSection, CRITICAL_SECTION, 0xB400, 0xB400) // unused
 // D2Gfx Ordinals
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
+#ifdef BH_AGENT
+// The agent build records what BH draws (Modules/AgentDriver/DrawLog.h). There
+// these and D2WIN_DrawText are BH's own functions, which record the call and
+// then make it through the _Game pointer.
+FUNCPTR(D2GFX, DrawLine_Game, void __stdcall, (int X1, int Y1, int X2, int Y2, DWORD dwColor, DWORD dwUnk), -10010, -10013)
+FUNCPTR(D2GFX, DrawRectangle_Game, void __stdcall, (int X1, int Y1, int X2, int Y2, DWORD dwColor, DWORD dwTrans), -10014, -10028)
+void __stdcall D2GFX_DrawLine(int X1, int Y1, int X2, int Y2, DWORD dwColor, DWORD dwUnk);
+void __stdcall D2GFX_DrawRectangle(int X1, int Y1, int X2, int Y2, DWORD dwColor, DWORD dwTrans);
+#else
 FUNCPTR(D2GFX, DrawLine, void __stdcall, (int X1, int Y1, int X2, int Y2, DWORD dwColor, DWORD dwUnk), -10010, -10013)
 FUNCPTR(D2GFX, DrawRectangle, void __stdcall, (int X1, int Y1, int X2, int Y2, DWORD dwColor, DWORD dwTrans), -10014, -10028)
+#endif
 FUNCPTR(D2GFX, DrawAutomapCell2, void __stdcall, (CellContext* context, DWORD xpos, DWORD ypos, DWORD bright2, DWORD bright, BYTE *coltab), -10041, -10042)
 FUNCPTR(D2GFX, DrawCellContextEx, void __stdcall, (CellContext *context, int Xpos, int Ypos, int dwl, int nTransLvl, BYTE Color), -10019, -10067)
 
@@ -555,7 +565,12 @@ FUNCPTR(D2WIN, DrawCellFile, void __fastcall, (CellFile * pCellFile, int xPos, i
 // D2Win Ordinals
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
+#ifdef BH_AGENT
+FUNCPTR(D2WIN, DrawText_Game, void __fastcall, (const wchar_t *wStr, int xPos, int yPos, DWORD dwColor, DWORD dwUnk), -10150, -10076)
+void __fastcall D2WIN_DrawText(const wchar_t *wStr, int xPos, int yPos, DWORD dwColor, DWORD dwUnk);
+#else
 FUNCPTR(D2WIN, DrawText, void __fastcall, (const wchar_t *wStr, int xPos, int yPos, DWORD dwColor, DWORD dwUnk), -10150, -10076)
+#endif
 FUNCPTR(D2WIN, DrawFramedText, void __fastcall, (const wchar_t* wStr, int xPos, int yPos,int nColor, int centered), -10085, -10137)
 FUNCPTR(D2WIN, DrawRectText, void __fastcall, (const wchar_t* wStr, int X, int Y, int nRectColor, int nRectTrans, int nColor), -10013, -10078)
 

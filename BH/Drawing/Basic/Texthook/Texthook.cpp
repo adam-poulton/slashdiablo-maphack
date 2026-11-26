@@ -1,4 +1,5 @@
 #include "Texthook.h"
+#include "TextMetrics.h"
 #include "../../../Common.h"
 #include "../../../D2Ptrs.h"
 
@@ -141,8 +142,7 @@ unsigned int Texthook::GetXSize() {
  *	Returns how tall the text is.
  */
 unsigned int Texthook::GetYSize() {
-	unsigned int nHeight[] = {10,11,18,24,10,13,7,13,10,12,8,8,7,12};
-	return nHeight[font];
+	return BaselineOffset(font);
 }
 
 /* Draw()
@@ -200,24 +200,22 @@ bool Texthook::OnRightClick(bool up, unsigned int x, unsigned int y) {
  *	Returns the dimensions of the given text!
  */
 POINT Texthook::GetTextSize(string text, unsigned int font) {
-	unsigned int height[] = {10,11,18,24,10,13,7,13,10,12,8,8,7,12};
 	DWORD width, fileNo;
 	wchar_t* wString = AnsiToUnicode(text.c_str());
 	DWORD oldFont = D2WIN_SetTextSize(font);
 	D2WIN_GetTextWidthFileNo(wString, &width, &fileNo);
 	D2WIN_SetTextSize(oldFont);
-	POINT point = { static_cast<long>(width), static_cast<long>(height[font])};
+	POINT point = { static_cast<long>(width), static_cast<long>(BaselineOffset(font)) };
 	delete[] wString;
 	return point;
 }
 
 POINT Texthook::GetTextSize(wchar_t* text, unsigned int font) {
-	unsigned int height[] = { 10,11,18,24,10,13,7,13,10,12,8,8,7,12 };
 	DWORD width, fileNo;
 	DWORD oldFont = D2WIN_SetTextSize(font);
 	D2WIN_GetTextWidthFileNo(text, &width, &fileNo);
 	D2WIN_SetTextSize(oldFont);
-	POINT point = { static_cast<long>(width), static_cast<long>(height[font]) };
+	POINT point = { static_cast<long>(width), static_cast<long>(BaselineOffset(font)) };
 	return point;
 }
 
@@ -243,9 +241,8 @@ bool Texthook::Draw(unsigned int x, unsigned int y, int align, unsigned int font
 		x = x - GetTextSize(buffer, font).x;
 
 	//Draw the text!
-	unsigned int height[] = {10,11,18,24,10,13,7,13,10,12,8,8,7,12};
 	DWORD size = D2WIN_SetTextSize(font);
-	D2WIN_DrawText(wString, x, y + height[font], color, 0);
+	D2WIN_DrawText(wString, x, y + BaselineOffset(font), color, 0);
 	D2WIN_SetTextSize(size);
 
 	delete[] wString;
@@ -268,9 +265,8 @@ bool Texthook::Draw(unsigned int x, unsigned int y, int align, unsigned int font
 		x = x - GetTextSize(buffer, font).x;
 
 	//Draw the text!
-	unsigned int height[] = { 10,11,18,24,10,13,7,13,10,12,8,8,7,12 };
 	DWORD size = D2WIN_SetTextSize(font);
-	D2WIN_DrawText(buffer, x, y + height[font], color, 0);
+	D2WIN_DrawText(buffer, x, y + BaselineOffset(font), color, 0);
 	D2WIN_SetTextSize(size);
 
 	delete[] buffer;

@@ -8,19 +8,26 @@ keyboard. Why it is built this way is ADR 0011.
 
 ```powershell
 $msb = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe" | Select-Object -First 1
-& $msb /t:AgentLaunch /p:Configuration=Release /m BH.sln     # -> AgentHarness\bin\Release
-& $msb /t:BH /p:Configuration=Release /m BH.sln              # -> Release\BH.dll, what a sandbox runs
+& $msb /t:AgentLaunch /p:Configuration=Release /m BH.sln                    # -> AgentHarness\bin\Release
+& $msb /t:BH /p:Configuration=Release /p:BHAgent=true /m BH.sln             # -> AgentRelease\BH.dll
 ```
+
+A sandbox runs the agent build of BH, Release with the driver that answers
+`state`, `wait`, `drawlog` and `leave` (ADR 0012). It builds into folders of its
+own, so it and Release can both be built without either rebuilding the other.
 
 ## Running
 
 ```powershell
 python AgentHarness\bhctl.py base                  # once, and after the game files change
-$id = python AgentHarness\bhctl.py create          # takes Release\BH.dll, or --bh <path>
+$id = python AgentHarness\bhctl.py create          # takes AgentRelease\BH.dll, or --bh <path>
 python AgentHarness\bhctl.py launch $id            # hidden, returns at the main menu
-python AgentHarness\bhctl.py input $id click:400,307 wait:2 key:esc text:Name
+python AgentHarness\bhctl.py input $id click:400,306 wait:2 key:esc text:Name
+python AgentHarness\bhctl.py wait $id game         # until the game shows that screen
+python AgentHarness\bhctl.py state $id             # the screen and its controls, or the character
+python AgentHarness\bhctl.py drawlog $id           # everything BH drew in one frame
 python AgentHarness\bhctl.py shot $id out.png      # --crop X,Y,W,H for part of it
-python AgentHarness\bhctl.py status $id            # running, and the game's windows
+python AgentHarness\bhctl.py leave $id             # save and exit the game
 python AgentHarness\bhctl.py teardown $id          # always, when done
 ```
 

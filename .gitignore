@@ -41,6 +41,8 @@ Release/*
 /out/*
 /AgentHarness/bin/
 /AgentHarness/obj/
+/AgentRelease/
+/BH/AgentRelease/
 __pycache__/
 
 # Local agent setup, specific to one machine

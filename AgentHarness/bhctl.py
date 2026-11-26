@@ -5,8 +5,12 @@
     python AgentHarness/bhctl.py launch ID [-- ARGS]  # start its game, hidden
     python AgentHarness/bhctl.py input ID ACTION...   # click, type, press keys
     python AgentHarness/bhctl.py shot ID FILE.png     # screenshot the game
+    python AgentHarness/bhctl.py state ID             # the screen, the character
+    python AgentHarness/bhctl.py wait ID SCREEN...    # until the game shows one
+    python AgentHarness/bhctl.py drawlog ID           # what BH drew in a frame
+    python AgentHarness/bhctl.py leave ID             # save and exit the game
     python AgentHarness/bhctl.py status ID            # running, and its windows
-    python AgentHarness/bhctl.py close ID             # ask the game to quit
+    python AgentHarness/bhctl.py close ID             # quit the game as a player
     python AgentHarness/bhctl.py teardown ID          # kill, delete files and key
     python AgentHarness/bhctl.py sweep                # tear down every dead run
     python AgentHarness/bhctl.py snapshot FILE        # the player's state, for
@@ -316,7 +320,7 @@ def launch(run_id, game_args, lifetime):
         sys.exit(f"launch failed ({process.returncode}): {(path / 'launcher.log').read_text().strip()}")
     run = {"launcher": process.pid, "game": int(line[4:]), "args": game_args, "started": time.time()}
     (path / RUN_FILE).write_text(json.dumps(run, indent=2))
-    wait_ready(run_id, run, READY_TIMEOUT_SECONDS)
+    wait_screen(run_id, ["main_menu"], READY_TIMEOUT_SECONDS)
     print(json.dumps(run))
 
 
@@ -471,15 +475,133 @@ def status(run_id):
     print(json.dumps(report, indent=2))
 
 
+# --- asking the game ----------------------------------------------------------
+#
+# BH's agent build answers on \\.\pipe\bhagent-<game pid>, one line of JSON in
+# and one out per connection (BH/Modules/AgentDriver/AgentDriver.h).
+
+ERROR_PIPE_BUSY = 231
+PIPE_RETRY_SECONDS = 0.05
+
+
+def request(run, body, timeout=15):
+    """The driver's answer to one request, or None if its pipe never opened
+    within the timeout. A failure it reports is raised as RuntimeError."""
+    path = rf"\\.\pipe\bhagent-{run['game']}"
+    deadline = time.time() + timeout
+    while True:
+        try:
+            with open(path, "r+b", buffering=0) as pipe:
+                pipe.write((json.dumps(body) + "\n").encode())
+                data = b""
+                while not data.endswith(b"\n"):
+                    chunk = pipe.read(1 << 16)
+                    if not chunk:
+                        break
+                    data += chunk
+            break
+        except FileNotFoundError:
+            pass  # not served yet, or between two connections
+        except OSError as error:
+            if getattr(error, "winerror", None) != ERROR_PIPE_BUSY:
+                raise
+        if time.time() > deadline:
+            return None
+        time.sleep(PIPE_RETRY_SECONDS)
+    answer = json.loads(data)
+    if not answer.get("ok"):
+        raise RuntimeError(answer.get("error", "the driver failed without saying why"))
+    return answer
+
+
+def ask(run_id, body, timeout=15):
+    run = read_run(run_dir(run_id))
+    if not running(run):
+        sys.exit(f"{run_id} is not running")
+    try:
+        answer = request(run, body, timeout)
+    except RuntimeError as error:
+        sys.exit(str(error))
+    if answer is None:
+        sys.exit(NO_DRIVER)
+    return answer
+
+
+NO_DRIVER = ("the game's BH answers nothing: it is not the agent build "
+             "(msbuild /t:BH /p:Configuration=Release /p:BHAgent=true, giving AgentRelease\\BH.dll)")
+
+
+def wait_screen(run_id, screens, timeout):
+    """Returns the state once the game shows one of the screens. A dialog in
+    the game's place is how the game and its mods report failing, so one ends
+    the wait at once with its text."""
+    run = read_run(run_dir(run_id))
+    deadline = time.time() + timeout
+    answered = False
+    while True:
+        if not running(run):
+            sys.exit(f"the game exited (see {RUNS / run_id / 'launcher.log'})")
+        dialogs = [w for w in on_desktop(run_id, lambda d: list_windows(d, run["game"]))
+                   if w["visible"] and w["class"] == DIALOG_CLASS]
+        if dialogs:
+            texts = " / ".join(t for d in dialogs for t in [d["title"], *d.get("text", [])] if t != "OK")
+            sys.exit(f"the game stopped at a dialog: {texts}")
+        remaining = deadline - time.time()
+        if remaining <= 0:
+            sys.exit(f"the game did not reach {' or '.join(screens)} within {timeout}s")
+        try:
+            state = request(run, {"cmd": "state"}, min(remaining, 2))
+            answered = answered or state is not None
+        except RuntimeError:
+            # Answered, but with no frame to take the request: a game loading
+            # or being left.
+            state = None
+            answered = True
+        if not answered and time.time() - run["started"] > DRIVER_GRACE_SECONDS:
+            sys.exit(NO_DRIVER)
+        if state and state["screen"] in screens:
+            return state
+        time.sleep(0.2)
+
+
+# BH is loaded, and starts answering, a few seconds into a launch.
+DRIVER_GRACE_SECONDS = 30
+
+
+def state(run_id):
+    print(json.dumps(ask(run_id, {"cmd": "state"}), indent=2))
+
+
+def drawlog(run_id, out):
+    frame = ask(run_id, {"cmd": "drawlog"})
+    text = json.dumps(frame, indent=1)
+    if out:
+        Path(out).write_text(text)
+        print(json.dumps({"path": str(Path(out).resolve()), "items": len(frame["items"])}))
+    else:
+        print(text)
+
+
+def leave(run_id, timeout):
+    """Leaves the game as Save and Exit does, and returns once the menus are
+    back: the main menu, in single player."""
+    if ask(run_id, {"cmd": "state"})["screen"] != "game":
+        sys.exit("not in a game")
+    ask(run_id, {"cmd": "exit"})
+    print(json.dumps(wait_screen(run_id, ["main_menu", "character_list"], timeout)["screen"]))
+
+
 WM_CLOSE = 0x0010
 
 
 def close(run_id, timeout):
-    """Asks the game to quit the way closing its window does, so it saves and
-    writes its options as it would for a player."""
+    """Quits the game the way a player does, leaving any game first, so it
+    saves and writes its options as it would for them."""
     run = read_run(run_dir(run_id))
     if not running(run):
         sys.exit(f"{run_id} is not running")
+    if ask(run_id, {"cmd": "state"})["screen"] == "game":
+        leave(run_id, timeout)
 
     def post_close(desktop):
         windows = [w for w in list_windows(desktop, run["game"]) if w["visible"]]
@@ -508,54 +630,6 @@ def game_window(desktop, pid):
     sys.exit("the game has no window")
 
 
-# The main menu's Single Player and Exit Diablo II buttons, at the 800x600 the
-# menus always run at. They are pale stone where the title screen shown while
-# the game loads is near black, so their brightness tells the two apart: about
-# 83 on the menu against 20 or less on the title, character and class screens.
-MAIN_MENU_BUTTONS = [(275, 297, 250, 20), (275, 541, 250, 20)]
-MAIN_MENU_MIN_LUMA = 50
-
-
-def brightness(bgra):
-    pixels = len(bgra) // 4
-    return (sum(bgra[2::4]) * 299 + sum(bgra[1::4]) * 587 + sum(bgra[0::4]) * 114) / (1000 * pixels)
-
-
-def at_main_menu(hwnd, client):
-    if client != [800, 600]:
-        return False
-    return all(brightness(capture(hwnd, *button)) >= MAIN_MENU_MIN_LUMA for button in MAIN_MENU_BUTTONS)
-
-
-def wait_ready(run_id, run, timeout):
-    """Returns once the main menu takes clicks. A dialog in its place is how
-    the game and its mods report a failed start, so one ends the wait at once
-    with its text."""
-
-    def look(desktop):
-        windows = [w for w in list_windows(desktop, run["game"]) if w["visible"]]
-        dialogs = [w for w in windows if w["class"] == DIALOG_CLASS]
-        if dialogs:
-            texts = " / ".join(t for d in dialogs for t in [d["title"], *d.get("text", [])] if t != "OK")
-            sys.exit(f"the game stopped at a dialog: {texts}")
-        game = [w for w in windows if w["class"] == GAME_WINDOW_CLASS]
-        return bool(game) and at_main_menu(game[0]["hwnd"], game[0]["client"])
-
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        if not running(run):
-            sys.exit(f"the game exited during startup (see {RUNS / run_id / 'launcher.log'})")
-        try:
-            if on_desktop(run_id, look):
-                # The menu is drawn a moment before its buttons are live.
-                time.sleep(0.5)
-                return
-        except OSError:
-            pass
-        time.sleep(0.25)
-    sys.exit(f"the main menu did not appear within {timeout}s")
-
-
 # --- driving ------------------------------------------------------------------
 #
 # Input is posted to the game window. D2 reads the cursor from the messages
@@ -569,6 +643,8 @@ MK_LBUTTON, MK_RBUTTON, MK_SHIFT, MK_CONTROL = 0x1, 0x2, 0x4, 0x8
 VK_SHIFT, VK_CONTROL, VK_MENU = 0x10, 0x11, 0x12
 MAPVK_VK_TO_VSC = 0
 user32.MapVirtualKeyW.argtypes = [wt.UINT, wt.UINT]
+user32.VkKeyScanW.argtypes = [wt.WCHAR]
+user32.VkKeyScanW.restype = ctypes.c_short
 
 KEYS = {
     "backspace": 0x08, "tab": 0x09, "enter": 0x0D, "shift": VK_SHIFT, "ctrl": VK_CONTROL, "alt": VK_MENU,
@@ -584,8 +660,9 @@ ACTIONS_HELP = """actions, run in order:
   move:X,Y       move the cursor to client coordinates X,Y
   click:X,Y      left click at X,Y            rclick:X,Y   right click
   key:NAME       press and release a key      down:NAME / up:NAME   hold, release
-  text:STRING    type STRING into the focused box
+  text:STRING    type STRING as a keyboard would, into whatever has focus
   wait:SECONDS   pause, for the game to react
+  shot:FILE      screenshot to FILE.png, with any held keys still held
 NAME is a letter or digit, F1-F12, NUMPAD0-NUMPAD9, a virtual-key code as 0xNN,
 or one of: """ + ", ".join(sorted(k for k in KEYS if not k.startswith(("f", "numpad"))))
 
@@ -626,8 +703,9 @@ class Input:
     """Posts one action at a time to the game window, keeping the modifier keys
     held across actions so that a click while Shift is down says so."""
 
-    def __init__(self, hwnd):
-        self.hwnd = hwnd
+    def __init__(self, window):
+        self.hwnd = window["hwnd"]
+        self.client = window["client"]
         self.held = set()
 
     def post(self, message, wparam, lparam):
@@ -648,6 +726,24 @@ class Input:
             message = WM_SYSKEYDOWN if system else WM_KEYDOWN
         self.post(message, vk, key_param(vk, releasing, alt_after))
         (self.held.discard if releasing else self.held.add)(vk)
+
+    def type(self, char):
+        """As a keyboard types it: the key, with Shift held for a capital. The
+        game's message loop turns the key into the character, as it does for a
+        keyboard (the agent build makes that see Shift), and BH's boxes read the
+        key itself. A character no key types is posted as it is."""
+        scan = user32.VkKeyScanW(char)
+        if scan == -1:
+            self.post(WM_CHAR, ord(char), 1)
+        else:
+            vk, shift = scan & 0xFF, bool(scan & 0x100) and VK_SHIFT not in self.held
+            if shift:
+                self.key(VK_SHIFT, False)
+            self.key(vk, False)
+            self.key(vk, True)
+            if shift:
+                self.key(VK_SHIFT, True)
+        time.sleep(0.03)
 
     def click(self, x, y, down, up, button):
         self.post(WM_MOUSEMOVE, self.modifiers(), mouse_param(x, y))
@@ -678,10 +774,12 @@ class Input:
             self.key(virtual_key(arg), kind == "up")
         elif kind == "text":
             for char in arg:
-                self.post(WM_CHAR, ord(char), 1)
-                time.sleep(0.03)
+                self.type(char)
         elif kind == "wait":
             time.sleep(float(arg))
+        elif kind == "shot":
+            width, height = self.client
+            write_png(arg, width, height, capture(self.hwnd, 0, 0, width, height))
         else:
             sys.exit(f"unknown action {action!r}\n{ACTIONS_HELP}")
 
@@ -692,7 +790,7 @@ def send_input(run_id, actions):
         sys.exit(f"{run_id} is not running")
 
     def drive(desktop):
-        source = Input(game_window(desktop, run["game"])["hwnd"])
+        source = Input(game_window(desktop, run["game"]))
         try:
             for action in actions:
                 source.run(action)
@@ -876,7 +974,7 @@ def main():
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("base")
     create_cmd = commands.add_parser("create")
-    create_cmd.add_argument("--bh", type=Path, default=REPO / "Release" / "BH.dll")
+    create_cmd.add_argument("--bh", type=Path, default=REPO / "AgentRelease" / "BH.dll")
     launch_cmd = commands.add_parser("launch")
     launch_cmd.add_argument("id")
     launch_cmd.add_argument("--lifetime", type=float, default=LIFETIME_SECONDS,
@@ -888,8 +986,19 @@ def main():
     shot_cmd.add_argument("id")
     shot_cmd.add_argument("file", type=Path)
     shot_cmd.add_argument("--crop", type=lambda s: tuple(int(v) for v in s.split(",")), metavar="X,Y,W,H")
-    for name in ("status", "teardown"):
+    for name in ("status", "teardown", "state"):
         commands.add_parser(name).add_argument("id")
+    wait_cmd = commands.add_parser("wait")
+    wait_cmd.add_argument("id")
+    wait_cmd.add_argument("screens", nargs="+", metavar="screen",
+                          help="game, main_menu, character_list, difficulty, menu or loading")
+    wait_cmd.add_argument("--timeout", type=float, default=60)
+    drawlog_cmd = commands.add_parser("drawlog")
+    drawlog_cmd.add_argument("id")
+    drawlog_cmd.add_argument("--out", type=Path)
+    leave_cmd = commands.add_parser("leave")
+    leave_cmd.add_argument("id")
+    leave_cmd.add_argument("--timeout", type=float, default=60)
     close_cmd = commands.add_parser("close")
     close_cmd.add_argument("id")
     close_cmd.add_argument("--timeout", type=float, default=30)
@@ -916,6 +1025,14 @@ def main():
         shot(args.id, args.file, args.crop)
     elif args.command == "status":
         status(args.id)
+    elif args.command == "state":
+        state(args.id)
+    elif args.command == "wait":
+        print(json.dumps(wait_screen(args.id, args.screens, args.timeout)["screen"]))
+    elif args.command == "drawlog":
+        drawlog(args.id, args.out)
+    elif args.command == "leave":
+        leave(args.id, args.timeout)
     elif args.command == "close":
         close(args.id, args.timeout)
     elif args.command == "teardown":
