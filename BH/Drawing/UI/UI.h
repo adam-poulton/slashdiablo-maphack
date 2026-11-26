@@ -91,6 +91,9 @@ namespace Drawing {
 			std::string subtitle;//Drawn after the name, in grey, when there is one
 			std::string configKey;//Section of UI.ini the window is remembered under
 			UITab* currentTab;//Current tab open at the time.
+
+			// Whether the tab row is drawn while the window has a single tab.
+			bool loneTabShown;
 			CRITICAL_SECTION crit;//Critical section
 
 			// Smallest this particular window may be dragged to, or 0 to take the
@@ -268,7 +271,14 @@ namespace Drawing {
 			// tab labelled with the panel's name, under a title bar carrying the
 			// window's, says the same thing twice and costs the panel a strip of
 			// height to say it in.
-			unsigned int GetTabBandHeight() { return (Tabs.size() > 1) ? TAB_HEIGHT : 0; };
+			//
+			// Unless the window says otherwise: one whose tabs are what it holds
+			// rather than how it is divided up names its one tab, which the title
+			// does not say.
+			unsigned int GetTabBandHeight() {
+				return (Tabs.size() > 1 || (loneTabShown && Tabs.size() == 1)) ? TAB_HEIGHT : 0;
+			};
+			void SetLoneTabShown(bool shown) { Lock(); loneTabShown = shown; Unlock(); };
 
 			// Everything the window draws above and below its panels, which is
 			// what a tab has to measure itself against.

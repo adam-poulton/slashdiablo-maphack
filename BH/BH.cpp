@@ -14,12 +14,14 @@
 #include "Task.h"
 #include "FilterSource.h"
 #include "Modules/Settings/SettingsRegistry.h"
+#include "Modules/Forge/ForgeFile.h"
 
 string BH::path;
 HINSTANCE BH::instance;
 ModuleManager* BH::moduleManager;
 Config* BH::config;
 Config* BH::itemConfig;
+ForgeFile* BH::forge;
 string BH::itemFilterSource = FilterSource::Default;
 Drawing::StatsDisplay* BH::statsDisplay;
 bool BH::initialized;
@@ -89,6 +91,11 @@ void BH::Initialize()
 	itemConfig = new Config("");
 	ReadItemConfig();
 
+	// Read before any module loads: the modules bind what the Forge styles to it
+	// as they read their config.
+	forge = new ForgeFile(path + "BH_forge.json");
+	forge->Load();
+
 	// Do this asynchronously because D2GFX_GetHwnd() will be null if
 	// we inject on process start
 	Task::Enqueue([]() -> void {
@@ -131,7 +138,7 @@ void BH::Initialize()
 	new StashExport();
 	new AccountsWindow();
 	new CodexWindow();
-	new MapMarkersWindow();
+	new ForgeWindow();
 	new SettingsWindow();
 
 	moduleManager->LoadModules();
@@ -200,6 +207,7 @@ bool BH::ReloadConfig() {
 	if (initialized){
 		config->Parse();
 		ReadItemConfig();
+		forge->Load();
 		if (D2CLIENT_GetPlayerUnit()) {
 			PrintText(0, "Reloading config: %s", config->GetConfigName().c_str());
 			PrintText(0, "Reloading Item config: %s", itemConfig->GetConfigName().c_str());

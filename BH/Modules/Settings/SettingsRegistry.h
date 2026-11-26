@@ -28,10 +28,10 @@ namespace Settings {
 		const char* const Input = "Input";
 		const char* const Lobby = "Lobby";
 
-		// How markers on the automap are drawn. Not a tab of the settings window:
-		// the map markers window shows these, which is why the settings window
-		// lists the categories it shows rather than taking every one registered.
-		const char* const MapMarkers = "Map markers";
+		// How markers on the automap are drawn, a tab of the Forge for each kind
+		// of thing marked. Not tabs of the settings window, which is why it lists
+		// the categories it shows rather than taking every one registered.
+		const char* const Chests = "Chests";
 	}
 
 	// Headings that more than one module registers under. Two modules naming the
@@ -176,9 +176,9 @@ namespace Settings {
 	// setting: changing the icon or the line is a change to it as changing its
 	// colour is, and they are saved and put back together.
 	//
-	// The module reads and writes the style under config keys of its own, with
-	// ReadMapIconStyle(); the registry only says what it is and what of it can be
-	// changed.
+	// The module binds the style to the Forge's file, with ForgeStore::BindStyle(),
+	// which reads and writes it; the registry only says what it is and what of it
+	// can be changed.
 	void AddMapIcon(std::string owner, std::string category, std::string key,
 		std::string label, MapIconStyle* value, MapIconOptions options,
 		std::string help = "", std::string parent = "");

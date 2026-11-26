@@ -22,16 +22,14 @@ namespace Drawing {
 			//will be used.
 			MapIcon::Icon swatch;
 
-			//Whether the palette's first entry stands for no colour at all. To the
-			//game it is black, which is what it is everywhere else.
+			//Whether MapIcon::NoColor can be chosen as well as the palette's colours.
 			bool allowNone;
 
-			bool IsNone(unsigned int color) { return allowNone && color == MapIcon::NoColor; };
-
 			static void DrawSwatch(MapIcon::Icon swatch, int x, int y, unsigned int color,
-				bool none, bool muted);
+				bool muted);
 
-			//The palette entry under a point on screen, or -1 for none.
+			//The palette entry under a point on screen, MapIcon::NoColor on the
+			//cell for no colour, or -1 for nothing.
 			int PaletteAt(int x, int y);
 		public:
 			static Colorhook* current;//Pointer to the current colorhook

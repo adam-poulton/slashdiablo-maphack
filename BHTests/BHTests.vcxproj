@@ -93,6 +93,7 @@
     <ClCompile Include="ItemFactsCatalogueTests.cpp" />
     <ClCompile Include="AccountStoreTests.cpp" />
     <ClCompile Include="AccountFileTests.cpp" />
+    <ClCompile Include="ForgeStoreTests.cpp" />
     <ClCompile Include="AccountClaimTests.cpp" />
     <ClCompile Include="LoginScreenTests.cpp" />
     <ClCompile Include="AccountRowsTests.cpp" />
@@ -125,6 +126,9 @@
     <ClCompile Include="..\BH\StringUtil.cpp" />
     <ClCompile Include="..\BH\Modules\Accounts\AccountStore.cpp" />
     <ClCompile Include="..\BH\Modules\Accounts\AccountFile.cpp" />
+    <ClCompile Include="..\BH\WholeFile.cpp" />
+    <ClCompile Include="..\BH\Modules\Forge\ForgeStore.cpp" />
+    <ClCompile Include="..\BH\Modules\Forge\ForgeFile.cpp" />
     <ClCompile Include="..\BH\Modules\Accounts\AccountClaim.cpp" />
     <ClCompile Include="..\BH\Modules\Accounts\LoginScreen.cpp" />
     <ClCompile Include="..\BH\Modules\Accounts\AccountRows.cpp" />

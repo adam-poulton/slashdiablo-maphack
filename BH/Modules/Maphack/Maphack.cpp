@@ -7,6 +7,7 @@
 #include "../../D2Intercepts.h"
 #include "Maphack.h"
 #include "../Settings/SettingsRegistry.h"
+#include "../Forge/ForgeFile.h"
 #include "../../BH.h"
 #include "../../Drawing.h"
 #include "../Item/ItemDisplay.h"
@@ -67,19 +68,31 @@ static DWORD mSkipQuestMessage = 1;
 
 DrawDirective automapDraw(true, DEFAULT_MINIMAP_GHOST);
 
-// Each kind of chest marker, in ChestKind order: the config key its five style
-// keys start with, and what it is called and said to be where it is styled.
+// Each kind of chest marker, in ChestKind order: what it is kept as in the Forge's
+// chests tab, and what it is called and said to be where it is styled.
+static const char* const ChestTab = "chests";
 static const struct {
-	const char* key;
+	const char* id;
 	const char* label;
 	const char* help;
 } ChestMarkers[ChestKind::KindCount] = {
-	{ "Chest Marker", "Chests", "Chests that open with a click." },
-	{ "Locked Chest Marker", "Locked chests", "Chests that need a key." },
-	{ "Super Chest Marker", "Super chests", "Lower Kurast's hut chests, and if chosen, every other super chest and sparkly chest." },
-	{ "Container Marker", "Containers", "Whatever is opened for loot that is not a chest: barrels, urns, jars, baskets, caskets, corpses, racks and stashes." },
-	{ "Trapped Marker", "Trapped", "Anything trapped, and exploding barrels." },
+	{ "chest", "Chests", "Chests that open with a click." },
+	{ "locked", "Locked chests", "Chests that need a key." },
+	{ "super", "Super chests", "Lower Kurast's hut chests, and if chosen, every other super chest and sparkly chest." },
+	{ "container", "Containers", "Whatever is opened for loot that is not a chest: barrels, urns, jars, baskets, caskets, corpses, racks and stashes." },
+	{ "trapped", "Trapped", "Anything trapped, and exploding barrels." },
 };
+
+// Where super chests are marked, in ChestKind::SuperScope order: as the file
+// writes it, and as the Forge offers it.
+static const std::vector<std::string> SuperChestScopeNames = { "lower kurast", "every area" };
+static const std::vector<std::string> SuperChestScopeLabels = { "Lower Kurast", "Every area" };
+
+// What a chest marker is registered as, which is what the settings that hang off
+// it name as their parent.
+static std::string ChestMarkerKey(ChestKind::Kind kind) {
+	return std::string(ChestTab) + "." + ChestMarkers[kind].id;
+}
 
 // Chests as they have always been marked, a 2x2 white square with no border, and
 // super chests as Lower Kurast's were: the game's own sprite, and the line LK
@@ -259,12 +272,12 @@ void Maphack::ReadConfig() {
 	BH::config->ReadInt("Show Monster Resistance", monsterResistanceThreshold,
 		DEFAULT_MONSTER_RESISTANCE_THRESHOLD);
 	BH::config->ReadInt("LK Chest Lines", lkLinesColor, 105);
+	ForgeStore& forge = BH::forge->GetStore();
 	for (int kind = 0; kind < ChestKind::KindCount; kind++)
-		ReadMapIconStyle(BH::config, ChestMarkers[kind].key, chestStyles[kind],
+		forge.BindStyle(ChestTab, ChestMarkers[kind].id, &chestStyles[kind],
 			DefaultChestStyle((ChestKind::Kind)kind, lkLinesColor));
-	BH::config->ReadInt("Super Chest Scope", superChestScope, ChestKind::LowerKurastOnly);
-	if (superChestScope >= ChestKind::SuperScopeCount)
-		superChestScope = ChestKind::LowerKurastOnly;
+	forge.BindNamed(ChestTab, ChestMarkers[ChestKind::SuperChest].id, "scope",
+		&superChestScope, SuperChestScopeNames, ChestKind::LowerKurastOnly);
 
 
 	BH::config->ReadAssoc("Missile Color", missileColors);
@@ -554,7 +567,7 @@ void Maphack::OnLoad() {
 	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Chests", "Show chests",
 		&Toggles["Show Chests"],
 		"Marks chests and other containers. How each kind is marked is set in the "
-		"map markers window.");
+		"Forge.");
 	Settings::AddToggle(GetName(), Settings::Category::Map, "Display Level Names", "Level names",
 		&Toggles["Display Level Names"], "Names each level on the automap.");
 	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Automap On Join", "Show automap on join",
@@ -562,13 +575,13 @@ void Maphack::OnLoad() {
 		"Opens the automap as you enter a game rather than waiting to be asked.");
 
 	for (int kind = 0; kind < ChestKind::KindCount; kind++)
-		Settings::AddMapIcon(GetName(), Settings::Category::MapMarkers,
-			ChestMarkers[kind].key, ChestMarkers[kind].label, &chestStyles[kind],
-			MapIconOptions(ChestIcons(), true, true),
+		Settings::AddMapIcon(GetName(), Settings::Category::Chests,
+			ChestMarkerKey((ChestKind::Kind)kind), ChestMarkers[kind].label,
+			&chestStyles[kind], MapIconOptions(ChestIcons(), true, true),
 			ChestMarkers[kind].help, "Show Chests");
-	Settings::AddEnum(GetName(), Settings::Category::MapMarkers, "Super Chest Scope",
-		"Marked in", &superChestScope, { "Lower Kurast", "Every area" }, "",
-		ChestMarkers[ChestKind::SuperChest].key);
+	Settings::AddEnum(GetName(), Settings::Category::Chests,
+		ChestMarkerKey(ChestKind::SuperChest) + ".scope", "Marked in", &superChestScope,
+		SuperChestScopeLabels, "", ChestMarkerKey(ChestKind::SuperChest));
 
 	Settings::AddSlider(GetName(), Settings::Category::Map, "Minimap Max Ghost",
 		"Minimap ghost frames", &automapDraw.maxGhost,

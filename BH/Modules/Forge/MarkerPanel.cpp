@@ -1,7 +1,9 @@
-#include "MapMarkersPanel.h"
+#include "MarkerPanel.h"
 #include <algorithm>
 #include <set>
+#include "ForgeFile.h"
 #include "../Settings/SettingsRegistry.h"
+#include "../../BH.h"
 #include "../../D2Ptrs.h"
 #include "../../Drawing/Basic/Boxhook/Boxhook.h"
 #include "../../Drawing/Basic/Texthook/Texthook.h"
@@ -65,25 +67,25 @@ static_assert(MM_ROW_HEIGHT >= MapIcon::ChestHeight + 4,
 #define MM_ROW_OFF			Grey
 #define MM_ROW_BAND			BTOneHalf
 
-/* MapMarkerRowhook
+/* MarkerRowhook
  */
-MapMarkerRowhook::MapMarkerRowhook(HookGroup* group, unsigned int x, unsigned int y,
+MarkerRowhook::MarkerRowhook(HookGroup* group, unsigned int x, unsigned int y,
 		MapIconStyle* style, std::string label, unsigned int index,
 		unsigned int* selected) :
 		Hook(group, x, y), style(style), label(label), index(index),
 		selected(selected), xSize(0), fittedWidth(0) {
 }
 
-unsigned int MapMarkerRowhook::GetYSize() {
+unsigned int MarkerRowhook::GetYSize() {
 	return MM_ROW_HEIGHT;
 }
 
-unsigned int MapMarkerRowhook::GetNaturalXSize() {
+unsigned int MarkerRowhook::GetNaturalXSize() {
 	return MM_ROW_INSET + MM_ROW_LABEL_LEFT +
 		(unsigned int)Texthook::GetTextSize(label, 0).x + MM_LIST_PAD;
 }
 
-bool MapMarkerRowhook::OnLeftClick(bool up, unsigned int x, unsigned int y) {
+bool MarkerRowhook::OnLeftClick(bool up, unsigned int x, unsigned int y) {
 	if (!InRange(x, y))
 		return false;
 	if (up)
@@ -91,7 +93,7 @@ bool MapMarkerRowhook::OnLeftClick(bool up, unsigned int x, unsigned int y) {
 	return true;
 }
 
-void MapMarkerRowhook::OnDraw() {
+void MarkerRowhook::OnDraw() {
 	if (!IsActive())
 		return;
 	Lock();
@@ -128,10 +130,10 @@ void MapMarkerRowhook::OnDraw() {
 	Unlock();
 }
 
-/* MapMarkersPanel
+/* MarkerPanel
  */
-MapMarkersPanel::MapMarkersPanel(UI* ui) :
-		UIPanel("Markers", ui), selected(0), builtVersion(0), divider(NULL),
+MarkerPanel::MarkerPanel(UI* ui, std::string name, std::string category) :
+		UIPanel(name, ui), category(category), selected(0), builtVersion(0), divider(NULL),
 		tip(NULL), shownTip(-1), listWidth(0), labelWidth(0), detailMinWidth(0),
 		minWidth(0), minHeight(0) {
 	divider = new Boxhook(tab, 0, 0, 1, 0);
@@ -142,12 +144,12 @@ MapMarkersPanel::MapMarkersPanel(UI* ui) :
 	tip->SetActive(false);
 }
 
-MapMarkersPanel::~MapMarkersPanel() {
+MarkerPanel::~MarkerPanel() {
 	delete tip;
 }
 
 // Only a setting that can be off says anything about whether the marker is drawn.
-void MapMarkersPanel::FindParent(Marker& marker, const std::string& parentKey) {
+void MarkerPanel::FindParent(Marker& marker, const std::string& parentKey) {
 	marker.parentBool = NULL;
 	marker.parentToggle = NULL;
 	if (parentKey.empty())
@@ -164,7 +166,7 @@ void MapMarkersPanel::FindParent(Marker& marker, const std::string& parentKey) {
 	}
 }
 
-void MapMarkersPanel::EnsureMarkers() {
+void MarkerPanel::EnsureMarkers() {
 	if (builtVersion == Settings::Version())
 		return;
 	builtVersion = Settings::Version();
@@ -177,7 +179,7 @@ void MapMarkersPanel::EnsureMarkers() {
 	}
 
 	std::vector<const Settings::Descriptor*> settings =
-		Settings::InCategory(Settings::Category::MapMarkers);
+		Settings::InCategory(category);
 
 	for (const Settings::Descriptor* setting : settings) {
 		if (setting->kind != Settings::KindMapIcon || !setting->styleValue)
@@ -190,7 +192,7 @@ void MapMarkersPanel::EnsureMarkers() {
 		marker.key = setting->key;
 		marker.label = setting->label;
 		marker.style = setting->styleValue;
-		marker.row = new MapMarkerRowhook(tab, 0, 0, setting->styleValue,
+		marker.row = new MarkerRowhook(tab, 0, 0, setting->styleValue,
 			setting->label, (unsigned int)markers.size(), &selected);
 		marker.editor = new MapIconhook(tab, 0, 0, setting->styleValue,
 			setting->styleOptions);
@@ -227,7 +229,7 @@ void MapMarkersPanel::EnsureMarkers() {
 
 // Everything here measures text, so it is worked out once per set of markers
 // rather than every frame.
-void MapMarkersPanel::Measure() {
+void MarkerPanel::Measure() {
 	listWidth = 0;
 	labelWidth = 0;
 	for (const Marker& marker : markers) {
@@ -262,7 +264,7 @@ void MapMarkersPanel::Measure() {
 // The rows top down, the rule beside them, and the editor of the marker in hand
 // with what is attached to it under it. Every other marker's controls are put
 // away, so only one marker's are ever answering the mouse.
-void MapMarkersPanel::Layout() {
+void MarkerPanel::Layout() {
 	unsigned int tabWidth = tab->GetXSize();
 	unsigned int tabHeight = tab->GetYSize();
 
@@ -309,7 +311,7 @@ void MapMarkersPanel::Layout() {
 // Over the name the pointer is on, rebuilt only when that changes: the pointer
 // rests on one row for many frames. Not while a picker or a dropdown is open,
 // which the tip would be drawn over.
-void MapMarkersPanel::UpdateTip() {
+void MarkerPanel::UpdateTip() {
 	int over = -1;
 	if (IsActive() && !Colorhook::current && !Combohook::current) {
 		for (unsigned int i = 0; i < markers.size() && over < 0; i++) {
@@ -331,23 +333,23 @@ void MapMarkersPanel::UpdateTip() {
 		shownTip = over;
 	}
 	// After SetLines(): where it fits depends on how big it turned out.
-	MapMarkerRowhook* row = markers[over].row;
+	MarkerRowhook* row = markers[over].row;
 	tip->PlaceAbove(row->GetX(), row->GetY(), row->GetXSize(), row->GetYSize());
 	tip->SetActive(true);
 }
 
-void MapMarkersPanel::HideTip() {
+void MarkerPanel::HideTip() {
 	tip->SetActive(false);
 	shownTip = -1;
 }
 
 // The tip is drawn with the screen rather than the window, so it has to be put
 // away as the window goes.
-void MapMarkersPanel::OnClose() {
+void MarkerPanel::OnClose() {
 	HideTip();
 }
 
-void MapMarkersPanel::Select(int index) {
+void MarkerPanel::Select(int index) {
 	if (markers.empty())
 		return;
 	if (index < 0)
@@ -360,7 +362,7 @@ void MapMarkersPanel::Select(int index) {
 // Up and down the list, as through the settings window's rows. An open colour
 // picker or dropdown belongs to the marker in hand, so the keys are left alone
 // while one is up rather than moving to another marker from under it.
-bool MapMarkersPanel::OnKey(bool up, BYTE key) {
+bool MarkerPanel::OnKey(bool up, BYTE key) {
 	if (markers.empty() || Colorhook::current || Combohook::current)
 		return false;
 	switch (key) {
@@ -381,8 +383,13 @@ bool MapMarkersPanel::OnKey(bool up, BYTE key) {
 	return false;
 }
 
-// Why the marker in hand is not on the map whatever it is set to.
-std::string MapMarkersPanel::GetStatus() {
+// What stops the Forge's file being saved, which is said first, since nothing in
+// any tab is kept until it is fixed; otherwise why the marker in hand is not on
+// the map whatever it is set to.
+std::string MarkerPanel::GetStatus() {
+	const std::string& problem = BH::forge->GetProblem();
+	if (!problem.empty())
+		return problem;
 	if (selected >= markers.size())
 		return std::string();
 	const Marker& marker = markers[selected];
@@ -393,7 +400,7 @@ std::string MapMarkersPanel::GetStatus() {
 	return "Not drawn while " + marker.parentLabel + " is off";
 }
 
-void MapMarkersPanel::OnDraw() {
+void MarkerPanel::OnDraw() {
 	EnsureMarkers();
 	Layout();
 	UpdateTip();

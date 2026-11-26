@@ -7,7 +7,7 @@
 
 // One row of the marker list: the marker as it is drawn, and its name. A click
 // makes it the one being edited.
-class MapMarkerRowhook : public Drawing::Hook {
+class MarkerRowhook : public Drawing::Hook {
 	private:
 		MapIconStyle* style;
 		std::string label;
@@ -19,7 +19,7 @@ class MapMarkerRowhook : public Drawing::Hook {
 		std::string fitted;
 		unsigned int fittedWidth;
 	public:
-		MapMarkerRowhook(Drawing::HookGroup* group, unsigned int x, unsigned int y,
+		MarkerRowhook(Drawing::HookGroup* group, unsigned int x, unsigned int y,
 			MapIconStyle* style, std::string label, unsigned int index,
 			unsigned int* selected);
 
@@ -35,19 +35,19 @@ class MapMarkerRowhook : public Drawing::Hook {
 		unsigned int GetYSize();
 };
 
-// How the markers on the automap are drawn, one marker at a time: the list of
-// them down the left, a rule, and the one picked edited on the right.
+// How one kind of marker on the automap is drawn, one marker at a time: the list
+// of them down the left, a rule, and the one picked edited on the right.
 //
-// Built from what the modules register under Settings::Category::MapMarkers
-// rather than from anything it knows itself, so it can stand in any window. A
-// map icon setting is a marker; any other setting whose parent is a marker is
-// shown with it, under its editor.
+// Built from what the modules register under its category rather than from
+// anything it knows itself, so it can stand in any window. A map icon setting is
+// a marker; any other setting whose parent is a marker is shown with it, under
+// its editor.
 //
 // The list is as wide as its names, and what each marker covers is the tip over
 // its name. The editor takes the rest of the width, up to a width past which a
 // form only gets harder to read. What the two need between them is the smallest
 // the window can be made.
-class MapMarkersPanel : public UIPanel {
+class MarkerPanel : public UIPanel {
 	private:
 		struct Attached {
 			std::string key;
@@ -59,7 +59,7 @@ class MapMarkersPanel : public UIPanel {
 			std::string key;
 			std::string label;
 			MapIconStyle* style;
-			MapMarkerRowhook* row;
+			MarkerRowhook* row;
 			Drawing::MapIconhook* editor;
 			std::vector<Attached> attached;
 
@@ -73,6 +73,7 @@ class MapMarkersPanel : public UIPanel {
 			std::string parentLabel;
 		};
 
+		std::string category;
 		std::vector<Marker> markers;
 		unsigned int selected;
 		unsigned int builtVersion;	// registry version the markers were built for
@@ -105,8 +106,9 @@ class MapMarkersPanel : public UIPanel {
 		void Select(int index);
 
 	public:
-		MapMarkersPanel(Drawing::UI* ui);
-		~MapMarkersPanel();
+		// The tab is called name, and shows what is registered under category.
+		MarkerPanel(Drawing::UI* ui, std::string name, std::string category);
+		~MarkerPanel();
 
 		void OnDraw();
 		void OnClose();

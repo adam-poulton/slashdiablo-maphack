@@ -17,5 +17,5 @@
 #include "Modules\TownPortal\TownPortal.h"
 #include "Modules\StashExport\StashExport.h"
 #include "Modules\Codex\CodexWindow.h"
-#include "Modules\MapMarkers\MapMarkersWindow.h"
+#include "Modules\Forge\ForgeWindow.h"
 #include "Modules\Settings\SettingsWindow.h"

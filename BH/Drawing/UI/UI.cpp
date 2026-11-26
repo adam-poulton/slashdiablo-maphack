@@ -47,6 +47,7 @@ UI::UI(std::string name, std::string configKey, unsigned int xSize, unsigned int
 	visibility = InGame;
 	dragX = dragY = startX = startY = 0;
 	resizable = resizing = false;
+	loneTabShown = false;
 	resizeGrabX = resizeGrabY = 0;
 	minXOverride = minYOverride = 0;
 	askedXSize = xSize;

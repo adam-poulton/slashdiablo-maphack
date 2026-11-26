@@ -1,4 +1,4 @@
-﻿project(BH)
+project(BH)
 
 set(SOURCE_FILES "AsyncDrawBuffer.cpp"
                  "BH.cpp"
@@ -25,7 +25,8 @@ set(SOURCE_FILES "AsyncDrawBuffer.cpp"
                  "StringUtil.cpp"
                  "TableReader.cpp"
                  "TablesFromMPQ.cpp"
-                 "Task.cpp")
+                 "Task.cpp"
+                 "WholeFile.cpp")
 
 set(CATALOGUE_SOURCES "Catalogue/AffixCatalogue.cpp"
                       "Catalogue/BaseItemCatalogue.cpp"
@@ -64,8 +65,10 @@ set(MODULE_SOURCES "Modules/Module.cpp"
                    "Modules/Party/Party.cpp"
                    "Modules/Codex/BaseTab.cpp"
                    "Modules/Codex/CodexWindow.cpp"
-                   "Modules/MapMarkers/MapMarkersPanel.cpp"
-                   "Modules/MapMarkers/MapMarkersWindow.cpp"
+                   "Modules/Forge/ForgeFile.cpp"
+                   "Modules/Forge/ForgeStore.cpp"
+                   "Modules/Forge/ForgeWindow.cpp"
+                   "Modules/Forge/MarkerPanel.cpp"
                    "Modules/Codex/RecipeTab.cpp"
                    "Modules/Codex/RunewordTab.cpp"
                    "Modules/Codex/SetTab.cpp"
@@ -92,7 +95,6 @@ set(DRAWING_SOURCES "Drawing/Hook.cpp"
                     "Drawing/Basic/Crosshook/Crosshook.cpp"
                     "Drawing/MapIcon/MapIcon.cpp"
                     "Drawing/MapIcon/MapIconDraw.cpp"
-                    "Drawing/MapIcon/MapIconStyle.cpp"
                     "Drawing/Basic/Framehook/Framehook.cpp"
                     "Drawing/Basic/Linehook/Linehook.cpp"
                     "Drawing/Basic/Texthook/Texthook.cpp"

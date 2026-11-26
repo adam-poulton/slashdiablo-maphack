@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="AsyncDrawBuffer.cpp" />
@@ -26,7 +26,6 @@
     <ClCompile Include="Drawing\Basic\Crosshook\Crosshook.cpp" />
     <ClCompile Include="Drawing\MapIcon\MapIcon.cpp" />
     <ClCompile Include="Drawing\MapIcon\MapIconDraw.cpp" />
-    <ClCompile Include="Drawing\MapIcon\MapIconStyle.cpp" />
     <ClCompile Include="Drawing\Basic\Framehook\Framehook.cpp" />
     <ClCompile Include="Drawing\Basic\Linehook\Linehook.cpp" />
     <ClCompile Include="Drawing\Basic\Texthook\Texthook.cpp" />
@@ -58,8 +57,11 @@
     <ClCompile Include="Modules\ModuleManager.cpp" />
     <ClCompile Include="Modules\Party\Party.cpp" />
     <ClCompile Include="Modules\Codex\CodexWindow.cpp" />
-    <ClCompile Include="Modules\MapMarkers\MapMarkersPanel.cpp" />
-    <ClCompile Include="Modules\MapMarkers\MapMarkersWindow.cpp" />
+    <ClCompile Include="Modules\Forge\ForgeFile.cpp" />
+    <ClCompile Include="Modules\Forge\ForgeStore.cpp" />
+    <ClCompile Include="Modules\Forge\ForgeWindow.cpp" />
+    <ClCompile Include="Modules\Forge\MarkerPanel.cpp" />
+    <ClCompile Include="WholeFile.cpp" />
     <ClCompile Include="Modules\Codex\QueryBuilder.cpp" />
     <ClCompile Include="Modules\Codex\StatVocabulary.cpp" />
     <ClCompile Include="Modules\Codex\BaseTab.cpp" />
@@ -168,8 +170,11 @@
     <ClInclude Include="Modules\ModuleManager.h" />
     <ClInclude Include="Modules\Party\Party.h" />
     <ClInclude Include="Modules\Codex\CodexWindow.h" />
-    <ClInclude Include="Modules\MapMarkers\MapMarkersPanel.h" />
-    <ClInclude Include="Modules\MapMarkers\MapMarkersWindow.h" />
+    <ClInclude Include="Modules\Forge\ForgeFile.h" />
+    <ClInclude Include="Modules\Forge\ForgeStore.h" />
+    <ClInclude Include="Modules\Forge\ForgeWindow.h" />
+    <ClInclude Include="Modules\Forge\MarkerPanel.h" />
+    <ClInclude Include="WholeFile.h" />
     <ClInclude Include="Modules\Codex\QueryBuilder.h" />
     <ClInclude Include="Modules\Codex\StatVocabulary.h" />
     <ClInclude Include="Modules\Codex\BaseTab.h" />

@@ -210,6 +210,8 @@ TEST_CASE("no colour at all draws nothing") {
 	CHECK_FALSE(Look(NoColor, NoColor, 1).Draws());
 	CHECK(Look(0xFF, NoColor, 1).Draws());
 	CHECK(Look(NoColor, 0xFF, 1).Draws());
+	// Black is a colour like any other.
+	CHECK(Look(0x00, NoColor, 1).Draws());
 }
 
 TEST_CASE("every icon's name reads back as that icon") {

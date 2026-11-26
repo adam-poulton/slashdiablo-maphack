@@ -3,8 +3,6 @@
 #include <vector>
 #include "MapIcon.h"
 
-class Config;
-
 // How one kind of marker is drawn on the automap: the icon at the marker, and a
 // line to it from the player.
 //
@@ -62,10 +60,3 @@ struct MapIconOptions {
 	MapIconOptions(std::vector<MapIcon::Icon> icons, bool size, bool line) :
 		icons(icons), size(size), line(line) {};
 };
-
-// Reads a style from the config under keys that start with the prefix: Icon,
-// Size, Fill Color, Border Color, Border Width, Line and Line Color. A key that
-// is not there is the default. Defined in MapIconStyle.cpp, which needs the
-// config.
-void ReadMapIconStyle(Config* config, const std::string& prefix,
-	MapIconStyle& style, const MapIconStyle& defaults);

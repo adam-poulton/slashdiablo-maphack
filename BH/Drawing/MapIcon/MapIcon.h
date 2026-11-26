@@ -33,9 +33,10 @@ namespace MapIcon {
 	const unsigned int MinBorder = 1;
 	const unsigned int MaxBorder = 4;
 
-	// The palette entry that stands for no colour at all: the palette's first
-	// entry, which the colour picker never offers as a colour.
-	const unsigned int NoColor = 0;
+	// The palette's 256 entries are colours, black at 0 among them. No colour at
+	// all is the number after the last, which is never drawn with.
+	const unsigned int PaletteSize = 256;
+	const unsigned int NoColor = PaletteSize;
 
 	// Relative to the marker's centre. A line includes both its ends.
 	struct Line {

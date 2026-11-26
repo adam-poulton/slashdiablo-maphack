@@ -45,16 +45,21 @@ using namespace Drawing;
 // colour a click would choose in a bar under it, and what a click does under
 // that. Nothing is drawn beside the text, which a text scaling mod widens past
 // what the game measures it as.
+//
+// Where no colour can be chosen it is a cell of its own at the start of the
+// bar's row, as tall as the bar, and the bar is shortened to make room for it.
 #define PICKER_WIDTH			180
 #define PICKER_HEIGHT			238
 #define PICKER_GRID_LEFT		10
 #define PICKER_GRID_TOP			20
 #define PICKER_CELL				10
 #define PICKER_COLUMNS			16
-#define PICKER_ENTRIES			256
+#define PICKER_ENTRIES			MapIcon::PaletteSize
 #define PICKER_GRID_WIDTH		(PICKER_COLUMNS * PICKER_CELL)
 #define PICKER_PREVIEW_TOP		186
 #define PICKER_PREVIEW_HEIGHT	14
+#define PICKER_NONE_SIZE		PICKER_PREVIEW_HEIGHT
+#define PICKER_NONE_GAP			4
 #define PICKER_TEXT_LEFT		10
 #define PICKER_SELECT_TOP		206
 #define PICKER_CLOSE_TOP		222
@@ -75,7 +80,15 @@ static int PickerTop() {
 }
 
 static int PickerRows() {
-	return PICKER_ENTRIES / PICKER_COLUMNS;
+	return (int)(PICKER_ENTRIES / PICKER_COLUMNS);
+}
+
+static int NoneLeft() {
+	return PickerLeft() + PICKER_GRID_LEFT;
+}
+
+static int NoneTop() {
+	return PickerTop() + PICKER_PREVIEW_TOP;
 }
 
 // A one pixel rim around the given extent, inside it. The sides stop short of the
@@ -95,14 +108,13 @@ static void DrawSlash(int x, int y, int side, BoxTrans trans) {
 			COLOR_NONE_SLASH, trans);
 }
 
-// The bar under the palette, as wide as it: filled with the colour, or the shape
-// the colour is drawn as in it, or no colour said in words, which a slash across a
-// bar this shape would not say as plainly.
-static void DrawPreview(MapIcon::Icon swatch, int x, int y, unsigned int color, bool none) {
-	int width = PICKER_GRID_WIDTH;
+// The bar under the palette: filled with the colour, or the shape the colour is
+// drawn as in it, or no colour said in words, which a slash across a bar this
+// shape would not say as plainly.
+static void DrawPreview(MapIcon::Icon swatch, int x, int y, int width, unsigned int color) {
 	int height = PICKER_PREVIEW_HEIGHT;
 	DrawEdges(x, y, width, height, COLOR_SWATCH_EDGE);
-	if (none)
+	if (color == MapIcon::NoColor)
 		Texthook::Draw(x + width / 2, y + (height - 10) / 2, Center, 0, Grey,
 			PICKER_NONE_TEXT);
 	else if (swatch == MapIcon::Square)
@@ -112,7 +124,16 @@ static void DrawPreview(MapIcon::Icon swatch, int x, int y, unsigned int color, 
 			y + height / 2, color);
 }
 
-static void DrawPaletteEdge(unsigned int entry, unsigned int color) {
+// Outlines what the entry is chosen with: its cell of the palette, or the cell
+// that stands for no colour.
+static void DrawChoiceEdge(unsigned int entry, unsigned int color, bool allowNone) {
+	if (entry == MapIcon::NoColor) {
+		if (allowNone)
+			DrawEdges(NoneLeft(), NoneTop(), PICKER_NONE_SIZE, PICKER_NONE_SIZE, color);
+		return;
+	}
+	if (entry >= PICKER_ENTRIES)
+		return;
 	int x = PickerLeft() + PICKER_GRID_LEFT + (int)(entry % PICKER_COLUMNS) * PICKER_CELL;
 	int y = PickerTop() + PICKER_GRID_TOP + (int)(entry / PICKER_COLUMNS) * PICKER_CELL;
 	DrawEdges(x, y, PICKER_CELL, PICKER_CELL, color);
@@ -189,7 +210,7 @@ void Colorhook::SetSwatch(MapIcon::Icon newSwatch) {
 }
 
 void Colorhook::SetColor(unsigned int newColor) {
-	if (newColor >= PICKER_ENTRIES)
+	if (newColor >= PICKER_ENTRIES && !(allowNone && newColor == MapIcon::NoColor))
 		return;
 	Lock();
 	*currentColor = newColor;
@@ -202,6 +223,9 @@ Colorhook::~Colorhook() {
 }
 
 int Colorhook::PaletteAt(int x, int y) {
+	if (allowNone && x >= NoneLeft() && y >= NoneTop() &&
+			x < NoneLeft() + PICKER_NONE_SIZE && y < NoneTop() + PICKER_NONE_SIZE)
+		return (int)MapIcon::NoColor;
 	int left = PickerLeft() + PICKER_GRID_LEFT;
 	int top = PickerTop() + PICKER_GRID_TOP;
 	if (x < left || y < top)
@@ -279,7 +303,8 @@ unsigned int Colorhook::GetYSize() {
  *	No colour is the square's rim with a slash through it, whatever the shape.
  */
 void Colorhook::DrawSwatch(MapIcon::Icon swatch, int x, int y, unsigned int color,
-		bool none, bool muted) {
+		bool muted) {
+	bool none = (color == MapIcon::NoColor);
 	if (swatch != MapIcon::Square && !none) {
 		MapIcon::DrawOutline(swatch, COLOR_SWATCH_ICON_SIZE, x, y,
 			muted ? COLOR_SWATCH_EDGE : color);
@@ -307,22 +332,23 @@ void Colorhook::OnDraw() {
 		for (unsigned int n = 0; n < PICKER_ENTRIES; n++) {
 			int x = left + PICKER_GRID_LEFT + (int)(n % PICKER_COLUMNS) * PICKER_CELL;
 			int y = top + PICKER_GRID_TOP + (int)(n / PICKER_COLUMNS) * PICKER_CELL;
-			if (IsNone(n))
-				DrawSlash(x, y, PICKER_CELL, BTNormal);
-			else
-				D2GFX_DrawRectangle(x, y, x + PICKER_CELL, y + PICKER_CELL, n, BTNormal);
+			D2GFX_DrawRectangle(x, y, x + PICKER_CELL, y + PICKER_CELL, n, BTNormal);
+		}
+		int previewLeft = left + PICKER_GRID_LEFT;
+		if (allowNone) {
+			DrawSlash(NoneLeft(), NoneTop(), PICKER_NONE_SIZE, BTNormal);
+			previewLeft += PICKER_NONE_SIZE + PICKER_NONE_GAP;
 		}
 		int hovered = PaletteAt(Hook::GetMouseX(), Hook::GetMouseY());
 		unsigned int chosen = GetColor();
-		if (chosen < PICKER_ENTRIES)
-			DrawPaletteEdge(chosen, PICKER_CHOSEN_EDGE);
+		DrawChoiceEdge(chosen, PICKER_CHOSEN_EDGE, allowNone);
 		if (hovered >= 0)
-			DrawPaletteEdge((unsigned int)hovered, PICKER_HOVER_EDGE);
+			DrawChoiceEdge((unsigned int)hovered, PICKER_HOVER_EDGE, allowNone);
 		// What a click would choose, or what is chosen while the pointer is off
 		// the palette.
-		unsigned int previewed = hovered >= 0 ? (unsigned int)hovered : chosen;
-		DrawPreview(swatch, left + PICKER_GRID_LEFT, top + PICKER_PREVIEW_TOP, previewed,
-			IsNone(previewed));
+		DrawPreview(swatch, previewLeft, top + PICKER_PREVIEW_TOP,
+			left + PICKER_GRID_LEFT + PICKER_GRID_WIDTH - previewLeft,
+			hovered >= 0 ? (unsigned int)hovered : chosen);
 		Texthook::Draw(left + PICKER_TEXT_LEFT, top + PICKER_SELECT_TOP, None, 0,
 			White, "Left click - Select");
 		Texthook::Draw(left + PICKER_TEXT_LEFT, top + PICKER_CLOSE_TOP, None, 0,
@@ -339,7 +365,7 @@ void Colorhook::OnDraw() {
 		delete[] wText;
 		D2WIN_SetTextSize(size);
 		DrawSwatch(swatch, GetX() + COLOR_SWATCH_HALF_WIDTH,
-			GetY() + COLOR_SWATCH_CENTRE_Y, GetColor(), IsNone(GetColor()), !IsEnabled());
+			GetY() + COLOR_SWATCH_CENTRE_Y, GetColor(), !IsEnabled());
 	}
 	Unlock();
 }

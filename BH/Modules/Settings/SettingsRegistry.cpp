@@ -2,6 +2,7 @@
 #include <map>
 #include "../../BH.h"
 #include "../Module.h"
+#include "../Forge/ForgeFile.h"
 
 namespace Settings {
 	// Function local rather than at file scope: modules register while they are
@@ -380,11 +381,12 @@ namespace Settings {
 	}
 
 	void Persist() {
-		// Written whether or not the shadows say anything changed. Config::Write()
-		// does nothing when nothing differs from the file, and it also covers the
-		// settings that are read from the config but never registered here, which
-		// the shadows know nothing about.
+		// Written whether or not the shadows say anything changed. Each file does
+		// nothing when nothing differs from it, and the config also covers the
+		// settings that are read from it but never registered here, which the
+		// shadows know nothing about.
 		BH::config->Write();
+		BH::forge->Save();
 		Rebaseline();
 	}
 

@@ -10,6 +10,8 @@
 
 using namespace std;
 
+class ForgeFile;
+
 //boosts  hash_combine
 //https://stackoverflow.com/a/19195373/597419
 template <class T>
@@ -35,6 +37,8 @@ namespace BH {
 	extern ModuleManager* moduleManager;
 	extern Config* config;
 	extern Config* itemConfig;
+	// What the Forge styles, kept in a file of its own beside the settings.
+	extern ForgeFile* forge;
 	// The item filter the settings name, which is not always the one itemConfig
 	// holds: a filter that cannot be read falls back to BH.cfg without the
 	// selection being forgotten.
