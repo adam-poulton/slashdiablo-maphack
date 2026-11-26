@@ -69,6 +69,7 @@ UI::UI(std::string name, std::string configKey, unsigned int xSize, unsigned int
 	visibility = InGame;
 	dragX = dragY = startX = startY = 0;
 	resizable = resizing = false;
+	loneTabShown = false;
 	resizeGrabX = resizeGrabY = 0;
 	minXOverride = minYOverride = 0;
 	askedXSize = xSize;
@@ -419,8 +420,12 @@ void UI::InvokeFooterAction() {
 // The text is passed as an argument rather than as the format string: a footer
 // carries whatever a panel has to say, which may well contain a percent sign.
 void UI::SetFooterLeft(std::string text) {
-	if (footerLeft)
-		footerLeft->SetText("%s", text.c_str());
+	if (!footerLeft || footerLeft->GetText() == text)
+		return;
+	Lock();
+	footerLeft->SetText("%s", text.c_str());
+	chromeWidth = 0;	// so the action after it is placed again
+	Unlock();
 }
 
 void UI::SetFooterRight(std::string text) {
@@ -458,8 +463,10 @@ void UI::LayoutChrome() {
 		// fixed window has none, and the inset would read as a ragged right edge.
 		footerRight->SetBaseX(IsResizable() ? RESIZE_GRIP_SIZE : 0);
 		if (footerAction) {
-			// After what the window says about itself, whose width does not change.
-			footerAction->SetBaseX(footerLeft->GetXSize() + FOOTER_ACTION_GAP);
+			// After what the window says about itself, or on the margin where it
+			// says nothing.
+			footerAction->SetBaseX(footerLeft->GetText().empty() ? 0 :
+				footerLeft->GetXSize() + FOOTER_ACTION_GAP);
 			footerAction->SetBaseY(footerY);
 		}
 	}

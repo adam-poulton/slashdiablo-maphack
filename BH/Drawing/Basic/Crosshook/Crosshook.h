@@ -3,6 +3,9 @@
 #include "../../Hook.h"
 
 namespace Drawing {
+	// The size of MapIcon::Cross that is the X monsters are marked with.
+	#define MONSTER_CROSS_SIZE	4
+
 	class Crosshook : public Hook {
 		private:
 			unsigned int color;//Color of the cross hook 0-255.

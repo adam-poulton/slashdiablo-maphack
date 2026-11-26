@@ -2,6 +2,7 @@
 #include <map>
 #include "../../BH.h"
 #include "../Module.h"
+#include "../Forge/ForgeFile.h"
 
 namespace Settings {
 	// Function local rather than at file scope: modules register while they are
@@ -94,9 +95,10 @@ namespace Settings {
 
 	void AddColor(std::string owner, std::string category, std::string key,
 			std::string label, unsigned int* value, std::string help,
-			std::string parent) {
+			std::string parent, MapIcon::Icon swatch) {
 		Descriptor descriptor = Common(KindColor, owner, category, key, label, help, parent);
 		descriptor.intValue = value;
+		descriptor.swatch = swatch;
 		Add(descriptor);
 	}
 
@@ -129,6 +131,15 @@ namespace Settings {
 		Descriptor descriptor = Common(KindText, owner, category, key, label, help, parent);
 		descriptor.textValue = value;
 		descriptor.textMax = maxLength;
+		Add(descriptor);
+	}
+
+	void AddMapIcon(std::string owner, std::string category, std::string key,
+			std::string label, MapIconStyle* value, MapIconOptions options,
+			std::string help, std::string parent) {
+		Descriptor descriptor = Common(KindMapIcon, owner, category, key, label, help, parent);
+		descriptor.styleValue = value;
+		descriptor.styleOptions = options;
 		Add(descriptor);
 	}
 
@@ -176,13 +187,16 @@ namespace Settings {
 	// A setting's value, whatever kind it is, in a form that can be compared and
 	// kept. The kinds that address an unsigned int need one number; a Toggle needs
 	// two, because rebinding its hotkey is a change as much as flipping it is; a
-	// text setting needs the string, which no number stands in for.
+	// map icon needs one for each part of its style; a text setting needs the
+	// string, which no number stands in for.
 	struct Snapshot {
-		unsigned int a, b;
+		std::vector<unsigned int> numbers;
 		std::string text;
-		Snapshot() : a(0), b(0) {};
 		bool operator!=(const Snapshot& other) const {
-			return a != other.a || b != other.b || text.compare(other.text) != 0;
+			return numbers != other.numbers || text.compare(other.text) != 0;
+		}
+		unsigned int At(unsigned int i) const {
+			return i < numbers.size() ? numbers[i] : 0;
 		}
 	};
 
@@ -195,12 +209,12 @@ namespace Settings {
 		switch (descriptor.kind) {
 			case KindBool:
 				if (descriptor.boolValue)
-					snapshot.a = *descriptor.boolValue ? 1 : 0;
+					snapshot.numbers.push_back(*descriptor.boolValue ? 1 : 0);
 				break;
 			case KindToggle:
 				if (descriptor.toggleValue) {
-					snapshot.a = descriptor.toggleValue->state ? 1 : 0;
-					snapshot.b = descriptor.toggleValue->toggle;
+					snapshot.numbers.push_back(descriptor.toggleValue->state ? 1 : 0);
+					snapshot.numbers.push_back(descriptor.toggleValue->toggle);
 				}
 				break;
 			case KindKey:
@@ -208,15 +222,27 @@ namespace Settings {
 			case KindColor:
 			case KindNumber:
 				if (descriptor.intValue)
-					snapshot.a = *descriptor.intValue;
+					snapshot.numbers.push_back(*descriptor.intValue);
 				break;
 			// A slider's switch is part of the same setting, so flipping it is a
 			// change like moving the rail is, and is taken and put back with it.
 			case KindSlider:
 				if (descriptor.intValue)
-					snapshot.a = *descriptor.intValue;
+					snapshot.numbers.push_back(*descriptor.intValue);
 				if (descriptor.boolValue)
-					snapshot.b = *descriptor.boolValue ? 1 : 0;
+					snapshot.numbers.push_back(*descriptor.boolValue ? 1 : 0);
+				break;
+			case KindMapIcon:
+				if (descriptor.styleValue) {
+					const MapIconStyle& style = *descriptor.styleValue;
+					snapshot.numbers.push_back(style.icon);
+					snapshot.numbers.push_back(style.size);
+					snapshot.numbers.push_back(style.fillColor);
+					snapshot.numbers.push_back(style.borderColor);
+					snapshot.numbers.push_back(style.borderWidth);
+					snapshot.numbers.push_back(style.line ? 1 : 0);
+					snapshot.numbers.push_back(style.lineColor);
+				}
 				break;
 			case KindText:
 				if (descriptor.textValue)
@@ -233,12 +259,12 @@ namespace Settings {
 		switch (descriptor.kind) {
 			case KindBool:
 				if (descriptor.boolValue)
-					*descriptor.boolValue = (snapshot.a != 0);
+					*descriptor.boolValue = (snapshot.At(0) != 0);
 				break;
 			case KindToggle:
 				if (descriptor.toggleValue) {
-					descriptor.toggleValue->state = (snapshot.a != 0);
-					descriptor.toggleValue->toggle = snapshot.b;
+					descriptor.toggleValue->state = (snapshot.At(0) != 0);
+					descriptor.toggleValue->toggle = snapshot.At(1);
 				}
 				break;
 			case KindKey:
@@ -246,13 +272,25 @@ namespace Settings {
 			case KindColor:
 			case KindNumber:
 				if (descriptor.intValue)
-					*descriptor.intValue = snapshot.a;
+					*descriptor.intValue = snapshot.At(0);
 				break;
 			case KindSlider:
 				if (descriptor.intValue)
-					*descriptor.intValue = snapshot.a;
+					*descriptor.intValue = snapshot.At(0);
 				if (descriptor.boolValue)
-					*descriptor.boolValue = (snapshot.b != 0);
+					*descriptor.boolValue = (snapshot.At(1) != 0);
+				break;
+			case KindMapIcon:
+				if (descriptor.styleValue) {
+					MapIconStyle& style = *descriptor.styleValue;
+					style.icon = snapshot.At(0);
+					style.size = snapshot.At(1);
+					style.fillColor = snapshot.At(2);
+					style.borderColor = snapshot.At(3);
+					style.borderWidth = snapshot.At(4);
+					style.line = (snapshot.At(5) != 0);
+					style.lineColor = snapshot.At(6);
+				}
 				break;
 			case KindText:
 				if (descriptor.textValue)
@@ -343,11 +381,12 @@ namespace Settings {
 	}
 
 	void Persist() {
-		// Written whether or not the shadows say anything changed. Config::Write()
-		// does nothing when nothing differs from the file, and it also covers the
-		// settings that are read from the config but never registered here, which
-		// the shadows know nothing about.
+		// Written whether or not the shadows say anything changed. Each file does
+		// nothing when nothing differs from it, and the config also covers the
+		// settings that are read from it but never registered here, which the
+		// shadows know nothing about.
 		BH::config->Write();
+		BH::forge->Save();
 		Rebaseline();
 	}
 

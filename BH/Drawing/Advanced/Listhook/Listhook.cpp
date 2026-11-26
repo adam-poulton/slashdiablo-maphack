@@ -11,7 +11,6 @@ using namespace Drawing;
 
 #define LIST_ROW_PADDING	2
 #define LIST_HEADER_GAP		4
-#define LIST_ELLIPSIS		".."
 
 // How far a floating list's panel is drawn outside its rows, so the border does
 // not sit against the text.
@@ -351,26 +350,8 @@ unsigned int Listhook::GetColumnWidth(unsigned int column) {
 	return (column < layout.size()) ? layout[column].width : 0;
 }
 
-// Cut text down until it fits the column, ending in an ellipsis. Starts from a
-// proportional guess so wide cells don't need a measurement per character.
 std::string Listhook::FitCell(const std::string& text, unsigned int width) {
-	if (text.length() == 0 || width == 0)
-		return "";
-
-	unsigned int full = Texthook::GetTextSize(text, font).x;
-	if (full <= width)
-		return text;
-
-	size_t length = (size_t)(((double)text.length() * width) / full) + 1;
-	if (length > text.length())
-		length = text.length();
-	while (length > 0) {
-		std::string candidate = text.substr(0, length) + LIST_ELLIPSIS;
-		if ((unsigned int)Texthook::GetTextSize(candidate, font).x <= width)
-			return candidate;
-		length--;
-	}
-	return "";
+	return Texthook::Fit(text, width, font);
 }
 
 void Listhook::FitRows() {

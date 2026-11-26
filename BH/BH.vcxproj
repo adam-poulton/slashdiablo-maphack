@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -171,6 +171,7 @@ if defined D2Path (
     <ClCompile Include="Drawing\Advanced\Buttonhook\Buttonhook.cpp" />
     <ClCompile Include="Drawing\Advanced\Checkhook\Checkhook.cpp" />
     <ClCompile Include="Drawing\Advanced\Colorhook\Colorhook.cpp" />
+    <ClCompile Include="Drawing\Advanced\MapIconhook\MapIconhook.cpp" />
     <ClCompile Include="Drawing\Advanced\Combohook\Combohook.cpp" />
     <ClCompile Include="Drawing\Advanced\Inputhook\Inputhook.cpp" />
     <ClCompile Include="Drawing\Advanced\Keyhook\Keyhook.cpp" />
@@ -178,6 +179,8 @@ if defined D2Path (
     <ClCompile Include="Drawing\Advanced\Tooltiphook\Tooltiphook.cpp" />
     <ClCompile Include="Drawing\Basic\Boxhook\Boxhook.cpp" />
     <ClCompile Include="Drawing\Basic\Crosshook\Crosshook.cpp" />
+    <ClCompile Include="Drawing\MapIcon\MapIcon.cpp" />
+    <ClCompile Include="Drawing\MapIcon\MapIconDraw.cpp" />
     <ClCompile Include="Drawing\Basic\Framehook\Framehook.cpp" />
     <ClCompile Include="Drawing\Basic\Linehook\Linehook.cpp" />
     <ClCompile Include="Drawing\Basic\Texthook\Texthook.cpp" />
@@ -213,6 +216,7 @@ if defined D2Path (
     <ClCompile Include="Modules\ItemMover\ItemMover.cpp" />
     <ClCompile Include="Modules\ItemMover\ItemGrid.cpp" />
     <ClCompile Include="Modules\Maphack\Maphack.cpp" />
+    <ClCompile Include="Modules\Maphack\ChestKind.cpp" />
     <ClCompile Include="Modules\Maphack\RoomFrontier.cpp" />
     <ClCompile Include="Modules\Module.cpp" />
     <ClCompile Include="Modules\Window\WindowModule.cpp" />
@@ -225,6 +229,11 @@ if defined D2Path (
     <ClCompile Include="Modules\ModuleManager.cpp" />
     <ClCompile Include="Modules\Party\Party.cpp" />
     <ClCompile Include="Modules\Codex\CodexWindow.cpp" />
+    <ClCompile Include="Modules\Forge\ForgeFile.cpp" />
+    <ClCompile Include="Modules\Forge\ForgeStore.cpp" />
+    <ClCompile Include="Modules\Forge\ForgeWindow.cpp" />
+    <ClCompile Include="Modules\Forge\MarkerPanel.cpp" />
+    <ClCompile Include="WholeFile.cpp" />
     <ClCompile Include="Modules\Codex\QueryBuilder.cpp" />
     <ClCompile Include="Modules\Codex\StatVocabulary.cpp" />
     <ClCompile Include="Modules\Codex\BaseTab.cpp" />
@@ -284,6 +293,7 @@ if defined D2Path (
     <ClInclude Include="Drawing.h" />
     <ClInclude Include="Drawing\Advanced\Checkhook\Checkhook.h" />
     <ClInclude Include="Drawing\Advanced\Colorhook\Colorhook.h" />
+    <ClInclude Include="Drawing\Advanced\MapIconhook\MapIconhook.h" />
     <ClInclude Include="Drawing\Advanced\Combohook\Combohook.h" />
     <ClInclude Include="Drawing\Advanced\Inputhook\Inputhook.h" />
     <ClInclude Include="Drawing\Advanced\Keyhook\Keyhook.h" />
@@ -292,6 +302,8 @@ if defined D2Path (
     <ClInclude Include="Drawing\Advanced\Tooltiphook\Tooltiphook.h" />
     <ClInclude Include="Drawing\Basic\Boxhook\Boxhook.h" />
     <ClInclude Include="Drawing\Basic\Crosshook\Crosshook.h" />
+    <ClInclude Include="Drawing\MapIcon\MapIcon.h" />
+    <ClInclude Include="Drawing\MapIcon\MapIconStyle.h" />
     <ClInclude Include="Drawing\Basic\Framehook\FrameArt.h" />
     <ClInclude Include="Drawing\Basic\Framehook\Framehook.h" />
     <ClInclude Include="Drawing\Basic\Linehook\Linehook.h" />
@@ -340,6 +352,7 @@ if defined D2Path (
     <ClInclude Include="Modules\ItemMover\ItemMover.h" />
     <ClInclude Include="Modules\ItemMover\ItemGrid.h" />
     <ClInclude Include="Modules\Maphack\Maphack.h" />
+    <ClInclude Include="Modules\Maphack\ChestKind.h" />
     <ClInclude Include="Modules\Maphack\RoomFrontier.h" />
     <ClInclude Include="Modules\Module.h" />
     <ClInclude Include="Modules\Window\WindowModule.h" />
@@ -354,6 +367,11 @@ if defined D2Path (
     <ClInclude Include="Modules\ModuleManager.h" />
     <ClInclude Include="Modules\Party\Party.h" />
     <ClInclude Include="Modules\Codex\CodexWindow.h" />
+    <ClInclude Include="Modules\Forge\ForgeFile.h" />
+    <ClInclude Include="Modules\Forge\ForgeStore.h" />
+    <ClInclude Include="Modules\Forge\ForgeWindow.h" />
+    <ClInclude Include="Modules\Forge\MarkerPanel.h" />
+    <ClInclude Include="WholeFile.h" />
     <ClInclude Include="Modules\Codex\QueryBuilder.h" />
     <ClInclude Include="Modules\Codex\StatVocabulary.h" />
     <ClInclude Include="Modules\Codex\BaseTab.h" />

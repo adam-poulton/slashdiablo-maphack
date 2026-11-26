@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include "../../../Constants.h"
 #include "../../Hook.h"
 #include "../../Basic/Texthook/TextMetrics.h"
 
@@ -10,6 +11,9 @@ namespace Drawing {
 	#define COMBO_PADDING_X			5
 	#define COMBO_PADDING_TOP		3
 	#define COMBO_PADDING_BOTTOM	1
+
+	// Where the list's scrollbar sits, in from the list's right edge.
+	#define COMBO_SCROLLBAR_INSET	3
 
 	class Combohook : public Hook {
 		private:
@@ -22,14 +26,53 @@ namespace Drawing {
 			// Whether the box draws the arrow that says it has a list to open.
 			bool arrow;
 
+			// How many options the open list shows at once, 0 for all of them, and
+			// the first one it shows. Past that many it scrolls.
+			unsigned int maxVisible;
+			unsigned int scroll;
+
+			// While the list's thumb is held: how far down the thumb it was taken.
+			bool dragging;
+			int dragOffset;
+
+			void Init(unsigned int xSize, unsigned int* index,
+				std::vector<std::string> opts);
+
 			// Opening and closing go through one place, so that the static below
 			// cannot get out of step with it.
 			void SetOpen(bool open);
 
-			// Where the value and each option are drawn from, and how they are
-			// aligned against it.
-			unsigned int ValueX();
+			unsigned int MaxScroll();
+			void ScrollTo(int first);
+
+			// The scrollbar down the open list's right side, where it scrolls.
+			unsigned int BarLeft();
+			unsigned int ThumbHeight();
+			unsigned int ThumbTop();
+			bool InBar(unsigned int x, unsigned int y);
+
+			// The option under a point in the open list, or -1 for none.
+			int OptionAt(unsigned int x, unsigned int y);
+
+		protected:
+			// Where an option's text is drawn from in a row that starts at x and is
+			// width across, and how it is aligned against it.
+			unsigned int ValueX(unsigned int x, unsigned int width);
 			int ValueAlignment();
+
+			// Draws one option, in the closed box or as a row of the open list, in
+			// a row whose top left is at x and y. The text is in the given colour,
+			// which says whether it is hovered or the box is switched off.
+			virtual void DrawOption(unsigned int index, unsigned int x, unsigned int y,
+				unsigned int width, TextColor color);
+
+			// How tall a row of the open list is. The closed box's height, unless a
+			// box draws its options taller than its text.
+			virtual unsigned int GetRowHeight() { return GetYSize(); };
+
+			// Told of an option picked from the list, once the value is set.
+			virtual void OnSelected(unsigned int index) {};
+
 		public:
 			// The combo box whose list is open, if any, so that whoever draws last
 			// can put it on top. The colour picker holds itself the same way.
@@ -40,7 +83,7 @@ namespace Drawing {
 
 			//The open list is held in the static above, which would dangle if the
 			//box behind it were destroyed while it was still open.
-			~Combohook();
+			virtual ~Combohook();
 
 			// Whether the box carries the arrow that says it has a list, and so
 			// whether its value sits after the left inset or in the middle.
@@ -53,6 +96,16 @@ namespace Drawing {
 			// opens over it.
 			bool HasArrow() { return arrow; };
 			void SetArrow(bool shown) { Lock(); arrow = shown; Unlock(); };
+
+			// How many options the open list shows before it scrolls instead, 0
+			// for every one.
+			unsigned int GetMaxVisible() { return maxVisible; };
+			void SetMaxVisible(unsigned int rows) { Lock(); maxVisible = rows; Unlock(); };
+
+			// How many options the open list shows, and whether it scrolls to
+			// show the rest.
+			unsigned int VisibleRows();
+			bool Scrolls() { return VisibleRows() < options.size(); };
 
 			std::vector<std::string> GetOptions() { return options; };
 			unsigned int NewOption(std::string opt) { Lock(); options.push_back(opt); Unlock(); return options.size() - 1; };
@@ -80,6 +133,7 @@ namespace Drawing {
 			unsigned int GetTextInset() { return COMBO_PADDING_TOP; };
 
 			bool OnLeftClick(bool up, unsigned int x, unsigned int y);
+			bool OnMouseWheel(int notches, unsigned int x, unsigned int y);
 			void OnDraw();
 
 			// The list an open combo box hangs below itself. Drawn separately, and
@@ -93,7 +147,9 @@ namespace Drawing {
 
 			//Where the list hangs, and how far down it reaches. One place, so the
 			//drawing and the clicking cannot disagree about where an option is.
-			unsigned int GetListY() { return GetY() + GetYSize(); };
-			unsigned int GetOptionY(unsigned int index) { return GetListY() + (index * GetYSize()); };
+			//Below the box, or above it where the screen has no room below.
+			unsigned int GetListHeight() { return VisibleRows() * GetRowHeight(); };
+			unsigned int GetListY();
+			unsigned int GetOptionY(unsigned int index) { return GetListY() + ((index - scroll) * GetRowHeight()); };
 	};
 };

@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include "../../Config.h"
+#include "../../Drawing/MapIcon/MapIconStyle.h"
 
 // Where modules say what their settings are, rather than drawing them.
 //
@@ -26,6 +27,11 @@ namespace Settings {
 		const char* const Filter = "Filter";
 		const char* const Input = "Input";
 		const char* const Lobby = "Lobby";
+
+		// How markers on the automap are drawn, a tab of the Forge for each kind
+		// of thing marked. Not tabs of the settings window, which is why it lists
+		// the categories it shows rather than taking every one registered.
+		const char* const Chests = "Chests";
 	}
 
 	// Headings that more than one module registers under. Two modules naming the
@@ -48,6 +54,7 @@ namespace Settings {
 		KindText,		// a line of text typed into a box
 		KindNote,		// no value at all: something the panel has to say
 		KindHeading,	// a rule across the panel, naming the settings below it
+		KindMapIcon,	// how a marker is drawn on the map: icon, size, colours, border, line
 	};
 
 	// Which value pointer means anything follows from the kind. The hotkey, enum,
@@ -75,10 +82,14 @@ namespace Settings {
 		unsigned int numberStep;			// KindSlider, what one notch moves
 		std::string unit;					// KindSlider, written after the value
 		unsigned int textMax;				// KindText, characters, 0 for no limit
+		MapIcon::Icon swatch;				// KindColor, what the colour is shown as
+		MapIconStyle* styleValue;			// KindMapIcon
+		MapIconOptions styleOptions;		// KindMapIcon, what can be changed about it
 
 		Descriptor() : kind(KindBool), boolValue(NULL), toggleValue(NULL),
 			intValue(NULL), textValue(NULL), numberMax(0), numberMin(0),
-			numberStep(1), textMax(0) {};
+			numberStep(1), textMax(0), swatch(MapIcon::Square),
+			styleValue(NULL) {};
 	};
 
 	// Registration. The order settings are registered in is the order they are
@@ -110,9 +121,12 @@ namespace Settings {
 	void SetOptions(std::string owner, std::string key,
 		std::vector<std::string> options);
 
+	// The swatch is what the colour is shown as beside its name: the shape it
+	// colours on the map where it colours one, so it is seen as it will be drawn,
+	// and a filled square for everything else.
 	void AddColor(std::string owner, std::string category, std::string key,
 		std::string label, unsigned int* value, std::string help = "",
-		std::string parent = "");
+		std::string parent = "", MapIcon::Icon swatch = MapIcon::Square);
 
 	// A ceiling of 0 means there is none. The window clamps to it as the box is
 	// typed into, so a module does not have to watch its own setting for a value
@@ -156,6 +170,17 @@ namespace Settings {
 	// writing back through the same pointer it read through.
 	void AddText(std::string owner, std::string category, std::string key,
 		std::string label, std::string* value, unsigned int maxLength = 0,
+		std::string help = "", std::string parent = "");
+
+	// How a kind of marker is drawn on the map. Every part of the style is one
+	// setting: changing the icon or the line is a change to it as changing its
+	// colour is, and they are saved and put back together.
+	//
+	// The module binds the style to the Forge's file, with ForgeStore::BindStyle(),
+	// which reads and writes it; the registry only says what it is and what of it
+	// can be changed.
+	void AddMapIcon(std::string owner, std::string category, std::string key,
+		std::string label, MapIconStyle* value, MapIconOptions options,
 		std::string help = "", std::string parent = "");
 
 	// Something to say rather than something to set: a caveat, or what a gesture

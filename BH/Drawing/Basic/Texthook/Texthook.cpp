@@ -196,6 +196,67 @@ bool Texthook::OnRightClick(bool up, unsigned int x, unsigned int y) {
 	return false;
 }
 
+/* Wrap(string text, unsigned int width, unsigned int font)
+ *	Breaks text to a width, on spaces where it can.
+ */
+std::vector<std::string> Texthook::Wrap(const std::string& text,
+		unsigned int width, unsigned int font) {
+	std::vector<std::string> lines;
+	if (width == 0 || text.empty()) {
+		lines.push_back(text);
+		return lines;
+	}
+
+	std::string line;
+	std::string::size_type start = 0;
+	while (start <= text.length()) {
+		std::string::size_type space = text.find(' ', start);
+		std::string word = (space == std::string::npos) ?
+			text.substr(start) : text.substr(start, space - start);
+
+		std::string candidate = line.empty() ? word : (line + " " + word);
+		if (!line.empty() &&
+				(unsigned int)GetTextSize(candidate, font).x > width) {
+			lines.push_back(line);
+			line = word;
+		} else {
+			line = candidate;
+		}
+
+		if (space == std::string::npos)
+			break;
+		start = space + 1;
+	}
+	if (!line.empty())
+		lines.push_back(line);
+	if (lines.empty())
+		lines.push_back("");
+	return lines;
+}
+
+// Starts from a proportional guess, so wide text doesn't need a measurement per
+// character.
+std::string Texthook::Fit(const std::string& text, unsigned int width,
+		unsigned int font) {
+	if (text.length() == 0 || width == 0)
+		return "";
+
+	unsigned int full = (unsigned int)GetTextSize(text, font).x;
+	if (full <= width)
+		return text;
+
+	size_t length = (size_t)(((double)text.length() * width) / full) + 1;
+	if (length > text.length())
+		length = text.length();
+	while (length > 0) {
+		std::string candidate = text.substr(0, length) + TEXT_ELLIPSIS;
+		if ((unsigned int)GetTextSize(candidate, font).x <= width)
+			return candidate;
+		length--;
+	}
+	return "";
+}
+
 /* GetTextSize(string text, unsigned int font)
  *	Returns the dimensions of the given text!
  */

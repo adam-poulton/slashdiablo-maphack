@@ -2,6 +2,7 @@
 
 #include "../../../Constants.h"
 #include "../../Hook.h"
+#include "../../MapIcon/MapIcon.h"
 
 namespace Drawing {
 	class Colorhook;
@@ -10,12 +11,26 @@ namespace Drawing {
 		private:
 			std::string text;//Text to have linked
 			unsigned int* currentColor;//Color that we will be changing
-			unsigned int curColor;
 
 			//The label's own colours, as against the colour being edited. A colour
 			//is a setting like any other and its name is read down a panel with the
 			//rest of them, so what its label is drawn in cannot be its own affair.
 			TextColor textColor, hoverColor, disabledColor;
+
+			//What the colour is shown as beside the label and in the picker: the
+			//shape it colours, where it colours one, so the colour is seen as it
+			//will be used.
+			MapIcon::Icon swatch;
+
+			//Whether MapIcon::NoColor can be chosen as well as the palette's colours.
+			bool allowNone;
+
+			static void DrawSwatch(MapIcon::Icon swatch, int x, int y, unsigned int color,
+				bool muted);
+
+			//The palette entry under a point on screen, MapIcon::NoColor on the
+			//cell for no colour, or -1 for nothing.
+			int PaletteAt(int x, int y);
 		public:
 			static Colorhook* current;//Pointer to the current colorhook
 
@@ -41,6 +56,12 @@ namespace Drawing {
 
 			TextColor GetDisabledColor() { return disabledColor; };
 			void SetDisabledColor(TextColor newColor);
+
+			MapIcon::Icon GetSwatch() { return swatch; };
+			void SetSwatch(MapIcon::Icon newSwatch);
+
+			bool GetAllowNone() { return allowNone; };
+			void SetAllowNone(bool allowed) { Lock(); allowNone = allowed; Unlock(); };
 
 			bool OnLeftClick(bool up, unsigned int x, unsigned int y);
 			bool OnRightClick(bool up, unsigned int x, unsigned int y);

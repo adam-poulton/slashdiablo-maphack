@@ -73,6 +73,13 @@ class UIPanel {
 		// panel is the active one, so a panel can load data lazily.
 		virtual void OnDraw() {};
 
+		// The smallest tab the panel's contents fit in, or 0 for a panel that
+		// lays itself out to whatever it is given. The window is kept large
+		// enough for the most demanding of its panels. Read every frame after
+		// OnDraw(), so a panel can measure its contents there.
+		virtual unsigned int GetMinWidth() { return 0; };
+		virtual unsigned int GetMinHeight() { return 0; };
+
 		// Called for keys the window did not consume itself, and only while this
 		// panel is active. Return true to swallow the key.
 		virtual bool OnKey(bool up, BYTE key) { return false; };

@@ -15,7 +15,6 @@
 class AccountFile {
 	private:
 		std::string path;
-		std::string lockName;
 
 	public:
 		explicit AccountFile(const std::string& path);

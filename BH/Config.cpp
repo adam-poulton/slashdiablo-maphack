@@ -267,6 +267,30 @@ Toggle Config::ReadToggle(std::string key, std::string toggle, bool state, Toggl
 /* ReadKey(std::string key, std::string toggle)
 *	Reads in a key from the key->pair.
 */
+unsigned int Config::ReadNamed(std::string key, unsigned int& value,
+		const std::vector<std::string>& names, unsigned int defaultValue) {
+	if (defaultValue >= names.size())
+		defaultValue = 0;
+	if (contents.find(key) == contents.end()) {
+		contents[key].key = key;
+		contents[key].value = names.empty() ? "" : names[defaultValue];
+	}
+
+	contents[key].type = CTNamed;
+	contents[key].pointer = &value;
+	contents[key].names = names;
+
+	value = defaultValue;
+	std::string stored = Trim(contents[key].value);
+	for (unsigned int i = 0; i < names.size(); i++) {
+		if (_stricmp(stored.c_str(), names[i].c_str()) == 0) {
+			value = i;
+			break;
+		}
+	}
+	return value;
+}
+
 unsigned int Config::ReadKey(std::string key, std::string toggle, unsigned int &value) {
 	//Check if configuration value exists.
 	if (contents.find(key) == contents.end()) {
@@ -547,6 +571,15 @@ bool Config::HasChanged(ConfigEntry entry, string& value) {
 		stream << ((entry.toggle->state) ? "True" : "False") << ", " << newKey.name;
 
 		value = stream.str();
+		return true;
+	}
+	case CTNamed: {
+		unsigned int current = *((unsigned int*)entry.pointer);
+		if (current >= entry.names.size())
+			return false;
+		if (_stricmp(Trim(entry.value).c_str(), entry.names[current].c_str()) == 0)
+			return false;
+		value = entry.names[current];
 		return true;
 	}
 	case CTKey: {

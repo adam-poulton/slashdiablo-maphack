@@ -9,6 +9,7 @@ using namespace std;
 
 std::list<Hook*> Hook::Hooks;
 Hook* Hook::pressedHook = NULL;
+bool Hook::overlayGesture = false;
 int Hook::oogMouseX = 0;
 int Hook::oogMouseY = 0;
 
@@ -469,10 +470,12 @@ bool Hook::LeftClick(HookVisibility screen, bool up, unsigned int x, unsigned in
 	if (Colorhook::current) {
 		// The open picker takes the whole gesture, so there is nothing to pair.
 		pressedHook = NULL;
+		overlayGesture = true;
 		Colorhook::current->OnLeftClick(up, x, y);
 		return true;
 	}
 
+	// A release is on whatever its press was on.
 	if (up) {
 		Hook* pressed = pressedHook;
 		pressedHook = NULL;
@@ -488,14 +491,18 @@ bool Hook::LeftClick(HookVisibility screen, bool up, unsigned int x, unsigned in
 	}
 
 	pressedHook = NULL;
+	overlayGesture = false;
 	bool block = false;
 	// An open dropdown hangs over the hooks laid out below it, and has to be
 	// offered the press ahead of them for the same reason it is drawn over them.
+	// A press it takes is on the list, so none of what the list covers hears it:
+	// a slider or a list under it acts on the press itself.
 	Hook* front = Combohook::current;
 	if (front && front->IsActive() && front->IsEnabled() && front->AnswersOn(screen) &&
 			front->OnLeftClick(false, x, y)) {
 		pressedHook = front;
-		block = true;
+		overlayGesture = true;
+		return true;
 	}
 	// Every hook hears the press - it is how an input box loses the caret and how
 	// an open dropdown shuts - but only the first to claim it holds the gesture.
@@ -536,6 +543,12 @@ bool Hook::RightClick(HookVisibility screen, bool up, unsigned int x, unsigned i
  */
 bool Hook::MouseWheel(HookVisibility screen, int notches, unsigned int x, unsigned int y) {
 	Hooks.sort(ZSort);
+	// An open dropdown is over whatever scrolls behind it, so it hears the wheel
+	// first, as it does a click.
+	Hook* front = Combohook::current;
+	if (front && front->IsActive() && front->IsEnabled() && front->AnswersOn(screen) &&
+			front->OnMouseWheel(notches, x, y))
+		return true;
 	for (HookIterator it = Hooks.begin(); it!=Hooks.end(); ++it)
 		if ((*it)->IsActive() && (*it)->IsEnabled() && (*it)->AnswersOn(screen))
 			if ((*it)->OnMouseWheel(notches, x, y))

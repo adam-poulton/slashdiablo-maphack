@@ -22,17 +22,17 @@ void AutoTele::OnLoad() {
 		"Draws paths from your character to destinations on the map.");
 	Settings::AddHeading(GetName(), Settings::Category::Map, "Path colors");
 	Settings::AddColor(GetName(), Settings::Category::Map, "Path Color", "Path", &Colors[0],
-		"", "Draw Destination");
+		"", "Draw Destination", MapIcon::Cross);
 	Settings::AddColor(GetName(), Settings::Category::Map, "Next Color", "Next", &Colors[1],
-		"", "Draw Destination");
+		"", "Draw Destination", MapIcon::Cross);
 	Settings::AddColor(GetName(), Settings::Category::Map, "Other Color", "Other", &Colors[2],
-		"", "Draw Destination");
+		"", "Draw Destination", MapIcon::Cross);
 	Settings::AddColor(GetName(), Settings::Category::Map, "WP Color", "Waypoint", &Colors[3],
-		"", "Draw Destination");
+		"", "Draw Destination", MapIcon::Cross);
 	Settings::AddColor(GetName(), Settings::Category::Map, "Prev Color", "Previous", &Colors[4],
-		"", "Draw Destination");
+		"", "Draw Destination", MapIcon::Cross);
 	Settings::AddColor(GetName(), Settings::Category::Map, "Other Extra Color", "Other extra",
-		&Colors[5], "", "Draw Destination");
+		&Colors[5], "", "Draw Destination", MapIcon::Cross);
 
 	// Written across the screen by ScreenInfo, not weighed against an item filter,
 	// which is why it is Display rather than Filter.

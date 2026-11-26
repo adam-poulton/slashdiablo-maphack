@@ -2,8 +2,12 @@
 #include "../../../Constants.h"
 #include "../../Hook.h"
 #include <string>
+#include <vector>
 
 namespace Drawing {
+	// What text cut short to fit ends in.
+	#define TEXT_ELLIPSIS	".."
+
 	class Texthook : public Hook {
 		private:
 			std::string text;//Text to be drawn.
@@ -67,6 +71,17 @@ namespace Drawing {
 
 			//Handy function to have!
 			static POINT GetTextSize(std::string text, unsigned int font);
+
+			// The text broken into lines no wider than the width, on spaces where
+			// it can. A Texthook is one line and knows nothing about wrapping, so
+			// wrapped text is drawn as several of them.
+			static std::vector<std::string> Wrap(const std::string& text,
+				unsigned int width, unsigned int font);
+
+			// The text cut down until it is no wider than the width, ending in
+			// TEXT_ELLIPSIS where anything was cut, or "" where not even that fits.
+			static std::string Fit(const std::string& text, unsigned int width,
+				unsigned int font);
 			static POINT GetTextSize(wchar_t* text, unsigned int font);
 
 			//Static draw text function
