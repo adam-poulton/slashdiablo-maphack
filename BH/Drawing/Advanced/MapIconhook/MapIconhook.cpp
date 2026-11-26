@@ -140,37 +140,65 @@ void MapIconPreviewhook::OnDraw() {
 	Unlock();
 }
 
+/* MapIconContent
+ */
+unsigned int MapIconContent::GetX() {
+	return editor->GetX();
+}
+
+unsigned int MapIconContent::GetY() {
+	return editor->GetY();
+}
+
+unsigned int MapIconContent::GetXSize() {
+	return editor->GetXSize();
+}
+
+unsigned int MapIconContent::GetYSize() {
+	return editor->GetYSize();
+}
+
+bool MapIconContent::IsActive() {
+	return editor->IsActive();
+}
+
+HookVisibility MapIconContent::GetVisibility() {
+	return editor->GetScreen();
+}
+
 /* MapIconhook
  */
-MapIconhook::MapIconhook(HookGroup* parent, unsigned int x, unsigned int y,
+MapIconhook::MapIconhook(HookGroup* group, unsigned int x, unsigned int y,
 		MapIconStyle* style, MapIconOptions options) :
-		parent(parent), x(x), y(y), active(true), style(style), options(options),
+		Hook(group, x, y), style(style), options(options), content(NULL),
 		iconLabel(NULL), strip(NULL), sizeLabel(NULL), size(NULL), color(NULL),
 		line(NULL), lineColor(NULL), preview(NULL), xSize(0), ySize(0) {
+	content = new MapIconContent(this);
 	if (!options.icons.empty()) {
-		iconLabel = new Texthook(this, 0, 0, "Icon");
+		iconLabel = new Texthook(content, 0, 0, "Icon");
 		iconLabel->SetColor(MIH_LABEL_COLOR);
-		strip = new MapIconStriphook(this, MIH_LABEL_WIDTH, 0, style, options.icons);
+		strip = new MapIconStriphook(content, MIH_LABEL_WIDTH, 0, style, options.icons);
 	}
 	if (options.size) {
-		sizeLabel = new Texthook(this, 0, 0, "Size");
+		sizeLabel = new Texthook(content, 0, 0, "Size");
 		sizeLabel->SetColor(MIH_LABEL_COLOR);
-		size = new Sliderhook(this, MIH_LABEL_WIDTH, 0, MIH_SLIDER_WIDTH, &style->size,
-			MapIcon::MinSize, MapIcon::MaxSize, 1);
+		size = new Sliderhook(content, MIH_LABEL_WIDTH, 0, MIH_SLIDER_WIDTH,
+			&style->size, MapIcon::MinSize, MapIcon::MaxSize, 1);
 	}
-	color = new Colorhook(this, 0, 0, &style->color, "Color");
+	color = new Colorhook(content, 0, 0, &style->color, "Color");
 	if (options.line) {
-		line = new Checkhook(this, 0, 0, &style->line, "Draw line");
+		line = new Checkhook(content, 0, 0, &style->line, "Draw line");
 		line->SetTextColor(MIH_LABEL_COLOR);
 		line->SetHoverColor(MIH_LABEL_HOVER);
-		lineColor = new Colorhook(this, MIH_INDENT, 0, &style->lineColor, "Line color");
+		lineColor = new Colorhook(content, MIH_INDENT, 0, &style->lineColor, "Line color");
 	}
-	preview = new MapIconPreviewhook(this, 0, 0, style);
+	preview = new MapIconPreviewhook(content, 0, 0, style);
 	Layout();
 }
 
 MapIconhook::~MapIconhook() {
-	// Children are in this group and say so to it as they go, so they go first.
+	// The controls take themselves out of the content group as they go, so it
+	// goes last.
 	delete iconLabel;
 	delete strip;
 	delete sizeLabel;
@@ -179,6 +207,16 @@ MapIconhook::~MapIconhook() {
 	delete line;
 	delete lineColor;
 	delete preview;
+	delete content;
+}
+
+// The controls are in a group of the editor's own, which nothing else draws.
+void MapIconhook::OnDraw() {
+	if (!IsActive())
+		return;
+	Refresh();
+	for (HookIterator it = content->Hooks.begin(); it != content->Hooks.end(); ++it)
+		(*it)->OnDraw();
 }
 
 // Row by row from the top, each control's text set level with its label's. What

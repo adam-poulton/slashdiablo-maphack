@@ -166,8 +166,6 @@ void MapMarkersPanel::Layout() {
 		marker.editor->SetActive(editing);
 		marker.editor->SetBaseX(editorX);
 		marker.editor->SetBaseY(MM_TOP);
-		if (editing)
-			marker.editor->Refresh();
 
 		unsigned int y = MM_TOP + marker.editor->GetYSize() + MM_ATTACHED_GAP;
 		for (Attached& attached : marker.attached) {

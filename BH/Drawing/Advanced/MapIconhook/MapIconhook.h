@@ -44,21 +44,37 @@ namespace Drawing {
 			unsigned int GetYSize();
 	};
 
+	class MapIconhook;
+
+	// The corner the editor's controls are laid out from, which is the editor's
+	// own. A group of its own rather than the editor itself, as ScrollContent is:
+	// a Hook and a HookGroup both answer to GetX and GetY.
+	class MapIconContent : public HookGroup {
+		private:
+			MapIconhook* editor;
+		public:
+			MapIconContent(MapIconhook* owner) : editor(owner) {};
+
+			unsigned int GetX();
+			unsigned int GetY();
+			unsigned int GetXSize();
+			unsigned int GetYSize();
+			bool IsActive();
+			HookVisibility GetVisibility();
+	};
+
 	// Edits how one kind of marker is drawn: its icon, size and colour, and the
-	// line to it. A group of controls rather than one control, laid out from the
-	// group's corner, so it can be dropped into any panel and moved as one.
+	// line to it. One hook holding its controls, so it can be dropped into any
+	// panel, moved and put away as one, and is drawn by whatever draws the panel.
 	//
 	// It shows only what the options offer, and greys out what the style in hand
 	// has no use for: an icon drawn in the game's own colours has no colour to
 	// choose, a line that is off has none either.
-	class MapIconhook : public HookGroup {
+	class MapIconhook : public Hook {
 		private:
-			HookGroup* parent;
-			unsigned int x, y;
-			bool active;
-
 			MapIconStyle* style;
 			MapIconOptions options;
+			MapIconContent* content;
 
 			Texthook* iconLabel;
 			MapIconStriphook* strip;
@@ -72,25 +88,18 @@ namespace Drawing {
 			unsigned int xSize, ySize;
 
 			void Layout();
+
+			// Brings the controls up to date with the style: which are greyed out,
+			// and what the colour swatch is drawn as.
+			void Refresh();
 		public:
-			MapIconhook(HookGroup* parent, unsigned int x, unsigned int y,
+			MapIconhook(HookGroup* group, unsigned int x, unsigned int y,
 				MapIconStyle* style, MapIconOptions options);
 			~MapIconhook();
 
-			// Brings the controls up to date with the style: which are greyed out,
-			// and what the colour swatch is drawn as. Called every frame by whoever
-			// shows the editor, before it is drawn.
-			void Refresh();
-
-			void SetActive(bool newActive) { active = newActive; };
-			void SetBaseX(unsigned int newX) { x = newX; };
-			void SetBaseY(unsigned int newY) { y = newY; };
-
-			unsigned int GetX() { return parent->GetX() + x; };
-			unsigned int GetY() { return parent->GetY() + y; };
 			unsigned int GetXSize() { return xSize; };
 			unsigned int GetYSize() { return ySize; };
-			bool IsActive() { return active && parent->IsActive(); };
-			HookVisibility GetVisibility() { return parent->GetVisibility(); };
+
+			void OnDraw();
 	};
 };

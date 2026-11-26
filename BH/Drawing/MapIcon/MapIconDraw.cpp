@@ -21,8 +21,8 @@ namespace MapIcon {
 			CellContext* context = (CellContext*)buffer;
 			context->nCellNo = cell;
 			context->pCellFile = cells;
-			RECT clip = { 0, 0, (LONG)Drawing::Hook::GetScreenWidth(),
-				(LONG)Drawing::Hook::GetScreenHeight() };
+			CellClip clip = { 0, (int)Drawing::Hook::GetScreenWidth() - 1, 0,
+				(int)Drawing::Hook::GetScreenHeight() - 1 };
 			D2GFX_DrawAutomapCell(context, x, y, &clip, CellBrightness);
 		}
 

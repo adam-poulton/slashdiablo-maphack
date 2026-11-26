@@ -163,7 +163,7 @@ FUNCPTR(D2CLIENT, GetPlayerUnit, UnitAny* __stdcall, (void), 0xA4D60, 0x613C0)
 
 FUNCPTR(D2CLIENT, GetLevelName_I, wchar_t* __fastcall, (DWORD levelId), 0xBE240, 0x18250)
 
-FUNCPTR(D2GFX, DrawAutomapCell, void __stdcall, (CellContext *context, DWORD xpos, DWORD ypos, RECT *cliprect, DWORD bright), -10079, -10060)
+FUNCPTR(D2GFX, DrawAutomapCell, void __stdcall, (CellContext *context, DWORD xpos, DWORD ypos, CellClip *clip, DWORD bright), -10079, -10060)
 ASMPTR(D2CLIENT, OverrideShrinePatch_ORIG, 0x1155B8, 0x101B08)//Updated 1.13c
 
 ////////////////////////////////////////////////////////////////////////////////////////////////

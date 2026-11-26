@@ -30,7 +30,6 @@ struct BaseSkill {
 // is marked in its place.
 struct SuperChestAnchor {
 	ChestKind::Point position;
-	int reach;
 	bool matched;		// a closed chest within reach was seen this time round
 	bool sawOpened;		// an opened one was
 };

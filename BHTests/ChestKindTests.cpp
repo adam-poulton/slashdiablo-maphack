@@ -66,7 +66,7 @@ TEST_CASE("an urn's top bit is not a lock") {
 		LowerKurastOnly) == Container);
 }
 
-TEST_CASE("a chest by a Lower Kurast fire is a super chest") {
+TEST_CASE("a chest at a super chest preset is a super chest") {
 	CHECK(Classify(PlainChest, true, LowerKurastOnly) == SuperChest);
 	CHECK(Classify(PlainChest, true, Everywhere) == SuperChest);
 }
@@ -76,7 +76,7 @@ TEST_CASE("a super chest is marked as one ahead of its trap or lock") {
 		LowerKurastOnly) == SuperChest);
 }
 
-TEST_CASE("what else stands by a Lower Kurast fire is not the super chest") {
+TEST_CASE("what else stands at a super chest preset is not the super chest") {
 	CHECK(Classify(Urn, true, LowerKurastOnly) == Container);
 	CHECK(Classify(Object(OperateStash, InitTrapped), true, LowerKurastOnly) == Container);
 }
@@ -97,11 +97,11 @@ TEST_CASE("what cannot be clicked, or holds nothing, is not marked") {
 }
 
 TEST_CASE("a position is near an anchor within reach on both axes") {
-	std::vector<Point> fires = { { 100, 100 }, { 300, 50 } };
+	std::vector<Point> presets = { { 100, 100 }, { 300, 50 } };
 
-	CHECK(NearAny(Point{ 108, 92 }, fires, 8));
-	CHECK(NearAny(Point{ 300, 50 }, fires, 8));
-	CHECK_FALSE(NearAny(Point{ 109, 100 }, fires, 8));
-	CHECK_FALSE(NearAny(Point{ 100, 91 }, fires, 8));
-	CHECK_FALSE(NearAny(Point{ 100, 100 }, {}, 8));
+	CHECK(NearAny(Point{ 101, 99 }, presets, 1));
+	CHECK(NearAny(Point{ 300, 50 }, presets, 1));
+	CHECK_FALSE(NearAny(Point{ 102, 100 }, presets, 1));
+	CHECK_FALSE(NearAny(Point{ 100, 98 }, presets, 1));
+	CHECK_FALSE(NearAny(Point{ 100, 100 }, {}, 1));
 }

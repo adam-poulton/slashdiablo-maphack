@@ -20,8 +20,8 @@ namespace ChestKind {
 	};
 
 	// Where super chests are marked as such. Lower Kurast's are the ones players
-	// have always had marked; the sparkly chests elsewhere are the same thing in
-	// every way the game cares about.
+	// have always had marked. Everywhere adds the super chest presets of other
+	// levels and the sparkly chests.
 	enum SuperScope {
 		LowerKurastOnly,
 		Everywhere,
@@ -63,22 +63,20 @@ namespace ChestKind {
 	const unsigned int InteractLocked = 0x80;
 	const unsigned int InteractTrap = 0x7F;
 
-	// The Lower Kurast fire the huts that hold its super chests are built around
-	// (objects.txt 160, fire small), as a preset in the level.
-	const unsigned int LowerKurastFire = 160;
+	// The preset a super chest is placed from. It has no row in objects.txt: the
+	// server turns it into one of the act's chests and flags that chest (D2Game
+	// 0x331B0). Lower Kurast's huts hold them, and that handler has cases of its
+	// own for the Forgotten Tower and the Maggot Lair.
+	const unsigned int SuperChestPreset = 580;
 
-	// How far from a Lower Kurast fire, in subtiles, a chest counts as the hut's
-	// super chest.
-	const int LowerKurastFireReach = 8;
-
-	// The kind of marker the object gets, NotMarked for none. lowerKurastSuper
-	// is whether it stands by a Lower Kurast fire, which only the caller can tell;
-	// only a chest standing there is the super chest.
+	// The kind of marker the object gets, NotMarked for none. atSuperChestPreset
+	// is whether it stands where a super chest preset placed something, which only
+	// the caller can tell; only a chest standing there is the super chest.
 	//
 	// A super chest is marked as one ahead of whatever else it is, since that is
 	// what makes it worth the detour; a trap ahead of a lock, since it is what
 	// costs you to open it.
-	Kind Classify(const ObjectFacts& facts, bool lowerKurastSuper, SuperScope scope);
+	Kind Classify(const ObjectFacts& facts, bool atSuperChestPreset, SuperScope scope);
 
 	// Whether the object is one of the kinds marked at all.
 	bool IsMarkable(const ObjectFacts& facts);

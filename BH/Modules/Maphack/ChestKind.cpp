@@ -36,11 +36,10 @@ namespace ChestKind {
 		return initFn == InitChest || initFn == InitSparklyChest;
 	}
 
-	Kind Classify(const ObjectFacts& facts, bool lowerKurastSuper, SuperScope scope) {
+	Kind Classify(const ObjectFacts& facts, bool atSuperChestPreset, SuperScope scope) {
 		if (!IsMarkable(facts))
 			return NotMarked;
-		// The huts hold baskets and stashes as well, as near the fire as the chest.
-		if ((lowerKurastSuper && facts.operateFn == OperateChest) ||
+		if ((atSuperChestPreset && facts.operateFn == OperateChest) ||
 				(scope == Everywhere && IsSparkly(facts)))
 			return SuperChest;
 		// An exploding barrel is a trap whatever its byte says: what it does when

@@ -119,6 +119,16 @@ struct CellContext {
 	CellFile* pCellFile;			//0x34
 };
 
+// The area D2GFX_DrawAutomapCell keeps a cell inside, inclusive on every side.
+// Not a RECT: both x bounds come first (D2Client 0x60468 fills it for the
+// minimap as 0, width - 1, 0, height - 1).
+struct CellClip {
+	int left;						//0x00
+	int right;						//0x04
+	int top;						//0x08
+	int bottom;						//0x0C
+};
+
 struct AutomapLayer {
 	DWORD nLayerNo;					//0x00
 	DWORD fSaved;					//0x04

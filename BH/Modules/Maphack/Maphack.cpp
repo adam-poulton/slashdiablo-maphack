@@ -76,7 +76,7 @@ static const struct {
 } ChestMarkers[ChestKind::KindCount] = {
 	{ "Chest Marker", "Chests", "Chests that open with a click." },
 	{ "Locked Chest Marker", "Locked chests", "Chests that need a key." },
-	{ "Super Chest Marker", "Super chests", "Chests by Lower Kurast's fires, and if chosen, sparkly chests." },
+	{ "Super Chest Marker", "Super chests", "Lower Kurast's hut chests, and if chosen, every other super chest and sparkly chest." },
 	{ "Container Marker", "Barrels and containers", "Barrels, urns, corpses, racks and stashes." },
 	{ "Trapped Marker", "Trapped", "Anything trapped, and exploding barrels." },
 };
@@ -112,9 +112,9 @@ static void DrawChestMarker(const MapIconStyle& style, int x, int y, POINT playe
 	MapIcon::DrawAt(style.Icon(), style.size, x, y, style.color);
 }
 
-// How near a sparkly chest's preset a live chest has to be to be that chest. They
-// stand where the preset put them.
-#define SPARKLY_PRESET_REACH	1
+// How near a chest's preset, in subtiles, a live chest has to be to be that
+// chest. They stand where the preset put them.
+#define CHEST_PRESET_REACH		1
 
 // The rows of objects.txt. A preset object past them is a placeholder the game
 // turns into an object as the room is populated (D2Game 0x2F3A0 refuses one as an
@@ -663,9 +663,8 @@ void Maphack::OnLoop() {
 	}
 }
 
-// Lower Kurast's fires stand in the huts that hold its super chests, and a level
-// says where its sparkly chests are. Both are known for the whole level, where a
-// live chest is known only once its room is.
+// A level's presets say where its super chests and sparkly chests are for the
+// whole level, where a live chest is known only once its room is.
 std::vector<SuperChestAnchor> Maphack::FindSuperChestAnchors(Level* level) {
 	std::vector<SuperChestAnchor> anchors;
 	bool lowerKurast = level->dwLevelNo == MAP_A3_LOWER_KURAST;
@@ -678,16 +677,15 @@ std::vector<SuperChestAnchor> Maphack::FindSuperChestAnchors(Level* level) {
 				continue;
 			ChestKind::Point at = { (int)(preset->dwPosX + room->dwPosX * 5),
 				(int)(preset->dwPosY + room->dwPosY * 5) };
-			if (lowerKurast && preset->dwTxtFileNo == ChestKind::LowerKurastFire) {
-				anchors.push_back(SuperChestAnchor{ at, ChestKind::LowerKurastFireReach,
-					false, false });
+			if (preset->dwTxtFileNo == ChestKind::SuperChestPreset) {
+				anchors.push_back(SuperChestAnchor{ at, false, false });
 				continue;
 			}
 			if (!everywhere || preset->dwTxtFileNo >= OBJECT_TXT_ROWS)
 				continue;
 			ObjectTxt* txt = D2COMMON_GetObjectTxt(preset->dwTxtFileNo);
 			if (txt && txt->nInitFn == ChestKind::InitSparklyChest)
-				anchors.push_back(SuperChestAnchor{ at, SPARKLY_PRESET_REACH, false, false });
+				anchors.push_back(SuperChestAnchor{ at, false, false });
 		}
 	}
 	return anchors;
@@ -996,7 +994,7 @@ void Maphack::OnAutomapDraw() {
 					bool atAnchor = false;
 					if (facts.operateFn == ChestKind::OperateChest) {
 						for (SuperChestAnchor& anchor : anchors) {
-							if (!ChestKind::NearAny(at, { anchor.position }, anchor.reach))
+							if (!ChestKind::NearAny(at, { anchor.position }, CHEST_PRESET_REACH))
 								continue;
 							if (opened)
 								anchor.sawOpened = true;
