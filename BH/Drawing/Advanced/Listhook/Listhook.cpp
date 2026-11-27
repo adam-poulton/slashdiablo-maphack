@@ -523,6 +523,11 @@ bool Listhook::CoveredByFloater(Hook* below, unsigned int x, unsigned int y) {
 			it != floaters.end(); ++it) {
 		if ((*it) == below || !(*it)->IsActive())
 			continue;
+		// A list whose own window is behind another one here covers nothing
+		// of that window.
+		HookGroup* window = (*it)->GetGroup();
+		if (window && window->IsCoveredAt(x, y))
+			continue;
 		// The panel it draws for itself, rather than its rows, since that is
 		// what is actually covering whatever is underneath.
 		unsigned int left = ((*it)->GetX() > LIST_FLOAT_PADDING) ?

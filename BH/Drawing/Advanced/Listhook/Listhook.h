@@ -267,11 +267,11 @@ namespace Drawing {
 			bool IsFloating() { return floating; };
 			void SetFloating(bool float_);
 
-			// Whether a point is under some other floating list. Clicks are
-			// settled by the z order, but the mouse is read rather than
-			// dispatched - a row lights up under it, and a panel hangs a summary
-			// off whichever row that is - and reading it takes no account of
-			// what is drawn on top.
+			// Whether a point is under some other floating list, one that is
+			// not itself behind another window there. What a floating list
+			// covers hears no press or wheel on that point and is not hovered
+			// through it: a box under the list would otherwise take the caret
+			// from the press that was choosing from the list.
 			static bool CoveredByFloater(Hook* below, unsigned int x,
 				unsigned int y);
 

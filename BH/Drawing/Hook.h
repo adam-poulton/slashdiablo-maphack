@@ -195,8 +195,8 @@ namespace Drawing {
 			//Determine if the given x/y set is within the hooks drawing area.
 			bool InRange(unsigned int x, unsigned int y);
 
-			// Whether something drawn in front of the hook's group hides this
-			// point. A hook in no group is never behind anything.
+			// Whether something drawn in front of the hook hides this point: a
+			// window over its group, or a floating list hanging over it.
 			bool IsCoveredAt(unsigned int x, unsigned int y);
 
 

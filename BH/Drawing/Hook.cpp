@@ -1,6 +1,7 @@
 #include "Hook.h"
 #include "Advanced/Colorhook/Colorhook.h"
 #include "Advanced/Combohook/Combohook.h"
+#include "Advanced/Listhook/Listhook.h"
 #include "../D2Ptrs.h"
 #include <cmath>
 
@@ -311,7 +312,9 @@ void Hook::SetRightCallback(OnClick rightHandler, void *voidVar) {
  *	they meet.
  */
 bool Hook::IsCoveredAt(unsigned int x, unsigned int y) {
-	return group ? group->IsCoveredAt(x, y) : false;
+	if (group && group->IsCoveredAt(x, y))
+		return true;
+	return Listhook::CoveredByFloater(this, x, y);
 }
 
 bool Hook::InRange(unsigned int x, unsigned int y) {
@@ -520,9 +523,10 @@ bool Hook::LeftClick(HookVisibility screen, bool up, unsigned int x, unsigned in
 			continue;
 		if (!(*it)->AnswersOn(screen))
 			continue;
-		// A hook under another window still hears that there was a press, so
-		// its box gives up the caret and its dropdown shuts, but hears it as
-		// one that landed nowhere near it and cannot claim it.
+		// A hook under another window or a floating list still hears that
+		// there was a press, so its box gives up the caret and its dropdown
+		// shuts, but hears it as one that landed nowhere near it and cannot
+		// claim it.
 		if ((*it)->IsCoveredAt(x, y)) {
 			(*it)->OnLeftClick(false, PRESS_ELSEWHERE, PRESS_ELSEWHERE);
 			continue;
