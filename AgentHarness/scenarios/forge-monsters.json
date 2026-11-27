@@ -1,0 +1,47 @@
+{
+  "title": "The Forge's Monsters tab lists the ranks and the rules, and edits a rule",
+  "start": "game",
+  "settings": {"Show Forge": "True, VK_F9"},
+  "steps": [
+    {"do": ["key:f9", "wait:0.8", "click:410,22", "wait:0.6", "move:900,560"]},
+    {"check": "the ranks are listed under their caption", "drawn": {"text": "By rank", "inside": [0, 30, 190, 30]}},
+    {"check": "a rank is a marker in the list", "drawn": {"text": "Boss", "inside": [0, 130, 190, 50]}},
+    {"check": "the rules BH starts with are listed under their caption", "drawn": {"text": "Rules", "inside": [0, 160, 190, 40]}},
+    {"check": "the Cow King's herd is one of them, and not a rank", "drawn": {"text": "Cow King's herd", "inside": [0, 190, 190, 40]}},
+    {"check": "a rule can be added from under the list", "drawn": {"text": "+ Add rule", "inside": [0, 410, 190, 40]}},
+    {"check": "a rank is edited as any marker is", "drawn": {"text": "Preview", "inside": [180, 30, 380, 30]}},
+    {"shot": "ranks"},
+
+    {"do": ["move:40,184", "wait:1.0"]},
+    {"check": "pointing at the Rules heading says how they combine", "drawn": {"contains": "Rules apply top to bottom"}},
+    {"shot": "tip"},
+
+    {"do": ["click:70,260", "wait:0.6", "move:900,560"]},
+    {"check": "a rule is edited as what it matches", "drawn": {"text": "Monsters", "inside": [180, 55, 120, 30]}},
+    {"check": "the ubers go by their own names", "drawn": {"contains": "Diablo Clone, Lilith", "inside": [240, 55, 320, 30]}},
+    {"check": "it can be held to a difficulty", "drawn": {"text": "Nightmare", "inside": [240, 100, 320, 30]}},
+    {"check": "it can leave the icon as it finds it", "drawn": {"text": "Unchanged", "inside": [240, 255, 180, 40]}},
+    {"check": "it can be moved and removed, from the foot of the tab", "drawn": {"text": "Remove", "inside": [180, 410, 380, 40]}},
+    {"shot": "rule"},
+
+    {"do": ["click:420,70", "wait:0.5", "text:diablo", "wait:0.6", "move:600,400"]},
+    {"check": "what is picked already is listed first", "drawn": {"text": "Picked", "inside": [240, 80, 320, 30]}},
+    {"check": "a name the game gives to three monsters lists each apart", "drawn": {"text": "Pandemonium Diablo", "inside": [240, 80, 320, 160]}},
+    {"check": "the act boss among them", "drawn": {"text": "Diablo", "inside": [240, 80, 320, 160]}},
+    {"shot": "picker"},
+
+    {"do": ["key:backspace", "key:backspace", "key:backspace", "key:backspace", "key:backspace", "key:backspace", "text:cow", "wait:0.6", "move:600,400"]},
+    {"check": "the Cow King's herd can be picked like a monster", "drawn": {"text": "Cow King's herd", "inside": [240, 80, 320, 160]}},
+    {"check": "beside the Cow King himself", "drawn": {"text": "The Cow King", "inside": [240, 80, 320, 160]}},
+    {"shot": "herd"},
+
+    {"do": ["click:500,158", "wait:0.4", "click:55,432", "wait:0.6", "move:900,560"]},
+    {"check": "a new rule matches every monster until it is told otherwise", "drawn": {"text": "Every monster", "inside": [0, 30, 190, 440]}},
+    {"check": "and the window offers to put things back", "drawn": {"text": "revert changes"}},
+    {"shot": "added"},
+
+    {"do": ["click:60,22", "wait:0.6", "move:900,560"]},
+    {"check": "the Clickables tab is as it was", "drawn": {"text": "Regular chests", "inside": [0, 30, 190, 40]}},
+    {"shot": "clickables"}
+  ]
+}

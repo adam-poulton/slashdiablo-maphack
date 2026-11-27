@@ -117,6 +117,61 @@ static std::vector<MapIcon::Icon> ChestIcons() {
 	return icons;
 }
 
+// Each marker a monster starts from, in MonsterMarks::Rank order: what it is kept
+// as in the "monsters" section of the Forge's file, and what it is called and said
+// to be on the Monsters tab, where it is styled.
+static const char* const MonsterTab = "monsters";
+static const struct {
+	const char* id;
+	const char* label;
+	const char* help;
+} MonsterMarkers[MonsterMarks::RankCount] = {
+	{ "normal", "Normal", "Monsters that are not a champion, a boss or a boss's minion." },
+	{ "minion", "Minion", "The monsters a boss leads." },
+	{ "champion", "Champion", "Champions of every kind." },
+	{ "boss", "Boss", "Unique monsters, the super uniques among them." },
+};
+
+static std::string MonsterMarkerKey(MonsterMarks::Rank rank) {
+	return std::string(MonsterTab) + "." + MonsterMarkers[rank].id;
+}
+
+// Every icon but the game's chest sprite, which is a chest wherever it is drawn.
+static std::vector<MapIcon::Icon> MonsterIcons() {
+	std::vector<MapIcon::Icon> icons;
+	for (int icon = 0; icon < MapIcon::IconCount; icon++)
+		if (icon != MapIcon::Chest)
+			icons.push_back((MapIcon::Icon)icon);
+	return icons;
+}
+
+// A setting's entries whose bracketed key is a number, as (key, value), in the
+// order of their keys. Its other entries are named ones, read elsewhere.
+static std::vector<std::pair<unsigned int, unsigned int>> NumberedEntries(
+		const std::map<string, string>& entries) {
+	std::vector<std::pair<unsigned int, unsigned int>> numbered;
+	for (const std::pair<const string, string>& entry : entries) {
+		int id = -1;
+		stringstream ss(entry.first);
+		if ((ss >> id).fail() || id < 0)
+			continue;
+		numbered.push_back({ (unsigned int)id, (unsigned int)StringToNumber(entry.second) });
+	}
+	std::sort(numbered.begin(), numbered.end());
+	return numbered;
+}
+
+// The line first, so the icon sits on the end of it. A marker that is only an
+// outline is drawn as lines: there is one for every monster on the map.
+static void DrawMonsterMarker(const MapIconStyle& style, POINT at, POINT player) {
+	if (style.line)
+		Linehook::Draw(player.x, player.y, at.x, at.y, style.lineColor);
+	if (MonsterMarks::IsOutlineOnly(style))
+		MapIcon::DrawOutline(style.Icon(), style.size, at.x, at.y, style.borderColor);
+	else
+		MapIcon::Draw(style.Icon(), style.size, at.x, at.y, style.Look());
+}
+
 static void DrawChestMarker(const MapIconStyle& style, int x, int y, POINT player) {
 	if (style.line) {
 		POINT at;
@@ -248,6 +303,7 @@ Maphack::Maphack() : Module("Maphack") {
 	lkLinesColor = 105;
 	superChestScope = ChestKind::LowerKurastOnly;
 	forgetOpenedAnchors = false;
+	drawnMonsterRevision = monsterRules.Revision() - 1;
 	experienceRangeColor = DEFAULT_EXPERIENCE_RANGE_COLOR;
 	roomFrontierColor = DEFAULT_ROOM_FRONTIER_COLOR;
 
@@ -259,13 +315,56 @@ Maphack::Maphack() : Module("Maphack") {
 }
 
 void Maphack::LoadConfig() {
-	enhancementColors.clear();
-	auraColors.clear();
-	automapMonsterColors.clear();
-	automapMonsterLines.clear();
-	automapHiddenMonsters.clear();
-
 	ReadConfig();
+}
+
+void Maphack::ReadMonsterMarks() {
+	legacyMonsterColors.clear();
+	legacySuperUniqueColors.clear();
+	legacyMonsterLines.clear();
+	legacyMonsterHides.clear();
+	BH::config->ReadAssoc("Monster Color", monsterColors);
+	BH::config->ReadAssoc("Monster Color", legacyMonsterColors);
+	BH::config->ReadAssoc("Super Unique Color", legacySuperUniqueColors);
+	BH::config->ReadAssoc("Monster Line", legacyMonsterLines);
+	BH::config->ReadAssoc("Monster Hide", legacyMonsterHides);
+
+	MonsterMarks::Legacy legacy;
+	legacy.monsterColors = NumberedEntries(legacyMonsterColors);
+	legacy.superUniqueColors = NumberedEntries(legacySuperUniqueColors);
+	legacy.monsterLines = NumberedEntries(legacyMonsterLines);
+	for (const std::pair<unsigned int, unsigned int>& hidden : NumberedEntries(legacyMonsterHides))
+		legacy.hidden.push_back(hidden.first);
+	std::vector<std::pair<std::string, std::string>> listed;
+	BH::config->ReadMapList("Enhancement Color", listed);
+	for (const std::pair<std::string, std::string>& entry : listed)
+		legacy.enhancementColors.push_back({ (unsigned int)StringToNumber(entry.first),
+			(unsigned int)StringToNumber(entry.second) });
+	listed.clear();
+	BH::config->ReadMapList("Aura Color", listed);
+	for (const std::pair<std::string, std::string>& entry : listed)
+		legacy.auraColors.push_back({ (unsigned int)StringToNumber(entry.first),
+			(unsigned int)StringToNumber(entry.second) });
+	legacyMonsterRules = MonsterMarks::FromLegacy(legacy);
+
+	const unsigned int colors[MonsterMarks::RankCount] = {
+		monsterColors["Normal"], monsterColors["Minion"], monsterColors["Champion"],
+		monsterColors["Boss"],
+	};
+	ForgeStore& forge = BH::forge->GetStore();
+	for (int rank = 0; rank < MonsterMarks::RankCount; rank++)
+		forge.BindStyle(MonsterTab, MonsterMarkers[rank].id, &monsterStyles[rank],
+			MonsterMarks::CrossStyle(colors[rank] % MapIcon::PaletteSize));
+	// The file's rules, or with none there, or none that can be read, the
+	// ones BH starts with: the Cow King's herd, and what the old settings amount
+	// to.
+	forge.BindValue(MonsterTab, "rules",
+		[this]() { return monsterRules.Json(); },
+		[this](const std::string* stored) {
+			if (!stored || !monsterRules.SetJson(*stored))
+				monsterRules.Set(legacyMonsterRules);
+		},
+		[this]() { return monsterRules.Json() == MonsterMarks::ToJson(legacyMonsterRules); });
 }
 
 void Maphack::ReadConfig() {
@@ -282,7 +381,7 @@ void Maphack::ReadConfig() {
 
 
 	BH::config->ReadAssoc("Missile Color", missileColors);
-	BH::config->ReadAssoc("Monster Color", monsterColors);
+	ReadMonsterMarks();
 
 	TextColorMap["\377c0"] = 0x20;  // white
 	TextColorMap["\377c1"] = 0x0A;  // red
@@ -300,71 +399,6 @@ void Maphack::ReadConfig() {
 	TextColorMap["\377c\x07"] = 0x82; // sage
 	TextColorMap["\377c\x09"] = 0xCB; // teal
 	TextColorMap["\377c\x0C"] = 0xD6; // light gray
-
-	std::vector<std::pair<std::string, std::string>> enhancementColorsString;
-	BH::config->ReadMapList("Enhancement Color", enhancementColorsString);
-	for (auto& entry : enhancementColorsString) {
-		enhancementColors.push_back(std::pair(StringToNumber(entry.first), StringToNumber(entry.second)));
-	}
-	std::vector<std::pair<std::string, std::string>> auraColorsString;
-	BH::config->ReadMapList("Aura Color", auraColorsString);
-	for (auto& entry : auraColorsString) {
-		auraColors.push_back(std::pair(StringToNumber(entry.first), StringToNumber(entry.second)));
-	}
-
-
-	BH::config->ReadAssoc("Monster Color", MonsterColors);
-	for (auto it = MonsterColors.cbegin(); it != MonsterColors.cend(); it++) {
-		// If the key is a number, it means a monster we've assigned a specific color
-		int monsterId = -1;
-		stringstream ss((*it).first);
-		if ((ss >> monsterId).fail()) {
-			continue;
-		} else {
-			int monsterColor = StringToNumber((*it).second);
-			automapMonsterColors[monsterId] = monsterColor;
-		}
-	}
-
-	BH::config->ReadAssoc("Super Unique Color", SuperUniqueColors);
-	for (auto it = SuperUniqueColors.cbegin(); it != SuperUniqueColors.cend(); it++) {
-		// If the key is a number, it means a monster we've assigned a specific color
-		int monsterId = -1;
-		stringstream ss((*it).first);
-		if ((ss >> monsterId).fail()) {
-			continue;
-		}
-		else {
-			int monsterColor = StringToNumber((*it).second);
-			automapSuperUniqueColors[monsterId] = monsterColor;
-		}
-	}
-
-	
-	BH::config->ReadAssoc("Monster Line", MonsterLines);
-	for (auto it = MonsterLines.cbegin(); it != MonsterLines.cend(); it++) {
-		// If the key is a number, it means a monster we've assigned a specific color
-		int monsterId = -1;
-		stringstream ss((*it).first);
-		if ((ss >> monsterId).fail()) {
-			continue;
-		} else {
-			int lineColor = StringToNumber((*it).second);
-			automapMonsterLines[monsterId] = lineColor;
-		}
-	}
-
-	BH::config->ReadAssoc("Monster Hide", MonsterHides);
-	for (auto it = MonsterHides.cbegin(); it != MonsterHides.cend(); it++) {
-		// If the key is a number, it means do not draw this monster on map
-		int monsterId = -1;
-		stringstream ss((*it).first);
-		if ((ss >> monsterId).fail()) {
-			continue;
-		} else {
-			automapHiddenMonsters.push_back(monsterId);
-		}
-	}
 
 	BH::config->ReadToggle("Reveal Map", "None", true, Toggles["Auto Reveal"]);
 	BH::config->ReadToggle("Show Monsters", "None", true, Toggles["Show Monsters"]);
@@ -535,7 +569,8 @@ void Maphack::OnLoad() {
 		"How much of the game is revealed at once.");
 
 	Settings::AddToggle(GetName(), Settings::Category::Map, "Show Monsters", "Show monsters",
-		&Toggles["Show Monsters"], "Marks monsters on the automap.");
+		&Toggles["Show Monsters"],
+		"Marks monsters on the automap. How each is marked is set in the Forge.");
 	Settings::AddToggle(GetName(), Settings::Category::Map, "Monster Enchantments", "Enchantments",
 		&Toggles["Monster Enchantments"],
 		"Names the enchantments a champion or boss is carrying.", "Show Monsters");
@@ -591,15 +626,16 @@ void Maphack::OnLoad() {
 		"again. Higher costs less to draw and lets what is on the automap lag "
 		"further behind where it actually is.");
 
-	Settings::AddHeading(GetName(), Settings::Category::Map, "Monster colors");
-	Settings::AddColor(GetName(), Settings::Category::Map, "Monster Color: Normal", "Normal",
-		&monsterColors["Normal"], "", "Show Monsters", MapIcon::Cross);
-	Settings::AddColor(GetName(), Settings::Category::Map, "Monster Color: Minion", "Minion",
-		&monsterColors["Minion"], "", "Show Monsters", MapIcon::Cross);
-	Settings::AddColor(GetName(), Settings::Category::Map, "Monster Color: Champion", "Champion",
-		&monsterColors["Champion"], "", "Show Monsters", MapIcon::Cross);
-	Settings::AddColor(GetName(), Settings::Category::Map, "Monster Color: Boss", "Boss",
-		&monsterColors["Boss"], "", "Show Monsters", MapIcon::Cross);
+	for (int rank = 0; rank < MonsterMarks::RankCount; rank++)
+		Settings::AddMapIcon(GetName(), Settings::Category::Monsters,
+			MonsterMarkerKey((MonsterMarks::Rank)rank), MonsterMarkers[rank].label,
+			&monsterStyles[rank], MapIconOptions(MonsterIcons(), true, true),
+			MonsterMarkers[rank].help, "Show Monsters");
+	Settings::AddRecord(GetName(), Settings::Category::Monsters,
+		std::string(MonsterTab) + ".rules", "Rules",
+		[this]() { return monsterRules.Json(); },
+		[this](const std::string& text) { monsterRules.SetJson(text); },
+		"", "Show Monsters");
 
 	Settings::AddHeading(GetName(), Settings::Category::Map, "Missile colors");
 	Settings::AddColor(GetName(), Settings::Category::Map, "Missile Color: Player", "Player",
@@ -787,6 +823,11 @@ void Maphack::OnAutomapDraw() {
 		Level* level = player->pPath->pRoom1->pRoom2->pLevel;
 		if (forgetOpenedAnchors.exchange(false))
 			openedAnchors.clear();
+		if (drawnMonsterRevision != monsterRules.Revision()) {
+			drawnMonsterRevision = monsterRules.Revision();
+			drawnMonsterRules = monsterRules.Get();
+			drawnMonsterAuras = MonsterMarks::AurasAsked(drawnMonsterRules);
+		}
 		bool showChests = Toggles["Show Chests"].state;
 		std::vector<SuperChestAnchor> anchors;
 		if (showChests)
@@ -807,39 +848,32 @@ void Maphack::OnAutomapDraw() {
 
 				// Draw monster on automap
 				if (unit->dwType == UNIT_MONSTER && IsValidMonster(unit) && Toggles["Show Monsters"].state) {
-					int lineColor = -1;
-					int color = monsterColors["Normal"];
-					if (unit->pMonsterData->fBoss)
-						color = monsterColors["Boss"];
-					if (unit->pMonsterData->fChamp)
-						color = monsterColors["Champion"];
-					if (unit->pMonsterData->fMinion)
-						color = monsterColors["Minion"];
-					//Cow king pack
-					if (unit->dwTxtFileNo == 391 &&
-							unit->pMonsterData->anEnchants[0] == ENCH_MAGIC_RESISTANT &&
-							unit->pMonsterData->anEnchants[1] == ENCH_LIGHTNING_ENCHANTED &&
-							unit->pMonsterData->anEnchants[3] != 0)
-						color = 0xE1;
+					MonsterMarks::Facts facts;
+					facts.txtId = unit->dwTxtFileNo;
+					facts.boss = unit->pMonsterData->fBoss;
+					facts.champion = unit->pMonsterData->fChamp;
+					facts.minion = unit->pMonsterData->fMinion;
+					facts.superUnique = unit->pMonsterData->fSuperUniq;
+					facts.superUniqueId = unit->pMonsterData->wUniqueNo;
+					facts.difficulty = D2CLIENT_GetDifficulty();
+					for (unsigned int n = 0; n < MonsterMarks::EnchantSlots; n++)
+						facts.enchants[n] = unit->pMonsterData->anEnchants[n];
 
-					// User can override colors of non-boss monsters
-					if (automapMonsterColors.find(unit->dwTxtFileNo) != automapMonsterColors.end() && !unit->pMonsterData->fBoss) {
-						color = automapMonsterColors[unit->dwTxtFileNo];
-					}
-
-					// User can hide monsters from map
-					if (std::find(automapHiddenMonsters.begin(), automapHiddenMonsters.end(), unit->dwTxtFileNo) != automapHiddenMonsters.end() ) {
+					if (!Toggles["Show Normal Monsters"].state &&
+							MonsterMarks::RankOf(facts) == MonsterMarks::Normal) {
 						continue;
 					}
 
-					if (!Toggles["Show Normal Monsters"].state && !unit->pMonsterData->fBoss && !unit->pMonsterData->fChamp && !unit->pMonsterData->fMinion) {
+					facts.level = D2COMMON_GetUnitStat(unit, STAT_LEVEL, 0);
+					if (facts.HasEnchant(MonsterMarks::EnchantAura)) {
+						for (unsigned int aura : drawnMonsterAuras)
+							if (D2COMMON_GetUnitState(unit, aura) != 0)
+								facts.auras.push_back(aura);
+					}
+					MapIconStyle style = MonsterMarks::Resolve(
+						monsterStyles[MonsterMarks::RankOf(facts)], drawnMonsterRules, facts);
+					if (!style.Draws())
 						continue;
-					}
-
-					// User can make it draw lines to monsters
-					if (automapMonsterLines.find(unit->dwTxtFileNo) != automapMonsterLines.end() ) {
-						lineColor = automapMonsterLines[unit->dwTxtFileNo];
-					}
 
 					//Determine immunities
 					string szImmunities[] = { "\377c0p", "\377c8i", "\377c1i", "\377c9i", "\377c3i", "\377c2i" };
@@ -862,14 +896,12 @@ void Maphack::OnAutomapDraw() {
 							immunityText += szResistances[n];
 						}
 					}
-					
-					std::unordered_map<unsigned int, bool> enhancements;
 
 					//Determine Enchantments
 					string enchantText;
 					string szEnchantments[] = {"\377c3m", "\377c1e", "\377c9e", "\377c3e"};
 					string szCursed = "\377c;C";
-						
+
 					for (int n = 0; n < 9; n++) {
 						if (Toggles["Monster Enchantments"].state && unit->pMonsterData->fBoss) {
 							if (unit->pMonsterData->anEnchants[n] == ENCH_MANA_BURN)
@@ -885,46 +917,18 @@ void Maphack::OnAutomapDraw() {
 							if (unit->pMonsterData->anEnchants[n] == ENCH_CURSED)
 								enchantText += szCursed;
 						}
-						enhancements[unit->pMonsterData->anEnchants[n]] = true;
-					}
-
-					for (auto& enhancement : enhancementColors) {
-						if (enhancements.find(enhancement.first) != enhancements.end() && enhancement.second > 0 && !unit->pMonsterData->fBoss) {
-							color = enhancement.second;
-							break;
-						}
-					}
-
-					// User can override colors of super unique monsters
-					if (unit->pMonsterData->fSuperUniq &&
-						automapSuperUniqueColors.find(unit->pMonsterData->wUniqueNo) != automapSuperUniqueColors.end()) {
-						color = automapSuperUniqueColors[unit->pMonsterData->wUniqueNo];
-						lineColor = automapSuperUniqueColors[unit->pMonsterData->wUniqueNo];
-					}
-
-					// auras has highest predence
-					if (enhancements[ENCH_AURACHANT]) {
-						for (auto& enhancement : auraColors) {
-							if (D2COMMON_GetUnitState(unit, enhancement.first) != 0 && enhancement.second > 0) {
-								color = enhancement.second;
-								break;
-							}
-						}
 					}
 
 					xPos = unit->pPath->xPos;
 					yPos = unit->pPath->yPos;
-					automapBuffer.push([immunityText, enchantText, color, xPos, yPos, lineColor, MyPos]()->void{
+					automapBuffer.push([immunityText, enchantText, style, xPos, yPos, MyPos]()->void{
 						POINT automapLoc;
 						Drawing::Hook::ScreenToAutomap(&automapLoc, xPos, yPos);
 						if (immunityText.length() > 0)
 							Drawing::Texthook::Draw(automapLoc.x, automapLoc.y - 8, Drawing::Center, 6, White, immunityText);
 						if (enchantText.length() > 0)
 							Drawing::Texthook::Draw(automapLoc.x, automapLoc.y - 14, Drawing::Center, 6, White, enchantText);
-						Drawing::Crosshook::Draw(automapLoc.x, automapLoc.y, color);
-						if (lineColor != -1) {
-							Drawing::Linehook::Draw(MyPos.x, MyPos.y, automapLoc.x, automapLoc.y, lineColor);
-						}
+						DrawMonsterMarker(style, automapLoc, MyPos);
 					});
 				}
 				else if (unit->dwType == UNIT_MISSILE && Toggles["Show Missiles"].state) {

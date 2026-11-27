@@ -70,14 +70,20 @@ namespace Drawing {
 	// Colours are set as a member rather than passed to a constructor of their
 	// own: a braced list initialises a bool as readily as a vector, so a second
 	// two argument constructor could not be told from the grouping one.
+	//
+	// A row can carry a tick box, for a list things are picked from more than one
+	// at a time. The box is drawn where the row's first cell starts, so a list of
+	// such rows gives that cell nothing to say and a column wide enough for the
+	// box. What ticking means is the caller's, as what a click means is.
 	struct ListRow {
 		std::vector<std::string> cells;
 		std::vector<TextColor> colors;
 		bool group;
+		int check;		// -1 for no box, 0 for an empty one, 1 for a ticked one
 
-		ListRow() : group(false) {};
+		ListRow() : group(false), check(-1) {};
 		ListRow(const std::vector<std::string>& cells, bool group = false) :
-			cells(cells), group(group) {};
+			cells(cells), group(group), check(-1) {};
 	};
 
 	// A scrollable, column oriented list of text rows. The caller supplies the
@@ -137,6 +143,7 @@ namespace Drawing {
 			bool foldingSuspended;	// draw unfolded, without forgetting the folds
 			unsigned int xSize, ySize;
 			unsigned int font;
+			unsigned int rowPadding;	// clear space a row keeps past its text
 			unsigned int scrollTop;	// row drawn at the top of the list
 			TextColor headerColor;
 			TextColor groupColor;
@@ -232,6 +239,16 @@ namespace Drawing {
 
 			unsigned int GetFont() { return font; };
 			void SetFont(unsigned int newFont);
+
+			// How much taller a row is than its text, which is centred in it. The
+			// least there is suits rows of text read down a column; rows holding a
+			// tick box want enough that one box does not sit against the next.
+			unsigned int GetRowPadding() { return rowPadding; };
+			void SetRowPadding(unsigned int padding);
+
+			// Ticks or clears a row's box where it has one, leaving the rows, the
+			// view and the selection as they are.
+			void SetRowCheck(int row, bool checked);
 
 			TextColor GetHeaderColor() { return headerColor; };
 			void SetHeaderColor(TextColor newColor) { Lock(); headerColor = newColor; Unlock(); };

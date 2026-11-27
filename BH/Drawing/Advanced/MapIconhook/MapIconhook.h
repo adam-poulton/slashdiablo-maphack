@@ -21,17 +21,26 @@ namespace Drawing {
 	// The icons a style can be given, as a dropdown: each option is the icon,
 	// drawn as the style draws it, and its name. Past a handful the list scrolls,
 	// so it stays the size it is however many icons there come to be.
+	//
+	// For a style laid over another, the first option is to leave the icon as it
+	// is, shown as the icon the base has.
 	class MapIconCombohook : public Combohook {
 		private:
 			MapIconStyle* style;
 			std::vector<MapIcon::Icon> icons;
+			const MapIconOverride* partial;
+
+			// How many options stand ahead of the icons.
+			unsigned int Lead() const { return partial ? 1 : 0; };
 
 			// Where the style's icon is among those offered, which is what the box
 			// shows and the list picks; kept in step with the style as it draws.
 			unsigned int index;
 
-			static std::vector<std::string> Labels(const std::vector<MapIcon::Icon>& icons);
-			static unsigned int Width(const std::vector<MapIcon::Icon>& icons);
+			static std::vector<std::string> Labels(const std::vector<MapIcon::Icon>& icons,
+				bool unchanged);
+			static unsigned int Width(const std::vector<MapIcon::Icon>& icons, bool unchanged);
+			void DrawIcon(MapIcon::Icon shown, const MapIcon::Look& look, int cx, int cy);
 		protected:
 			void DrawOption(unsigned int option, unsigned int x, unsigned int y,
 				unsigned int width, TextColor color);
@@ -39,7 +48,8 @@ namespace Drawing {
 			void OnSelected(unsigned int option);
 		public:
 			MapIconCombohook(HookGroup* group, unsigned int x, unsigned int y,
-				MapIconStyle* style, std::vector<MapIcon::Icon> icons);
+				MapIconStyle* style, std::vector<MapIcon::Icon> icons,
+				const MapIconOverride* partial = NULL);
 
 			unsigned int GetYSize();
 			unsigned int GetTextInset();
@@ -100,10 +110,17 @@ namespace Drawing {
 	// has no use for: an icon drawn in the game's own colours has no size or
 	// colour to choose, a border of no colour has no width, a line that is off has
 	// no colour either.
+	//
+	// Given an override, it edits a style laid over another: the icon can be left
+	// as it is, the line is left, taken away or drawn, and the preview shows the
+	// two together.
 	class MapIconhook : public Hook {
 		private:
 			MapIconStyle* style;
 			MapIconOptions options;
+			MapIconOverride partial;
+			bool overrides;
+			MapIconStyle shown;		// what the preview draws
 			MapIconContent* content;
 
 			Texthook* iconLabel;
@@ -115,6 +132,8 @@ namespace Drawing {
 			Texthook* widthLabel;
 			Sliderhook* width;
 			Checkhook* line;
+			Texthook* lineLabel;
+			Combohook* lineChange;
 			Colorhook* lineColor;
 			Texthook* previewLabel;
 			MapIconPreviewhook* preview;
@@ -125,13 +144,17 @@ namespace Drawing {
 			// The most the sliders' readouts take, so they can share one rail.
 			unsigned int ReadoutRoom();
 
+			void Build();
 			void Layout();
 
-			// Brings the controls up to date with the style: which are greyed out.
+			// Brings the controls up to date with the style: which are greyed out,
+			// and what the preview shows.
 			void Refresh();
 		public:
 			MapIconhook(HookGroup* group, unsigned int x, unsigned int y,
 				MapIconStyle* style, MapIconOptions options);
+			MapIconhook(HookGroup* group, unsigned int x, unsigned int y,
+				MapIconStyle* style, MapIconOptions options, MapIconOverride partial);
 			~MapIconhook();
 
 			// The width the editor is laid out to. The preview takes all of it;

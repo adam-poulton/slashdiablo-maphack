@@ -1,6 +1,8 @@
 #include "ForgeWindow.h"
 #include "ForgeFile.h"
 #include "MarkerPanel.h"
+#include "MonsterPanel.h"
+#include "../Maphack/Maphack.h"
 #include "../Settings/SettingsRegistry.h"
 #include "../../BH.h"
 #include "../../D2Ptrs.h"
@@ -14,16 +16,25 @@ void ForgeWindow::OnLoad() {
 	LoadConfig();
 
 	RegisterToggleKey(Settings::Category::Input, "Forge window",
-		"Opens the Forge, where how chests and containers are marked on the map "
-		"is styled. Bound to nothing, it is still reached by typing .forge in chat.");
+		"Opens the Forge, where how chests, containers and monsters are marked on "
+		"the map is styled. Bound to nothing, it is still reached by typing .forge "
+		"in chat.");
 
 	CreateUI("Forge", "Forge", FORGE_WINDOW_WIDTH, FORGE_WINDOW_HEIGHT);
-	// The tabs are what the Forge styles, so they are shown while there is only
-	// one of them, as they will be when there are more.
+	// The tabs are what the Forge styles, so they are shown even where there is
+	// only one of them.
 	GetUI()->SetLoneTabShown(true);
 
 	clickables = new MarkerPanel(GetUI(), "Clickables", Settings::Category::Clickables);
 	AddPanel(clickables);
+
+	// The rules are Maphack's, which marks the monsters by them.
+	Maphack* maphack = (Maphack*)BH::moduleManager->Get("maphack");
+	if (maphack) {
+		monsters = new MonsterPanel(GetUI(), "Monsters", Settings::Category::Monsters,
+			&maphack->MonsterRules());
+		AddPanel(monsters);
+	}
 
 	// Saved as it closes and offered back while open, as the settings window is.
 	// A file that cannot be saved is said in the footer while the window is open,

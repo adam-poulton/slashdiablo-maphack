@@ -52,6 +52,8 @@
     <ClCompile Include="Modules\ItemMover\ItemGrid.cpp" />
     <ClCompile Include="Modules\Maphack\Maphack.cpp" />
     <ClCompile Include="Modules\Maphack\ChestKind.cpp" />
+    <ClCompile Include="Modules\Maphack\MonsterMarks.cpp" />
+    <ClCompile Include="Modules\Maphack\MonsterNames.cpp" />
     <ClCompile Include="Modules\Maphack\RoomFrontier.cpp" />
     <ClCompile Include="Modules\Module.cpp" />
     <ClCompile Include="Modules\ModuleManager.cpp" />
@@ -59,8 +61,11 @@
     <ClCompile Include="Modules\Codex\CodexWindow.cpp" />
     <ClCompile Include="Modules\Forge\ForgeFile.cpp" />
     <ClCompile Include="Modules\Forge\ForgeStore.cpp" />
+    <ClCompile Include="Modules\Forge\ForgeCodec.cpp" />
     <ClCompile Include="Modules\Forge\ForgeWindow.cpp" />
     <ClCompile Include="Modules\Forge\MarkerPanel.cpp" />
+    <ClCompile Include="Modules\Forge\MarkerList.cpp" />
+    <ClCompile Include="Modules\Forge\MonsterPanel.cpp" />
     <ClCompile Include="WholeFile.cpp" />
     <ClCompile Include="Modules\Codex\CodexSummary.cpp" />
     <ClCompile Include="Modules\Codex\QueryBuilder.cpp" />
@@ -177,6 +182,8 @@
     <ClInclude Include="Modules\ItemMover\ItemGrid.h" />
     <ClInclude Include="Modules\Maphack\Maphack.h" />
     <ClInclude Include="Modules\Maphack\ChestKind.h" />
+    <ClInclude Include="Modules\Maphack\MonsterMarks.h" />
+    <ClInclude Include="Modules\Maphack\MonsterNames.h" />
     <ClInclude Include="Modules\Maphack\RoomFrontier.h" />
     <ClInclude Include="Modules\Module.h" />
     <ClInclude Include="Modules\ModuleManager.h" />
@@ -184,8 +191,11 @@
     <ClInclude Include="Modules\Codex\CodexWindow.h" />
     <ClInclude Include="Modules\Forge\ForgeFile.h" />
     <ClInclude Include="Modules\Forge\ForgeStore.h" />
+    <ClInclude Include="Modules\Forge\ForgeCodec.h" />
     <ClInclude Include="Modules\Forge\ForgeWindow.h" />
     <ClInclude Include="Modules\Forge\MarkerPanel.h" />
+    <ClInclude Include="Modules\Forge\MarkerList.h" />
+    <ClInclude Include="Modules\Forge\MonsterPanel.h" />
     <ClInclude Include="WholeFile.h" />
     <ClInclude Include="Modules\Codex\CodexSummary.h" />
     <ClInclude Include="Modules\Codex\QueryBuilder.h" />

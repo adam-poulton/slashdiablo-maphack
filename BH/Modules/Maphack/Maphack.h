@@ -8,6 +8,7 @@
 #include "../../Drawing.h"
 #include "../../Drawing/MapIcon/MapIconStyle.h"
 #include "ChestKind.h"
+#include "MonsterMarks.h"
 
 enum MaphackReveal {
 	MaphackRevealGame = 0,
@@ -44,20 +45,30 @@ class Maphack : public Module {
 		bool automapOriginPatched;
 		unsigned int revealType;
 		bool revealedGame, revealedAct[6], revealedLevel[255];
-		std::map<string, string> MonsterColors;
-		std::map<string, string> SuperUniqueColors;
-		std::map<string, string> MonsterLines;
-		std::map<string, string> MonsterHides;
 		std::map<string, unsigned int> TextColorMap; 
-		std::map<string, unsigned int> monsterColors;
-		std::vector<std::pair<unsigned int, unsigned int>> enhancementColors;
-		std::vector<std::pair<unsigned int, unsigned int>> auraColors;
 		std::map<string, unsigned int> missileColors;
-		std::map<int, unsigned int> automapMonsterColors;
-		std::map<int, unsigned int> automapSuperUniqueColors;
-		std::map<int, unsigned int> automapMonsterLines;
-		std::list<int> automapHiddenMonsters;
 		std::list<LevelList*> automapLevels;
+
+		// What BH_settings.cfg says of monsters, read only to start the Forge's
+		// markers from: the colour of each rank, and the rest as the rules
+		// they amount to.
+		std::map<string, unsigned int> monsterColors;
+		std::map<string, string> legacyMonsterColors;
+		std::map<string, string> legacySuperUniqueColors;
+		std::map<string, string> legacyMonsterLines;
+		std::map<string, string> legacyMonsterHides;
+		std::vector<MonsterMarks::Rule> legacyMonsterRules;
+
+		// How monsters are marked: the marker each starts from, and the rules,
+		// which the Forge's Monsters tab edits. The copy is the automap's own,
+		// taken again when the rules move on.
+		MapIconStyle monsterStyles[MonsterMarks::RankCount];
+		MonsterMarks::RuleList monsterRules;
+		std::vector<MonsterMarks::Rule> drawnMonsterRules;
+		std::vector<unsigned int> drawnMonsterAuras;
+		unsigned int drawnMonsterRevision;
+
+		void ReadMonsterMarks();
 		map<std::string, Toggle> Toggles;
 		std::map<DWORD, std::vector<BaseSkill>> Skills;
 
@@ -98,6 +109,9 @@ class Maphack : public Module {
 	void ApplyAutomapOriginPatch();
 
 	void OnKey(bool up, BYTE key, LPARAM lParam, bool* block);
+
+	// The rules, for the window that edits them.
+	MonsterMarks::RuleList& MonsterRules() { return monsterRules; }
 
 	void RevealGame();
 	void RevealAct(int act);

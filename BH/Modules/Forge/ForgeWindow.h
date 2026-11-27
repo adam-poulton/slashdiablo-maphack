@@ -2,6 +2,7 @@
 #include "../Window/WindowModule.h"
 
 class MarkerPanel;
+class MonsterPanel;
 
 // The Forge: the window things on the map are styled in, a tab per kind of
 // thing. It owns the window and its hotkey; each tab is a MarkerPanel, built from
@@ -12,6 +13,7 @@ class MarkerPanel;
 class ForgeWindow : public WindowModule {
 	private:
 		MarkerPanel* clickables;
+		MonsterPanel* monsters;
 		bool showedDirty;		// what the footer last said about unsaved work
 
 	protected:
@@ -19,7 +21,7 @@ class ForgeWindow : public WindowModule {
 
 	public:
 		ForgeWindow() : WindowModule("Forge", "Show Forge", "None"),
-			clickables(NULL), showedDirty(false) {};
+			clickables(NULL), monsters(NULL), showedDirty(false) {};
 
 		void OnLoad();
 		void OnDraw();

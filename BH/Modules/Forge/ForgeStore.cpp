@@ -1,34 +1,18 @@
 #include "ForgeStore.h"
-#include <cctype>
-#include <cstdio>
-#include <cstdlib>
-#include <functional>
-#include "nlohmann/json.hpp"
+#include "ForgeCodec.h"
 #include "../../WholeFile.h"
 
 // Ordered, so a marker's fields are written in the order they are bound, which
 // is the order they are edited in.
-typedef nlohmann::ordered_json Json;
+typedef ForgeCodec::Json Json;
+using ForgeCodec::Lower;
+using ForgeCodec::Trimmed;
 
 namespace {
 	// What the file says of itself. A later version's file is read for what this
 	// one understands, and keeps its number when written back.
 	const unsigned int kFileVersion = 1;
 	const char* const kVersionKey = "version";
-
-	std::string Lower(std::string text) {
-		for (char& c : text)
-			c = (char)std::tolower((unsigned char)c);
-		return text;
-	}
-
-	std::string Trimmed(const std::string& text) {
-		size_t first = text.find_first_not_of(" \t\r\n");
-		if (first == std::string::npos)
-			return std::string();
-		size_t last = text.find_last_not_of(" \t\r\n");
-		return text.substr(first, last - first + 1);
-	}
 
 	// Where a byte of the text is, as an editor counts it: lines and columns from
 	// one.
@@ -83,6 +67,8 @@ namespace {
 		Json saved;		// what the value was read or last saved as
 	};
 
+	// A marker with no id holds the tab's own values, which are written beside
+	// its markers rather than inside one.
 	struct Marker {
 		std::string tab;
 		std::string id;
@@ -127,71 +113,26 @@ namespace {
 	const Json* Stored(const Json& document, const std::string& tab,
 			const std::string& marker, const std::string& field) {
 		const Json* inTab = Member(document, tab);
+		if (marker.empty())
+			return inTab ? Member(*inTab, field) : NULL;
 		const Json* inMarker = inTab ? Member(*inTab, marker) : NULL;
 		return inMarker ? Member(*inMarker, field) : NULL;
 	}
 
-	Json EncodeColor(unsigned int color) {
-		if (color == MapIcon::NoColor)
-			return "none";
-		char hex[8];
-		sprintf_s(hex, "0x%02X", color % MapIcon::PaletteSize);
-		return hex;
-	}
-
-	// A palette entry as a number, or as text in hex or decimal. No colour is
-	// "none", where the colour can be none.
-	bool DecodeColor(const Json& stored, bool allowNone, unsigned int& color) {
-		if (stored.is_number_unsigned()) {
-			unsigned long long entry = stored.get<unsigned long long>();
-			if (entry >= MapIcon::PaletteSize)
-				return false;
-			color = (unsigned int)entry;
-			return true;
-		}
-		if (!stored.is_string())
-			return false;
-		std::string text = Lower(Trimmed(stored.get<std::string>()));
-		if (text.compare("none") == 0) {
-			if (!allowNone)
-				return false;
-			color = MapIcon::NoColor;
-			return true;
-		}
-		if (text.empty() || text[0] == '-' || text[0] == '+')
-			return false;
-		char* end = NULL;
-		unsigned long entry = std::strtoul(text.c_str(), &end, 0);
-		if (*end != '\0' || entry >= MapIcon::PaletteSize)
-			return false;
-		color = (unsigned int)entry;
-		return true;
-	}
-
 	Field ColorField(const std::string& name, unsigned int* value,
 			unsigned int defaultValue, bool allowNone) {
-		return MakeField<unsigned int>(name, value, defaultValue, EncodeColor,
+		return MakeField<unsigned int>(name, value, defaultValue, ForgeCodec::EncodeColor,
 			[allowNone](const Json& stored, unsigned int& color) {
-				return DecodeColor(stored, allowNone, color);
+				return ForgeCodec::DecodeColor(stored, allowNone, color);
 			});
 	}
 
-	// A whole number held to a range: one past it is the nearest end.
 	Field CountField(const std::string& name, unsigned int* value,
 			unsigned int defaultValue, unsigned int min, unsigned int max) {
 		return MakeField<unsigned int>(name, value, defaultValue,
 			[](unsigned int count) { return Json(count); },
 			[min, max](const Json& stored, unsigned int& count) {
-				if (stored.is_number_unsigned()) {
-					unsigned long long read = stored.get<unsigned long long>();
-					count = read < min ? min : read > max ? max : (unsigned int)read;
-					return true;
-				}
-				if (stored.is_number_integer()) {
-					count = min;
-					return true;
-				}
-				return false;
+				return ForgeCodec::DecodeCount(stored, min, max, count);
 			});
 	}
 
@@ -232,11 +173,14 @@ namespace {
 		Json& tab = file[marker.tab];
 		if (!tab.is_object())
 			tab = Json::object();
-		Json& entry = tab[marker.id];
-		if (!entry.is_object())
-			entry = Json::object();
+		Json* entry = &tab;
+		if (!marker.id.empty()) {
+			entry = &tab[marker.id];
+			if (!entry->is_object())
+				*entry = Json::object();
+		}
 		for (const Field& field : marker.fields)
-			entry[field.name] = field.encode();
+			(*entry)[field.name] = field.encode();
 	}
 
 	// Only the fields bound here: one this version does not know is kept, and
@@ -245,6 +189,13 @@ namespace {
 		Json::iterator tab = file.find(marker.tab);
 		if (tab == file.end() || !tab->is_object())
 			return;
+		if (marker.id.empty()) {
+			for (const Field& field : marker.fields)
+				tab->erase(field.name);
+			if (tab->empty())
+				file.erase(marker.tab);
+			return;
+		}
 		Json::iterator entry = tab->find(marker.id);
 		if (entry == tab->end() || !entry->is_object())
 			return;
@@ -319,6 +270,28 @@ void ForgeStore::BindNamed(const std::string& tab, const std::string& marker,
 		const std::string& field, unsigned int* value,
 		const std::vector<std::string>& names, unsigned int defaultValue) {
 	impl->Bind(tab, marker, NamedField(field, value, defaultValue, names));
+}
+
+void ForgeStore::BindValue(const std::string& tab, const std::string& field,
+		std::function<std::string()> write,
+		std::function<void(const std::string*)> read,
+		std::function<bool()> isDefault) {
+	Field bound;
+	bound.name = field;
+	bound.encode = [write]() {
+		Json value = Json::parse(write(), NULL, false);
+		return value.is_discarded() ? Json() : value;
+	};
+	bound.decode = [read](const Json* stored) {
+		if (!stored) {
+			read(NULL);
+			return;
+		}
+		std::string text = stored->dump();
+		read(&text);
+	};
+	bound.isDefault = isDefault;
+	impl->Bind(tab, std::string(), bound);
 }
 
 bool ForgeStore::HasChanges() const {
