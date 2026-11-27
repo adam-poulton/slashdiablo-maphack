@@ -104,6 +104,10 @@
     <ClCompile Include="MonsterMarksTests.cpp" />
     <ClCompile Include="ItemGridTests.cpp" />
     <ClCompile Include="PortalDelayTests.cpp" />
+    <ClCompile Include="SessionEventsTests.cpp" />
+    <ClCompile Include="SessionFileTests.cpp" />
+    <ClCompile Include="SessionFormatTests.cpp" />
+    <ClCompile Include="SessionModelTests.cpp" />
     <ClCompile Include="GambleRefreshTests.cpp" />
     <ClCompile Include="TalkMenuTests.cpp" />
     <ClCompile Include="MapIconTests.cpp" />
@@ -142,6 +146,10 @@
     <ClCompile Include="..\BH\Modules\Maphack\MonsterNames.cpp" />
     <ClCompile Include="..\BH\Modules\ItemMover\ItemGrid.cpp" />
     <ClCompile Include="..\BH\Modules\TownPortal\PortalDelay.cpp" />
+    <ClCompile Include="..\BH\Modules\Session\SessionEvents.cpp" />
+    <ClCompile Include="..\BH\Modules\Session\SessionFile.cpp" />
+    <ClCompile Include="..\BH\Modules\Session\SessionFormat.cpp" />
+    <ClCompile Include="..\BH\Modules\Session\SessionModel.cpp" />
     <ClCompile Include="..\BH\Modules\AgentDriver\AgentKeys.cpp" />
     <ClCompile Include="..\BH\Modules\AgentDriver\AgentScreen.cpp" />
     <ClCompile Include="..\BH\Modules\AgentDriver\DrawLog.cpp" />

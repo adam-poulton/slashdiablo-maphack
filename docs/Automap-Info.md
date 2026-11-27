@@ -113,6 +113,23 @@ switch characters.
 `%AREALEVEL%` accounts for whether the character is classic or expansion, so it
 reports the value that actually applies to your monsters.
 
+## Session tracker
+
+The [session tracker](Session-Tracker.md) follows a whole sitting on a
+character rather than one game. Its rates are over the time spent in games, so
+time in the lobby does not lower them.
+
+| Variable | Meaning |
+| --- | --- |
+| `%SESSIONTIME%` | Time since the session started |
+| `%SESSIONPLAYTIME%` | Time spent in games this session |
+| `%SESSIONXPGAINED%` | Experience gained this session, less any lost to deaths |
+| `%SESSIONXPPERSEC%` | Experience per second over the session's play time |
+| `%SESSIONXPPERSECLONG%` | Same, at full precision |
+| `%RECENTXPPERSEC%` | Experience per second over the last minute of play |
+| `%SESSIONLEVELS%` | Levels gained this session |
+| `%SESSIONDEATHS%` | Deaths this session |
+
 ## Overlay position
 
 The overlay is drawn relative to the automap, using centering constants that
@@ -131,4 +148,5 @@ trial and error.
 ## Related
 
 * [Run Tracker](Run-Tracker.md) — writing these same statistics to a file
+* [Session Tracker](Session-Tracker.md) - what a session is, and the files it keeps
 * [Advanced Item Display](Advanced-Item-Display.md)

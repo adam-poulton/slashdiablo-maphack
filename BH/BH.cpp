@@ -136,6 +136,7 @@ void BH::Initialize()
 	new Shop();
 	new NpcTalk();
 	new TownPortal();
+	new Session();
 	new StashExport();
 	new AccountsWindow();
 	new CodexWindow();

@@ -98,6 +98,12 @@
     <ClCompile Include="Modules\NpcTalk\TalkMenu.cpp" />
     <ClCompile Include="Modules\TownPortal\PortalDelay.cpp" />
     <ClCompile Include="Modules\TownPortal\TownPortal.cpp" />
+    <ClCompile Include="Modules\Session\GameProbe.cpp" />
+    <ClCompile Include="Modules\Session\Session.cpp" />
+    <ClCompile Include="Modules\Session\SessionEvents.cpp" />
+    <ClCompile Include="Modules\Session\SessionFile.cpp" />
+    <ClCompile Include="Modules\Session\SessionFormat.cpp" />
+    <ClCompile Include="Modules\Session\SessionModel.cpp" />
     <ClCompile Include="Modules\AgentDriver\AgentDriver.cpp" />
     <ClCompile Include="Modules\AgentDriver\AgentKeys.cpp" />
     <ClCompile Include="Modules\AgentDriver\AgentScreen.cpp" />
@@ -229,6 +235,12 @@
     <ClInclude Include="Modules\NpcTalk\TalkMenu.h" />
     <ClInclude Include="Modules\TownPortal\PortalDelay.h" />
     <ClInclude Include="Modules\TownPortal\TownPortal.h" />
+    <ClInclude Include="Modules\Session\GameProbe.h" />
+    <ClInclude Include="Modules\Session\Session.h" />
+    <ClInclude Include="Modules\Session\SessionEvents.h" />
+    <ClInclude Include="Modules\Session\SessionFile.h" />
+    <ClInclude Include="Modules\Session\SessionFormat.h" />
+    <ClInclude Include="Modules\Session\SessionModel.h" />
     <ClInclude Include="Modules\AgentDriver\AgentDriver.h" />
     <ClInclude Include="Modules\AgentDriver\AgentKeys.h" />
     <ClInclude Include="Modules\AgentDriver\AgentScreen.h" />
