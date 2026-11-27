@@ -788,7 +788,7 @@ void Listhook::OnDraw() {
 		if (rows[r].group) {
 			bool selected = ((int)r == selectedRow);
 			if (selected)
-				Boxhook::Draw(GetX() - 2, y, contentWidth, rowHeight, 0, BTOneHalf);
+				Boxhook::Draw(GetX() - 2, y, contentWidth, rowHeight, UI_BAND_COLOR, BTNormal);
 
 			TextColor color = ((selected || (int)r == hovered) &&
 				groupHoverColor != Disabled) ? groupHoverColor : groupColor;
@@ -810,10 +810,10 @@ void Listhook::OnDraw() {
 		}
 
 		bool selected = ((int)r == selectedRow);
-		// A band of shade behind the selected row, which is what tells it apart
-		// from whichever row happens to be under the mouse.
+		// A band behind the selected row, which is what tells it apart from
+		// whichever row happens to be under the mouse.
 		if (selected)
-			Boxhook::Draw(GetX() - 2, y, contentWidth, rowHeight, 0, BTOneHalf);
+			Boxhook::Draw(GetX() - 2, y, contentWidth, rowHeight, UI_BAND_COLOR, BTNormal);
 		for (unsigned int c = 0; c < fitted[r].size(); c++) {
 			if (fitted[r][c].length() == 0)
 				continue;

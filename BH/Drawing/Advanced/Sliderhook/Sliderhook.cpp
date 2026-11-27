@@ -208,7 +208,7 @@ void Sliderhook::OnDraw() {
 		InHook((*p_D2CLIENT_MouseX), (*p_D2CLIENT_MouseY)));
 
 	Boxhook::Draw(RailLeft(), railTop, rail, SLIDER_RAIL_HEIGHT,
-		SLIDER_RAIL_COLOR, BTOneHalf);
+		SLIDER_RAIL_COLOR, BTNormal);
 	// Filled up to the far edge of the thumb, so how far along the rail the value
 	// sits reads without having to read the number after it - and so the rail is
 	// exactly full at the maximum and exactly a thumb's worth at the minimum.

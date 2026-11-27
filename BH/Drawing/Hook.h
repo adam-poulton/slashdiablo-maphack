@@ -29,6 +29,12 @@ namespace Drawing {
 	// a panel full of controls disabled together looks disabled together.
 	#define DISABLED_TEXT_COLOR	Grey
 
+	// The palette index a window draws a band or a groove in: the selected row,
+	// the heading in focus, a scrollbar's track and a slider's empty rail. It is a
+	// solid dark grey because a window's inside is opaque black, which a shade of
+	// black drawn over it leaves unchanged.
+	#define UI_BAND_COLOR		0xAF
+
 	enum BoxTrans {BTThreeFourths, BTOneHalf, BTOneFourth, BTWhite, BTBlack, BTNormal, BTScreen, BTHighlight, BTFull};
 	enum {None=0, Center=1, Right=2, Top=4};
 

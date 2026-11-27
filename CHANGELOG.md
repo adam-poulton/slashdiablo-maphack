@@ -26,6 +26,7 @@ GitHub pre-release with the notes under `# Unreleased`.
 * Fix clicking an option in a dropdown list, or a colour in the colour picker, also clicking whatever was under it.
 * Fix the colour picker choosing the last colour the pointer passed over when clicked below the palette, and ignoring clicks along the top of the first row. The picker now opens in the middle of the screen at any resolution, outlines the colour already chosen, shows the colour under the pointer in a bar under the palette, and offers black in its first cell, which it used to leave empty.
 * Fix the gold frame around BH's windows, buttons and boxes sitting a pixel right of the box it surrounds. It now sits evenly on every side, checkboxes show their whole frame, and a window at the edge of the screen keeps all of its frame in view.
+* Fix the band behind the selected row in the codex and accounts lists, and behind the settings heading picked with the arrow keys, not showing. Scrollbar tracks and the empty part of a slider now show as well.
 
 # Release Notes for 1.10.1 (2026-10-04)
 * Add stat filter conditions to the codex.

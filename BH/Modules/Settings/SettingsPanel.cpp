@@ -195,8 +195,8 @@ static std::vector<const Settings::Descriptor*> InSectionOrder(
 SettingsHeadingBar::SettingsHeadingBar(HookGroup* group, SettingsPanel* panel,
 		unsigned int row) :
 	Boxhook(group, 0, 0, 0, 0), panel(panel), row(row) {
-	SetColor(0);
-	SetTransparency(UI_GROUP_FOCUS_BAND);
+	SetColor(UI_GROUP_FOCUS_BAND);
+	SetTransparency(BTNormal);
 }
 
 // The band, and only under the heading the keyboard is on. Every other frame the

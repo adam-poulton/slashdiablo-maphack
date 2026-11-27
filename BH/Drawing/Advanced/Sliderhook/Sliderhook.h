@@ -19,7 +19,7 @@ namespace Drawing {
 	#define SLIDER_RAIL_HEIGHT		5
 	#define SLIDER_THUMB_WIDTH		7
 	#define SLIDER_THUMB_HEIGHT		11
-	#define SLIDER_RAIL_COLOR		0x00	// shaded rather than filled
+	#define SLIDER_RAIL_COLOR		UI_BAND_COLOR
 	#define SLIDER_FILL_COLOR		0xD0	// grey, as the thumb
 	#define SLIDER_THUMB_COLOR		0xD0	// grey
 	#define SLIDER_THUMB_LIT		0x20	// white
