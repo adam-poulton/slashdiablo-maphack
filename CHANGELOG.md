@@ -18,7 +18,7 @@ GitHub pre-release with the notes under `# Unreleased`.
 * Add gamble marks under `Gambling` on the Input tab. Press F2 over an item in a gamble window to highlight every item of its base, and its exceptional and elite versions with `Match base tiers`. Marks survive a gamble refresh and can be kept between games with `Remember marks`.
 * Add `Portal re-entry delay` under `Town portal` on the Input tab, off by default. Lets you take a town portal again sooner after taking one, timed from when you took it: 500 to 3000 ms, 1000 ms by default. Off leaves the game's own wait.
 * Move `Gamble refresh` under the new `Gambling` heading on the Input tab.
-* Add a refresh button to the gamble window, in the empty slot beside `Close`, drawn in the game's own button art. Hover it for its hotkey. Turn it off with `Show refresh button`.
+* Add a refresh button to the gamble window, in the empty slot beside `Close`, drawn in the game's own button art and pressing as the game's buttons do. Hover it for its hotkey. Turn it off with `Show refresh button`.
 * Gamble refresh now works at every gambler: Elzix, Alkor and Nihlathak as well as Gheed, Jamella and Anya. It only answers with a gamble window open, so the hotkey no longer turns a trade window or talk menu into one, and it keeps the tab you were looking at (`Keep selected tab`).
 * Gamble refresh keeps the gamble window on screen while it refreshes, instead of flickering out to the world and back.
 * Gamble refresh now says why it stopped when the NPC is out of reach or does not answer, instead of a bare timeout.
