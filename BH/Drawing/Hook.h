@@ -37,11 +37,12 @@ namespace Drawing {
 	#define DISABLED_TEXT_COLOR	Grey
 
 	// A window's panel is solid black, so anything that has to read against it is
-	// filled in a tone of its own rather than shaded. Palette indices from the
-	// grey ramp that ends at 0xD0, the grey the thumbs and edges are drawn in.
+	// filled in a tone of its own rather than shaded. The well and the band are
+	// palette indices from the grey ramp that ends at 0xD0, the grey the thumbs
+	// and edges are drawn in. The rule is the palette's dark red.
 	#define UI_SURFACE_WELL		0xB1	// a groove: slider rails, scrollbar tracks
 	#define UI_SURFACE_BAND		0xB5	// behind the row in hand
-	#define UI_SURFACE_RULE		0xC0	// a line between two parts of a window
+	#define UI_SURFACE_RULE		0x05	// a line between two parts of a window
 
 	enum BoxTrans {BTThreeFourths, BTOneHalf, BTOneFourth, BTWhite, BTBlack, BTNormal, BTScreen, BTHighlight, BTFull};
 	enum {None=0, Center=1, Right=2, Top=4};

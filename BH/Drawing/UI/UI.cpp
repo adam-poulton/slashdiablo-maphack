@@ -12,6 +12,7 @@
 using namespace Drawing;
 
 std::list<UI*> UI::UIs;
+bool UI::fadeWithoutFocus = false;
 
 namespace {
 
@@ -617,11 +618,12 @@ void UI::OnDraw() {
 			DragResizeTo(Hook::GetMouseX(), Hook::GetMouseY());
 
 		LayoutChrome();
-		Framehook::Draw(GetX(), GetY(), GetXSize(), GetYSize(), 0, BTNormal);
+		Framehook::Draw(GetX(), GetY(), GetXSize(), GetYSize(), 0,
+			(IsActive() || !fadeWithoutFocus) ? BTNormal : BTOneHalf);
 		Framehook::Draw(GetX(), GetY(), GetXSize(), TITLE_BAR_HEIGHT, 0, BTNormal);
-		// The panel is solid whether or not the window has focus, so the title
-		// is what says which window the keyboard is in: white on the one that
-		// has it.
+		// The panel is solid whether or not the window has focus unless it is
+		// set to fade, so the title is what says which window the keyboard is
+		// in: white on the one that has it.
 		TextColor titleColor = InTitle(Hook::GetMouseX(), Hook::GetMouseY()) ? Silver :
 			(IsActive() ? White : Grey);
 		Texthook::Draw(GetX() + 4, GetY() + 3, false, 0, titleColor, GetName());
@@ -832,25 +834,6 @@ bool UI::IsCoveredAt(unsigned int x, unsigned int y) {
 			return true;
 	}
 	return false;
-}
-
-UI* UI::GetFocused() {
-	for (list<UI*>::iterator it = UIs.begin(); it != UIs.end(); it++) {
-		if ((*it)->IsVisible() && !(*it)->IsMinimized() && (*it)->IsActive())
-			return *it;
-	}
-	return NULL;
-}
-
-UI* UI::GetFront() {
-	UI* front = NULL;
-	for (list<UI*>::iterator it = UIs.begin(); it != UIs.end(); it++) {
-		if (!(*it)->IsVisible() || (*it)->IsMinimized())
-			continue;
-		if (!front || (*it)->GetZOrder() < front->GetZOrder())
-			front = *it;
-	}
-	return front;
 }
 
 // Brings a window to the front. One window has focus at a time and it is the

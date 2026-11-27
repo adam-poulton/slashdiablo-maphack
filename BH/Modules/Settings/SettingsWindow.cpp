@@ -35,6 +35,11 @@ void SettingsWindow::OnLoad() {
 		"Ctrl+R Reload Config", "Ctrl-R also reloads", &legacyReloadConfigHotkey,
 		"A second binding to reload the config.", "Reload Config");
 
+	Settings::AddBool(GetName(), Settings::Category::Display,
+		"Fade Unfocused Windows", "Fade unfocused windows", &fadeUnfocusedWindows,
+		"Draws a BH window see-through while it does not have focus, so the game "
+		"shows behind it. Off, every open window stays solid.");
+
 	RegisterToggleKey(Settings::Category::Input, "Settings window",
 		"Opens this window. Bound to nothing, it is still reached by typing "
 		".settings in chat.");
@@ -75,6 +80,11 @@ void SettingsWindow::LoadConfig() {
 	WindowModule::LoadConfig();
 	BH::config->ReadKey("Reload Config", "VK_NUMPAD0", reloadConfig);
 	BH::config->ReadBoolean("Ctrl+R Reload Config", legacyReloadConfigHotkey);
+	BH::config->ReadBoolean("Fade Unfocused Windows", fadeUnfocusedWindows);
+}
+
+void SettingsWindow::OnSettingsChanged(const std::vector<std::string>& keys) {
+	UI::SetFadeWithoutFocus(fadeUnfocusedWindows);
 }
 
 std::vector<ChatCommand> SettingsWindow::GetOwnCommands() {

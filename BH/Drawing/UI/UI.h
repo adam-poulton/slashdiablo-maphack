@@ -76,6 +76,7 @@ namespace Drawing {
 	class UI : public HookGroup {
 		private:
 			static std::list<UI*> UIs;
+			static bool fadeWithoutFocus;
 			unsigned int x, y, xSize, ySize, zOrder;//Position and Size and Order
 			unsigned int minimizedX, minimizedY;//Position when minimized
 			bool active, minimized, dragged, visible;//If UI is active or minimized or dragged
@@ -297,12 +298,9 @@ namespace Drawing {
 
 			static void Sort(UI* zero);
 
-			// The open window the keyboard is in, and the open window drawn
-			// over the others. Either is NULL where there is none: a window
-			// gives focus up to a click outside it, so windows can be open
-			// with the keyboard in none of them.
-			static UI* GetFocused();
-			static UI* GetFront();
+			// Whether a window without focus is drawn see-through, so the game
+			// shows behind it, rather than solid as the one with focus is.
+			static void SetFadeWithoutFocus(bool fade) { fadeWithoutFocus = fade; };
 
 			// Whether an open window in front of this one, on the same screen,
 			// lies over the point.
