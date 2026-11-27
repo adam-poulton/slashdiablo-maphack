@@ -267,6 +267,8 @@ if defined D2Path (
     <ClCompile Include="Modules\AgentDriver\AgentKeys.cpp" />
     <ClCompile Include="Modules\AgentDriver\AgentScreen.cpp" />
     <ClCompile Include="Modules\AgentDriver\DrawLog.cpp" />
+    <ClCompile Include="Modules\AgentDriver\FrameCapture.cpp" />
+    <ClCompile Include="Modules\AgentDriver\ImportRedirect.cpp" />
     <ClCompile Include="Modules\AgentDriver\ItemDrop.cpp" />
     <ClCompile Include="TableReader.cpp" />
     <ClCompile Include="TablesFromMPQ.cpp" />
@@ -406,6 +408,8 @@ if defined D2Path (
     <ClInclude Include="Modules\AgentDriver\AgentKeys.h" />
     <ClInclude Include="Modules\AgentDriver\AgentScreen.h" />
     <ClInclude Include="Modules\AgentDriver\DrawLog.h" />
+    <ClInclude Include="Modules\AgentDriver\FrameCapture.h" />
+    <ClInclude Include="Modules\AgentDriver\ImportRedirect.h" />
     <ClInclude Include="Modules\AgentDriver\ItemDrop.h" />
     <ClInclude Include="TableReader.h" />
     <ClInclude Include="Task.h" />

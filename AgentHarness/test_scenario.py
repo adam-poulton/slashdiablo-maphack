@@ -69,6 +69,62 @@ class SettingsOverrides(unittest.TestCase):
         self.assertIn("Show Settings", bhctl.shipped_settings_keys())
 
 
+class D2glConfig(unittest.TestCase):
+    def sections(self, text):
+        sections = {}
+        for line in text.splitlines():
+            if line.startswith("["):
+                section = sections.setdefault(line.strip("[]"), {})
+            elif line:
+                key, _, value = line.partition("=")
+                section[key] = value
+        return sections
+
+    def test_the_window_is_a_plain_one_of_the_size_asked_that_holds_nothing_of_the_players(self):
+        screen = self.sections(bhctl.d2gl_ini((1612, 840), {}))["Screen"]
+        self.assertEqual((screen["window_width"], screen["window_height"]), ("1612", "840"))
+        self.assertEqual((screen["fullscreen"], screen["unlock_cursor"], screen["vsync"]), ("false", "true", "false"))
+
+    def test_a_runs_settings_go_in_their_sections(self):
+        sections = self.sections(bhctl.d2gl_ini((1344, 700), {"Feature.hd_text": "true", "Graphic.fxaa": "true"}))
+        self.assertEqual(sections["Feature"]["hd_text"], "true")
+        self.assertEqual(sections["Graphic"], {"fxaa": "true"})
+
+    def test_what_the_sandbox_sets_is_not_a_runs_to_change(self):
+        for name in ("Screen.unlock_cursor", "Screen.window_width", "Screen.fullscreen"):
+            with self.assertRaises(HarnessError):
+                bhctl.d2gl_ini((1344, 700), {name: "true"})
+
+    def test_a_setting_that_could_write_another_line_or_section_is_refused(self):
+        for name, value in (("Feature.hd_text", "true\nfullscreen=true"), ("Feature]hd_text", "true"),
+                            ("hd_text", "true"), ("Feature.", "true")):
+            with self.assertRaises(HarnessError):
+                bhctl.d2gl_ini((1344, 700), {name: value})
+
+    def test_the_default_window_is_the_in_game_resolution(self):
+        self.assertEqual(bhctl.default_window(), (1344, 700))
+
+
+class Pictures(unittest.TestCase):
+    def test_a_rectangle_is_cut_out_of_a_picture_row_by_row(self):
+        width = 4
+        pixels = b"".join(bytes([row * 16 + column]) * 4 for row in range(3) for column in range(width))
+        self.assertEqual(bhctl.cut(pixels, width, [1, 1, 2, 2]),
+                         bytes([0x11] * 4 + [0x12] * 4 + [0x21] * 4 + [0x22] * 4))
+
+    def test_a_canvas_rectangle_is_placed_in_a_crop_of_a_scaled_window(self):
+        view = bhctl.Viewport((1344, 700), (800, 600))
+        whole = bhctl.Picture(1344, 700, b"", [1344, 700], view, (0, 0))
+        self.assertEqual(whole.place([0, 0, 800, 600]), [206, 0, 933, 700])
+        x, y, w, h = view.rect_to_window([400, 300, 100, 100])
+        crop = bhctl.Picture(w, h, b"", [1344, 700], view, (x, y))
+        self.assertEqual(crop.place([400, 300, 100, 100]), [0, 0, w, h])
+
+    def test_a_picture_of_a_loading_game_places_nothing(self):
+        with self.assertRaises(HarnessError):
+            bhctl.Picture(8, 8, b"", [8, 8], None, (0, 0)).place([0, 0, 1, 1])
+
+
 class ReadingScenarios(unittest.TestCase):
     def assertRefused(self, data, words):
         with self.assertRaises(HarnessError) as caught:
@@ -132,6 +188,26 @@ class ReadingScenarios(unittest.TestCase):
         self.assertRefused(scenario_with({"leave": True}, difficulty="hell"), "a new character plays Normal")
         self.assertRefused(scenario_with({"leave": True}, character="Hero.d2s", difficulty="easy"), '"difficulty"')
         self.assertRefused(scenario_with({"leave": True}, character=""), '"character"')
+
+    def test_a_scenario_is_drawn_by_gdi_unless_it_asks_for_d2gl(self):
+        loaded = scenario.load_scenario(scenario_with({"leave": True}))
+        self.assertEqual((loaded["renderer"], loaded["window"], loaded["d2gl"]), ("gdi", None, {}))
+        loaded = scenario.load_scenario(scenario_with({"leave": True}, renderer="d2gl", window=[1612, 840],
+                                                      d2gl={"Feature.hd_text": "true"}))
+        self.assertEqual((loaded["renderer"], loaded["window"], loaded["d2gl"]),
+                         ("d2gl", [1612, 840], {"Feature.hd_text": "true"}))
+
+    def test_what_is_asked_of_d2gl_is_refused_with_its_reason(self):
+        self.assertRefused(scenario_with({"leave": True}, renderer="opengl"), '"renderer" is one of gdi, d2gl')
+        self.assertRefused(scenario_with({"leave": True}, window=[1612, 840]), 'are for a scenario with "renderer"')
+        self.assertRefused(scenario_with({"leave": True}, d2gl={"Feature.hd_text": "true"}),
+                           'are for a scenario with "renderer"')
+        self.assertRefused(scenario_with({"leave": True}, renderer="d2gl", window="1612x840"), '"window" is')
+        self.assertRefused(scenario_with({"leave": True}, renderer="d2gl", window=[640, 480]), "at least 800x600")
+        self.assertRefused(scenario_with({"leave": True}, renderer="d2gl", d2gl={"hd_text": "true"}), "Section.key")
+        self.assertRefused(scenario_with({"leave": True}, renderer="d2gl", d2gl={"Feature.hd_text": True}), '"d2gl" maps')
+        self.assertRefused(scenario_with({"leave": True}, renderer="d2gl", d2gl={"Screen.vsync": "true"}),
+                           "the sandbox's to set")
 
     def test_drops_and_item_checks_are_read(self):
         scenario.load_scenario(scenario_with(
@@ -308,7 +384,8 @@ class Reports(unittest.TestCase):
         report = {"title": "BH's settings open", "scenario": "smoke.json",
                   "build": {"bh": "AgentRelease\\BH.dll", "sha256": "0123456789ab", "built": "2026-11-26 20:00",
                             "commit": "061d2131", "dirty": True},
-                  "settings": {"Show Settings": "True, VK_NUMPAD8"}, "notes": [], "started": "2026-11-26 20:01:00",
+                  "settings": {"Show Settings": "True, VK_NUMPAD8"}, "renderer": "gdi", "window": None, "d2gl": {},
+                  "notes": [], "started": "2026-11-26 20:01:00",
                   "seconds": 31, "run": "20261126-200100-abcd", "steps": steps, "records": records, **extra}
         report["result"] = scenario.result_of(report)
         return report
@@ -369,6 +446,12 @@ class Reports(unittest.TestCase):
     def test_settings_are_listed_verbatim(self):
         text = scenario.render_markdown(self.report(self.PASSED))
         self.assertIn("| Settings | `Show Settings: True, VK_NUMPAD8` |", text)
+
+    def test_the_renderer_is_named_with_what_was_asked_of_it(self):
+        self.assertIn("| Renderer | GDI |", scenario.render_markdown(self.report(self.PASSED)))
+        text = scenario.render_markdown(self.report(self.PASSED, renderer="d2gl", window=[1612, 840],
+                                                    d2gl={"Feature.hd_text": "true"}))
+        self.assertIn("| Renderer | D2GL, in a 1612x840 window<br>`Feature.hd_text=true` |", text)
 
     def test_a_near_miss_is_listed_under_its_colour(self):
         records = copy.deepcopy(self.PASSED)

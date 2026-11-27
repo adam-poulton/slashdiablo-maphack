@@ -12,9 +12,12 @@
 //
 // One request per connection, as a line of JSON, answered with a line of JSON:
 //   {"cmd": "ping"}     {"ok": true, "pid": n}, answered at once
-//   {"cmd": "state"}    the screen, its controls out of a game, the character
-//                       and the open panels in one
+//   {"cmd": "state"}    the screen and the size of its canvas, its controls out
+//                       of a game, the character and the open panels in one
 //   {"cmd": "drawlog"}  everything BH draws in the next whole frame
+//   {"cmd": "shot", "path": FILE}
+//                       writes what D2GL is about to show to FILE as top-down
+//                       BGRA and answers its size (FrameCapture.h)
 //   {"cmd": "exit"}     leaves the game the way Save and Exit does
 // A failure is {"ok": false, "error": "..."}.
 class AgentDriver : public Module {

@@ -16,9 +16,12 @@
 #include "../../D2Helpers.h"
 #include "../../Constants.h"
 #include "../../StringUtil.h"
+#include "../../Drawing/Hook.h"
 #include "AgentKeys.h"
 #include "AgentScreen.h"
 #include "DrawLog.h"
+#include "FrameCapture.h"
+#include "ImportRedirect.h"
 #include "ItemDrop.h"
 
 using nlohmann::json;
@@ -50,6 +53,7 @@ struct Drop {
 constexpr DWORD kFirstDropId = 0x7F000000;
 
 bool serving = false;
+bool rendererAnswered = false;
 Agent::KeyState keys;
 
 std::mutex incomingLock;
@@ -141,7 +145,31 @@ json MenuState() {
 	json listed = json::array();
 	for (const Agent::ControlShape& control : controls)
 		listed.push_back(Agent::ToJson(control));
-	return {{"ok", true}, {"screen", Agent::NameScreen(controls)}, {"controls", listed}};
+	return {
+		{"ok", true},
+		{"screen", Agent::NameScreen(controls)},
+		{"size", {Drawing::Hook::GetScreenWidth(), Drawing::Hook::GetScreenHeight()}},
+		{"controls", listed},
+	};
+}
+
+// Asks the renderer for {"path": FILE}'s frame, or says why there will be none.
+void RequestFrame(const RequestPtr& request) {
+	const json& body = request->body;
+	if (!body.contains("path") || !body["path"].is_string()) {
+		request->reply.set_value(Failure("a shot's \"path\" is the file to write the frame to"));
+		return;
+	}
+	if (!Agent::FrameCapture::Presenting()) {
+		request->reply.set_value(Failure("the game presents nothing through OpenGL: it is not rendered by D2GL"));
+		return;
+	}
+	Agent::FrameCapture::Request(body["path"].get<std::string>(), [request](const Agent::CapturedFrame& frame) {
+		if (frame.error.empty())
+			request->reply.set_value({{"ok", true}, {"size", {frame.width, frame.height}}});
+		else
+			request->reply.set_value(Failure(frame.error));
+	});
 }
 
 json FrameRecord(bool inGame) {
@@ -196,6 +224,8 @@ void Dispatch(const RequestPtr& request, bool inGame) {
 		request->reply.set_value(inGame ? GameState() : MenuState());
 	} else if (command == "drawlog") {
 		waitingForFrame.push_back(request);
+	} else if (command == "shot") {
+		RequestFrame(request);
 	} else if (command == "exit" || command == "drop") {
 		if (!inGame || !IsGameReady()) {
 			request->reply.set_value(Failure("not in a game"));
@@ -314,46 +344,38 @@ BOOL WINAPI AgentTranslateMessage(const MSG* message) {
 	return TRUE;
 }
 
-// Points the module's imports of a user32 function at a replacement. Matched by
-// address rather than by name, because the game's DLLs were linked with their
-// imports bound, and a bound import table keeps no names in the slots it binds.
-void RedirectImport(HMODULE module, const char* function, void* replacement) {
-	FARPROC original = GetProcAddress(GetModuleHandleA("user32.dll"), function);
-	BYTE* base = (BYTE*)module;
-	IMAGE_NT_HEADERS* headers = (IMAGE_NT_HEADERS*)(base + ((IMAGE_DOS_HEADER*)base)->e_lfanew);
-	IMAGE_DATA_DIRECTORY imports = headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
-	if (!original || !imports.VirtualAddress)
-		return;
-	for (IMAGE_IMPORT_DESCRIPTOR* dll = (IMAGE_IMPORT_DESCRIPTOR*)(base + imports.VirtualAddress); dll->Name; dll++) {
-		if (_stricmp((const char*)(base + dll->Name), "user32.dll") != 0)
-			continue;
-		for (IMAGE_THUNK_DATA* slot = (IMAGE_THUNK_DATA*)(base + dll->FirstThunk); slot->u1.Function; slot++) {
-			if (slot->u1.Function != (DWORD)original)
-				continue;
-			DWORD protection;
-			VirtualProtect(&slot->u1.Function, sizeof(DWORD), PAGE_READWRITE, &protection);
-			slot->u1.Function = (DWORD)replacement;
-			VirtualProtect(&slot->u1.Function, sizeof(DWORD), protection, &protection);
-		}
-	}
+void AnswerKeyboardQueries(HMODULE module) {
+	Agent::RedirectImport(module, "user32.dll", "GetKeyState", (void*)AgentGetKeyState);
+	Agent::RedirectImport(module, "user32.dll", "GetAsyncKeyState", (void*)AgentGetAsyncKeyState);
+	Agent::RedirectImport(module, "user32.dll", "GetKeyboardState", (void*)AgentGetKeyboardState);
+	Agent::RedirectImport(module, "user32.dll", "TranslateMessage", (void*)AgentTranslateMessage);
 }
 
 // The modules that read the keyboard or translate keys into characters: every
-// import of these from user32 in the game's DLLs and in BH, the renderers'
-// own message loops aside, which a sandbox never loads.
+// import of these from user32 in the game's DLLs and in BH. The renderer is
+// answered apart, once it is there (AnswerRenderer).
 void AnswerKeyboardQueries() {
 	HMODULE modules[] = {
 		LoadLibraryA("D2Client.dll"), LoadLibraryA("D2Win.dll"), LoadLibraryA("D2Launch.dll"),
 		LoadLibraryA("Fog.dll"), LoadLibraryA("Storm.dll"), BH::instance,
 	};
 	for (HMODULE module : modules) {
-		if (!module)
-			continue;
-		RedirectImport(module, "GetKeyState", (void*)AgentGetKeyState);
-		RedirectImport(module, "GetAsyncKeyState", (void*)AgentGetAsyncKeyState);
-		RedirectImport(module, "GetKeyboardState", (void*)AgentGetKeyboardState);
-		RedirectImport(module, "TranslateMessage", (void*)AgentTranslateMessage);
+		if (module)
+			AnswerKeyboardQueries(module);
 	}
+}
+
+// The Glide wrapper, which is the renderer when the game runs -3dfx: D2GL reads
+// the keyboard for its own shortcuts, and presents the frames a shot is read
+// from. False until the game has loaded it, which it has by the first frame of
+// any game it renders.
+bool AnswerRenderer() {
+	HMODULE renderer = GetModuleHandleA("glide3x.dll");
+	if (!renderer)
+		return false;
+	AnswerKeyboardQueries(renderer);
+	Agent::FrameCapture::Install(renderer);
+	return true;
 }
 
 }  // namespace
@@ -391,6 +413,8 @@ void AgentDriver::OnLoop() {
 void AgentDriver::FrameEnd(bool inGame) {
 	if (!serving)
 		return;
+	if (!rendererAnswered)
+		rendererAnswered = AnswerRenderer();
 	if (Agent::DrawLog::Recording()) {
 		json frame = FrameRecord(inGame);
 		for (const RequestPtr& request : waitingForFrame)
