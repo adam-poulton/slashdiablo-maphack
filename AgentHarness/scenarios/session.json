@@ -31,7 +31,7 @@
     {"do": ["press:600,12", "move:900,200", "move:1340,300", "release:1340,300", "move:700,450"]},
     {"check": "it goes where it is dragged, and stops at the edge of the screen",
      "drawn": {"text": "Session XP", "font": 6, "inside": [1100, 270, 244, 60]}},
-    {"do": ["wheel:1300,300,-1", "move:700,450"]},
+    {"do": ["wheel:1300,300,1", "move:700,450"]},
     {"check": "the wheel steps it to the line view, against the same edge",
      "drawn": {"text": "+51.9K/s", "font": 6, "inside": [1244, 270, 100, 60]}},
     {"check": "which is one line again",
@@ -63,7 +63,7 @@
      "drawn": {"text": "1,713 (40 champion, 16 unique)"}},
     {"shot": "window-overview", "crop": [0, 0, 680, 420]},
 
-    {"do": ["click:247,22", "move:700,450"]},
+    {"do": ["click:330,22", "move:700,450"]},
     {"check": "the Games tab lists the games under their run",
      "drawn": {"text": "baal (Hell)"}},
     {"check": "with what the finished ones average",
@@ -74,7 +74,7 @@
      "drawn": {"text": "8 games, 24:34 played"}},
     {"shot": "window-games", "crop": [0, 0, 680, 420]},
 
-    {"do": ["click:412,22", "move:700,450"]},
+    {"do": ["click:462,22", "move:700,450"]},
     {"check": "the Kills tab lists the areas fought in by their whole names",
      "drawn": {"text": "The Worldstone Keep Level 3"}},
     {"check": "with the experience earned in each",
@@ -87,7 +87,7 @@
      "drawn": {"text": "1,713 kills in 6 areas"}},
     {"shot": "window-kills", "crop": [0, 0, 680, 420]},
 
-    {"do": ["click:577,22", "move:700,450"]},
+    {"do": ["click:594,22", "move:700,450"]},
     {"check": "the Drops tab lists what the item filter pinged",
      "drawn": {"text": "Harlequin Crest Shako"}},
     {"check": "with where it fell",

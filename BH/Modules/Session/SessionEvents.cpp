@@ -82,6 +82,46 @@ namespace {
 				line["areaName"] = fact.areaName;
 		}
 
+		void operator()(const Quest& fact) const {
+			line[kKind] = "quest";
+			line["quest"] = fact.quest;
+			line["bits"] = fact.bits;
+		}
+
+		void operator()(const ItemHeld& fact) const {
+			line[kKind] = "item";
+			line["code"] = fact.code;
+		}
+
+		void operator()(const RunStarted& fact) const {
+			line[kKind] = "run";
+			line["route"] = fact.route;
+			line["name"] = fact.name;
+			line["splits"] = fact.splits;
+		}
+
+		void operator()(const SplitReached& fact) const {
+			line[kKind] = "split";
+			line["index"] = fact.index;
+			if (fact.manual)
+				line["manual"] = true;
+		}
+
+		void operator()(const SplitUndone& fact) const {
+			line[kKind] = "unsplit";
+			line["index"] = fact.index;
+		}
+
+		void operator()(const SplitSkipped& fact) const {
+			line[kKind] = "skip";
+			line["index"] = fact.index;
+		}
+
+		void operator()(const RunEnded& fact) const {
+			line[kKind] = "end";
+			line["finished"] = fact.finished;
+		}
+
 		void operator()(const Experience& fact) const {
 			line[kKind] = "exp";
 			line["exp"] = fact.total;
@@ -195,6 +235,42 @@ namespace {
 			fact.ping = (unsigned int)Number(line, "ping");
 			fact.area = (unsigned int)Number(line, "area");
 			fact.areaName = Text(line, "areaName");
+			into = fact;
+		} else if (kind == "quest") {
+			Quest fact;
+			fact.quest = (unsigned int)Number(line, "quest");
+			fact.bits = (unsigned int)Number(line, "bits");
+			into = fact;
+		} else if (kind == "item") {
+			ItemHeld fact;
+			fact.code = Text(line, "code");
+			into = fact;
+		} else if (kind == "run") {
+			RunStarted fact;
+			fact.route = Text(line, "route");
+			fact.name = Text(line, "name");
+			Json::const_iterator splits = line.find("splits");
+			if (splits != line.end() && splits->is_array()) {
+				for (const Json& split : *splits)
+					fact.splits.push_back(split.is_string() ? split.get<std::string>() : std::string());
+			}
+			into = fact;
+		} else if (kind == "split") {
+			SplitReached fact;
+			fact.index = (unsigned int)Number(line, "index");
+			fact.manual = Flag(line, "manual");
+			into = fact;
+		} else if (kind == "unsplit") {
+			SplitUndone fact;
+			fact.index = (unsigned int)Number(line, "index");
+			into = fact;
+		} else if (kind == "skip") {
+			SplitSkipped fact;
+			fact.index = (unsigned int)Number(line, "index");
+			into = fact;
+		} else if (kind == "end") {
+			RunEnded fact;
+			fact.finished = Flag(line, "finished");
 			into = fact;
 		} else if (kind == "exp") {
 			Experience fact;

@@ -274,6 +274,8 @@ if defined D2Path (
     <ClCompile Include="Modules\Session\GameProbe.cpp" />
     <ClCompile Include="Modules\Session\HudLayout.cpp" />
     <ClCompile Include="Modules\Session\KillKinds.cpp" />
+    <ClCompile Include="Modules\Session\RunEvaluator.cpp" />
+    <ClCompile Include="Modules\Session\RunStore.cpp" />
     <ClCompile Include="Modules\Session\Session.cpp" />
     <ClCompile Include="Modules\Session\SessionEvents.cpp" />
     <ClCompile Include="Modules\Session\SessionFile.cpp" />
@@ -283,6 +285,7 @@ if defined D2Path (
     <ClCompile Include="Modules\Session\SessionPanel.cpp" />
     <ClCompile Include="Modules\Session\SessionRows.cpp" />
     <ClCompile Include="Modules\Session\SessionWindow.cpp" />
+    <ClCompile Include="Modules\Session\SplitRoute.cpp" />
     <ClCompile Include="Modules\AgentDriver\AgentDriver.cpp" />
     <ClCompile Include="Modules\AgentDriver\AgentKeys.cpp" />
     <ClCompile Include="Modules\AgentDriver\AgentScreen.cpp" />
@@ -435,6 +438,8 @@ if defined D2Path (
     <ClInclude Include="Modules\Session\GameProbe.h" />
     <ClInclude Include="Modules\Session\HudLayout.h" />
     <ClInclude Include="Modules\Session\KillKinds.h" />
+    <ClInclude Include="Modules\Session\RunEvaluator.h" />
+    <ClInclude Include="Modules\Session\RunStore.h" />
     <ClInclude Include="Modules\Session\Session.h" />
     <ClInclude Include="Modules\Session\SessionEvents.h" />
     <ClInclude Include="Modules\Session\SessionFile.h" />
@@ -444,6 +449,7 @@ if defined D2Path (
     <ClInclude Include="Modules\Session\SessionPanel.h" />
     <ClInclude Include="Modules\Session\SessionRows.h" />
     <ClInclude Include="Modules\Session\SessionWindow.h" />
+    <ClInclude Include="Modules\Session\SplitRoute.h" />
     <ClInclude Include="Modules\AgentDriver\AgentDriver.h" />
     <ClInclude Include="Modules\AgentDriver\AgentKeys.h" />
     <ClInclude Include="Modules\AgentDriver\AgentScreen.h" />

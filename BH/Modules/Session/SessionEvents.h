@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <variant>
+#include <vector>
 
 // What the session tracker was told, one fact at a time and in the order it was
 // told them. Every figure the tracker shows is worked out from these and nothing
@@ -98,8 +99,52 @@ struct Dropped {
 	std::string areaName;
 };
 
+// A quest's state changed: the sixteen bits the game keeps for it, bit n being
+// the game's quest flag n, in the difficulty being played.
+struct Quest {
+	unsigned int quest;			// its place in the game's quest state
+	unsigned int bits;
+};
+
+// An item a route watches for came into the character's keeping.
+struct ItemHeld {
+	std::string code;
+};
+
+// A run began: a route to be timed against, with the names of its splits as
+// they were when it began, so that the log reads the same whatever becomes of
+// the route afterwards.
+struct RunStarted {
+	std::string route;			// the route's id
+	std::string name;
+	std::vector<std::string> splits;
+};
+
+// A split of the run in hand was reached, by something in the game marking it
+// or by the player saying so.
+struct SplitReached {
+	unsigned int index;
+	bool manual;
+};
+
+// The player took back a split that had been reached, or passed over one.
+struct SplitUndone {
+	unsigned int index;
+};
+
+struct SplitSkipped {
+	unsigned int index;
+};
+
+// The run in hand is over: finished, by its last split being reached, or given
+// up.
+struct RunEnded {
+	bool finished;
+};
+
 typedef std::variant<Started, Joined, Left, AreaEntered, Experience, LevelReached,
-	Died, Players, Killed, Notable, Dropped> Fact;
+	Died, Players, Killed, Notable, Dropped, Quest, ItemHeld, RunStarted, SplitReached,
+	SplitUndone, SplitSkipped, RunEnded> Fact;
 
 struct Event {
 	unsigned long long at;		// milliseconds since the session began

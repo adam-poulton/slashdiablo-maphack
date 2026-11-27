@@ -1,0 +1,204 @@
+{"t":0,"e":"session","v":1,"start":1795860000,"account":"someaccount","realm":"Slash","char":"Racer","class":1,"hardcore":false,"expansion":true,"bh":"1.10.1"}
+{"t":0,"e":"join","game":"","diff":0,"level":1,"exp":0}
+{"t":0,"e":"area","area":1,"town":true,"name":"Rogue Encampment"}
+{"t":0,"e":"players","count":1}
+{"t":0,"e":"run","route":"bosses-normal","name":"Act bosses (Normal)","splits":["Andariel","Duriel","Mephisto","Diablo","Baal"]}
+{"t":20000,"e":"area","area":37,"town":false,"name":"Catacombs Level 4"}
+{"t":64615,"e":"exp","exp":2000}
+{"t":64615,"e":"kills","area":37,"class":40,"name":"Monster of act 1","tier":"normal","n":6}
+{"t":64615,"e":"level","level":2}
+{"t":109230,"e":"exp","exp":6000}
+{"t":109230,"e":"kills","area":37,"class":40,"name":"Monster of act 1","tier":"normal","n":7}
+{"t":109230,"e":"level","level":3}
+{"t":153845,"e":"exp","exp":12000}
+{"t":153845,"e":"kills","area":37,"class":40,"name":"Monster of act 1","tier":"normal","n":8}
+{"t":153845,"e":"level","level":4}
+{"t":198460,"e":"exp","exp":20000}
+{"t":198460,"e":"kills","area":37,"class":40,"name":"Monster of act 1","tier":"normal","n":9}
+{"t":198460,"e":"level","level":5}
+{"t":243075,"e":"exp","exp":30000}
+{"t":243075,"e":"kills","area":37,"class":40,"name":"Monster of act 1","tier":"normal","n":10}
+{"t":243075,"e":"level","level":6}
+{"t":287690,"e":"exp","exp":42000}
+{"t":287690,"e":"kills","area":37,"class":40,"name":"Monster of act 1","tier":"normal","n":11}
+{"t":287690,"e":"level","level":7}
+{"t":332305,"e":"exp","exp":56000}
+{"t":332305,"e":"kills","area":37,"class":40,"name":"Monster of act 1","tier":"normal","n":12}
+{"t":332305,"e":"level","level":8}
+{"t":376920,"e":"exp","exp":72000}
+{"t":376920,"e":"kills","area":37,"class":40,"name":"Monster of act 1","tier":"normal","n":13}
+{"t":376920,"e":"level","level":9}
+{"t":421535,"e":"exp","exp":90000}
+{"t":421535,"e":"kills","area":37,"class":40,"name":"Monster of act 1","tier":"normal","n":14}
+{"t":421535,"e":"level","level":10}
+{"t":466150,"e":"exp","exp":110000}
+{"t":466150,"e":"kills","area":37,"class":40,"name":"Monster of act 1","tier":"normal","n":15}
+{"t":466150,"e":"level","level":11}
+{"t":510765,"e":"exp","exp":132000}
+{"t":510765,"e":"kills","area":37,"class":40,"name":"Monster of act 1","tier":"normal","n":16}
+{"t":510765,"e":"level","level":12}
+{"t":555380,"e":"exp","exp":156000}
+{"t":555380,"e":"kills","area":37,"class":40,"name":"Monster of act 1","tier":"normal","n":17}
+{"t":555380,"e":"level","level":13}
+{"t":600000,"e":"notable","area":37,"class":156,"name":"Andariel","kind":"Andariel","tier":"boss"}
+{"t":600000,"e":"split","index":0}
+{"t":600500,"e":"quest","quest":6,"bits":8222}
+{"t":610000,"e":"leave"}
+{"t":620000,"e":"join","game":"","diff":0,"level":13,"exp":156000}
+{"t":620000,"e":"area","area":40,"town":true,"name":"Lut Gholein"}
+{"t":620000,"e":"players","count":1}
+{"t":640000,"e":"area","area":73,"town":false,"name":"Duriel's Lair"}
+{"t":762857,"e":"exp","exp":160000}
+{"t":762857,"e":"kills","area":73,"class":41,"name":"Monster of act 2","tier":"normal","n":6}
+{"t":762857,"e":"level","level":14}
+{"t":885714,"e":"exp","exp":168000}
+{"t":885714,"e":"kills","area":73,"class":41,"name":"Monster of act 2","tier":"normal","n":7}
+{"t":885714,"e":"level","level":15}
+{"t":1008571,"e":"exp","exp":180000}
+{"t":1008571,"e":"kills","area":73,"class":41,"name":"Monster of act 2","tier":"normal","n":8}
+{"t":1008571,"e":"level","level":16}
+{"t":1131428,"e":"exp","exp":196000}
+{"t":1131428,"e":"kills","area":73,"class":41,"name":"Monster of act 2","tier":"normal","n":9}
+{"t":1131428,"e":"level","level":17}
+{"t":1254285,"e":"exp","exp":216000}
+{"t":1254285,"e":"kills","area":73,"class":41,"name":"Monster of act 2","tier":"normal","n":10}
+{"t":1254285,"e":"level","level":18}
+{"t":1377142,"e":"exp","exp":240000}
+{"t":1377142,"e":"kills","area":73,"class":41,"name":"Monster of act 2","tier":"normal","n":11}
+{"t":1377142,"e":"level","level":19}
+{"t":1500000,"e":"notable","area":73,"class":211,"name":"Duriel","kind":"Duriel","tier":"boss"}
+{"t":1500000,"e":"split","index":1}
+{"t":1500500,"e":"quest","quest":14,"bits":44}
+{"t":1510000,"e":"leave"}
+{"t":1520000,"e":"join","game":"","diff":0,"level":19,"exp":240000}
+{"t":1520000,"e":"area","area":75,"town":true,"name":"Kurast Docks"}
+{"t":1520000,"e":"players","count":1}
+{"t":1540000,"e":"area","area":102,"town":false,"name":"Durance of Hate Level 3"}
+{"t":1712000,"e":"exp","exp":246000}
+{"t":1712000,"e":"kills","area":102,"class":42,"name":"Monster of act 3","tier":"normal","n":6}
+{"t":1712000,"e":"level","level":20}
+{"t":1884000,"e":"exp","exp":258000}
+{"t":1884000,"e":"kills","area":102,"class":42,"name":"Monster of act 3","tier":"normal","n":7}
+{"t":1884000,"e":"level","level":21}
+{"t":2056000,"e":"exp","exp":276000}
+{"t":2056000,"e":"kills","area":102,"class":42,"name":"Monster of act 3","tier":"normal","n":8}
+{"t":2056000,"e":"level","level":22}
+{"t":2228000,"e":"exp","exp":300000}
+{"t":2228000,"e":"kills","area":102,"class":42,"name":"Monster of act 3","tier":"normal","n":9}
+{"t":2228000,"e":"level","level":23}
+{"t":2400000,"e":"notable","area":102,"class":242,"name":"Mephisto","kind":"Mephisto","tier":"boss"}
+{"t":2400000,"e":"split","index":2}
+{"t":2400500,"e":"quest","quest":22,"bits":8222}
+{"t":2410000,"e":"leave"}
+{"t":2420000,"e":"join","game":"","diff":0,"level":23,"exp":300000}
+{"t":2420000,"e":"area","area":103,"town":true,"name":"The Pandemonium Fortress"}
+{"t":2420000,"e":"players","count":1}
+{"t":2440000,"e":"area","area":108,"town":false,"name":"Chaos Sanctuary"}
+{"t":2655000,"e":"exp","exp":308000}
+{"t":2655000,"e":"kills","area":108,"class":43,"name":"Monster of act 4","tier":"normal","n":6}
+{"t":2655000,"e":"level","level":24}
+{"t":2870000,"e":"exp","exp":324000}
+{"t":2870000,"e":"kills","area":108,"class":43,"name":"Monster of act 4","tier":"normal","n":7}
+{"t":2870000,"e":"level","level":25}
+{"t":3085000,"e":"exp","exp":348000}
+{"t":3085000,"e":"kills","area":108,"class":43,"name":"Monster of act 4","tier":"normal","n":8}
+{"t":3085000,"e":"level","level":26}
+{"t":3300000,"e":"notable","area":108,"class":243,"name":"Diablo","kind":"Diablo","tier":"boss"}
+{"t":3300000,"e":"split","index":3}
+{"t":3300500,"e":"quest","quest":26,"bits":8222}
+{"t":3310000,"e":"leave"}
+{"t":3320000,"e":"join","game":"","diff":0,"level":26,"exp":348000}
+{"t":3320000,"e":"area","area":109,"town":true,"name":"Harrogath"}
+{"t":3320000,"e":"players","count":1}
+{"t":3340000,"e":"area","area":132,"town":false,"name":"The Worldstone Chamber"}
+{"t":3533333,"e":"exp","exp":358000}
+{"t":3533333,"e":"kills","area":132,"class":44,"name":"Monster of act 5","tier":"normal","n":6}
+{"t":3533333,"e":"level","level":27}
+{"t":3726666,"e":"exp","exp":378000}
+{"t":3726666,"e":"kills","area":132,"class":44,"name":"Monster of act 5","tier":"normal","n":7}
+{"t":3726666,"e":"level","level":28}
+{"t":3919999,"e":"exp","exp":408000}
+{"t":3919999,"e":"kills","area":132,"class":44,"name":"Monster of act 5","tier":"normal","n":8}
+{"t":3919999,"e":"level","level":29}
+{"t":4113332,"e":"exp","exp":448000}
+{"t":4113332,"e":"kills","area":132,"class":44,"name":"Monster of act 5","tier":"normal","n":9}
+{"t":4113332,"e":"level","level":30}
+{"t":4306665,"e":"exp","exp":498000}
+{"t":4306665,"e":"kills","area":132,"class":44,"name":"Monster of act 5","tier":"normal","n":10}
+{"t":4306665,"e":"level","level":31}
+{"t":4500000,"e":"notable","area":132,"class":544,"name":"Baal","kind":"Baal","tier":"boss"}
+{"t":4500000,"e":"split","index":4}
+{"t":4500000,"e":"end","finished":true}
+{"t":4500500,"e":"quest","quest":40,"bits":8222}
+{"t":4510000,"e":"leave"}
+{"t":4550000,"e":"join","game":"","diff":0,"level":31,"exp":498000}
+{"t":4550000,"e":"area","area":1,"town":true,"name":"Rogue Encampment"}
+{"t":4550000,"e":"players","count":1}
+{"t":4550000,"e":"run","route":"bosses-normal","name":"Act bosses (Normal)","splits":["Andariel","Duriel","Mephisto","Diablo","Baal"]}
+{"t":4570000,"e":"area","area":37,"town":false,"name":"Catacombs Level 4"}
+{"t":4612307,"e":"exp","exp":500000}
+{"t":4612307,"e":"kills","area":37,"class":40,"name":"Monster of act 1","tier":"normal","n":6}
+{"t":4612307,"e":"level","level":32}
+{"t":4654614,"e":"exp","exp":504000}
+{"t":4654614,"e":"kills","area":37,"class":40,"name":"Monster of act 1","tier":"normal","n":7}
+{"t":4654614,"e":"level","level":33}
+{"t":4696921,"e":"exp","exp":510000}
+{"t":4696921,"e":"kills","area":37,"class":40,"name":"Monster of act 1","tier":"normal","n":8}
+{"t":4696921,"e":"level","level":34}
+{"t":4739228,"e":"exp","exp":518000}
+{"t":4739228,"e":"kills","area":37,"class":40,"name":"Monster of act 1","tier":"normal","n":9}
+{"t":4739228,"e":"level","level":35}
+{"t":4781535,"e":"exp","exp":528000}
+{"t":4781535,"e":"kills","area":37,"class":40,"name":"Monster of act 1","tier":"normal","n":10}
+{"t":4781535,"e":"level","level":36}
+{"t":4823842,"e":"exp","exp":540000}
+{"t":4823842,"e":"kills","area":37,"class":40,"name":"Monster of act 1","tier":"normal","n":11}
+{"t":4823842,"e":"level","level":37}
+{"t":4866149,"e":"exp","exp":554000}
+{"t":4866149,"e":"kills","area":37,"class":40,"name":"Monster of act 1","tier":"normal","n":12}
+{"t":4866149,"e":"level","level":38}
+{"t":4908456,"e":"exp","exp":570000}
+{"t":4908456,"e":"kills","area":37,"class":40,"name":"Monster of act 1","tier":"normal","n":13}
+{"t":4908456,"e":"level","level":39}
+{"t":4950763,"e":"exp","exp":588000}
+{"t":4950763,"e":"kills","area":37,"class":40,"name":"Monster of act 1","tier":"normal","n":14}
+{"t":4950763,"e":"level","level":40}
+{"t":4993070,"e":"exp","exp":608000}
+{"t":4993070,"e":"kills","area":37,"class":40,"name":"Monster of act 1","tier":"normal","n":15}
+{"t":4993070,"e":"level","level":41}
+{"t":5035377,"e":"exp","exp":630000}
+{"t":5035377,"e":"kills","area":37,"class":40,"name":"Monster of act 1","tier":"normal","n":16}
+{"t":5035377,"e":"level","level":42}
+{"t":5077684,"e":"exp","exp":654000}
+{"t":5077684,"e":"kills","area":37,"class":40,"name":"Monster of act 1","tier":"normal","n":17}
+{"t":5077684,"e":"level","level":43}
+{"t":5120000,"e":"notable","area":37,"class":156,"name":"Andariel","kind":"Andariel","tier":"boss"}
+{"t":5120000,"e":"split","index":0}
+{"t":5120500,"e":"quest","quest":6,"bits":8222}
+{"t":5130000,"e":"leave"}
+{"t":5140000,"e":"join","game":"","diff":0,"level":43,"exp":654000}
+{"t":5140000,"e":"area","area":40,"town":true,"name":"Lut Gholein"}
+{"t":5140000,"e":"players","count":1}
+{"t":5160000,"e":"area","area":73,"town":false,"name":"Duriel's Lair"}
+{"t":5291428,"e":"exp","exp":658000}
+{"t":5291428,"e":"kills","area":73,"class":41,"name":"Monster of act 2","tier":"normal","n":6}
+{"t":5291428,"e":"level","level":44}
+{"t":5422856,"e":"exp","exp":666000}
+{"t":5422856,"e":"kills","area":73,"class":41,"name":"Monster of act 2","tier":"normal","n":7}
+{"t":5422856,"e":"level","level":45}
+{"t":5554284,"e":"exp","exp":678000}
+{"t":5554284,"e":"kills","area":73,"class":41,"name":"Monster of act 2","tier":"normal","n":8}
+{"t":5554284,"e":"level","level":46}
+{"t":5685712,"e":"exp","exp":694000}
+{"t":5685712,"e":"kills","area":73,"class":41,"name":"Monster of act 2","tier":"normal","n":9}
+{"t":5685712,"e":"level","level":47}
+{"t":5817140,"e":"exp","exp":714000}
+{"t":5817140,"e":"kills","area":73,"class":41,"name":"Monster of act 2","tier":"normal","n":10}
+{"t":5817140,"e":"level","level":48}
+{"t":5948568,"e":"exp","exp":738000}
+{"t":5948568,"e":"kills","area":73,"class":41,"name":"Monster of act 2","tier":"normal","n":11}
+{"t":5948568,"e":"level","level":49}
+{"t":6080000,"e":"notable","area":73,"class":211,"name":"Duriel","kind":"Duriel","tier":"boss"}
+{"t":6080000,"e":"split","index":1}
+{"t":6080500,"e":"quest","quest":14,"bits":44}
+{"t":6230000,"e":"exp","exp":739234}

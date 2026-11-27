@@ -26,6 +26,10 @@ std::string Count(long long number);
 // "+980.4K", "-125".
 std::string ShortAmount(long long amount);
 
+// How far a run is from the time it is compared with, signed: to a tenth of a
+// second under a minute, "-12.3", and to the second past it, "+1:02".
+std::string Delta(long long ms);
+
 // A name as the game writes one, made a line of plain text: without the colour
 // codes the game puts in it, and with a space where it broke onto a new line.
 std::string Plain(const std::string& name);

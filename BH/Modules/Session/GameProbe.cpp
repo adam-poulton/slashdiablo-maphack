@@ -38,6 +38,9 @@ namespace {
 		return monster->dwMode == NPC_MODE_DEATH || monster->dwMode == NPC_MODE_DEAD;
 	}
 
+	// The sixteen flags the game keeps for a quest, as one number.
+	const unsigned int kQuestFlags = 16;
+
 	bool IsFriendly(UnitAny* monster) {
 		return D2COMMON_GetUnitStat(monster, STAT_ALIGNMENT, 0) == kFriendly;
 	}
@@ -76,6 +79,48 @@ void GameProbe::Reset() {
 	monsters.clear();
 	kills.clear();
 	toldKillsAt = 0;
+	for (unsigned int& quest : quests)
+		quest = 0;
+	held.clear();
+	readAt = 0;
+}
+
+void GameProbe::ReadQuests(bool tell, unsigned long long tick, std::vector<Seen>& seen) {
+	void* state = D2CLIENT_GetQuestInfo();
+	if (!state)
+		return;
+	for (unsigned int quest = 0; quest < kQuests; quest++) {
+		unsigned int bits = 0;
+		for (unsigned int flag = 0; flag < kQuestFlags; flag++) {
+			if (D2COMMON_GetQuestFlag2(state, quest, flag))
+				bits |= 1u << flag;
+		}
+		if (bits == quests[quest])
+			continue;
+		quests[quest] = bits;
+		if (tell)
+			seen.push_back({ tick, Quest{ quest, bits } });
+	}
+}
+
+// Everything the character has is in the one list: what is worn, carried,
+// stashed and in the cube.
+void GameProbe::ReadItems(UnitAny* player, bool tell, unsigned long long tick,
+		std::vector<Seen>& seen) {
+	if (watched.empty() || !player->pInventory)
+		return;
+	std::set<std::string> now;
+	for (UnitAny* item = player->pInventory->pFirstItem; item;
+			item = item->pItemData ? item->pItemData->pNextInvItem : NULL) {
+		const std::string code = GetItemCode(item->dwTxtFileNo);
+		if (watched.count(code))
+			now.insert(code);
+	}
+	for (const std::string& code : now) {
+		if (tell && !held.count(code))
+			seen.push_back({ tick, ItemHeld{ code } });
+	}
+	held = now;
 }
 
 std::string GameProbe::AreaName(unsigned int area) {
@@ -242,6 +287,13 @@ void GameProbe::Sample(unsigned long long tick, std::vector<Seen>& seen) {
 	}
 
 	WatchMonsters(player, tick, seen);
+
+	if (tick - readAt >= kReadEveryMs) {
+		readAt = tick;
+		const bool settled = tick - firstSeenAt >= kSettleMs;
+		ReadQuests(settled, tick, seen);
+		ReadItems(player, settled, tick, seen);
+	}
 
 	if (tick - toldExperienceAt >= kTellEveryMs)
 		TellExperience(tick, seen);

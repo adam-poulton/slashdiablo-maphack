@@ -352,6 +352,131 @@ std::vector<Row> Drops(const SessionModel& model) {
 	return rows;
 }
 
+namespace {
+	const char* const kRoutePrefix = "route:";
+
+	std::string TimeOrNone(long long ms) {
+		return ms >= 0 ? ShortClock((unsigned long long)ms) : std::string();
+	}
+
+	const RunStore::Best* BestFor(const SessionModel& model, const RunsShown& shown,
+			const std::string& route) {
+		if (!shown.store)
+			return NULL;
+		const SessionEvents::Started& header = model.Header();
+		return shown.store->Find(RunStore::KeyFor(route, header.classId, header.hardcore));
+	}
+
+	Row SplitRow(const RunCompare::Line& line, const RunStore::Times* times, unsigned int index,
+			bool current) {
+		Row row = { std::vector<std::string>(SplitColumns), false, false };
+		row.colors.assign(SplitColumns, -1);
+		row.cells[SplitName] = (current ? "> " : "") + line.name;
+		if (line.state == SessionModel::RunSplit::Reached)
+			row.cells[SplitTime] = TimeOrNone(line.time);
+		else if (line.state == SessionModel::RunSplit::Skipped)
+			row.cells[SplitTime] = "-";
+		if (line.compared) {
+			row.cells[SplitDelta] = Delta(line.delta);
+			row.colors[SplitDelta] = line.gold ? kColorBest :
+				(line.delta <= 0 ? kColorAhead : kColorBehind);
+		}
+		row.cells[SplitBest] = TimeOrNone(line.best);
+		if (times && index < times->segments.size())
+			row.cells[SplitSegment] = TimeOrNone(times->segments[index]);
+		if (line.level > 0)
+			row.cells[SplitLevel] = std::to_string(line.level);
+		return row;
+	}
+
+	Row Summary(const std::string& name, const std::string& figure) {
+		Row row = { std::vector<std::string>(SplitColumns), false, true };
+		row.cells[SplitName] = name;
+		row.cells[SplitTime] = figure;
+		return row;
+	}
+
+	// What became of a run that is over.
+	std::string Outcome(const SessionModel::Run& run) {
+		if (run.finished)
+			return "finished";
+		size_t reached = 0;
+		for (const SessionModel::RunSplit& split : run.splits) {
+			if (split.state == SessionModel::RunSplit::Reached)
+				reached++;
+		}
+		return "given up after " + std::to_string(reached) + " of " + std::to_string(run.splits.size());
+	}
+}
+
+std::string RouteKey(const std::string& routeId) {
+	return kRoutePrefix + routeId;
+}
+
+std::string RouteOf(const std::string& key) {
+	const std::string prefix = kRoutePrefix;
+	return key.compare(0, prefix.size(), prefix) == 0 ? key.substr(prefix.size()) : std::string();
+}
+
+std::vector<Row> Runs(const SessionModel& model, const RunsShown& shown) {
+	std::vector<Row> rows;
+	const SessionModel::Run* active = model.ActiveRun();
+
+	if (active) {
+		const RunStore::Best* best = BestFor(model, shown, active->route);
+		const unsigned long long clock = shown.clock == RunStore::RealTime ?
+			model.RunRealMs(shown.now) : model.RunGameMs(shown.now);
+		const RunCompare::Lines lines = RunCompare::Compare(*active, best, shown.clock, clock);
+		const RunStore::Times* times = best ? &best->by[shown.clock] : NULL;
+
+		rows.push_back(Heading(active->name));
+		for (unsigned int i = 0; i < lines.splits.size(); i++)
+			rows.push_back(SplitRow(lines.splits[i], times, i, (int)i == lines.current));
+		rows.push_back(Summary("Run time", ShortClock(clock)));
+		if (lines.bestTotal >= 0)
+			rows.push_back(Summary("Best run", ShortClock((unsigned long long)lines.bestTotal)));
+		if (lines.sumOfBest >= 0)
+			rows.push_back(Summary("Sum of best", ShortClock((unsigned long long)lines.sumOfBest)));
+		if (lines.bestPossible >= 0)
+			rows.push_back(Summary("Best possible", ShortClock((unsigned long long)lines.bestPossible)));
+		if (best && best->attempts > 0)
+			rows.push_back(Summary("Finished", std::to_string(best->finished) + " of " +
+				std::to_string(best->attempts)));
+	}
+
+	if (shown.routes && !shown.routes->empty()) {
+		rows.push_back(Heading("Routes"));
+		for (const ::Splits::Route& route : *shown.routes) {
+			const RunStore::Best* best = BestFor(model, shown, route.id);
+			const RunStore::Times* times = best ? &best->by[shown.clock] : NULL;
+			Row row = { std::vector<std::string>(SplitColumns), false, false };
+			row.key = RouteKey(route.id);
+			row.cells[SplitName] = (route.id == shown.selected ? "> " : "") + route.name;
+			row.cells[SplitTime] = std::to_string(route.splits.size()) +
+				(route.splits.size() == 1 ? " split" : " splits");
+			if (times)
+				row.cells[SplitBest] = TimeOrNone(times->total);
+			rows.push_back(row);
+		}
+	}
+
+	// Latest first, and not the one in hand, which is at the top.
+	bool headed = false;
+	for (size_t i = model.Runs().size(); i-- > 0;) {
+		const SessionModel::Run& run = model.Runs()[i];
+		if (!run.ended)
+			continue;
+		if (!headed) {
+			rows.push_back(Heading("Runs this session"));
+			headed = true;
+		}
+		Row row = { std::vector<std::string>(SplitColumns), false, false };
+		row.cells[SplitName] = run.name + ", " + Outcome(run);
+		row.cells[SplitTime] = ShortClock(shown.clock == RunStore::RealTime ? run.realMs : run.gameMs);
+		rows.push_back(row);
+	}
+	return rows;
+}
 std::vector<Row> Matching(const std::vector<Row>& rows, const std::string& text) {
 	if (text.empty())
 		return rows;

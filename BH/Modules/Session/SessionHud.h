@@ -20,13 +20,15 @@ class SessionHud {
 
 		SessionHud();
 
-		// Called once, before anything is drawn: reads where the HUD was left,
-		// and takes the setting its view is kept in, which the wheel changes
-		// while the HUD is being placed.
-		void Load(unsigned int* viewSetting);
+		// Called once, before anything is drawn: reads where the HUD was left.
+		void Load();
+
+		// How many views on the wheel was turned over a HUD being placed since
+		// this was last asked: towards the user is on to the next.
+		int TakeViewSteps();
 
 		// On the game's draw.
-		void Draw(const SessionModel& model, unsigned long long now,
+		void Draw(const HudLayout::Figures& figures, HudLayout::View view,
 			unsigned int background);
 
 		bool IsBeingPlaced() const { return placing; }
@@ -51,7 +53,7 @@ class SessionHud {
 		};
 
 		Handle* handle;
-		unsigned int* viewSetting;
+		int viewSteps;
 
 		HudLayout::Place place;
 		HudLayout::Point at;		// where the block was last drawn
@@ -61,7 +63,6 @@ class SessionHud {
 		bool dragging;
 		HudLayout::Point grabbed;	// from the block's corner to where it was taken hold of
 
-		HudLayout::View CurrentView() const;
 		void Follow();
 		void DrawOutline();
 		void Save();

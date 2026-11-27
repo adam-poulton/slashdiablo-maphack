@@ -131,6 +131,8 @@ time in the lobby does not lower them.
 | `%SESSIONDEATHS%` | Deaths this session |
 | `%SESSIONKILLS%` | Monsters that died in view this session |
 | `%SESSIONDROPS%` | Drops the item filter pinged this session |
+| `%RUNTIME%` | The clock of the run being timed |
+| `%RUNSPLIT%` | The split the run is on |
 
 ## Overlay position
 

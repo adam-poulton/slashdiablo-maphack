@@ -528,3 +528,191 @@ TEST_CASE("a search drops a run's average, which is of games no longer all liste
 	CHECK_FALSE(found[1].summary);
 	CHECK(found[1].cells[GameName] == "baal-2");
 }
+namespace {
+
+const std::vector<Splits::Route>& ThePresets() {
+	static const std::vector<Splits::Route> presets = Splits::Presets();
+	return presets;
+}
+
+RunsShown Shown(const RunStore* store, unsigned long long now,
+		RunStore::Clock clock = RunStore::RealTime) {
+	return { &ThePresets(), "bosses-normal", store, clock, now };
+}
+
+RunStarted BossRun() {
+	return RunStarted{ "bosses-normal", "Act bosses (Normal)",
+		{ "Andariel", "Duriel", "Mephisto", "Diablo", "Baal" } };
+}
+
+// A finished run of the five bosses at these times, and a second in hand with
+// the first two reached.
+SessionModel TwoRuns() {
+	return After({
+		{ 0, Someone() },
+		{ 0, Joined{ "a", 0, 1, 0 } },
+		{ 0, BossRun() },
+		{ 100 * kSecond, SplitReached{ 0, false } },
+		{ 250 * kSecond, SplitReached{ 1, false } },
+		{ 400 * kSecond, SplitReached{ 2, false } },
+		{ 600 * kSecond, SplitReached{ 3, false } },
+		{ 900 * kSecond, SplitReached{ 4, false } },
+		{ 900 * kSecond, RunEnded{ true } },
+		{ 1000 * kSecond, BossRun() },
+		{ 1090 * kSecond, LevelReached{ 9 } },
+		{ 1090 * kSecond, SplitReached{ 0, false } },
+		{ 1270 * kSecond, SplitReached{ 1, false } },
+	});
+}
+
+RunStore StoreOf(const SessionModel& model) {
+	RunStore store;
+	for (const SessionModel::Run& run : model.Runs()) {
+		if (run.ended)
+			store.Record(RunStore::KeyFor(run.route, model.Header().classId, model.Header().hardcore), run);
+	}
+	return store;
+}
+
+}
+
+TEST_CASE("a route's row is known by a key, which is the route's and no other row's") {
+	CHECK(RouteOf(RouteKey("bosses-normal")) == "bosses-normal");
+	CHECK(RouteOf("") == "");
+	CHECK(RouteOf("something else") == "");
+}
+
+TEST_CASE("with no run in hand the tab lists the routes there are to run") {
+	SessionModel model = After({ { 0, Someone() }, { 0, Joined{ "a", 0, 1, 0 } } });
+	const std::vector<Row> rows = Runs(model, Shown(NULL, kMinute));
+
+	CHECK(Headings(rows) == std::vector<std::string>{ "Routes" });
+	const std::vector<Row> routes = Under(rows, "Routes");
+	REQUIRE(routes.size() == ThePresets().size());
+	// The one a run would be started on is marked.
+	CHECK(routes[0].cells[SplitName] == "> Act bosses (Normal)");
+	CHECK(routes[0].cells[SplitTime] == "5 splits");
+	CHECK(routes[0].key == RouteKey("bosses-normal"));
+	CHECK(routes[1].cells[SplitName] == "Act bosses (through Hell)");
+	CHECK(routes[1].cells[SplitTime] == "15 splits");
+	CHECK(routes[3].cells[SplitTime] == "1 split");
+	CHECK(routes[0].cells[SplitBest] == "");
+}
+
+TEST_CASE("a route that has been finished shows its best") {
+	const SessionModel model = TwoRuns();
+	const RunStore store = StoreOf(model);
+	const std::vector<Row> routes = Under(Runs(model, Shown(&store, 1300 * kSecond)), "Routes");
+	CHECK(routes[0].cells[SplitBest] == "15:00");
+	CHECK(routes[1].cells[SplitBest] == "");
+}
+
+TEST_CASE("the run in hand is listed split by split against the best run") {
+	const SessionModel model = TwoRuns();
+	const RunStore store = StoreOf(model);
+	const std::vector<Row> rows = Runs(model, Shown(&store, 1300 * kSecond));
+
+	CHECK(Headings(rows) == std::vector<std::string>{ "Act bosses (Normal)", "Routes",
+		"Runs this session" });
+	const std::vector<Row> splits = Under(rows, "Act bosses (Normal)");
+
+	// Ten seconds ahead, and the fastest that stretch has been done.
+	CHECK(splits[0].cells[SplitName] == "Andariel");
+	CHECK(splits[0].cells[SplitTime] == "1:30");
+	CHECK(splits[0].cells[SplitDelta] == "-10.0");
+	CHECK(splits[0].colors[SplitDelta] == kColorBest);
+	CHECK(splits[0].cells[SplitBest] == "1:40");
+	CHECK(splits[0].cells[SplitSegment] == "1:40");
+	CHECK(splits[0].cells[SplitLevel] == "9");
+
+	// Twenty behind.
+	CHECK(splits[1].cells[SplitTime] == "4:30");
+	CHECK(splits[1].cells[SplitDelta] == "+20.0");
+	CHECK(splits[1].colors[SplitDelta] == kColorBehind);
+	CHECK(splits[1].cells[SplitSegment] == "2:30");
+
+	// The split the run is on, with the time to beat and nothing of its own.
+	CHECK(splits[2].cells[SplitName] == "> Mephisto");
+	CHECK(splits[2].cells[SplitTime] == "");
+	CHECK(splits[2].cells[SplitDelta] == "");
+	CHECK(splits[2].cells[SplitBest] == "6:40");
+	CHECK(splits[2].cells[SplitLevel] == "");
+	CHECK(splits[2].colors[SplitDelta] == -1);
+}
+
+TEST_CASE("under the splits are the run's time and what it is up against") {
+	const SessionModel model = TwoRuns();
+	const RunStore store = StoreOf(model);
+	const std::vector<Row> splits = Under(Runs(model, Shown(&store, 1300 * kSecond)),
+		"Act bosses (Normal)");
+
+	CHECK(Figure(splits, "Run time") == "5:00");
+	CHECK(Figure(splits, "Best run") == "15:00");
+	CHECK(Figure(splits, "Sum of best") == "15:00");
+	// 4:30 done, and the three stretches left at 2:30, 3:20 and 5:00.
+	CHECK(Figure(splits, "Best possible") == "15:20");
+	CHECK(Figure(splits, "Finished") == "1 of 1");
+	for (const Row& row : splits) {
+		if (row.cells[SplitName] == "Run time")
+			CHECK(row.summary);
+	}
+}
+
+TEST_CASE("a run with nothing to be compared with has only its own times") {
+	SessionModel model = After({
+		{ 0, Someone() },
+		{ 0, Joined{ "a", 0, 1, 0 } },
+		{ 0, BossRun() },
+		{ 90 * kSecond, SplitReached{ 0, false } },
+	});
+	const std::vector<Row> splits = Under(Runs(model, Shown(NULL, 100 * kSecond)),
+		"Act bosses (Normal)");
+
+	CHECK(splits[0].cells[SplitTime] == "1:30");
+	CHECK(splits[0].cells[SplitDelta] == "");
+	CHECK(splits[0].cells[SplitBest] == "");
+	CHECK(Figure(splits, "Run time") == "1:40");
+	CHECK(Figure(splits, "Best run") == "<none>");
+	CHECK(Figure(splits, "Sum of best") == "<none>");
+}
+
+TEST_CASE("a split passed over is listed as that") {
+	SessionModel model = After({
+		{ 0, Someone() },
+		{ 0, Joined{ "a", 0, 1, 0 } },
+		{ 0, BossRun() },
+		{ 10 * kSecond, SplitSkipped{ 0 } },
+	});
+	const std::vector<Row> splits = Under(Runs(model, Shown(NULL, 100 * kSecond)),
+		"Act bosses (Normal)");
+	CHECK(splits[0].cells[SplitTime] == "-");
+	CHECK(splits[1].cells[SplitName] == "> Duriel");
+}
+
+TEST_CASE("the runs of the session that are over are listed latest first, with how each ended") {
+	SessionModel model = TwoRuns();
+	model.Apply({ 1300 * kSecond, RunEnded{ false } });
+	const std::vector<Row> over = Under(Runs(model, Shown(NULL, 1400 * kSecond)), "Runs this session");
+
+	REQUIRE(over.size() == 2);
+	CHECK(over[0].cells[SplitName] == "Act bosses (Normal), given up after 2 of 5");
+	CHECK(over[0].cells[SplitTime] == "5:00");
+	CHECK(over[1].cells[SplitName] == "Act bosses (Normal), finished");
+	CHECK(over[1].cells[SplitTime] == "15:00");
+}
+
+TEST_CASE("the tab's times are on the clock asked for") {
+	SessionModel model = After({
+		{ 0, Someone() },
+		{ 0, Joined{ "a", 0, 1, 0 } },
+		{ 0, BossRun() },
+		{ 60 * kSecond, Left() },
+		{ 120 * kSecond, Joined{ "b", 0, 5, 0 } },
+		{ 150 * kSecond, SplitReached{ 0, false } },
+	});
+
+	CHECK(Under(Runs(model, Shown(NULL, 160 * kSecond, RunStore::RealTime)),
+		"Act bosses (Normal)")[0].cells[SplitTime] == "2:30");
+	CHECK(Under(Runs(model, Shown(NULL, 160 * kSecond, RunStore::GameTime)),
+		"Act bosses (Normal)")[0].cells[SplitTime] == "1:30");
+}

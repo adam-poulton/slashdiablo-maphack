@@ -2,6 +2,7 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include "RunStore.h"
 #include "SessionModel.h"
 
 // What the session HUD says and where it goes, worked out without the game: the
@@ -14,6 +15,8 @@ namespace HudLayout {
 enum View {
 	ViewLine,		// one line
 	ViewCompact,	// a few lines of names and figures
+	ViewSplits,		// the run in hand, split by split
+	ViewFull,		// the splits, and the session under them
 	ViewCount
 };
 
@@ -27,14 +30,26 @@ View Next(View view, int step);
 
 enum Tone {
 	ToneLabel,		// names what follows
-	ToneValue
+	ToneValue,
+	ToneDim,		// a figure that is not this run's: the time to beat
+	ToneAhead,		// of the time it is compared with
+	ToneBehind,
+	ToneBest		// the fastest this stretch has been done
 };
 
 struct Cell {
 	std::string text;
 	Tone tone;
+
+	// Stands against the left of its column, as a name does, whatever its tone:
+	// the split a run is on is written as a figure is, where it stood as a name.
+	bool left = false;
 };
 typedef std::vector<Cell> Row;
+
+// Rows that share their columns. A view is one or more of them, one under the
+// other, each with columns of its own.
+typedef std::vector<Row> Section;
 
 // What a view shows, read off a session at a moment on its clock.
 struct Figures {
@@ -45,10 +60,26 @@ struct Figures {
 	double gameRate;
 	double playedRate;
 	double recentRate;
-};
-Figures FiguresOf(const SessionModel& model, unsigned long long now);
+	unsigned int kills;
+	unsigned int deaths;
+	std::string lastDrop;
 
-std::vector<Row> Rows(View view, const Figures& figures);
+	// The run in hand, or one finished a moment ago and still worth reading,
+	// set beside the best its route has been run.
+	bool inRun;
+	bool runEnded;
+	RunCompare::Lines run;
+};
+
+// How long a finished run stays on the HUD.
+const unsigned long long kRunLingersMs = 60 * 1000;
+
+// `best` is what the run in hand is compared with, or NULL for nothing.
+Figures FiguresOf(const SessionModel& model, unsigned long long now,
+	const RunStore::Best* best = NULL, RunStore::Clock clock = RunStore::RealTime);
+
+// A view without a run to show is the nearest one that needs none.
+std::vector<Section> Sections(View view, const Figures& figures);
 
 struct Size {
 	int width;
@@ -68,6 +99,7 @@ struct Metrics {
 	int rowGap;			// between one row and the next
 	int labelGap;		// between a name and its figure
 	int groupGap;		// between a figure and the next name
+	int sectionGap;		// between one section and the next, over the row gap
 	int padding;		// around the whole block
 };
 
@@ -86,6 +118,9 @@ struct Block {
 // cell, names against the left of theirs and figures against the right, so
 // figures in a column line up by their last digit.
 Block Arrange(const std::vector<Row>& rows, const Metrics& metrics);
+
+// The same for sections one under the other, each in its own columns.
+Block ArrangeSections(const std::vector<Section>& sections, const Metrics& metrics);
 
 // Which edge of the canvas a block is held against, along one axis.
 enum Side {

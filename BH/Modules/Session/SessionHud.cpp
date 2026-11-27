@@ -15,7 +15,18 @@ namespace {
 	const int kRowGap = 4;
 	const int kLabelGap = 5;
 	const int kGroupGap = 14;
+	const int kSectionGap = 3;
 	const int kPadding = 4;
+
+	TextColor ColorOf(Tone tone) {
+		switch (tone) {
+			case ToneValue:		return White;
+			case ToneAhead:		return Green;
+			case ToneBehind:	return Red;
+			case ToneBest:		return Gold;
+			default:			return Grey;
+		}
+	}
 
 	// Where the HUD goes until it is moved: the top of the screen, in the middle.
 	const Place kDefaultPlace = { SideMiddle, SideNear, 0, 3 };
@@ -63,6 +74,7 @@ namespace {
 		metrics.rowGap = kRowGap;
 		metrics.labelGap = kLabelGap;
 		metrics.groupGap = kGroupGap;
+		metrics.sectionGap = kSectionGap;
 		metrics.padding = kPadding;
 		return metrics;
 	}
@@ -85,11 +97,10 @@ namespace {
 	}
 }
 
-SessionHud::SessionHud() : handle(NULL), viewSetting(NULL), place(kDefaultPlace),
+SessionHud::SessionHud() : handle(NULL), viewSteps(0), place(kDefaultPlace),
 	at({ 0, 0 }), size({ 0, 0 }), placing(false), dragging(false), grabbed({ 0, 0 }) {}
 
-void SessionHud::Load(unsigned int* setting) {
-	viewSetting = setting;
+void SessionHud::Load() {
 	if (!handle)
 		handle = new Handle(this);
 
@@ -107,8 +118,10 @@ void SessionHud::Save() {
 	WritePrivateProfileString(kSection, "Y", std::to_string(place.y).c_str(), path.c_str());
 }
 
-View SessionHud::CurrentView() const {
-	return viewSetting && *viewSetting < ViewCount ? (HudLayout::View)*viewSetting : ViewLine;
+int SessionHud::TakeViewSteps() {
+	const int steps = viewSteps;
+	viewSteps = 0;
+	return steps;
 }
 
 void SessionHud::SetBeingPlaced(bool place) {
@@ -132,9 +145,8 @@ void SessionHud::Follow() {
 	place = PlaceOf(corner, size, within);
 }
 
-void SessionHud::Draw(const SessionModel& model, unsigned long long now,
-		unsigned int background) {
-	const Block block = Arrange(Rows(CurrentView(), FiguresOf(model, now)), GameMetrics());
+void SessionHud::Draw(const Figures& figures, HudLayout::View view, unsigned int background) {
+	const Block block = ArrangeSections(Sections(view, figures), GameMetrics());
 
 	size = block.size;
 	if (dragging)
@@ -158,8 +170,8 @@ void SessionHud::Draw(const SessionModel& model, unsigned long long now,
 		Framehook::Draw(at.x, at.y, size.width, size.height, 0, BTNormal);
 
 	for (const Placed& cell : block.cells) {
-		Texthook::Draw(at.x + cell.at.x, at.y + cell.at.y, None, kFont,
-			cell.tone == ToneLabel ? Grey : White, "%s", cell.text.c_str());
+		Texthook::Draw(at.x + cell.at.x, at.y + cell.at.y, None, kFont, ColorOf(cell.tone),
+			"%s", cell.text.c_str());
 	}
 }
 
@@ -217,10 +229,10 @@ bool SessionHud::Handle::OnLeftClick(bool up, unsigned int x, unsigned int y) {
 }
 
 bool SessionHud::Handle::OnMouseWheel(int notches, unsigned int x, unsigned int y) {
-	if (!InRange(x, y) || !hud->viewSetting)
+	if (!InRange(x, y))
 		return false;
 	// Towards the user is on to the next view, as it is down a list.
-	*hud->viewSetting = Next(hud->CurrentView(), notches > 0 ? -1 : 1);
+	hud->viewSteps += notches > 0 ? -1 : 1;
 	return true;
 }
 

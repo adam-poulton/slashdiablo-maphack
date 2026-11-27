@@ -1,7 +1,9 @@
 #pragma once
 #include <string>
 #include <vector>
+#include "RunStore.h"
 #include "SessionModel.h"
+#include "SplitRoute.h"
 
 // What the session window's tabs list, as rows of text worked out from a
 // session without the game. A tab lays them out and draws them.
@@ -16,7 +18,15 @@ struct Row {
 	// them, and -1 for a cell that takes its column's. Shorter than cells, or
 	// empty, where the rest take their column's.
 	std::vector<int> colors;
+
+	// What the row stands for, where a tab does something when it is clicked.
+	std::string key;
 };
+
+// Text colours as the game numbers them, for the cells that have one.
+const int kColorBehind = 1;		// red
+const int kColorAhead = 2;		// green
+const int kColorBest = 4;		// gold
 
 // What the overview is told that a session's events do not hold.
 struct Level {
@@ -75,6 +85,37 @@ enum DropColumn {
 // A row to each drop the item filter pinged, latest first, the item in the
 // colour it was announced in.
 std::vector<Row> Drops(const SessionModel& model);
+
+// The columns of Runs(), left to right.
+enum SplitColumn {
+	SplitName,
+	SplitTime,
+	SplitDelta,
+	SplitBest,
+	SplitSegment,
+	SplitLevel,
+	SplitColumns
+};
+
+// What the Splits tab is told beside the session.
+struct RunsShown {
+	const std::vector<Splits::Route>* routes;
+	std::string selected;					// the id of the route a run would be started on
+	const RunStore* store;
+	RunStore::Clock clock;
+	unsigned long long now;
+};
+
+// The key of a route's row, and the route a key is of, or "" for none.
+std::string RouteKey(const std::string& routeId);
+std::string RouteOf(const std::string& key);
+
+// The run in hand split by split, against the best its route has been run:
+// when each was reached, how far ahead or behind, the time to beat, the best
+// that stretch has been done, and the level it was reached at. Under it the
+// routes there are to run, each with its best, and the runs of the session
+// that are over.
+std::vector<Row> Runs(const SessionModel& model, const RunsShown& shown);
 
 // The rows that have the text in them, whatever its case, under the headings
 // they stood under. A heading that has it keeps every row under it. A summary

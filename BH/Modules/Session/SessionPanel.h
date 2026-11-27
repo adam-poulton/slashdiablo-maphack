@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 #include "../Window/UIPanel.h"
-#include "SessionModel.h"
+#include "Session.h"
 #include "SessionRows.h"
 
 // A tab of the session window: a list of rows read off the session in hand.
@@ -26,11 +26,13 @@ class SessionPanel : public UIPanel {
 		SessionPanel(std::string name, Drawing::UI* ui,
 			const std::vector<Drawing::ListColumn>& columns);
 
-		virtual std::vector<SessionRows::Row> BuildRows(const SessionModel& model,
-			unsigned long long now) = 0;
+		virtual std::vector<SessionRows::Row> BuildRows(const Session::View& view) = 0;
+
+		// A row of the list was clicked.
+		virtual void OnRowClicked(const SessionRows::Row& row) {}
 
 		// What the footer says of the session while this tab is in front.
-		virtual std::string BuildStatus(const SessionModel& model, unsigned long long now) {
+		virtual std::string BuildStatus(const Session::View& view) {
 			return std::string();
 		}
 
@@ -44,8 +46,7 @@ class SessionPanel : public UIPanel {
 // The session at a glance: a name and a figure to a row.
 class OverviewPanel : public SessionPanel {
 	protected:
-		std::vector<SessionRows::Row> BuildRows(const SessionModel& model,
-			unsigned long long now);
+		std::vector<SessionRows::Row> BuildRows(const Session::View& view);
 
 	public:
 		explicit OverviewPanel(Drawing::UI* ui);
@@ -55,9 +56,8 @@ class OverviewPanel : public SessionPanel {
 // Every game of the session, under the kind of run it was.
 class GamesPanel : public SessionPanel {
 	protected:
-		std::vector<SessionRows::Row> BuildRows(const SessionModel& model,
-			unsigned long long now);
-		std::string BuildStatus(const SessionModel& model, unsigned long long now);
+		std::vector<SessionRows::Row> BuildRows(const Session::View& view);
+		std::string BuildStatus(const Session::View& view);
 
 	public:
 		explicit GamesPanel(Drawing::UI* ui);
@@ -67,21 +67,32 @@ class GamesPanel : public SessionPanel {
 // What died, where, and of what kind.
 class KillsPanel : public SessionPanel {
 	protected:
-		std::vector<SessionRows::Row> BuildRows(const SessionModel& model,
-			unsigned long long now);
-		std::string BuildStatus(const SessionModel& model, unsigned long long now);
+		std::vector<SessionRows::Row> BuildRows(const Session::View& view);
+		std::string BuildStatus(const Session::View& view);
 
 	public:
 		explicit KillsPanel(Drawing::UI* ui);
 		std::string GetSearchPlaceholder() { return "Search by area or monster"; }
 };
 
+// The run being timed against the best its route has been run, the routes there
+// are to run, and the runs of the session. Clicking a route chooses it.
+class SplitsPanel : public SessionPanel {
+	protected:
+		std::vector<SessionRows::Row> BuildRows(const Session::View& view);
+		std::string BuildStatus(const Session::View& view);
+		void OnRowClicked(const SessionRows::Row& row);
+
+	public:
+		explicit SplitsPanel(Drawing::UI* ui);
+		std::string GetSearchPlaceholder() { return "Search splits and routes"; }
+};
+
 // Every drop the item filter pinged.
 class DropsPanel : public SessionPanel {
 	protected:
-		std::vector<SessionRows::Row> BuildRows(const SessionModel& model,
-			unsigned long long now);
-		std::string BuildStatus(const SessionModel& model, unsigned long long now);
+		std::vector<SessionRows::Row> BuildRows(const Session::View& view);
+		std::string BuildStatus(const Session::View& view);
 
 	public:
 		explicit DropsPanel(Drawing::UI* ui);

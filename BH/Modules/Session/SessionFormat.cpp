@@ -78,6 +78,16 @@ std::string Count(long long number) {
 	return number < 0 ? "-" + text : text;
 }
 
+std::string Delta(long long ms) {
+	const char* sign = ms < 0 ? "-" : "+";
+	const unsigned long long magnitude = (unsigned long long)(ms < 0 ? -ms : ms);
+	if (magnitude >= 60 * 1000)
+		return sign + ShortClock(magnitude);
+	char text[32];
+	sprintf_s(text, "%s%llu.%llu", sign, magnitude / 1000, (magnitude % 1000) / 100);
+	return text;
+}
+
 std::string Plain(const std::string& name) {
 	std::string text;
 	for (size_t i = 0; i < name.size(); i++) {

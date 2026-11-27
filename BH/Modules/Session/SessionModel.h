@@ -74,6 +74,31 @@ class SessionModel {
 			SessionEvents::Dropped item;
 		};
 
+		struct RunSplit {
+			enum State { Open, Reached, Skipped };
+
+			std::string name;
+			State state;
+			bool manual;
+			unsigned long long realMs;		// from the run's start, once reached
+			unsigned long long gameMs;		// the part of that spent in a game
+			unsigned int level;				// the character's, as it was reached
+		};
+
+		// A run against a route: a clock from when it began and the splits
+		// reached on the way.
+		struct Run {
+			std::string route;
+			std::string name;
+			std::vector<RunSplit> splits;
+			unsigned long long startedAt;
+			unsigned long long startedPlayedMs;	// time in games when it began
+			bool ended;
+			bool finished;
+			unsigned long long realMs;		// how long it ran, once it has ended
+			unsigned long long gameMs;
+		};
+
 		// How far back RecentRate() can be asked to look.
 		static constexpr unsigned long long kRecentMs = 5 * 60 * 1000;
 
@@ -122,6 +147,18 @@ class SessionModel {
 		const std::vector<NotableKill>& Notables() const { return notables; }
 		const std::vector<Drop>& Drops() const { return drops; }
 
+		// Every run of the session, the one in hand last if there is one.
+		const std::vector<Run>& Runs() const { return runs; }
+		const Run* ActiveRun() const;
+
+		// How long the run in hand has gone, and the part of that spent in a
+		// game. 0 where there is none.
+		unsigned long long RunRealMs(unsigned long long now) const;
+		unsigned long long RunGameMs(unsigned long long now) const;
+
+		// The character's level as the session last had it.
+		unsigned int Level() const { return games.empty() ? 0 : games.back().level; }
+
 	private:
 		struct Change {
 			unsigned long long at;
@@ -150,6 +187,10 @@ class SessionModel {
 		std::map<unsigned int, Monster> monsters;
 		std::vector<NotableKill> notables;
 		std::vector<Drop> drops;
+		std::vector<Run> runs;
+
+		Run* Active();
+		void EndRun(unsigned long long at, bool finished);
 
 		void CountKills(unsigned int area, unsigned int classId, const std::string& name,
 			SessionEvents::Tier tier, unsigned int count);
@@ -171,4 +212,11 @@ class SessionModel {
 		void On(const SessionEvents::Killed& fact, unsigned long long at);
 		void On(const SessionEvents::Notable& fact, unsigned long long at);
 		void On(const SessionEvents::Dropped& fact, unsigned long long at);
+		void On(const SessionEvents::Quest& fact, unsigned long long at);
+		void On(const SessionEvents::ItemHeld& fact, unsigned long long at);
+		void On(const SessionEvents::RunStarted& fact, unsigned long long at);
+		void On(const SessionEvents::SplitReached& fact, unsigned long long at);
+		void On(const SessionEvents::SplitUndone& fact, unsigned long long at);
+		void On(const SessionEvents::SplitSkipped& fact, unsigned long long at);
+		void On(const SessionEvents::RunEnded& fact, unsigned long long at);
 };

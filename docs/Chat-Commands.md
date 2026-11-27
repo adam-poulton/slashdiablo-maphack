@@ -24,6 +24,8 @@ Codex:
 Session:
   .session <new> - Opens the session window
   .hud <view|move> - Changes or moves the HUD
+  .run <start|split|undo|skip|reset> - Times a run
+  .route <name> - Chooses the route runs are timed on
 ```
 
 A command in brackets is another name for the one in front of it, not a command
@@ -80,8 +82,12 @@ The [session tracker](Session-Tracker.md): its window and its HUD.
 | --- | --- |
 | `.session` | Opens the session window. |
 | `.session new` | Ends the session and starts another from the game you are in. |
-| `.hud line`, `.hud compact` | Sets the HUD's view. |
+| `.hud line`, `.hud compact`, `.hud splits`, `.hud full` | Sets the HUD's view. |
 | `.hud move` | Lets the HUD be dragged to where you want it. Escape when done. |
+| `.run start` | Starts timing a run on the chosen route. |
+| `.run split`, `.run undo`, `.run skip` | Marks the split the run is on as reached, takes back the last one reached, or passes over the one it is on. |
+| `.run reset` | Gives up the run being timed. |
+| `.route` | Lists the routes. `.route bosses-hell` chooses one, by its id or its name. |
 
 ## Adding one
 

@@ -1,5 +1,6 @@
 #pragma once
 #include <map>
+#include <set>
 #include <string>
 #include <tuple>
 #include <unordered_map>
@@ -43,6 +44,10 @@ class GameProbe {
 
 		const Identity& GetIdentity() const { return identity; }
 
+		// The item codes to say something of when one comes into the
+		// character's keeping: the ones a route's splits are marked by.
+		void Watch(const std::set<std::string>& codes) { watched = codes; }
+
 		// What the game calls an area. On the game's thread.
 		static std::string AreaName(unsigned int area);
 
@@ -81,6 +86,17 @@ class GameProbe {
 		bool seenAlive;
 		bool dead;
 
+		// The quests' state and the watched items held, as last read. Neither is
+		// to be believed for the first moments of a game, while the server is
+		// still sending them, so what is read then is taken without being told.
+		static constexpr unsigned long long kSettleMs = 3000;
+		static constexpr unsigned long long kReadEveryMs = 250;
+		static constexpr unsigned int kQuests = 41;
+		unsigned int quests[kQuests];
+		std::set<std::string> watched;
+		std::set<std::string> held;
+		unsigned long long readAt;
+
 		std::unordered_map<unsigned int, Watched> monsters;		// by unit id
 		std::map<TallyKey, Tally> kills;
 		unsigned long long toldKillsAt;
@@ -89,5 +105,7 @@ class GameProbe {
 		void TellExperience(unsigned long long tick, std::vector<Seen>& seen);
 		void TellKills(unsigned long long tick, std::vector<Seen>& seen);
 		void WatchMonsters(UnitAny* player, unsigned long long tick, std::vector<Seen>& seen);
+		void ReadQuests(bool tell, unsigned long long tick, std::vector<Seen>& seen);
+		void ReadItems(UnitAny* player, bool tell, unsigned long long tick, std::vector<Seen>& seen);
 		void CountKill(UnitAny* monster, unsigned long long tick, std::vector<Seen>& seen);
 };

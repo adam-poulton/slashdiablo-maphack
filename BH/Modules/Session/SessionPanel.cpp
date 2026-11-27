@@ -2,7 +2,6 @@
 #include <ctime>
 #include "../../Common.h"
 #include "../ScreenInfo/ScreenInfo.h"
-#include "Session.h"
 #include "SessionFormat.h"
 
 using namespace Drawing;
@@ -23,7 +22,8 @@ namespace {
 			return false;
 		for (size_t i = 0; i < a.size(); i++) {
 			if (a[i].heading != b[i].heading || a[i].summary != b[i].summary ||
-					a[i].cells != b[i].cells || a[i].colors != b[i].colors)
+					a[i].cells != b[i].cells || a[i].colors != b[i].colors ||
+					a[i].key != b[i].key)
 				return false;
 		}
 		return true;
@@ -86,6 +86,17 @@ namespace {
 		return columns;
 	}
 
+	std::vector<ListColumn> SplitsColumns() {
+		std::vector<ListColumn> columns(SessionRows::SplitColumns);
+		columns[SessionRows::SplitName] = ListColumn("", 200, 1, 0, White, Gold);
+		columns[SessionRows::SplitTime] = ListColumn("Time", 60, 0, kColumnGap, White);
+		columns[SessionRows::SplitDelta] = ListColumn("+/-", 50, 0, kColumnGap, Grey);
+		columns[SessionRows::SplitBest] = ListColumn("Best run", 60, 0, kColumnGap, Grey);
+		columns[SessionRows::SplitSegment] = ListColumn("Best split", 64, 0, kColumnGap, Grey);
+		columns[SessionRows::SplitLevel] = ListColumn("Level", 36, 0, kColumnGap, Grey);
+		return columns;
+	}
+
 	std::vector<ListColumn> DropsColumns() {
 		std::vector<ListColumn> columns(SessionRows::DropColumns);
 		columns[SessionRows::DropTime] = ListColumn("Time", 44, 0, 0, Grey);
@@ -113,9 +124,9 @@ void SessionPanel::ApplyLayout() {
 
 void SessionPanel::Refresh() {
 	std::vector<SessionRows::Row> rows;
-	const bool read = Session::Read([&](const SessionModel& model, unsigned long long now) {
-		rows = BuildRows(model, now);
-		status = BuildStatus(model, now);
+	const bool read = Session::Read([&](const Session::View& view) {
+		rows = BuildRows(view);
+		status = BuildStatus(view);
 	});
 	if (!read) {
 		status = Session::IsEnabled() ? "No session yet" :
@@ -157,6 +168,14 @@ void SessionPanel::OnDraw() {
 	if (tab->GetXSize() != laidOutWidth || tab->GetYSize() != laidOutHeight)
 		ApplyLayout();
 
+	// Taken before the rows are read again: the row clicked is one of those the
+	// list was last given.
+	const int clicked = list->TakeClickedRow();
+	if (clicked >= 0 && (size_t)clicked < pushed.size()) {
+		OnRowClicked(pushed[clicked]);
+		refreshedAt = 0;
+	}
+
 	const unsigned long long tick = BHGetTickCount();
 	if (refreshedAt == 0 || tick - refreshedAt >= kRefreshEveryMs) {
 		refreshedAt = tick;
@@ -166,40 +185,40 @@ void SessionPanel::OnDraw() {
 
 OverviewPanel::OverviewPanel(UI* ui) : SessionPanel("Overview", ui, OverviewColumns()) {}
 
-std::vector<SessionRows::Row> OverviewPanel::BuildRows(const SessionModel& model,
-		unsigned long long now) {
+std::vector<SessionRows::Row> OverviewPanel::BuildRows(const Session::View& view) {
+	const SessionModel& model = view.model;
 	SessionRows::Level level = { 0, 0 };
 	if (!model.Games().empty()) {
 		const unsigned int reached = model.Games().back().level;
 		if (reached >= 1 && reached < kLastLevel)
 			level = { ExpByLevel[reached - 1], ExpByLevel[reached] };
 	}
-	return SessionRows::Overview(model, now, level, TimeOfDay(model.Header().startedAt));
+	return SessionRows::Overview(model, view.now, level, TimeOfDay(model.Header().startedAt));
 }
 
 GamesPanel::GamesPanel(UI* ui) : SessionPanel("Games", ui, GamesColumns()) {}
 
-std::vector<SessionRows::Row> GamesPanel::BuildRows(const SessionModel& model,
-		unsigned long long now) {
-	return SessionRows::Games(model, now);
+std::vector<SessionRows::Row> GamesPanel::BuildRows(const Session::View& view) {
+	return SessionRows::Games(view.model, view.now);
 }
 
-std::string GamesPanel::BuildStatus(const SessionModel& model, unsigned long long now) {
+std::string GamesPanel::BuildStatus(const Session::View& view) {
+	const SessionModel& model = view.model;
 	const size_t games = model.Games().size();
 	if (games == 0)
 		return "No games yet";
 	return std::to_string(games) + (games == 1 ? " game, " : " games, ") +
-		SessionFormat::ShortClock(model.PlayedMs(now)) + " played";
+		SessionFormat::ShortClock(model.PlayedMs(view.now)) + " played";
 }
 
 KillsPanel::KillsPanel(UI* ui) : SessionPanel("Kills", ui, KillsColumns()) {}
 
-std::vector<SessionRows::Row> KillsPanel::BuildRows(const SessionModel& model,
-		unsigned long long now) {
-	return SessionRows::Kills(model, now);
+std::vector<SessionRows::Row> KillsPanel::BuildRows(const Session::View& view) {
+	return SessionRows::Kills(view.model, view.now);
 }
 
-std::string KillsPanel::BuildStatus(const SessionModel& model, unsigned long long now) {
+std::string KillsPanel::BuildStatus(const Session::View& view) {
+	const SessionModel& model = view.model;
 	const unsigned int kills = model.KillTotals().Total();
 	if (kills == 0)
 		return "No kills yet";
@@ -214,14 +233,33 @@ std::string KillsPanel::BuildStatus(const SessionModel& model, unsigned long lon
 
 DropsPanel::DropsPanel(UI* ui) : SessionPanel("Drops", ui, DropsColumns()) {}
 
-std::vector<SessionRows::Row> DropsPanel::BuildRows(const SessionModel& model,
-		unsigned long long now) {
-	return SessionRows::Drops(model);
+std::vector<SessionRows::Row> DropsPanel::BuildRows(const Session::View& view) {
+	return SessionRows::Drops(view.model);
 }
 
-std::string DropsPanel::BuildStatus(const SessionModel& model, unsigned long long now) {
-	const size_t drops = model.Drops().size();
+std::string DropsPanel::BuildStatus(const Session::View& view) {
+	const size_t drops = view.model.Drops().size();
 	if (drops == 0)
 		return "No drops yet";
 	return std::to_string(drops) + (drops == 1 ? " drop" : " drops");
+}
+SplitsPanel::SplitsPanel(UI* ui) : SessionPanel("Splits", ui, SplitsColumns()) {}
+
+std::vector<SessionRows::Row> SplitsPanel::BuildRows(const Session::View& view) {
+	const SessionRows::RunsShown shown = { &view.routes, view.route, &view.bests, view.clock,
+		view.now };
+	return SessionRows::Runs(view.model, shown);
+}
+
+std::string SplitsPanel::BuildStatus(const Session::View& view) {
+	const char* clock = view.clock == RunStore::RealTime ? "real time" : "time in game";
+	if (view.model.ActiveRun())
+		return std::string("Timed in ") + clock;
+	return std::string("No run being timed. Click a route, then .run start");
+}
+
+void SplitsPanel::OnRowClicked(const SessionRows::Row& row) {
+	const std::string route = SessionRows::RouteOf(row.key);
+	if (!route.empty())
+		Session::RequestRoute(route);
 }

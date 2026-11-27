@@ -27,6 +27,7 @@ void SessionWindow::OnLoad() {
 	SetSearchEveryPanel(false);
 
 	AddPanel(new OverviewPanel(GetUI()));
+	AddPanel(new SplitsPanel(GetUI()));
 	AddPanel(new GamesPanel(GetUI()));
 	AddPanel(new KillsPanel(GetUI()));
 	AddPanel(new DropsPanel(GetUI()));
@@ -40,6 +41,8 @@ std::vector<ChatCommand> SessionWindow::GetOwnCommands() {
 	return {
 		{ "session", {}, "<new>", "Opens the session window" },
 		{ "hud", {}, "<view|move>", "Changes or moves the HUD" },
+		{ "run", {}, "<start|split|undo|skip|reset>", "Times a run" },
+		{ "route", {}, "<name>", "Chooses the route runs are timed on" },
 	};
 }
 
@@ -72,6 +75,35 @@ void SessionWindow::OnUserInput(const wchar_t* msg, bool fromGame, bool* block) 
 			return;
 		}
 		Session::RequestHudView(view);
+		return;
+	}
+
+	if (GetInvokedCommand() == "run") {
+		*block = true;
+		const std::pair<const char*, Session::RunAction> actions[] = {
+			{ "start", Session::RunStart }, { "split", Session::RunSplit },
+			{ "undo", Session::RunUndo }, { "skip", Session::RunSkip },
+			{ "reset", Session::RunReset },
+		};
+		for (const auto& action : actions) {
+			if (asked == action.first) {
+				Session::RequestRun(action.second);
+				return;
+			}
+		}
+		Print("\377c4Session:\377c0 .run takes start, split, undo, skip or reset.");
+		return;
+	}
+
+	if (GetInvokedCommand() == "route") {
+		*block = true;
+		if (!asked.empty()) {
+			Session::RequestRoute(asked);
+			return;
+		}
+		Print("\377c4Session:\377c0 .route takes one of:");
+		for (const std::string& name : Session::RouteNames())
+			Print("  %s", name.c_str());
 		return;
 	}
 

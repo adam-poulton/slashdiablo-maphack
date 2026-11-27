@@ -44,6 +44,15 @@ std::vector<Event> OneOfEach() {
 		{ 74000, Notable{ 132, 544, "Baal", "Baal", TierBoss, -1 } },
 		{ 75000, Dropped{ 1001, "Ist Rune", "r24", 2, 8, 1, 131, "Throne of Destruction" } },
 		{ 76000, Dropped{ 1002, "Ring", "rin", 6, 9, 3, 131, "" } },
+		{ 77000, Quest{ 6, 0x201e } },
+		{ 78000, ItemHeld{ "box" } },
+		{ 79000, RunStarted{ "bosses-normal", "Act bosses (Normal)", { "Andariel", "Duriel" } } },
+		{ 80000, SplitReached{ 0, false } },
+		{ 81000, SplitReached{ 1, true } },
+		{ 82000, SplitUndone{ 1 } },
+		{ 83000, SplitSkipped{ 1 } },
+		{ 84000, RunEnded{ true } },
+		{ 85000, RunEnded{ false } },
 		{ 91000, Left() },
 	};
 }
@@ -159,6 +168,51 @@ TEST_CASE("a drop is written with what it was and where") {
 	CHECK(fact.ping == 1);
 	CHECK(fact.area == 131);
 	CHECK(fact.areaName == "Throne of Destruction");
+}
+
+TEST_CASE("a run is written with its route and the names its splits had") {
+	const std::string line = ToLine({ 5, RunStarted{ "bosses-normal", "Act bosses (Normal)",
+		{ "Andariel", "Duriel" } } });
+	CHECK(line == "{\"t\":5,\"e\":\"run\",\"route\":\"bosses-normal\",\"name\":\"Act bosses (Normal)\","
+		"\"splits\":[\"Andariel\",\"Duriel\"]}");
+
+	Event read;
+	REQUIRE(FromLine(line, read));
+	const RunStarted& fact = std::get<RunStarted>(read.fact);
+	CHECK(fact.route == "bosses-normal");
+	CHECK(fact.name == "Act bosses (Normal)");
+	CHECK(fact.splits == std::vector<std::string>{ "Andariel", "Duriel" });
+}
+
+TEST_CASE("a split says which it is, and that the player marked it where they did") {
+	CHECK(ToLine({ 5, SplitReached{ 2, false } }) == "{\"t\":5,\"e\":\"split\",\"index\":2}");
+	CHECK(ToLine({ 5, SplitReached{ 2, true } }) ==
+		"{\"t\":5,\"e\":\"split\",\"index\":2,\"manual\":true}");
+	CHECK(ToLine({ 5, SplitUndone{ 2 } }) == "{\"t\":5,\"e\":\"unsplit\",\"index\":2}");
+	CHECK(ToLine({ 5, SplitSkipped{ 2 } }) == "{\"t\":5,\"e\":\"skip\",\"index\":2}");
+
+	Event read;
+	REQUIRE(FromLine("{\"t\":5,\"e\":\"split\",\"index\":2,\"manual\":true}", read));
+	CHECK(std::get<SplitReached>(read.fact).index == 2);
+	CHECK(std::get<SplitReached>(read.fact).manual);
+}
+
+TEST_CASE("the end of a run says whether it was finished") {
+	CHECK(ToLine({ 5, RunEnded{ true } }) == "{\"t\":5,\"e\":\"end\",\"finished\":true}");
+
+	Event read;
+	REQUIRE(FromLine("{\"t\":5,\"e\":\"end\",\"finished\":false}", read));
+	CHECK_FALSE(std::get<RunEnded>(read.fact).finished);
+}
+
+TEST_CASE("a quest's state and an item held are written as they were read") {
+	CHECK(ToLine({ 5, Quest{ 14, 0x002c } }) == "{\"t\":5,\"e\":\"quest\",\"quest\":14,\"bits\":44}");
+	CHECK(ToLine({ 5, ItemHeld{ "box" } }) == "{\"t\":5,\"e\":\"item\",\"code\":\"box\"}");
+
+	Event read;
+	REQUIRE(FromLine("{\"t\":5,\"e\":\"quest\",\"quest\":14,\"bits\":44}", read));
+	CHECK(std::get<Quest>(read.fact).quest == 14);
+	CHECK(std::get<Quest>(read.fact).bits == 0x002c);
 }
 
 TEST_CASE("experience past what a signed 32-bit number holds is kept whole") {

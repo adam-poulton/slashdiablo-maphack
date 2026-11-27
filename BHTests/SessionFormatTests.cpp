@@ -8,6 +8,7 @@
 
 using SessionFormat::Clock;
 using SessionFormat::Count;
+using SessionFormat::Delta;
 using SessionFormat::Plain;
 using SessionFormat::Rate;
 using SessionFormat::ShortAmount;
@@ -76,6 +77,20 @@ TEST_CASE("a short amount is signed and kept to about three figures") {
 	CHECK(ShortAmount(37179764) == "+37.18M");
 	CHECK(ShortAmount(3520485254ll) == "+3.52B");
 	CHECK(ShortAmount(-2650000) == "-2.65M");
+}
+
+TEST_CASE("a difference under a minute is to the tenth of a second") {
+	CHECK(Delta(0) == "+0.0");
+	CHECK(Delta(12340) == "+12.3");
+	CHECK(Delta(-12340) == "-12.3");
+	CHECK(Delta(59999) == "+59.9");
+	CHECK(Delta(-50) == "-0.0");
+}
+
+TEST_CASE("a difference of a minute or more is to the second") {
+	CHECK(Delta(60000) == "+1:00");
+	CHECK(Delta(-62500) == "-1:02");
+	CHECK(Delta(3723000) == "+1:02:03");
 }
 
 TEST_CASE("a name is made plain by taking the game's colour codes out of it") {
