@@ -4,6 +4,34 @@ Runs Diablo II for an agent, single player only, in a sandbox that cannot reach
 the player's installs, saves, settings, realm accounts, screen, mouse or
 keyboard. Why it is built this way is ADR 0011.
 
+## What a machine needs
+
+- Windows 10 1809 or later, Visual Studio with MSBuild, and Python 3.11 or
+  later. The harness uses nothing outside Python's standard library.
+- A Diablo II 1.13c install with the Slash Diablo mods (D2Template and
+  SGD2FreeRes), to copy the game's files from. It is read and never written.
+- For runs drawn by D2GL: D2GL in that install (`glide3x.dll` and `d2gl.mpq`),
+  and a GPU.
+
+What differs from one machine to the next is read from the environment, and
+nothing in the harness names a path of anyone's:
+
+| Variable | Is | Default |
+|---|---|---|
+| `BHAGENT_GAME_SOURCE` | the install the base is copied from | the install the game's registry key names |
+| `BHAGENT_ROOT` | where the base and the runs are kept | `~\.bhagent` |
+| `BHAGENT_PLAYER_DIRS` | more folders for `snapshot` to watch, separated by `;` | none |
+
+Set them where the shell that runs `bhctl` gets its environment: for an agent,
+the `env` block of `.claude/settings.local.json`, which is not committed.
+
+```powershell
+python AgentHarness\bhctl.py doctor
+```
+
+says what the machine has of all this and what to do about what it lacks, and
+exits 0 when a run can start.
+
 ## Building
 
 ```powershell
@@ -13,9 +41,9 @@ $msb = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe
 ```
 
 A sandbox runs the agent build of BH, Release with the driver that answers
-`state`, `wait`, `drawlog`, `drop` and `leave` (ADR 0012). It builds into folders
-of its own, so it and Release can both be built without either rebuilding the
-other.
+`state`, `wait`, `drawlog`, `drop`, `shot` and `leave` (ADR 0012). It builds
+into folders of its own, so it and Release can both be built without either
+rebuilding the other.
 
 ## Running
 
@@ -38,6 +66,43 @@ python AgentHarness\bhctl.py teardown $id          # always, when done
 in place of the shipped one. `input --help` and `drop --help` list what they
 take. The `run-game` skill is the walkthrough for agents, from building to
 reporting.
+
+## Renderers
+
+A run's game is drawn by one of two renderers, chosen when the sandbox is made:
+
+| `create --renderer` | Draws | For |
+|---|---|---|
+| `gdi`, the default | the game's own windowed renderer, the same on every machine | what BH draws and where: layout, text, colour |
+| `d2gl` | the game through D2GL, as Slash Diablo players see it (ADR 0015) | how it looks to a player: scaling, D2GL's HD text, cursor and map over BH's drawing |
+
+```powershell
+$id = python AgentHarness\bhctl.py create --renderer d2gl --window 1612x840 --d2gl "Feature.hd_text=true"
+```
+
+- `--window WIDTHxHEIGHT` is the window D2GL scales the game into, at least
+  800x600. It defaults to the in-game resolution, 1344x700, where a pixel of a
+  screenshot taken in a game is a pixel of the game.
+- `--d2gl "SECTION.KEY=VALUE"`, repeatable, writes a setting of `d2gl.ini`.
+  Everything else is D2GL's own default, not the player's: HD text, the HD
+  cursor and the minimap are all off until a run turns them on
+  (`Feature.hd_text=true`, `Feature.hd_cursor=true`, `Feature.mini_map=true`).
+- What a sandbox needs of D2GL is not a run's to set: the window's place and
+  style, the unlocked cursor, vertical sync and the frame rate cap.
+
+Positions are the same under both. Everything `bhctl` takes or reports is in
+pixels of the canvas, which is what the game draws on: 800x600 in the menus and
+1344x700 in a game. Under GDI the window is the canvas. D2GL scales the canvas
+to fit its window and centres it, and `bhctl` does the same arithmetic: a click
+lands on the canvas pixel named, `shot --crop` cuts the canvas rectangle named,
+and a check's outline is drawn where the screenshot shows the thing. A
+screenshot itself is the whole window, so one of the menus has bars beside the
+canvas, and one taken in a larger window is larger than the canvas.
+
+With D2GL's HD text on, the game measures text in D2GL's fonts. Text BH draws
+is then a pixel or two wider or narrower than under GDI, and the draw log says
+so: check such text by `text` and `inside`, and keep an exact `rect` for a
+scenario that runs under one renderer.
 
 ## Characters and drops
 
@@ -71,13 +136,16 @@ same way every time and reports what it found (ADR 0013):
 
 ```powershell
 python AgentHarness\bhctl.py scenario AgentHarness\scenarios\smoke.json
+python AgentHarness\bhctl.py scenario AgentHarness\scenarios\smoke.json --renderer d2gl
 ```
 
 It creates and launches a run, goes through the steps, tears the run down, and
 writes `report.md` and `report.json` to `AgentHarness\reports\<time>-<name>\`
 (or `--out DIR`), with a screenshot for every check. It exits 0 when every check
 holds, 1 when one does not, and 2 when the scenario could not finish. `--keep`
-leaves the run up afterwards and prints its id.
+leaves the run up afterwards and prints its id. `--renderer` draws the game
+with that renderer whatever the scenario says, which is how one scenario is run
+under both.
 
 ```json
 {
@@ -100,6 +168,10 @@ leaves the run up afterwards and prints its id.
   `Agent`, in Normal.
 - `settings` maps `BH_settings.cfg` keys to values, as `create --setting` does.
   A key the shipped file does not set is added, and the report notes it.
+- `renderer` is `gdi` (the default) or `d2gl`. With `d2gl`, `window` is
+  `[width, height]` and `d2gl` maps `d2gl.ini` settings to values, as
+  `create --window` and `--d2gl` take them:
+  `"d2gl": {"Feature.hd_text": "true"}`.
 
 Paths in a scenario are from the repository's root unless absolute.
 
@@ -159,7 +231,9 @@ show a run changed none of them.
 
 - A run is torn down when its work is done. `sweep` removes any whose launcher
   has gone, and the launcher ends its game after an hour regardless.
-- The harness reads the dev install to build the base and never writes to either
+- The harness reads the game source to build the base and never writes to any
   install. It never connects to a realm and holds no credentials.
 - Only `bhctl` and `AgentLaunch` stop a game. Never kill a `Game.exe` by name:
   the player's own clients are `Game.exe` too.
+- A screenshot of a run D2GL draws comes from the driver, never from the
+  window: read from outside, such a window gives back the player's own screen.

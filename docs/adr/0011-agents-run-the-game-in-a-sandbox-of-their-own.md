@@ -27,10 +27,12 @@ SGD2FreeRes's config and the logs. Teardown deletes the folder and the
 sandbox's registry key together, and `sweep` tears down any run whose launcher
 has gone.
 
-The base comes from the dev install, minus `SlashDiablo.dll`, the realm gateway,
-which D2Template skips when it is missing, and plus D2GL's `glide3x.dll`, which
-is never the renderer. SGD2FreeRes loads it whatever the video mode, to ask
-which Glide wrapper it is, and stops the game with a dialog when it is absent.
+The base comes from the install `BHAGENT_GAME_SOURCE` names, or else the one
+the game's registry key does, minus `SlashDiablo.dll`, the realm gateway, which
+D2Template skips when it is missing, and plus D2GL's `glide3x.dll`, which is
+the renderer only of a run that asks for it (ADR 0015). SGD2FreeRes loads it
+whatever the video mode, to ask which Glide wrapper it is, and stops the game
+with a dialog when it is absent.
 
 The root is `~\.bhagent`, deliberately outside AppData. The Claude desktop app
 is a packaged app, and Windows moves whatever it and its children write under
@@ -102,14 +104,13 @@ Windows Sandbox was kept as a fallback rather than chosen. It isolates
 everything, but it needs an administrator to switch it on, its window appears on
 the player's desktop, and it would need the game copied in for every run.
 
-Rendering with D2GL, as players do, was rejected for runs. D2GL refuses `-w`,
-and OpenGL on a desktop nobody is looking at is not something to depend on.
-What D2GL adds, its scaling and filtering, stays a player's check. BH draws
-through the game's own drawing functions, so its windows look the same under
-GDI.
+Rendering with D2GL, as players do, was rejected for runs at first, on the
+grounds that D2GL refuses `-w` and that OpenGL on a desktop nobody is looking
+at is not something to depend on. Neither held when tried: ADR 0015 adds D2GL
+as a renderer a run can ask for. GDI remains the default.
 
-Capturing frames from inside the game was not needed. It remains the way to
-pixels that do not depend on Windows, should `BitBlt` ever stop being enough.
+Capturing frames from inside the game was not needed for GDI. It is how a run
+drawn by D2GL is photographed (ADR 0015), where `BitBlt` is not enough.
 
 ## Consequences
 

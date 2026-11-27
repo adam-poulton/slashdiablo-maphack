@@ -18,7 +18,8 @@ from bhctl import HarnessError
 
 REPORTS = bhctl.REPO / "AgentHarness" / "reports"
 STARTS = ("main_menu", "game")
-TOP_FIELDS = {"title", "start", "name", "character", "difficulty", "settings", "steps"}
+TOP_FIELDS = {"title", "start", "name", "character", "difficulty", "settings", "renderer", "window", "d2gl",
+              "steps"}
 CHECK_TIMEOUT_SECONDS = 5
 CHECK_RETRY_SECONDS = 0.25
 NEAR_MISSES = 5
@@ -214,13 +215,30 @@ def load_scenario(data):
     if not isinstance(settings, dict) or not all(
             isinstance(k, str) and isinstance(v, str) and k and "\n" not in k + v for k, v in settings.items()):
         fail("top", '"settings" maps BH_settings.cfg keys to the values to write, both strings')
+    renderer = data.get("renderer", "gdi")
+    if renderer not in bhctl.RENDERERS:
+        fail("top", f'"renderer" is one of {", ".join(bhctl.RENDERERS)}')
+    window = data.get("window")
+    if window is not None and not (isinstance(window, list) and len(window) == 2 and all(is_count(v) for v in window)):
+        fail("top", '"window" is [width, height], the window D2GL scales the game into')
+    d2gl = data.get("d2gl", {})
+    if not isinstance(d2gl, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in d2gl.items()):
+        fail("top", '"d2gl" maps d2gl.ini settings, as "Section.key", to the values to write, both strings')
+    if renderer != "d2gl" and (window is not None or d2gl):
+        fail("top", '"window" and "d2gl" are for a scenario with "renderer": "d2gl"')
+    if renderer == "d2gl":
+        try:
+            bhctl.d2gl_ini(window or bhctl.default_window(), d2gl)
+        except HarnessError as error:
+            fail("top", str(error))
     steps = data.get("steps")
     if not isinstance(steps, list) or not steps:
         fail("top", '"steps" is a list of steps')
     for index, step in enumerate(steps, 1):
         validate_step(index, step)
     return {"title": data["title"], "start": start, "name": name, "character": character,
-            "difficulty": difficulty, "settings": settings, "steps": steps}
+            "difficulty": difficulty, "settings": settings, "renderer": renderer, "window": window,
+            "d2gl": d2gl, "steps": steps}
 
 
 # --- checks -------------------------------------------------------------------
@@ -378,7 +396,7 @@ def describe_item_matcher(matcher, count):
 
 def mark(bgra, width, height, marks):
     """A copy of the picture with each rectangle outlined in its colour, from
-    a list of (rectangle, BGRA)."""
+    a list of (rectangle, BGRA). The rectangles are the picture's own pixels."""
     picture = bytearray(bgra)
 
     def put(x, y):
@@ -447,12 +465,17 @@ class Runner:
         return f"{index:02d}-{name}{suffix}"
 
     def evidence_shot(self, index, name, marks=None, crop=None):
-        width, height, pixels, _ = bhctl.grab(self.run_id, crop)
+        """A screenshot for the report, and a second with each of the marks, a
+        list of (rectangle of the canvas, BGRA), outlined where the picture
+        shows it."""
+        picture = bhctl.grab(self.run_id, crop)
+        width, height = picture.width, picture.height
         files = [self.file(index, name, ".png")]
-        bhctl.write_png(self.out / files[0], width, height, pixels)
+        bhctl.write_png(self.out / files[0], width, height, picture.pixels)
         if marks:
+            placed = [(picture.place(rect), colour) for rect, colour in marks]
             files.append(self.file(index, name, ".marked.png"))
-            bhctl.write_png(self.out / files[1], width, height, mark(pixels, width, height, marks))
+            bhctl.write_png(self.out / files[1], width, height, mark(picture.pixels, width, height, placed))
         return files
 
     def save_json(self, name, data):
@@ -545,9 +568,10 @@ class Runner:
         current = 0
         try:
             character = self.scenario["character"] and repo_path(self.scenario["character"])
-            self.run_id = bhctl.create(bh_dll, self.scenario["settings"], character)
+            self.run_id = bhctl.create(bh_dll, self.scenario["settings"], character, self.scenario["renderer"],
+                                       self.scenario["window"], self.scenario["d2gl"])
             report["run"] = self.run_id
-            bhctl.launch(self.run_id, ["-w", "-ns"], bhctl.LIFETIME_SECONDS)
+            bhctl.launch(self.run_id)
             if self.scenario["start"] == "game":
                 self.enter()
             for current, step in enumerate(self.scenario["steps"], 1):
@@ -729,6 +753,12 @@ def render_markdown(report):
     if report["settings"]:
         listed = "<br>".join(md_code(f"{k}: {v}") for k, v in report["settings"].items())
         lines.append(f"| Settings | {listed} |")
+    if report["renderer"] == "d2gl":
+        width, height = report["window"]
+        listed = "".join("<br>" + md_code(f"{k}={v}") for k, v in report["d2gl"].items())
+        lines.append(f"| Renderer | D2GL, in a {width}x{height} window{listed} |")
+    else:
+        lines.append("| Renderer | GDI |")
     lines.append(f"| Run | {md_code(report.get('run', 'none'))}, started {report['started']},"
                  f" took {report['seconds']} s |")
     for note in report["notes"]:
@@ -762,14 +792,18 @@ def render_markdown(report):
     return "\n".join(lines) + "\n"
 
 
-def run_scenario(path, out, bh_dll, keep):
+def run_scenario(path, out, bh_dll, keep, renderer=None):
     """Runs the scenario at path and writes report.md and report.json into out.
-    Returns the report."""
+    Returns the report. A renderer given is the one the game is drawn with,
+    whatever the scenario says."""
     try:
         # PowerShell 5.1 writes UTF-8 with a byte order mark.
         data = json.loads(Path(path).read_text(encoding="utf-8-sig"))
     except json.JSONDecodeError as error:
         raise HarnessError(f"scenario: {path} is not JSON: {error}") from None
+    if renderer and isinstance(data, dict):
+        d2gl_only = () if renderer == "d2gl" else ("window", "d2gl")
+        data = {**{key: value for key, value in data.items() if key not in d2gl_only}, "renderer": renderer}
     scenario = load_scenario(data)
     if not bh_dll.exists():
         raise HarnessError(f"no BH.dll at {bh_dll}")
@@ -788,6 +822,9 @@ def run_scenario(path, out, bh_dll, keep):
         "character": scenario["character"],
         "difficulty": scenario["difficulty"],
         "settings": scenario["settings"],
+        "renderer": scenario["renderer"],
+        "window": list(scenario["window"] or bhctl.default_window()) if scenario["renderer"] == "d2gl" else None,
+        "d2gl": scenario["d2gl"],
         "notes": [f'"{key}" is not in the shipped BH_settings.cfg: it was added, and does nothing unless BH reads it'
                   for key in scenario["settings"] if key not in shipped],
         "started": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(started)),

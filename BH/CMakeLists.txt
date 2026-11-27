@@ -84,6 +84,8 @@ set(MODULE_SOURCES "Modules/Module.cpp"
         "Modules/AgentDriver/AgentKeys.cpp"
         "Modules/AgentDriver/AgentScreen.cpp"
         "Modules/AgentDriver/DrawLog.cpp"
+        "Modules/AgentDriver/FrameCapture.cpp"
+        "Modules/AgentDriver/ImportRedirect.cpp"
          "Modules/AgentDriver/ItemDrop.cpp"
                    "Modules/StashExport/StashExport.cpp")
 

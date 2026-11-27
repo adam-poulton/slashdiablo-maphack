@@ -1,5 +1,6 @@
 """Runs Diablo II for an agent, in a sandbox that cannot reach the player's game.
 
+    python AgentHarness/bhctl.py doctor               # what this machine still lacks
     python AgentHarness/bhctl.py base                 # (re)build the shared base
     python AgentHarness/bhctl.py create [--bh DLL]    # new sandbox, prints its id
     python AgentHarness/bhctl.py launch ID [-- ARGS]  # start its game, hidden
@@ -19,7 +20,16 @@
     python AgentHarness/bhctl.py snapshot FILE        # the player's state, for
     python AgentHarness/bhctl.py compare A B          #   proving a run left it be
 
-Layout, under %BHAGENT_ROOT% (default ~\\.bhagent):
+What differs from one machine to the next is read from the environment:
+
+    BHAGENT_GAME_SOURCE  the Diablo II 1.13c install the base is copied from,
+                         read and never written (default: the install the
+                         registry names)
+    BHAGENT_ROOT         where the base and the runs are kept (default
+                         ~\\.bhagent)
+    BHAGENT_PLAYER_DIRS  more folders for snapshot to watch, separated by ;
+
+Layout, under the root:
 
     base\\        one read-only copy of the game's own files, shared by all runs
     runs\\<id>\\  a run's sandbox: hardlinks into base, plus its own BH.dll,
@@ -54,14 +64,17 @@ import zlib
 from pathlib import Path
 
 import captures
+from viewport import Viewport
 
 REPO = Path(__file__).resolve().parent.parent
 HARNESS_BIN = REPO / "AgentHarness" / "bin" / "Release"
-ROOT = Path(os.environ.get("BHAGENT_ROOT", Path.home() / ".bhagent"))
+AGENT_BH = REPO / "AgentRelease" / "BH.dll"
+ROOT = Path(os.environ.get("BHAGENT_ROOT") or Path.home() / ".bhagent")
 BASE = ROOT / "base"
 RUNS = ROOT / "runs"
 RUNS_KEY = r"Software\BHAgent\runs"
 SANDBOX_MARKER = "BHAgent.sandbox"
+SANDBOX_FILE = "sandbox.json"
 RUN_FILE = "run.json"
 LIFETIME_SECONDS = 3600
 READY_TIMEOUT_SECONDS = 60
@@ -69,8 +82,43 @@ READY_TIMEOUT_SECONDS = 60
 # that one agent's sweep cannot take another's sandbox between create and launch.
 UNLAUNCHED_GRACE_SECONDS = 600
 
-# Where the base is copied from: the dev install, read and never written.
-GAME_SOURCE = Path(os.environ.get("BHAGENT_GAME_SOURCE", r"C:\Program Files (x86)\Diablo II GLIDE 2"))
+GAME_SOURCE_VARIABLE = "BHAGENT_GAME_SOURCE"
+GAME_KEY = r"Software\Blizzard Entertainment\Diablo II"
+
+
+class HarnessError(Exception):
+    """A run cannot go on. The message is for the agent, and says why."""
+
+
+def registered_install():
+    """The install the game's own registry key names, or None. The game keeps
+    the key under HKEY_CURRENT_USER, and its installer under the 32-bit
+    HKEY_LOCAL_MACHINE."""
+    for hive, access in ((winreg.HKEY_CURRENT_USER, winreg.KEY_READ),
+                         (winreg.HKEY_LOCAL_MACHINE, winreg.KEY_READ | winreg.KEY_WOW64_32KEY)):
+        try:
+            with winreg.OpenKey(hive, GAME_KEY, 0, access) as key:
+                path, kind = winreg.QueryValueEx(key, "InstallPath")
+        except OSError:
+            continue
+        if kind == winreg.REG_SZ and path:
+            return Path(path)
+    return None
+
+
+def game_source():
+    """Where the base is copied from, read and never written: the install
+    BHAGENT_GAME_SOURCE names, else the one the registry does."""
+    named = os.environ.get(GAME_SOURCE_VARIABLE)
+    source = Path(named) if named else registered_install()
+    if source is None:
+        raise HarnessError(f"no Diablo II install is known: set {GAME_SOURCE_VARIABLE} to a 1.13c install "
+                           "with the Slash Diablo mods (D2Template, SGD2FreeRes)")
+    if not (source / "Game.exe").is_file():
+        raise HarnessError(f"{source} has no Game.exe: set {GAME_SOURCE_VARIABLE} to a 1.13c install "
+                           "with the Slash Diablo mods (D2Template, SGD2FreeRes)")
+    return source
+
 
 # The game's own files, and nothing of the player's or of the other mods in the
 # source install. SlashDiablo.dll, the realm gateway, is left out on purpose:
@@ -82,8 +130,9 @@ BASE_FILES = [
     "D2Lang.dll", "D2Launch.dll", "D2MCPClient.dll", "D2Multi.dll", "D2Net.dll",
     "D2sound.dll", "D2Win.dll", "D2Template.dll", "Fog.dll", "Storm.dll",
     "ijl11.dll", "binkw32.dll", "SmackW32.dll",
-    "SGD2FreeRes.dll", "SGD2FreeRes.mpq", "SGD2FreeDisplayFix.dll",
-    # Never the renderer, since a sandbox runs windowed and D2GL refuses -w.
+    "SGD2FreeRes.dll", "SGD2FreeRes.mpq",
+    # The Glide wrapper, which is D2GL in a Slash Diablo install, and the
+    # renderer only of a run that asks for it. Every run needs the file:
     # SGD2FreeRes loads it whatever the video mode, to ask which Glide wrapper
     # it is, and stops the game with a dialog when it is missing.
     "glide3x.dll",
@@ -91,6 +140,14 @@ BASE_FILES = [
     "d2speech.mpq", "d2video.mpq", "d2xmusic.mpq", "d2xtalk.mpq", "d2xvideo.mpq",
     "Patch_D2.mpq",
 ]
+
+# Mods D2Template loads when they are there, which not every Slash Diablo
+# install has: in the base, and so in every run, when the source install does.
+OPTIONAL_FILES = ["SGD2FreeDisplayFix.dll"]
+
+# What D2GL needs beside its DLL: in the base when the source install has it,
+# and linked into a run that renders with D2GL.
+D2GL_FILES = ["d2gl.mpq"]
 
 # Copied, not linked, because something in the game writes them.
 SANDBOX_COPIES = {
@@ -103,25 +160,69 @@ SANDBOX_COPIES = {
 RESOLUTION = "1344x700"
 SGD2_CONFIG = "SGD2FreeResolution.json"
 
+# What draws a run's game. The game's own GDI renderer is the same on every
+# machine, pixel for pixel. D2GL is what Slash Diablo players see: the game
+# through OpenGL, scaled to its window, with D2GL's own text, cursor and map.
+RENDERERS = ("gdi", "d2gl")
+LAUNCH_ARGS = {"gdi": ["-w", "-ns"], "d2gl": ["-3dfx", "-ns"]}
+
+D2GL_CONFIG = "d2gl.ini"
+# The smallest window D2GL makes, whatever its config asks for.
+D2GL_MIN_WINDOW = (800, 600)
+# What a sandbox needs of D2GL, which a run cannot ask otherwise. Everything
+# else is D2GL's own default unless the run sets it. The window is a plain one
+# at a known place. The cursor is left free, because the one D2GL would confine
+# to its window is the player's. Nothing waits on a monitor's refresh, which a
+# desktop nobody is looking at does not have, and the frame rate is capped
+# whether or not the window counts as focused, so a run costs the player's own
+# game little.
+D2GL_SANDBOX_SETTINGS = {
+    "Screen.fullscreen": "false",
+    "Screen.borderless_window": "true",
+    "Screen.centered_window": "false",
+    "Screen.window_posx": "0",
+    "Screen.window_posy": "0",
+    "Screen.unlock_cursor": "true",
+    "Screen.auto_minimize": "false",
+    "Screen.vsync": "false",
+    "Screen.foreground_fps": "true",
+    "Screen.foreground_fps_value": "30",
+    "Screen.background_fps": "true",
+    "Screen.background_fps_value": "30",
+    "Feature.skip_intro": "true",
+}
+D2GL_WINDOW_SETTINGS = ("Screen.window_width", "Screen.window_height")
+
 # The player's own state, which no run may change. Read-only to this script.
 PLAYER_KEYS = [
     r"Software\Blizzard Entertainment",
     r"Software\Classes\VirtualStore\MACHINE\SOFTWARE\WOW6432Node\Blizzard Entertainment",
     r"Software\Classes\VirtualStore\MACHINE\SOFTWARE\Blizzard Entertainment",
 ]
-PLAYER_DIRS = [
-    Path(r"C:\Program Files (x86)\Diablo II GLIDE"),
-    Path(r"C:\Program Files (x86)\Diablo II GLIDE 2"),
-    Path.home() / "Saved Games" / "Diablo II",
-    Path(os.environ["LOCALAPPDATA"]) / "VirtualStore" / "Program Files (x86)",
-]
+PLAYER_DIRS_VARIABLE = "BHAGENT_PLAYER_DIRS"
+
+
+def player_dirs():
+    """The folders the player's game lives in: the install the registry names,
+    the one the base is copied from, their saves, where Windows redirects the
+    writes of a game installed under Program Files, and any others
+    BHAGENT_PLAYER_DIRS lists."""
+    dirs = [registered_install(), Path.home() / "Saved Games" / "Diablo II",
+            Path(os.environ["LOCALAPPDATA"]) / "VirtualStore"]
+    try:
+        dirs.append(game_source())
+    except HarnessError:
+        pass
+    dirs += [Path(p) for p in os.environ.get(PLAYER_DIRS_VARIABLE, "").split(os.pathsep) if p]
+    unique = {}
+    for path in dirs:
+        if path is not None:
+            unique.setdefault(os.path.normcase(os.path.normpath(path)), Path(path))
+    return list(unique.values())
+
 
 kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
 user32 = ctypes.WinDLL("user32", use_last_error=True)
-
-
-class HarnessError(Exception):
-    """A run cannot go on. The message is for the agent, and says why."""
 
 
 # --- base --------------------------------------------------------------------
@@ -130,9 +231,15 @@ def build_base():
     """Copies the game's files into base once, and again only where the source
     has changed. Every file is marked read-only, so a sandbox that tries to
     write through one of its links fails instead of changing every run."""
+    source_dir = game_source()
+    missing = [name for name in BASE_FILES if not (source_dir / name).is_file()]
+    if missing:
+        raise HarnessError(f"{source_dir} is not a Slash Diablo 1.13c install: it lacks {', '.join(missing)}. "
+                           f"Set {GAME_SOURCE_VARIABLE} to one that has them")
+    wanted = BASE_FILES + [name for name in OPTIONAL_FILES + D2GL_FILES if (source_dir / name).is_file()]
     BASE.mkdir(parents=True, exist_ok=True)
-    for name in BASE_FILES:
-        source = GAME_SOURCE / name
+    for name in wanted:
+        source = source_dir / name
         target = BASE / name
         stat = source.stat()
         if target.exists():
@@ -143,12 +250,14 @@ def build_base():
         print(f"copying {name} ({stat.st_size // (1 << 20)} MB)")
         shutil.copy2(source, target)
         set_readonly(target)
-    stray = {p.name for p in BASE.iterdir()} - set(BASE_FILES)
+    stray = {p.name for p in BASE.iterdir()} - set(wanted)
     for name in sorted(stray):
         print(f"removing {name}, no longer part of the base")
         clear_readonly(BASE / name)
         (BASE / name).unlink()
-    print(f"base ready: {BASE}")
+    if not set(D2GL_FILES) <= set(wanted):
+        print(f"note: {source_dir} has no D2GL ({', '.join(D2GL_FILES)}), so runs render with GDI only")
+    print(f"base ready: {BASE}, from {source_dir}")
 
 
 def set_readonly(path):
@@ -196,24 +305,40 @@ def character_name(save):
     return name
 
 
-def create(bh_dll, settings=None, character=None):
+def create(bh_dll, settings=None, character=None, renderer="gdi", window=None, d2gl=None):
     """A new sandbox, with BH's shipped settings except for those given, a
     dict of BH_settings.cfg keys to the values to write for them, and with the
     character in the save file given, if one is. The run plays a copy: the
-    file itself is never written."""
+    file itself is never written.
+
+    The renderer is the game's own GDI unless it is "d2gl", which takes a
+    window size, the in-game resolution unless given, and a dict of D2GL's
+    own settings as "Section.key" to the values to write for them."""
+    if renderer not in RENDERERS:
+        raise HarnessError(f"a renderer is one of {', '.join(RENDERERS)}, not {renderer!r}")
+    if renderer != "d2gl" and (window or d2gl):
+        raise HarnessError("a window size and D2GL's settings are for a run rendered by D2GL (--renderer d2gl)")
     for name in BASE_FILES:
         if not (BASE / name).exists():
             raise HarnessError("the base is missing or incomplete: run `bhctl.py base` first")
+    links = BASE_FILES + [name for name in OPTIONAL_FILES if (BASE / name).exists()]
+    if renderer == "d2gl":
+        for name in D2GL_FILES:
+            if not (BASE / name).exists():
+                raise HarnessError(f"the base has no D2GL ({name}): run `bhctl.py base` with {GAME_SOURCE_VARIABLE} "
+                                   "naming an install that has D2GL")
+        links += D2GL_FILES
     if not bh_dll.exists():
         raise HarnessError(f"no BH.dll at {bh_dll}")
     character_file = character and f"{character_name(character)}.d2s"
+    d2gl_config = d2gl_ini(window or default_window(), d2gl or {}) if renderer == "d2gl" else None
 
     run_id = time.strftime("%Y%m%d-%H%M%S-") + secrets.token_hex(2)
     path = RUNS / run_id
     (path / "Save").mkdir(parents=True)
     if character_file:
         shutil.copyfile(character, path / "Save" / character_file)
-    for name in BASE_FILES:
+    for name in links:
         os.link(BASE / name, path / name)
     for name, source in SANDBOX_COPIES.items():
         shutil.copyfile(source, path / name)
@@ -221,10 +346,50 @@ def create(bh_dll, settings=None, character=None):
         target = path / "BH_settings.cfg"
         target.write_bytes(override_settings(target.read_bytes(), settings))
     write_sgd2_config(path / SGD2_CONFIG)
+    if d2gl_config:
+        (path / D2GL_CONFIG).write_text(d2gl_config)
     shutil.copyfile(bh_dll, path / "BH.dll")
     write_registry(run_id, path)
+    (path / SANDBOX_FILE).write_text(json.dumps({"renderer": renderer}) + "\n")
     (path / SANDBOX_MARKER).write_text(run_id + "\n")
     return run_id
+
+
+def renderer_of(run_id):
+    """What draws the run's game. A sandbox that does not say is one made
+    before there was a choice, which GDI drew."""
+    try:
+        return json.loads((run_dir(run_id) / SANDBOX_FILE).read_text())["renderer"]
+    except FileNotFoundError:
+        return "gdi"
+
+
+def default_window():
+    width, height = RESOLUTION.split("x")
+    return int(width), int(height)
+
+
+def d2gl_ini(window, settings):
+    """A run's d2gl.ini: what a sandbox needs of D2GL, the window's size, and
+    the settings given, as "Section.key" to value. D2GL fills in every setting
+    the file leaves out with its own default, and rewrites the file whole."""
+    width, height = window
+    if width < D2GL_MIN_WINDOW[0] or height < D2GL_MIN_WINDOW[1]:
+        raise HarnessError(f"D2GL's window is at least {D2GL_MIN_WINDOW[0]}x{D2GL_MIN_WINDOW[1]}, not {width}x{height}")
+    values = dict(D2GL_SANDBOX_SETTINGS)
+    values.update(zip(D2GL_WINDOW_SETTINGS, (str(width), str(height))))
+    for name, value in settings.items():
+        section, dot, key = name.partition(".")
+        if not dot or not section or not key or any(c in name + value for c in "[]=\r\n"):
+            raise HarnessError(f"a D2GL setting is Section.key, as in Feature.hd_text, not {name!r}")
+        if name in values:
+            raise HarnessError(f"{name} is the sandbox's to set, not a run's")
+        values[name] = value
+    sections = {}
+    for name, value in values.items():
+        section, _, key = name.partition(".")
+        sections.setdefault(section, []).append(f"{key}={value}")
+    return "".join(f"[{section}]\n" + "\n".join(lines) + "\n\n" for section, lines in sections.items())
 
 
 def settings_key(line):
@@ -272,11 +437,15 @@ def write_sgd2_config(target):
     not have. The source install's config is the template, so the metadata
     matches the SGD2FreeRes that reads it, but its index is the player's and is
     not carried over."""
-    config = json.loads((GAME_SOURCE / SGD2_CONFIG).read_text())
+    template = game_source() / SGD2_CONFIG
+    try:
+        config = json.loads(template.read_text())
+    except FileNotFoundError:
+        raise HarnessError(f"{template} is missing: the game source is not a Slash Diablo install") from None
     settings = config["SlashGaming Diablo II Free Resolution"]
     resolutions = settings["Ingame Resolutions"]
     if RESOLUTION not in resolutions:
-        raise HarnessError(f"{GAME_SOURCE / SGD2_CONFIG} does not offer {RESOLUTION}")
+        raise HarnessError(f"{template} does not offer {RESOLUTION}")
     settings["Ingame Resolution Mode"] = resolutions.index(RESOLUTION)
     target.write_text(json.dumps(config, indent=4) + "\n")
 
@@ -388,11 +557,22 @@ def desktop_name(run_id):
     return f"BHAgent-{run_id}"
 
 
-def launch(run_id, game_args, lifetime):
+def launch(run_id, game_args=None, lifetime=LIFETIME_SECONDS):
+    """Starts the run's game, with its renderer's arguments unless others are
+    given, and returns once it is at the main menu."""
     path = run_dir(run_id)
     if read_run(path) and process_alive(read_run(path)["launcher"]):
         raise HarnessError(f"{run_id} is already running")
+    renderer = renderer_of(run_id)
+    game_args = game_args or LAUNCH_ARGS[renderer]
+    # Without -w the game picks another renderer, and a screenshot of a run
+    # taken for GDI's would be read from a window GDI did not draw (capture).
+    if renderer == "gdi" and "-w" not in game_args:
+        raise HarnessError("a run GDI draws is windowed (-w): for the game through D2GL, "
+                           "create the sandbox with --renderer d2gl")
     launcher = HARNESS_BIN / "AgentLaunch.exe"
+    if not launcher.exists():
+        raise HarnessError(f"no launcher at {launcher}: build it (msbuild /t:AgentLaunch /p:Configuration=Release)")
     log = open(path / "launcher.log", "w")
     process = subprocess.Popen(
         [str(launcher), "--sandbox", str(path), "--registry", run_key(run_id),
@@ -526,16 +706,38 @@ def window_process(hwnd):
     return owner.value
 
 
+user32.GetWindowDpiAwarenessContext.restype = wt.HANDLE
+user32.GetWindowDpiAwarenessContext.argtypes = [wt.HWND]
+user32.GetAwarenessFromDpiAwarenessContext.argtypes = [wt.HANDLE]
+user32.SetThreadDpiAwarenessContext.restype = wt.HANDLE
+user32.SetThreadDpiAwarenessContext.argtypes = [wt.HANDLE]
+# DPI_AWARENESS, as GetAwarenessFromDpiAwarenessContext answers it, to the
+# DPI_AWARENESS_CONTEXT that asks for it: unaware, system aware, and per
+# monitor aware (version 2).
+DPI_CONTEXTS = {0: -1, 1: -2, 2: -4}
+
+
+def see_as(hwnd):
+    """Gives this thread the window's own DPI awareness. Windows scales a
+    window's size, and the position in a mouse message posted to it, between
+    a caller and a window that differ: the game alone is unaware of DPI, and
+    D2GL makes it aware. Seen as the window sees itself, a pixel is a pixel."""
+    awareness = user32.GetAwarenessFromDpiAwarenessContext(user32.GetWindowDpiAwarenessContext(hwnd))
+    if awareness in DPI_CONTEXTS:
+        user32.SetThreadDpiAwarenessContext(DPI_CONTEXTS[awareness])
+
+
 def list_windows(desktop, pid):
     """The game's top-level windows. Windows owns a few of its own on every
     desktop, so the game's are picked out by process. A dialog carries its
     text, which is usually the only account of why the game has stopped."""
     handles = []
     user32.EnumDesktopWindows(desktop, WNDENUMPROC(lambda hwnd, _: handles.append(hwnd) or True), 0)
+    handles = [hwnd for hwnd in handles if window_process(hwnd) == pid]
+    if handles:
+        see_as(handles[0])
     windows = []
     for hwnd in handles:
-        if window_process(hwnd) != pid:
-            continue
         rect = wt.RECT()
         user32.GetClientRect(hwnd, ctypes.byref(rect))
         window = {"hwnd": hwnd, "title": window_text(hwnd), "class": window_class(hwnd),
@@ -771,12 +973,28 @@ def game_window(desktop, pid):
     raise HarnessError("the game has no window")
 
 
+def viewport_of(run_id, window):
+    """Where the canvas lies in the game window of the size given. GDI's
+    window is its canvas. D2GL's is whatever size the run asked for, with the
+    canvas the game says it is drawing scaled into it."""
+    if renderer_of(run_id) != "d2gl":
+        return Viewport(window, window)
+    canvas = state(run_id).get("size")
+    if not canvas:
+        raise HarnessError("the game is loading, and has no canvas to aim at or measure: wait for a screen first")
+    return Viewport(window, canvas)
+
+
 # --- driving ------------------------------------------------------------------
 #
 # Input is posted to the game window. D2 reads the cursor from the messages
 # themselves, so a click lands where it is aimed without the real cursor moving.
 # Posted keys do not change what GetKeyState reports, so anything the game asks
 # of the keyboard directly, rather than through its messages, does not see them.
+#
+# Positions are given in canvas pixels and posted in window pixels, which under
+# D2GL are not the same (viewport.py). The canvas changes size between the
+# menus and a game, so each position is placed when it is posted.
 
 WM_KEYDOWN, WM_KEYUP, WM_CHAR, WM_SYSKEYDOWN, WM_SYSKEYUP = 0x100, 0x101, 0x102, 0x104, 0x105
 WM_MOUSEMOVE, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_RBUTTONDOWN, WM_RBUTTONUP = 0x200, 0x201, 0x202, 0x204, 0x205
@@ -842,11 +1060,14 @@ def key_param(vk, releasing, alt_held):
 
 class Input:
     """Posts one action at a time to the game window, keeping the modifier keys
-    held across actions so that a click while Shift is down says so."""
+    held across actions so that a click while Shift is down says so. place
+    turns a canvas position into the window's, and shoot takes a screenshot
+    to a file."""
 
-    def __init__(self, window):
+    def __init__(self, window, place, shoot):
         self.hwnd = window["hwnd"]
-        self.client = window["client"]
+        self.place = place
+        self.shoot = shoot
         self.held = set()
 
     def post(self, message, wparam, lparam):
@@ -897,7 +1118,7 @@ class Input:
         """One action, as validate_action has already accepted it."""
         kind, _, arg = action.partition(":")
         if kind in ("move", "click", "rclick"):
-            x, y = (int(v) for v in arg.split(","))
+            x, y = self.place(*(int(v) for v in arg.split(",")))
             if kind == "move":
                 self.post(WM_MOUSEMOVE, self.modifiers(), mouse_param(x, y))
             elif kind == "click":
@@ -917,8 +1138,7 @@ class Input:
         elif kind == "wait":
             time.sleep(float(arg))
         elif kind == "shot":
-            width, height = self.client
-            write_png(arg, width, height, capture(self.hwnd, 0, 0, width, height))
+            self.shoot(arg)
 
 
 # A frame at the game's 25 fps, so each action is seen before the next.
@@ -936,7 +1156,9 @@ def send_input(run_id, actions, then=None):
         raise HarnessError(f"{run_id} is not running")
 
     def drive(desktop):
-        source = Input(game_window(desktop, run["game"]))
+        window = game_window(desktop, run["game"])
+        source = Input(window, lambda x, y: viewport_of(run_id, window["client"]).to_window(x, y),
+                       lambda path: shot(run_id, path))
         try:
             for action in actions:
                 source.run(action)
@@ -1000,7 +1222,10 @@ class BITMAPINFOHEADER(ctypes.Structure):
 
 
 def capture(hwnd, x, y, width, height):
-    """The window's client area as drawn, read back as top-down BGRA."""
+    """The window's client area as GDI drew it, read back as top-down BGRA.
+    Only for a game GDI renders: a window OpenGL draws has nothing behind its
+    DC on a desktop nobody is looking at, and the read returns the player's
+    own screen."""
     source = user32.GetDC(hwnd)
     memory = gdi32.CreateCompatibleDC(source)
     bitmap = gdi32.CreateCompatibleBitmap(source, width, height)
@@ -1035,28 +1260,90 @@ def write_png(path, width, height, bgra):
                            + chunk(b"IDAT", zlib.compress(bytes(rows), 6)) + chunk(b"IEND", b""))
 
 
+FRAME_FILE = "frame.bgra"
+BYTES_PER_PIXEL = 4
+
+
+def presented_frame(run_id):
+    """The whole window as D2GL is about to show it, read by the driver from
+    inside the game, as (width, height, top-down BGRA)."""
+    path = run_dir(run_id) / f"{secrets.token_hex(4)}-{FRAME_FILE}"
+    try:
+        width, height = ask(run_id, {"cmd": "shot", "path": str(path)})["size"]
+        pixels = path.read_bytes()
+    finally:
+        path.unlink(missing_ok=True)
+    if len(pixels) != width * height * BYTES_PER_PIXEL:
+        raise HarnessError(f"the driver wrote {len(pixels)} bytes for a {width}x{height} frame")
+    return width, height, pixels
+
+
+def cut(pixels, width, rect):
+    """The rectangle x, y, w, h of a top-down BGRA picture that wide."""
+    x, y, w, h = rect
+    stride = width * BYTES_PER_PIXEL
+    return b"".join(pixels[row * stride + x * BYTES_PER_PIXEL:row * stride + (x + w) * BYTES_PER_PIXEL]
+                    for row in range(y, y + h))
+
+
+class Picture:
+    """A screenshot: top-down BGRA of the size given, of a game window of the
+    size given, with where the canvas lies in that window and where in the
+    window the picture's top left corner is."""
+
+    def __init__(self, width, height, pixels, window, viewport, origin):
+        self.width = width
+        self.height = height
+        self.pixels = pixels
+        self.window = window
+        self.viewport = viewport
+        self.origin = origin
+
+    def place(self, rect):
+        """Where in the picture a rectangle of the canvas is, as [x, y, w, h]."""
+        if self.viewport is None:
+            raise HarnessError("the picture is of a game that was loading, which has no canvas to place anything on")
+        x, y, w, h = self.viewport.rect_to_window(rect)
+        return [x - self.origin[0], y - self.origin[1], w, h]
+
+
 def grab(run_id, crop=None):
-    """The game window's client area, or the crop X,Y,W,H of it, as
-    (width, height, top-down BGRA, the window's [width, height])."""
+    """A picture of the game window's client area, or of the crop X,Y,W,H of
+    the canvas."""
     run = read_run(run_dir(run_id))
     if not running(run):
         raise HarnessError(f"{run_id} is not running")
-
-    def read(desktop):
-        window = game_window(desktop, run["game"])
-        width, height = window["client"]
-        x, y, w, h = crop or (0, 0, width, height)
-        if x < 0 or y < 0 or w <= 0 or h <= 0 or x + w > width or y + h > height:
-            raise HarnessError(f"crop {x},{y},{w},{h} is outside the {width}x{height} window")
-        return w, h, capture(window["hwnd"], x, y, w, h), [width, height]
-
-    return on_desktop(run_id, read)
+    d2gl = renderer_of(run_id) == "d2gl"
+    if d2gl:
+        width, height, frame = presented_frame(run_id)
+    else:
+        width, height = on_desktop(run_id, lambda desktop: game_window(desktop, run["game"])["client"])
+    try:
+        viewport = viewport_of(run_id, (width, height))
+    except HarnessError:
+        # A game that is loading has no canvas, and is still worth a picture.
+        if crop:
+            raise
+        viewport = None
+    area = [0, 0, width, height]
+    if crop:
+        cx, cy, cw, ch = crop
+        canvas_w, canvas_h = viewport.canvas
+        if cx < 0 or cy < 0 or cw <= 0 or ch <= 0 or cx + cw > canvas_w or cy + ch > canvas_h:
+            raise HarnessError(f"crop {cx},{cy},{cw},{ch} is outside the {canvas_w}x{canvas_h} canvas")
+        area = viewport.rect_to_window(crop)
+    x, y, w, h = area
+    if d2gl:
+        pixels = cut(frame, width, area) if crop else frame
+    else:
+        pixels = on_desktop(run_id, lambda desktop: capture(game_window(desktop, run["game"])["hwnd"], x, y, w, h))
+    return Picture(w, h, pixels, [width, height], viewport, (x, y))
 
 
 def shot(run_id, out, crop=None):
-    w, h, pixels, client = grab(run_id, crop)
-    write_png(out, w, h, pixels)
-    return {"path": str(Path(out).resolve()), "size": [w, h], "window": client}
+    picture = grab(run_id, crop)
+    write_png(out, picture.width, picture.height, picture.pixels)
+    return {"path": str(Path(out).resolve()), "size": [picture.width, picture.height], "window": picture.window}
 
 
 # --- the player's state -------------------------------------------------------
@@ -1118,7 +1405,7 @@ def snapshot(out):
     state = {"registry": {}, "files": {}}
     for subkey in PLAYER_KEYS:
         snapshot_key(subkey, state["registry"])
-    for root in PLAYER_DIRS:
+    for root in player_dirs():
         snapshot_dir(root, state["files"])
     Path(out).write_text(json.dumps(state, indent=1))
     print(f"{len(state['registry'])} keys, {len(state['files'])} files -> {out}")
@@ -1150,6 +1437,55 @@ def setting(text):
     return key.strip(), value.strip()
 
 
+def window_size(text):
+    width, by, height = text.lower().partition("x")
+    if not by or not width.isdigit() or not height.isdigit():
+        raise argparse.ArgumentTypeError(f"expected WIDTHxHEIGHT, as in 1612x840, not {text!r}")
+    return int(width), int(height)
+
+
+# --- this machine -------------------------------------------------------------
+
+# FileDispositionInfoEx, which teardown deletes a sandbox's links with.
+MIN_WINDOWS_BUILD = 17763
+
+
+def doctor():
+    """What a run needs of this machine, each with whether it is there and
+    what to do when it is not. Returns whether every need is met; what only
+    the D2GL renderer needs is reported and not counted."""
+    needs = []
+
+    def need(met, what, remedy, required=True):
+        needs.append((bool(met), required, what, remedy))
+
+    build = sys.getwindowsversion().build
+    need(build >= MIN_WINDOWS_BUILD, f"Windows build {build}", "Windows 10 1809 or later is needed")
+    source = None
+    try:
+        source = game_source()
+        named = "from " + (GAME_SOURCE_VARIABLE if os.environ.get(GAME_SOURCE_VARIABLE) else "the registry")
+        missing = [name for name in BASE_FILES + [SGD2_CONFIG] if not (source / name).is_file()]
+        need(not missing, f"game source {source} ({named})",
+             f"it lacks {', '.join(missing)}: set {GAME_SOURCE_VARIABLE} to a 1.13c install with the Slash Diablo mods")
+    except HarnessError as error:
+        need(False, "game source", str(error))
+    has_d2gl = source is not None and all((source / name).is_file() for name in D2GL_FILES)
+    need(has_d2gl, "D2GL in the game source, for --renderer d2gl",
+         f"the source has no {', '.join(D2GL_FILES)}: runs render with GDI only", required=False)
+    need(all((BASE / name).exists() for name in BASE_FILES), f"base {BASE}", "run `bhctl.py base`")
+    need(not has_d2gl or all((BASE / name).exists() for name in D2GL_FILES), "D2GL in the base",
+         "run `bhctl.py base`", required=False)
+    need(all((HARNESS_BIN / name).exists() for name in ("AgentLaunch.exe", "AgentShim.dll")),
+         f"launcher {HARNESS_BIN}", "build it: msbuild /t:AgentLaunch /p:Configuration=Release BH.sln")
+    need(AGENT_BH.exists(), f"agent build {AGENT_BH}",
+         "build it: msbuild /t:BH /p:Configuration=Release /p:BHAgent=true BH.sln")
+    for met, required, what, remedy in needs:
+        label = "ok" if met else "MISSING" if required else "absent"
+        print(f"{label:8}{what}" + ("" if met else f"\n        {remedy}"))
+    return all(met for met, required, _, _ in needs if required)
+
+
 DROP_HELP = """The packet is one BH's item capture recorded ("Capture Item Drops: True" in
 BH_settings.cfg writes item-captures.txt): BHTests\\fixtures\\filter-cases.txt
 holds 1351 of them. The item lands where the offset puts it, named and coloured
@@ -1178,13 +1514,20 @@ def emit(value):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
+    commands.add_parser("doctor")
     commands.add_parser("base")
     create_cmd = commands.add_parser("create")
-    create_cmd.add_argument("--bh", type=Path, default=REPO / "AgentRelease" / "BH.dll")
+    create_cmd.add_argument("--bh", type=Path, default=AGENT_BH)
     create_cmd.add_argument("--setting", type=setting, action="append", default=[], metavar="KEY=VALUE",
                             help="a BH_settings.cfg line to write in place of the shipped one; repeatable")
     create_cmd.add_argument("--character", type=Path, metavar="FILE.d2s",
                             help="play a copy of this character, for enter to pick from the character list")
+    create_cmd.add_argument("--renderer", choices=RENDERERS, default="gdi",
+                            help="what draws the game: its own GDI (the default), or D2GL as players see it")
+    create_cmd.add_argument("--window", type=window_size, metavar="WIDTHxHEIGHT",
+                            help=f"with --renderer d2gl: the window D2GL scales the game into (default {RESOLUTION})")
+    create_cmd.add_argument("--d2gl", type=setting, action="append", default=[], metavar="SECTION.KEY=VALUE",
+                            help="with --renderer d2gl: a d2gl.ini setting, as in Feature.hd_text=true; repeatable")
     launch_cmd = commands.add_parser("launch")
     launch_cmd.add_argument("id")
     launch_cmd.add_argument("--lifetime", type=float, default=LIFETIME_SECONDS,
@@ -1230,7 +1573,9 @@ def main():
     scenario_cmd = commands.add_parser("scenario")
     scenario_cmd.add_argument("file", type=Path)
     scenario_cmd.add_argument("--out", type=Path, help="the report's folder (default AgentHarness\\reports\\<time>-<name>)")
-    scenario_cmd.add_argument("--bh", type=Path, default=REPO / "AgentRelease" / "BH.dll")
+    scenario_cmd.add_argument("--bh", type=Path, default=AGENT_BH)
+    scenario_cmd.add_argument("--renderer", choices=RENDERERS,
+                              help="draw the game with this, whatever the scenario says")
     scenario_cmd.add_argument("--keep", action="store_true", help="leave the run up afterwards, for a closer look")
     commands.add_parser("sweep")
     commands.add_parser("snapshot").add_argument("file")
@@ -1244,16 +1589,18 @@ def main():
     args = parser.parse_args(argv[:argv.index("--")] if "--" in argv else argv)
 
     try:
-        if args.command == "base":
+        if args.command == "doctor":
+            sys.exit(0 if doctor() else 1)
+        elif args.command == "base":
             build_base()
         elif args.command == "create":
-            emit(create(args.bh, dict(args.setting), args.character))
+            emit(create(args.bh, dict(args.setting), args.character, args.renderer, args.window, dict(args.d2gl)))
             for key, _ in args.setting:
                 if key not in shipped_settings_keys():
                     print(f"note: {key!r} is not in the shipped BH_settings.cfg; it was added, "
                           "and does nothing unless BH reads it", file=sys.stderr)
         elif args.command == "launch":
-            emit(launch(args.id, game_args or ["-w", "-ns"], args.lifetime))
+            emit(launch(args.id, game_args, args.lifetime))
         elif args.command == "enter":
             emit(enter(args.id, args.name, args.timeout, args.difficulty)["game"])
         elif args.command == "drop":
@@ -1282,7 +1629,7 @@ def main():
             emit(f"{args.id} exited")
         elif args.command == "scenario":
             import scenario
-            report = scenario.run_scenario(args.file, args.out, args.bh, args.keep)
+            report = scenario.run_scenario(args.file, args.out, args.bh, args.keep, args.renderer)
             emit({"result": report["result"], "report": str(Path(report["out"]) / "report.md"),
                   **({"error": report["error"]} if "error" in report else {}),
                   **({"run": report["run"]} if args.keep and "run" in report else {})})
