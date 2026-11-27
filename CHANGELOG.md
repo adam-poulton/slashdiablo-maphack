@@ -7,15 +7,8 @@ A release candidate adds a suffix, as in `v1.11.0-rc.1`, and is published as a
 GitHub pre-release with the notes under `# Unreleased`.
 
 # Unreleased
-* The Codex shows the item you point at in a pane of its own on the right of the window, instead of in a tooltip that could cover the list. A long description scrolls with the mouse wheel. The Codex opens wider to make room; narrow it and the tooltip comes back.
-* BH's windows stay solid when they do not have focus, instead of turning see-through. The window with focus has a white title, and the others a grey one. Slider rails, scrollbar tracks and the band behind a selected row are now drawn in greys of their own, so they show on the solid panel.
-* The Forge's preview shows a shape magnified, with its real size beside it under `Actual scale`.
-* The setting the arrow keys are on has a band behind it, and an open dropdown list shows the current option in white with a band behind the one under the mouse.
-* Fix clicks and the mouse wheel on a window reaching the window underneath it, which could stop a dropdown or a list in the front window from answering.
-* The keyboard now goes only to the window with focus. With several windows open the arrow keys and Tab no longer act on all of them at once, and with focus in none they go to the game, so a window left open while you play no longer takes Tab from the automap.
-* Escape closes one window per press, the one with focus or else the one in front, instead of every open window at once.
-* Fix a window opened by ctrl-clicking its bar not taking focus until it was clicked.
-* Fix the line above a window's footer, and the one beside the Forge's list, being drawn dark red instead of grey.
+* The Codex shows the item you point at in a pane on the right of the window, instead of in a tooltip that could cover the list. A long description scrolls with the mouse wheel. Narrow the window and the tooltip comes back.
+* The keyboard now goes only to the window with focus, and to the game when none has it, so a window left open while you play no longer takes Tab from the automap. Escape closes one window per press instead of all of them.
 * Add `Shorten buy cooldown` under `Shopping` on the Input tab, on by default. Cuts the game's 500 ms wait between buying with a right click or selling to an NPC to 250 ms.
 * Add `Shop highlights` on the Filter tab, on by default. Colours the items in an NPC's shop that your item filter would mark on the map, in the rule's map colour or a fixed one, and marks the shop tabs that hold one. It follows the filter level and hidden items as the map does. Can also announce the matches in chat, leaving out items whose rule has no drop notification.
 * Add gamble marks under `Gambling` on the Input tab. Press F2 over an item in a gamble window to highlight every item of its base, and its exceptional and elite versions with `Match base tiers`. Marks survive a gamble refresh and can be kept between games with `Remember marks`.
@@ -26,16 +19,11 @@ GitHub pre-release with the notes under `# Unreleased`.
 * Gamble refresh keeps the gamble window on screen while it refreshes, instead of flickering out to the world and back.
 * Gamble refresh now says why it stopped when the NPC is out of reach or does not answer, instead of a bare timeout.
 * Fix rare crashes when shift-clicking or ctrl-clicking items to move or identify them while items are being moved.
-* Add the Forge, opened with `.forge` or a hotkey set under `Panel hotkeys`, where you style how things are marked on the map. Its `Chests` tab styles chests, locked chests, super chests, containers and trapped ones, each on its own: the icon (a square, circle, diamond, triangle, star, cross or plus, or the game's own chest icon) and its size, the colours of its fill and border, how wide the border is, and a line to it from your character. Either colour can be left out, with the `No color` cell beside the colour picker's preview. Pick a kind from the list, or with the arrow keys, and the preview shows it as it will look on the map; point at a kind to see what it covers.
+* Add the Forge, opened with `.forge` or a hotkey set under `Panel hotkeys`, where you style how things are marked on the map. Its `Chests` tab styles chests, locked chests, super chests, containers and trapped ones, each on its own: the icon (a square, circle, diamond, triangle, star, cross or plus, or the game's own chest icon) and its size, the colours of its fill and border, how wide the border is, and a line to it from your character. Either colour can be left out, with the `No color` cell beside the colour picker's preview. Pick a kind from the list, or with the arrow keys, and the preview shows it magnified, with its real size beside it; point at a kind to see what it covers.
 * The Forge keeps its styles in `BH_forge.json` beside `BH_settings.cfg`, holding only the markers you have changed. If the file has an error, the Forge says where and leaves the file alone until it is fixed.
 * Chests and containers are now told apart on the map: locked chests, trapped chests and containers (including exploding barrels), and super chests. Every kind looks as chests always have until you restyle it. Urns, jars and baskets are now marked as well.
 * Super chests in Lower Kurast are marked with the game's own super chest icon and the line `LK Chest Lines` drew, which carries over as the super chest line's colour. The marker shows before the chest's room has loaded, moves onto the chest once it has, and goes away for the rest of the game once the chest is opened. Set `Marked in` to `Every area` to mark the super chests of other areas, and their sparkly chests, too.
-* Colour settings now show their colour as the shape it is drawn as: an X for monster and path colours, a filled square for the rest. A colour that is not in use is shown faded.
-* Dropdown lists open upward when there is no room for them below their box.
-* Fix clicking an option in a dropdown list, or a colour in the colour picker, also clicking whatever was under it.
-* Fix the colour picker choosing the last colour the pointer passed over when clicked below the palette, and ignoring clicks along the top of the first row. The picker now opens in the middle of the screen at any resolution, outlines the colour already chosen, shows the colour under the pointer in a bar under the palette, and offers black in its first cell, which it used to leave empty.
-* Fix the gold frame around BH's windows, buttons and boxes sitting a pixel right of the box it surrounds. It now sits evenly on every side, checkboxes show their whole frame, and a window at the edge of the screen keeps all of its frame in view.
-* Fix the band behind the selected row in the codex and accounts lists, and behind the settings heading picked with the arrow keys, not showing. Scrollbar tracks and the empty part of a slider now show as well.
+* Various UI/UX improvements to BH's windows: they stay solid without focus, and dropdown lists, the colour picker, scrollbars, sliders, selection bands and frames are tidied up, with several misdirected clicks fixed.
 
 # Release Notes for 1.10.1 (2026-10-04)
 * Add stat filter conditions to the codex.
