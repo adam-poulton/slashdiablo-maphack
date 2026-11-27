@@ -65,7 +65,11 @@ static_assert(MM_ROW_HEIGHT >= MapIcon::ChestHeight + 4,
 #define MM_ROW_HOVER		Tan
 #define MM_ROW_SELECTED		White
 #define MM_ROW_OFF			Grey
-#define MM_ROW_BAND			BTOneHalf
+
+// The selected row's band, a dark grey drawn solid. The window's inside is opaque
+// black, which a shade of black drawn over it leaves unchanged.
+#define MM_ROW_BAND_COLOR	0xAF	// 43,43,43
+#define MM_ROW_BAND_TRANS	BTNormal
 
 /* MarkerRowhook
  */
@@ -99,7 +103,8 @@ void MarkerRowhook::OnDraw() {
 	Lock();
 	bool chosen = (*selected == index);
 	if (chosen)
-		Boxhook::Draw(GetX(), GetY(), xSize, MM_ROW_HEIGHT, 0, MM_ROW_BAND);
+		Boxhook::Draw(GetX(), GetY(), xSize, MM_ROW_HEIGHT, MM_ROW_BAND_COLOR,
+			MM_ROW_BAND_TRANS);
 
 	int iconX = (int)GetX() + MM_ROW_INSET + MM_ROW_ICON_CENTRE;
 	int centreY = (int)GetY() + MM_ROW_HEIGHT / 2;
