@@ -78,6 +78,16 @@ namespace MapIcon {
 	// the sprite's own colours at the sprite's own size; None draws nothing.
 	bool IsShape(Icon icon);
 
+	// The box around every pixel the raster covers, relative to the marker's
+	// centre. All zero for a raster that covers nothing.
+	Rect Extent(const Raster& raster);
+
+	// How many times over a shape with these bounds can be magnified about the
+	// marker's centre and still fit in a box of the given size centred on it: the
+	// most asked for where there is room, and never less than once.
+	unsigned int FitScale(const Rect& bounds, unsigned int width, unsigned int height,
+		unsigned int most);
+
 	// The config name, and back. Parsing ignores case; an unknown name is false and
 	// leaves the icon as it was.
 	const char* Name(Icon icon);
@@ -113,6 +123,12 @@ namespace MapIcon {
 	// stands taller than a shape of the sizes shown away from the map, so whatever
 	// holds one leaves room.
 	void Draw(Icon icon, unsigned int size, int x, int y, const Look& look);
+
+	// Draws a shape centred on a point on screen with every pixel of it drawn
+	// scale pixels square, for showing detail too small to make out at the size
+	// the map draws it. Draws nothing for an icon that is not a shape.
+	void DrawMagnified(Icon icon, unsigned int size, unsigned int scale, int x, int y,
+		const Look& look);
 
 	// Draws the icon at a position in the world on the automap. Apart from Draw()
 	// because the game's sprite is placed the way the game places its own cells,

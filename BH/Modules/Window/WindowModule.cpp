@@ -335,6 +335,14 @@ void WindowModule::OnKey(bool up, BYTE key, LPARAM lParam, bool* block) {
 	if (!toggle.state || !ui || ui->IsMinimized())
 		return;
 
+	// The keyboard is in one window at a time, the one with focus. Every other
+	// open window leaves the key to that one, or to the game where none has
+	// focus: a window left open beside the game does not take the keys the game
+	// is played with. Escape alone reaches every open window, so one press
+	// closes them together as it closes the game's own panels.
+	if (key != VK_ESCAPE && !ui->IsActive())
+		return;
+
 	// First refusal, so a panel can spend a key the window would otherwise take.
 	UIPanel* active = GetActivePanel();
 	if (active && active->OnKey(up, key)) {

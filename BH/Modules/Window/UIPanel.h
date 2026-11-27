@@ -24,6 +24,10 @@ class UIPanel {
 		Drawing::UITab* GetTab() { return tab; };
 		bool IsActive() { return tab->IsActive(); };
 
+		// Whether the keyboard is in this panel. A panel that marks where the
+		// keys will act marks it only then.
+		bool HasFocus() { return tab->HasFocus(); };
+
 		// Called once the MPQ data tables are available.
 		virtual void MpqLoaded() {};
 
@@ -80,8 +84,9 @@ class UIPanel {
 		virtual unsigned int GetMinWidth() { return 0; };
 		virtual unsigned int GetMinHeight() { return 0; };
 
-		// Called for keys the window did not consume itself, and only while this
-		// panel is active. Return true to swallow the key.
+		// Called for keys the window did not consume itself, while this panel is
+		// in front: every key where the window has focus, and Escape alone where
+		// it does not. Return true to swallow the key.
 		virtual bool OnKey(bool up, BYTE key) { return false; };
 
 		// Called for every panel when the window opens, however it was opened.

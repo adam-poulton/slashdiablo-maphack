@@ -234,6 +234,31 @@ std::vector<std::string> Texthook::Wrap(const std::string& text,
 	return lines;
 }
 
+/* WrapBalanced(string text, unsigned int width, unsigned int font)
+ *	Breaks text to a width, into lines of about the same length.
+ */
+std::vector<std::string> Texthook::WrapBalanced(const std::string& text,
+		unsigned int width, unsigned int font) {
+	std::vector<std::string> lines = Wrap(text, width, font);
+	if (lines.size() < 2)
+		return lines;
+
+	// The narrowest width that takes no more lines than the whole width does.
+	// Narrowing never takes fewer, so it can be searched for.
+	unsigned int low = 1, high = width;
+	while (low < high) {
+		unsigned int middle = (low + high) / 2;
+		std::vector<std::string> narrower = Wrap(text, middle, font);
+		if (narrower.size() > lines.size()) {
+			low = middle + 1;
+		} else {
+			high = middle;
+			lines = narrower;
+		}
+	}
+	return lines;
+}
+
 // Starts from a proportional guess, so wide text doesn't need a measurement per
 // character.
 std::string Texthook::Fit(const std::string& text, unsigned int width,

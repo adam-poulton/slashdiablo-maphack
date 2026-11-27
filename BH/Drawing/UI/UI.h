@@ -30,6 +30,7 @@ namespace Drawing {
 	#define SEARCH_BUTTON_GAP	4	// search box to the button beside it
 	#define FOOTER_BAND_GAP		6	// contents to footer line
 	#define FOOTER_BAND_HEIGHT	8	// the footer line itself
+	#define FOOTER_RULE_CLEARANCE	6	// a scrollbar or divider run down a panel, to the footer's rule
 	#define FOOTER_ACTION_GAP	10	// between what the window says and what it offers
 	#define TITLE_SUBTITLE_GAP	6	// title bar name to the subtitle beside it
 
@@ -70,11 +71,13 @@ namespace Drawing {
 			unsigned int GetYSize();
 			bool IsActive();
 			HookVisibility GetVisibility();
+			bool IsCoveredAt(unsigned int x, unsigned int y);
 	};
 
 	class UI : public HookGroup {
 		private:
 			static std::list<UI*> UIs;
+			static bool fadeWithoutFocus;
 			unsigned int x, y, xSize, ySize, zOrder;//Position and Size and Order
 			unsigned int minimizedX, minimizedY;//Position when minimized
 			bool active, minimized, dragged, visible;//If UI is active or minimized or dragged
@@ -295,6 +298,14 @@ namespace Drawing {
 			static void Draw(HookVisibility screen);
 
 			static void Sort(UI* zero);
+
+			// Whether a window without focus is drawn see-through, so the game
+			// shows behind it, rather than solid as the one with focus is.
+			static void SetFadeWithoutFocus(bool fade) { fadeWithoutFocus = fade; };
+
+			// Whether an open window in front of this one, on the same screen,
+			// lies over the point.
+			bool IsCoveredAt(unsigned int x, unsigned int y);
 
 			bool OnLeftClick(bool up, unsigned int mouseX, unsigned int mouseY);
 			static bool LeftClick(HookVisibility screen, bool up, unsigned int mouseX, unsigned int mouseY);

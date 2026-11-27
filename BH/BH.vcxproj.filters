@@ -62,6 +62,7 @@
     <ClCompile Include="Modules\Forge\ForgeWindow.cpp" />
     <ClCompile Include="Modules\Forge\MarkerPanel.cpp" />
     <ClCompile Include="WholeFile.cpp" />
+    <ClCompile Include="Modules\Codex\CodexSummary.cpp" />
     <ClCompile Include="Modules\Codex\QueryBuilder.cpp" />
     <ClCompile Include="Modules\Codex\StatVocabulary.cpp" />
     <ClCompile Include="Modules\Codex\BaseTab.cpp" />
@@ -184,6 +185,7 @@
     <ClInclude Include="Modules\Forge\ForgeWindow.h" />
     <ClInclude Include="Modules\Forge\MarkerPanel.h" />
     <ClInclude Include="WholeFile.h" />
+    <ClInclude Include="Modules\Codex\CodexSummary.h" />
     <ClInclude Include="Modules\Codex\QueryBuilder.h" />
     <ClInclude Include="Modules\Codex\StatVocabulary.h" />
     <ClInclude Include="Modules\Codex\BaseTab.h" />

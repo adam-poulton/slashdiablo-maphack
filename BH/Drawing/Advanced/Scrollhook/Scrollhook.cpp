@@ -40,6 +40,10 @@ HookVisibility ScrollContent::GetVisibility() {
 	return box->GetScreen();
 }
 
+bool ScrollContent::IsCoveredAt(unsigned int x, unsigned int y) {
+	return box->IsCoveredAt(x, y);
+}
+
 Scrollhook::Scrollhook(HookVisibility visibility, unsigned int x, unsigned int y,
 		unsigned int xSize, unsigned int ySize) :
 	Hook(visibility, x, y), xSize(xSize), ySize(ySize), scrollRow(0),

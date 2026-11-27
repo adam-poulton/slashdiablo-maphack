@@ -23,11 +23,26 @@ namespace Drawing {
 			// is on: a hook in a group carries Group rather than a screen of its
 			// own, so this is the only thing that can answer for it.
 			virtual HookVisibility GetVisibility() = 0;
+
+			// Whether something drawn in front of the group hides this point of
+			// it. A hook there does not hear the mouse: a window lying under
+			// another is not what a click on the one over it was aimed at. A
+			// group inside a hook asks that hook, and one that nothing is ever
+			// drawn in front of has nothing to say.
+			virtual bool IsCoveredAt(unsigned int x, unsigned int y) { return false; };
 	};
 
 	// What a control draws itself in while it is switched off. One value, so that
 	// a panel full of controls disabled together looks disabled together.
 	#define DISABLED_TEXT_COLOR	Grey
+
+	// A window's panel is solid black, so anything that has to read against it is
+	// filled in a tone of its own rather than shaded. The well and the band are
+	// palette indices from the grey ramp that ends at 0xD0, the grey the thumbs
+	// and edges are drawn in. The rule is the palette's dark red.
+	#define UI_SURFACE_WELL		0xB1	// a groove: slider rails, scrollbar tracks
+	#define UI_SURFACE_BAND		0xB5	// behind the row in hand
+	#define UI_SURFACE_RULE		0x05	// a line between two parts of a window
 
 	enum BoxTrans {BTThreeFourths, BTOneHalf, BTOneFourth, BTWhite, BTBlack, BTNormal, BTScreen, BTHighlight, BTFull};
 	enum {None=0, Center=1, Right=2, Top=4};
@@ -179,6 +194,10 @@ namespace Drawing {
 
 			//Determine if the given x/y set is within the hooks drawing area.
 			bool InRange(unsigned int x, unsigned int y);
+
+			// Whether something drawn in front of the hook hides this point: a
+			// window over its group, or a floating list hanging over it.
+			bool IsCoveredAt(unsigned int x, unsigned int y);
 
 
 			// How far below the hook's top its text is drawn.

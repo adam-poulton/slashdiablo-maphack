@@ -523,6 +523,11 @@ bool Listhook::CoveredByFloater(Hook* below, unsigned int x, unsigned int y) {
 			it != floaters.end(); ++it) {
 		if ((*it) == below || !(*it)->IsActive())
 			continue;
+		// A list whose own window is behind another one here covers nothing
+		// of that window.
+		HookGroup* window = (*it)->GetGroup();
+		if (window && window->IsCoveredAt(x, y))
+			continue;
 		// The panel it draws for itself, rather than its rows, since that is
 		// what is actually covering whatever is underneath.
 		unsigned int left = ((*it)->GetX() > LIST_FLOAT_PADDING) ?
@@ -788,7 +793,7 @@ void Listhook::OnDraw() {
 		if (rows[r].group) {
 			bool selected = ((int)r == selectedRow);
 			if (selected)
-				Boxhook::Draw(GetX() - 2, y, contentWidth, rowHeight, 0, BTOneHalf);
+				Boxhook::Draw(GetX() - 2, y, contentWidth, rowHeight, UI_SURFACE_BAND, BTNormal);
 
 			TextColor color = ((selected || (int)r == hovered) &&
 				groupHoverColor != Disabled) ? groupHoverColor : groupColor;
@@ -810,10 +815,10 @@ void Listhook::OnDraw() {
 		}
 
 		bool selected = ((int)r == selectedRow);
-		// A band of shade behind the selected row, which is what tells it apart
-		// from whichever row happens to be under the mouse.
+		// A band behind the selected row, which is what tells it apart from
+		// whichever row happens to be under the mouse.
 		if (selected)
-			Boxhook::Draw(GetX() - 2, y, contentWidth, rowHeight, 0, BTOneHalf);
+			Boxhook::Draw(GetX() - 2, y, contentWidth, rowHeight, UI_SURFACE_BAND, BTNormal);
 		for (unsigned int c = 0; c < fitted[r].size(); c++) {
 			if (fitted[r][c].length() == 0)
 				continue;

@@ -1,5 +1,6 @@
 #include "MapIconhook.h"
 #include "../../../D2Ptrs.h"
+#include "../../Basic/Boxhook/Boxhook.h"
 #include "../../Basic/Framehook/Framehook.h"
 #include "../../Basic/Linehook/Linehook.h"
 #include "../../Basic/Texthook/Texthook.h"
@@ -36,9 +37,23 @@ static_assert(MIH_CELL >= MapIcon::ChestHeight + 4,
 // marker, so there is still something to choose between: a grey outline.
 #define MIH_BARE_LOOK			MapIcon::Look(MapIcon::NoColor, 0xD0, 1)
 
-// The preview across the top, and the gap under it.
+// The preview across the top, under its name, and the gap under it.
+#define MIH_PREVIEW_LABEL_TEXT	"Preview"
+#define MIH_PREVIEW_LABEL_HEIGHT	16
 #define MIH_PREVIEW_HEIGHT		56
 #define MIH_PREVIEW_GAP			10
+
+// A shape is shown twice, in two boxes that split the preview evenly: at the
+// size the map draws it, and beside that magnified, where its border and fill
+// can be made out. Each box says how many times life size it is in its bottom
+// left corner. The shape keeps clear of the frame and of that caption, and a
+// preview with less than the least room for two boxes shows the marker at the
+// map's size alone.
+#define MIH_PREVIEW_BOX_MIN			64
+#define MIH_PREVIEW_MAGNIFY_MOST	6
+#define MIH_PREVIEW_PAD				4
+#define MIH_PREVIEW_CAPTION_INSET	4
+#define MIH_PREVIEW_CAPTION_COLOR	Grey
 
 // Where the line in the preview starts: in from the bottom, and no further to
 // the left of the icon than this, so it keeps one slope however wide the preview.
@@ -154,25 +169,81 @@ void MapIconPreviewhook::OnDraw() {
 	Lock();
 	int left = (int)GetX();
 	int top = (int)GetY();
-	Framehook::Draw(left, top, xSize, ySize, 0, BTNormal);
-	int cx = left + (int)xSize / 2;
-	int cy = top + (int)ySize / 2;
 	if (!style->Draws()) {
-		Texthook::Draw(cx, cy - MIH_TEXT_HEIGHT / 2, Center, 0, MIH_PREVIEW_EMPTY_COLOR,
-			MIH_PREVIEW_EMPTY_TEXT);
+		Framehook::Draw(left, top, xSize, ySize, 0, BTNormal);
+		Texthook::Draw(left + (int)xSize / 2, top + ((int)ySize - MIH_TEXT_HEIGHT) / 2,
+			Center, 0, MIH_PREVIEW_EMPTY_COLOR, MIH_PREVIEW_EMPTY_TEXT);
 		Unlock();
 		return;
 	}
+
+	// The game's sprite is big enough to read as it is, and a preview too narrow
+	// for two boxes keeps the one that is true to the map.
+	bool magnified = MapIcon::IsShape(style->Icon()) && style->Look().Draws() &&
+		xSize >= 2 * MIH_PREVIEW_BOX_MIN;
+	if (!magnified) {
+		Framehook::Draw(left, top, xSize, ySize, 0, BTNormal);
+		DrawPane(left, top, (int)xSize, (int)ySize, 1);
+		Unlock();
+		return;
+	}
+
+	// A frame is drawn on its box's outermost pixels and the pixel outside them,
+	// so where the two boxes meet their frames land on the same two columns and
+	// the line between them is the frame's own.
+	int actualWidth = (int)xSize / 2;
+	int magnifiedLeft = left + actualWidth;
+	int magnifiedWidth = (int)xSize - actualWidth;
+	int roomHeight = (int)ySize - MIH_PREVIEW_CAPTION_INSET - MIH_TEXT_HEIGHT;
+
+	bool bordered = style->borderColor != MapIcon::NoColor;
+	MapIcon::Rect bounds = MapIcon::Extent(MapIcon::Rasterize(style->Icon(),
+		style->size, bordered ? style->borderWidth : 0));
+	unsigned int scale = MapIcon::FitScale(bounds,
+		magnifiedWidth - 2 * MIH_PREVIEW_PAD, roomHeight - MIH_PREVIEW_PAD,
+		MIH_PREVIEW_MAGNIFY_MOST);
+
+	DrawBox(left, top, actualWidth, 1);
+	DrawBox(magnifiedLeft, top, magnifiedWidth, scale);
+	Unlock();
+}
+
+// One of the two boxes: its frame, the marker in what the caption leaves of it,
+// and the caption.
+void MapIconPreviewhook::DrawBox(int left, int top, int width, unsigned int scale) {
+	int captionTop = top + (int)ySize - MIH_PREVIEW_CAPTION_INSET - MIH_TEXT_HEIGHT;
+	Framehook::Draw(left, top, width, ySize, 0, BTNormal);
+	DrawPane(left, top, width, captionTop - top, scale);
+	Texthook::Draw(left + MIH_PREVIEW_CAPTION_INSET, captionTop, None, 0,
+		MIH_PREVIEW_CAPTION_COLOR, "%ux", scale);
+}
+
+// The marker in the middle of a patch of the preview, each of its pixels drawn
+// scale pixels square, with its line running in from the bottom left.
+void MapIconPreviewhook::DrawPane(int left, int top, int width, int height,
+		unsigned int scale) {
+	int cx = left + width / 2;
+	int cy = top + height / 2;
 	// Drawn first so the icon sits on top of it, as it does on the map.
 	if (style->line) {
-		int fromX = cx - MIH_PREVIEW_LINE_RUN;
+		int fromX = cx - MIH_PREVIEW_LINE_RUN * (int)scale;
 		if (fromX < left + MIH_PREVIEW_LINE_INSET)
 			fromX = left + MIH_PREVIEW_LINE_INSET;
-		Linehook::Draw(fromX, top + (int)ySize - MIH_PREVIEW_LINE_INSET, cx, cy,
-			style->lineColor);
+		int fromY = top + height - MIH_PREVIEW_LINE_INSET;
+		// As many pixels thick as the pane is magnified: that many lines, stacked
+		// across whichever way the line runs least, so they lie side by side
+		// instead of along one another.
+		bool shallow = (cx - fromX) > (fromY - cy);
+		for (int i = 0; i < (int)scale; i++) {
+			int offset = i - (int)scale / 2;
+			int dx = shallow ? 0 : offset, dy = shallow ? offset : 0;
+			Linehook::Draw(fromX + dx, fromY + dy, cx + dx, cy + dy, style->lineColor);
+		}
 	}
-	MapIcon::Draw(style->Icon(), style->size, cx, cy, style->Look());
-	Unlock();
+	if (scale > 1)
+		MapIcon::DrawMagnified(style->Icon(), style->size, scale, cx, cy, style->Look());
+	else
+		MapIcon::Draw(style->Icon(), style->size, cx, cy, style->Look());
 }
 
 /* MapIconContent
@@ -201,6 +272,10 @@ HookVisibility MapIconContent::GetVisibility() {
 	return editor->GetScreen();
 }
 
+bool MapIconContent::IsCoveredAt(unsigned int x, unsigned int y) {
+	return editor->IsCoveredAt(x, y);
+}
+
 /* MapIconhook
  */
 static Texthook* Label(HookGroup* group, unsigned int x, const char* text) {
@@ -214,8 +289,9 @@ MapIconhook::MapIconhook(HookGroup* group, unsigned int x, unsigned int y,
 		Hook(group, x, y), style(style), options(options), content(NULL),
 		iconLabel(NULL), icon(NULL), sizeLabel(NULL), size(NULL), fill(NULL),
 		border(NULL), widthLabel(NULL), width(NULL), line(NULL), lineColor(NULL),
-		preview(NULL), xSize(0), ySize(0), labelWidth(0) {
+		previewLabel(NULL), preview(NULL), xSize(0), ySize(0), labelWidth(0) {
 	content = new MapIconContent(this);
+	previewLabel = Label(content, 0, MIH_PREVIEW_LABEL_TEXT);
 	preview = new MapIconPreviewhook(content, 0, 0, style);
 	if (!options.icons.empty()) {
 		iconLabel = Label(content, 0, "Icon");
@@ -257,6 +333,7 @@ MapIconhook::~MapIconhook() {
 	delete width;
 	delete line;
 	delete lineColor;
+	delete previewLabel;
 	delete preview;
 	delete content;
 }
@@ -311,8 +388,9 @@ void MapIconhook::SetLabelWidth(unsigned int newWidth) {
 // Row by row from the top. Only where things are placed depends on the width;
 // nothing in it depends on the style's values.
 void MapIconhook::Layout() {
+	previewLabel->SetBaseY(0);
 	preview->SetBaseX(0);
-	preview->SetBaseY(0);
+	preview->SetBaseY(MIH_PREVIEW_LABEL_HEIGHT);
 	preview->SetSize(xSize, MIH_PREVIEW_HEIGHT);
 
 	// One rail for both sliders, cut short only by an editor too narrow for it.
@@ -322,7 +400,7 @@ void MapIconhook::Layout() {
 	if (rail < MIH_RAIL_MIN)
 		rail = MIH_RAIL_MIN;
 
-	unsigned int row = MIH_PREVIEW_HEIGHT + MIH_PREVIEW_GAP;
+	unsigned int row = MIH_PREVIEW_LABEL_HEIGHT + MIH_PREVIEW_HEIGHT + MIH_PREVIEW_GAP;
 	if (icon) {
 		// A row of its own height, its label centred on it as the others are.
 		unsigned int textTop = (MIH_ICON_ROW_HEIGHT - MIH_TEXT_HEIGHT) / 2;

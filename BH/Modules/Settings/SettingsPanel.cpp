@@ -195,14 +195,14 @@ static std::vector<const Settings::Descriptor*> InSectionOrder(
 SettingsHeadingBar::SettingsHeadingBar(HookGroup* group, SettingsPanel* panel,
 		unsigned int row) :
 	Boxhook(group, 0, 0, 0, 0), panel(panel), row(row) {
-	SetColor(0);
-	SetTransparency(UI_GROUP_FOCUS_BAND);
+	SetColor(UI_GROUP_FOCUS_BAND);
+	SetTransparency(BTNormal);
 }
 
 // The band, and only under the heading the keyboard is on. Every other frame the
 // bar is nothing but the target a click lands on.
 void SettingsHeadingBar::OnDraw() {
-	if (!panel->IsRowFocused(row))
+	if (!panel->HasFocus() || !panel->IsRowFocused(row))
 		return;
 	Boxhook::OnDraw();
 }
@@ -217,6 +217,17 @@ bool SettingsHeadingBar::OnLeftClick(bool up, unsigned int x, unsigned int y) {
 	if (up)
 		panel->ToggleHeading(row);
 	return true;
+}
+
+SettingsFocusBand::SettingsFocusBand(HookGroup* group, SettingsPanel* panel) :
+	Boxhook(group, 0, 0, 0, 0), panel(panel) {
+}
+
+void SettingsFocusBand::OnDraw() {
+	unsigned int x, y, width, height;
+	if (!IsActive() || !panel->GetFocusBand(&x, &y, &width, &height))
+		return;
+	Boxhook::Draw(x, y, width, height, UI_GROUP_FOCUS_BAND, BTNormal);
 }
 
 // Wide enough for the largest value the setting will take, so a ceiling in the
@@ -246,6 +257,9 @@ SettingsPanel::SettingsPanel(std::string category,
 	laidOutHeight(0),
 	needsLayout(true) {
 
+	// Ahead of the box, so the tab draws it under the rows. The tab takes it down
+	// with the rest of its hooks.
+	new SettingsFocusBand(tab, this);
 	box = new Scrollhook(tab, UI_CONTENT_MARGIN, 0, 0, 0);
 
 	// Placed and switched on by UpdateHelp().
@@ -675,7 +689,8 @@ void SettingsPanel::Relayout() {
 
 	unsigned int width = (laidOutWidth > 2 * UI_CONTENT_MARGIN) ?
 		(laidOutWidth - (2 * UI_CONTENT_MARGIN)) : 0;
-	box->SetSize(width, laidOutHeight);
+	box->SetSize(width, laidOutHeight > FOOTER_RULE_CLEARANCE ?
+		laidOutHeight - FOOTER_RULE_CLEARANCE : 0);
 
 	// A row that the filter has dropped is not drawn, but it would still be
 	// clicked where it used to be, so it is switched off rather than just left out
@@ -924,12 +939,14 @@ void SettingsPanel::ApplyDependencies() {
 // Whether the cursor is over a hook, whether or not that hook is taking input.
 // Hook::InRange answers no for anything disabled, which is the wrong question
 // here: a setting greyed out because its parent is off is precisely the one whose
-// help someone is reaching for.
+// help someone is reaching for. Never through a window drawn over this one: the
+// help would be for a setting that cannot be seen.
 static bool Over(Hook* hook) {
 	if (!hook || !hook->IsActive())
 		return false;
-	return UI::InPos((*p_D2CLIENT_MouseX), (*p_D2CLIENT_MouseY),
-		hook->GetX(), hook->GetY(), hook->GetXSize(), hook->GetYSize());
+	unsigned int x = (*p_D2CLIENT_MouseX), y = (*p_D2CLIENT_MouseY);
+	return UI::InPos(x, y, hook->GetX(), hook->GetY(), hook->GetXSize(),
+		hook->GetYSize()) && !hook->IsCoveredAt(x, y);
 }
 
 Hook* SettingsPanel::NamedHook(const Row& row) {
@@ -997,7 +1014,7 @@ void SettingsPanel::ApplyFocusColors() {
 		}
 		TextColor off = DISABLED_TEXT_COLOR;
 
-		if ((int)i == focusRow) {
+		if ((int)i == focusRow && HasFocus()) {
 			resting = hover = SETTINGS_FOCUS_COLOR;
 			off = SETTINGS_FOCUS_DISABLED;
 		}
@@ -1189,6 +1206,24 @@ int SettingsPanel::FocusPosition() {
 			return (int)i;
 	}
 	return -1;
+}
+
+// A row of the box to each setting shown, so where the box has scrolled a
+// position to is where the setting is.
+bool SettingsPanel::GetFocusBand(unsigned int* x, unsigned int* y,
+		unsigned int* width, unsigned int* height) {
+	int position = FocusPosition();
+	if (!HasFocus() || position < 0 || rows[focusRow].heading)
+		return false;
+	unsigned int first = box->GetFirstVisibleRow();
+	if ((unsigned int)position < first ||
+			(unsigned int)position >= first + box->GetVisibleRowCount())
+		return false;
+	*x = box->GetX();
+	*y = box->GetY() + box->GetRowY((unsigned int)position) - box->GetRowY(first);
+	*width = box->GetContentWidth();
+	*height = box->GetRowHeight((unsigned int)position);
+	return true;
 }
 
 // Headings and notes are stepped over rather than landed on: there is nothing to

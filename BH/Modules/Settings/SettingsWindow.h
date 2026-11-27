@@ -27,6 +27,10 @@ class SettingsWindow : public WindowModule {
 		unsigned int reloadConfig;
 		bool legacyReloadConfigHotkey;
 
+		// Every BH window's, kept here because this is the window they are all
+		// set from.
+		bool fadeUnfocusedWindows;
+
 		unsigned int builtVersion;	// registry version the panels were built for
 		bool showedDirty;			// what the footer last said about unsaved work
 
@@ -45,11 +49,13 @@ class SettingsWindow : public WindowModule {
 			// Ctrl-R has always worked unless the config says otherwise, so that is
 			// the default a missing key falls back to.
 			legacyReloadConfigHotkey(true),
+			fadeUnfocusedWindows(false),
 			builtVersion(0),
 			showedDirty(false) {};
 
 		void OnLoad();
 		void LoadConfig();
+		void OnSettingsChanged(const std::vector<std::string>& keys);
 		void OnLoop();
 		void OnDraw();
 		void OnKey(bool up, BYTE key, LPARAM lParam, bool* block);

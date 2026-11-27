@@ -28,6 +28,19 @@ class SettingsHeadingBar : public Drawing::Boxhook {
 		bool OnLeftClick(bool up, unsigned int x, unsigned int y);
 };
 
+// The band behind the setting the keyboard is on, as a heading's bar draws one
+// behind the heading it is on. One hook for the whole panel, drawn by the tab
+// ahead of the box the rows are in so that it lies under the row, and placed
+// each frame from wherever the row in hand has been scrolled to.
+class SettingsFocusBand : public Drawing::Boxhook {
+	private:
+		SettingsPanel* panel;
+	public:
+		SettingsFocusBand(Drawing::HookGroup* group, SettingsPanel* panel);
+
+		void OnDraw();
+};
+
 // One tab of the settings window, laid out from the registry.
 //
 // The only place a setting is positioned or sized. A module says what its
@@ -268,6 +281,12 @@ class SettingsPanel : public UIPanel {
 		// Whether the keyboard is on the row, which is what the bar across a
 		// heading draws its band for.
 		bool IsRowFocused(unsigned int row) { return focusRow == (int)row; };
+
+		// Where on screen the setting the keyboard is on is drawn, for the band
+		// behind it. False where there is none on screen to draw one behind, and
+		// for a heading, whose bar draws its own.
+		bool GetFocusBand(unsigned int* x, unsigned int* y, unsigned int* width,
+			unsigned int* height);
 
 		std::string GetSearchPlaceholder();
 		std::string GetStatus();

@@ -214,6 +214,44 @@ TEST_CASE("no colour at all draws nothing") {
 	CHECK(Look(0x00, NoColor, 1).Draws());
 }
 
+TEST_CASE("the extent of a raster is the box around everything it covers") {
+	for (int i = 0; i < IconCount; i++) {
+		for (unsigned int size = MinSize; size <= MaxSize; size++) {
+			Raster raster = Rasterize((Icon)i, size, 1);
+			Pixels pixels = Covered(raster);
+			Rect bounds = Extent(raster);
+			if (pixels.empty()) {
+				CHECK(bounds == Rect{ 0, 0, 0, 0 });
+				continue;
+			}
+			int left = INT_MAX, top = INT_MAX, right = INT_MIN, bottom = INT_MIN;
+			for (const std::pair<int, int>& pixel : pixels) {
+				left = (std::min)(left, pixel.first);
+				right = (std::max)(right, pixel.first);
+				top = (std::min)(top, pixel.second);
+				bottom = (std::max)(bottom, pixel.second);
+			}
+			CHECK(bounds == Rect{ left, top, right - left + 1, bottom - top + 1 });
+		}
+	}
+}
+
+TEST_CASE("a shape is magnified as far as the room around its centre allows") {
+	// Four pixels either side of the centre, in a box with twenty either side.
+	CHECK(FitScale(Rect{ -4, -4, 8, 8 }, 40, 40, 8) == 5);
+	// The tighter way decides.
+	CHECK(FitScale(Rect{ -4, -4, 8, 8 }, 40, 16, 8) == 2);
+	// Off centre, the longer reach is the one that has to fit.
+	CHECK(FitScale(Rect{ -2, -1, 8, 2 }, 40, 40, 8) == 3);
+}
+
+TEST_CASE("magnifying stops at the most asked for and never goes below once") {
+	CHECK(FitScale(Rect{ -1, -1, 2, 2 }, 200, 200, 6) == 6);
+	CHECK(FitScale(Rect{ -30, -30, 60, 60 }, 40, 40, 6) == 1);
+	CHECK(FitScale(Rect{ 0, 0, 0, 0 }, 40, 40, 6) == 6);
+	CHECK(FitScale(Rect{ -1, -1, 2, 2 }, 200, 200, 0) == 1);
+}
+
 TEST_CASE("every icon's name reads back as that icon") {
 	for (int i = 0; i < IconCount; i++) {
 		Icon parsed = None;

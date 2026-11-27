@@ -13,7 +13,7 @@ using namespace Drawing;
 // What the window asks for the first time it is opened. A window with nothing
 // remembered in UI.ini takes a share of the canvas instead, never less than
 // this, so on anything past a vanilla resolution it opens larger.
-#define CODEX_WINDOW_WIDTH	400
+#define CODEX_WINDOW_WIDTH	720
 #define CODEX_WINDOW_HEIGHT	420
 
 // The filter button's mark: grey while nothing is being filtered on, gold once

@@ -46,12 +46,16 @@ namespace Drawing {
 			void OnDraw();
 	};
 
-	// The style as it will look on the automap: the icon at its real size on a
-	// patch of map, with its line running in to it from where the player might be.
+	// The style as it will look on the automap: the icon on a patch of map, with
+	// its line running in to it from where the player might be. A shape is shown
+	// at its real size and, beside that, magnified.
 	class MapIconPreviewhook : public Hook {
 		private:
 			MapIconStyle* style;
 			unsigned int xSize, ySize;
+
+			void DrawBox(int left, int top, int width, unsigned int scale);
+			void DrawPane(int left, int top, int width, int height, unsigned int scale);
 		public:
 			MapIconPreviewhook(HookGroup* group, unsigned int x, unsigned int y,
 				MapIconStyle* style);
@@ -80,6 +84,7 @@ namespace Drawing {
 			unsigned int GetYSize();
 			bool IsActive();
 			HookVisibility GetVisibility();
+			bool IsCoveredAt(unsigned int x, unsigned int y);
 	};
 
 	// Edits how one kind of marker is drawn: its icon and size, the colours of the
@@ -87,8 +92,9 @@ namespace Drawing {
 	// hook holding its controls, so it can be dropped into any panel, moved and put
 	// away as one, and is drawn by whatever draws the panel.
 	//
-	// The preview runs across the top at whatever width the editor is given, and
-	// the controls are a form under it, with labels in a column of their own.
+	// The preview runs across the top, under its name, at whatever width the
+	// editor is given, and the controls are a form under it, with labels in a
+	// column of their own.
 	//
 	// It shows only what the options offer, and greys out what the style in hand
 	// has no use for: an icon drawn in the game's own colours has no size or
@@ -110,6 +116,7 @@ namespace Drawing {
 			Sliderhook* width;
 			Checkhook* line;
 			Colorhook* lineColor;
+			Texthook* previewLabel;
 			MapIconPreviewhook* preview;
 
 			unsigned int xSize, ySize;

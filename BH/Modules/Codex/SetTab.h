@@ -3,6 +3,7 @@
 #include <vector>
 #include "../../Catalogue/StatIndex.h"
 #include "../Window/UIPanel.h"
+#include "CodexSummary.h"
 
 class QueryBuilder;
 
@@ -18,9 +19,8 @@ class SetTab : public UIPanel {
 	private:
 		Drawing::Listhook* list;
 
-		// Sits beside the window rather than inside the tab, which is why it is a
-		// bare Tooltiphook rather than one of the tab's hooks.
-		Drawing::Tooltiphook* summary;
+		// What the row under the mouse, or the one picked, says about itself.
+		CodexSummary* summary;
 
 		// The stat conditions the window shares between its panels, and the
 		// revision the list was last built against, so a condition changed

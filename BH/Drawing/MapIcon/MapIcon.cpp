@@ -297,6 +297,42 @@ namespace MapIcon {
 		return Valid(icon) && icon != None && icon != Chest;
 	}
 
+	Rect Extent(const Raster& raster) {
+		bool any = false;
+		int left = 0, top = 0, right = 0, bottom = 0;
+		for (const std::vector<Rect>* rects : { &raster.fill, &raster.border }) {
+			for (const Rect& rect : *rects) {
+				if (rect.width <= 0 || rect.height <= 0)
+					continue;
+				int rectRight = rect.x + rect.width, rectBottom = rect.y + rect.height;
+				if (!any) {
+					left = rect.x; top = rect.y; right = rectRight; bottom = rectBottom;
+					any = true;
+					continue;
+				}
+				left = (std::min)(left, rect.x);
+				top = (std::min)(top, rect.y);
+				right = (std::max)(right, rectRight);
+				bottom = (std::max)(bottom, rectBottom);
+			}
+		}
+		return Rect{ left, top, right - left, bottom - top };
+	}
+
+	unsigned int FitScale(const Rect& bounds, unsigned int width, unsigned int height,
+			unsigned int most) {
+		// The shape stays centred on the marker, so each way it is the longer of
+		// its two reaches from the centre that has to fit in half the room.
+		int reachX = (std::max)(-bounds.x, bounds.x + bounds.width);
+		int reachY = (std::max)(-bounds.y, bounds.y + bounds.height);
+		unsigned int scale = (most < 1) ? 1 : most;
+		if (reachX > 0)
+			scale = (std::min)(scale, (width / 2) / (unsigned int)reachX);
+		if (reachY > 0)
+			scale = (std::min)(scale, (height / 2) / (unsigned int)reachY);
+		return (scale < 1) ? 1 : scale;
+	}
+
 	const char* Name(Icon icon) {
 		return Valid(icon) ? Entries[icon].name : Entries[None].name;
 	}

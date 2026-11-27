@@ -27,7 +27,7 @@ namespace Drawing {
 	// The band drawn behind the heading the keyboard is on, which is what tells it
 	// apart from whichever heading happens to be under the mouse: both are lit the
 	// same way, so the band is the difference.
-	#define UI_GROUP_FOCUS_BAND		BTOneHalf
+	#define UI_GROUP_FOCUS_BAND		UI_SURFACE_BAND
 
 	// The marker gets a column of its own rather than being pasted onto the front
 	// of the label: the two markers are not the same width in the game's fonts, so

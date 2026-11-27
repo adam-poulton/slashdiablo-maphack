@@ -4,6 +4,7 @@
 #include "../../Catalogue/Source.h"
 #include "../../Catalogue/StatIndex.h"
 #include "../Window/UIPanel.h"
+#include "CodexSummary.h"
 
 // The Horadric Cube panel, laid out and driven the same way as the runewords
 // panel.
@@ -16,9 +17,8 @@ class RecipeTab : public UIPanel {
 	private:
 		Drawing::Listhook* list;
 
-		// Sits beside the window rather than inside the tab, which is why it is a
-		// bare Tooltiphook rather than one of the tab's hooks.
-		Drawing::Tooltiphook* summary;
+		// What the row under the mouse, or the one picked, says about itself.
+		CodexSummary* summary;
 
 		std::vector<StatIndex::Result> results;
 

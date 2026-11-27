@@ -78,6 +78,12 @@ namespace Drawing {
 			static std::vector<std::string> Wrap(const std::string& text,
 				unsigned int width, unsigned int font);
 
+			// The same number of lines, each about as long as the others, where
+			// Wrap() would fill every line but the last and leave that one a
+			// word or two. For text set centred, where the stray word shows.
+			static std::vector<std::string> WrapBalanced(const std::string& text,
+				unsigned int width, unsigned int font);
+
 			// The text cut down until it is no wider than the width, ending in
 			// TEXT_ELLIPSIS where anything was cut, or "" where not even that fits.
 			static std::string Fit(const std::string& text, unsigned int width,

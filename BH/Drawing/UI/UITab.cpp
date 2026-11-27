@@ -41,6 +41,6 @@ void UITab::OnDraw() {
 		for(std::list<Hook*>::iterator it = Hooks.begin(); it != Hooks.end(); it++)
 			(*it)->OnDraw();
 	else
-		Framehook::Draw(GetTabX(), GetTabY(), GetTabSize(), TAB_HEIGHT, 0, (ui->IsActive()?BTNormal:BTHighlight));
+		Framehook::Draw(GetTabX(), GetTabY(), GetTabSize(), TAB_HEIGHT, 0, BTNormal);
 	Texthook::Draw(GetTabX() + (GetTabSize() / 2), GetTabY() + 2, Center, 0, IsActive()?Grey:isHovering?Tan:Gold, name);
 }
