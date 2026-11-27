@@ -7,8 +7,13 @@ A release candidate adds a suffix, as in `v1.11.0-rc.1`, and is published as a
 GitHub pre-release with the notes under `# Unreleased`.
 
 # Unreleased
-* BH's windows stay solid when they do not have focus, instead of turning see-through. The window with focus has a white title and the others a grey one. Slider rails, scrollbar tracks and the band behind a selected row are now drawn in greys of their own, so they show on the solid panel.
+* The Codex shows the item you point at in a pane of its own on the right of the window, instead of in a tooltip that could cover the list. A long description scrolls with the mouse wheel. The Codex opens wider to make room; narrow it and the tooltip comes back.
+* BH's windows stay solid when they do not have focus, instead of turning see-through. The window with focus has a white title, and the others a grey one. Slider rails, scrollbar tracks and the band behind a selected row are now drawn in greys of their own, so they show on the solid panel.
 * The Forge's preview shows a shape magnified, with its real size beside it under `Actual scale`.
+* The setting the arrow keys are on has a band behind it, and an open dropdown list shows the current option in white with a band behind the one under the mouse.
+* Fix clicks and the mouse wheel on a window reaching the window underneath it, which could stop a dropdown or a list in the front window from answering.
+* The keyboard now goes only to the window with focus. With several windows open the arrow keys and Tab no longer act on all of them at once, and with focus in none they go to the game, so a window left open while you play no longer takes Tab from the automap.
+* Escape closes one window per press, the one with focus or else the one in front, instead of every open window at once.
 * Fix a window opened by ctrl-clicking its bar not taking focus until it was clicked.
 * Fix the line above a window's footer, and the one beside the Forge's list, being drawn dark red instead of grey.
 * Add `Shorten buy cooldown` under `Shopping` on the Input tab, on by default. Cuts the game's 500 ms wait between buying with a right click or selling to an NPC to 250 ms.

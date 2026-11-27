@@ -52,6 +52,8 @@ unsigned int UIChrome::GetYSize() { return ui->GetYSize(); }
 // stop taking it while the window is collapsed or hidden.
 bool UIChrome::IsActive() { return ui->IsVisible() && !ui->IsMinimized(); }
 
+bool UIChrome::IsCoveredAt(unsigned int x, unsigned int y) { return ui->IsCoveredAt(x, y); }
+
 // The chrome is on whichever screen its window is.
 HookVisibility UIChrome::GetVisibility() { return ui->GetVisibility(); }
 
@@ -618,7 +620,8 @@ void UI::OnDraw() {
 		Framehook::Draw(GetX(), GetY(), GetXSize(), GetYSize(), 0, BTNormal);
 		Framehook::Draw(GetX(), GetY(), GetXSize(), TITLE_BAR_HEIGHT, 0, BTNormal);
 		// The panel is solid whether or not the window has focus, so the title
-		// is what says which window the keyboard is in.
+		// is what says which window the keyboard is in: white on the one that
+		// has it.
 		TextColor titleColor = InTitle(Hook::GetMouseX(), Hook::GetMouseY()) ? Silver :
 			(IsActive() ? White : Grey);
 		Texthook::Draw(GetX() + 4, GetY() + 3, false, 0, titleColor, GetName());
@@ -817,6 +820,43 @@ bool UI::OnRightClick(bool up, unsigned int mouseX, unsigned int mouseY) {
 	return false;
 }
 
+bool UI::IsCoveredAt(unsigned int x, unsigned int y) {
+	for (list<UI*>::iterator it = UIs.begin(); it != UIs.end(); it++) {
+		UI* other = *it;
+		if (other == this || other->GetZOrder() >= GetZOrder())
+			continue;
+		if (!other->IsVisible() || other->IsMinimized() ||
+				other->GetVisibility() != GetVisibility())
+			continue;
+		if (other->InWindow(x, y))
+			return true;
+	}
+	return false;
+}
+
+UI* UI::GetFocused() {
+	for (list<UI*>::iterator it = UIs.begin(); it != UIs.end(); it++) {
+		if ((*it)->IsVisible() && !(*it)->IsMinimized() && (*it)->IsActive())
+			return *it;
+	}
+	return NULL;
+}
+
+UI* UI::GetFront() {
+	UI* front = NULL;
+	for (list<UI*>::iterator it = UIs.begin(); it != UIs.end(); it++) {
+		if (!(*it)->IsVisible() || (*it)->IsMinimized())
+			continue;
+		if (!front || (*it)->GetZOrder() < front->GetZOrder())
+			front = *it;
+	}
+	return front;
+}
+
+// Brings a window to the front. One window has focus at a time and it is the
+// one in front, so every other window gives focus up here: a click on one
+// window is never offered to the others, which would otherwise go on believing
+// they had it.
 void UI::Sort(UI* zero) {
 	int zOrder = 1;
 	for (list<UI*>::iterator it = UIs.begin(); it != UIs.end(); it++, zOrder++) {
@@ -825,6 +865,7 @@ void UI::Sort(UI* zero) {
 			zOrder--;
 		} else {
 			(*it)->SetZOrder(zOrder);
+			(*it)->SetActive(false);
 		}
 	}
 }

@@ -1,4 +1,5 @@
 #include "Combohook.h"
+#include "../../Basic/Boxhook/Boxhook.h"
 #include "../../Basic/Framehook/Framehook.h"
 #include "../../Basic/Scrollbar/Scrollbar.h"
 #include "../../Basic/Texthook/Texthook.h"
@@ -233,7 +234,18 @@ void Combohook::DrawOpenList() {
 	for (unsigned int n = scroll; n < scroll + rows && n < options.size(); n++) {
 		// An option is drawn at the same inset as the value in the closed box, so
 		// the one the box is showing does not shift as the list opens over it.
-		DrawOption(n, GetX(), GetOptionY(n), GetXSize(), hovered == (int)n ? Tan : Gold);
+		//
+		// A band behind the option under the mouse, and the one the box is
+		// showing in white, so what a click would pick and what is picked now
+		// can both be found without reading down the list.
+		if (hovered == (int)n) {
+			unsigned int bandRight = Scrolls() ? BarLeft() : GetX() + GetXSize();
+			Boxhook::Draw(GetX() + 1, GetOptionY(n), bandRight - GetX() - 1,
+				GetRowHeight(), UI_SURFACE_BAND, BTNormal);
+		}
+		TextColor color = (n == GetSelectedIndex()) ? White :
+			(hovered == (int)n ? Tan : Gold);
+		DrawOption(n, GetX(), GetOptionY(n), GetXSize(), color);
 	}
 	if (Scrolls()) {
 		bool lit = dragging || InBar(mouseX, mouseY);

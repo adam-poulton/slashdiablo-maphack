@@ -29,7 +29,10 @@ class WindowModule : public Module {
 		bool searchEveryPanel;	// every panel filters, not just the one in front
 		bool focusSearchOnOpen;
 
+		bool escapeIsOurs;		// the escape being held down is this window's to close on
+
 		void CyclePanel(int delta);
+		void OnEscape(bool up, BYTE key, bool* block);
 
 		// Brings the search box and the footer up to date, and hands the panels
 		// whatever is in the box. Assumes the lock is held.

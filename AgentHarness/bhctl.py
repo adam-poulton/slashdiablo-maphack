@@ -998,6 +998,7 @@ def viewport_of(run_id, window):
 
 WM_KEYDOWN, WM_KEYUP, WM_CHAR, WM_SYSKEYDOWN, WM_SYSKEYUP = 0x100, 0x101, 0x102, 0x104, 0x105
 WM_MOUSEMOVE, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_RBUTTONDOWN, WM_RBUTTONUP = 0x200, 0x201, 0x202, 0x204, 0x205
+WM_MOUSEWHEEL, WHEEL_DELTA = 0x20A, 120
 MK_LBUTTON, MK_RBUTTON, MK_SHIFT, MK_CONTROL = 0x1, 0x2, 0x4, 0x8
 VK_SHIFT, VK_CONTROL, VK_MENU = 0x10, 0x11, 0x12
 MAPVK_VK_TO_VSC = 0
@@ -1018,12 +1019,17 @@ EXTENDED_KEYS = {0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x2D, 0x2E}
 ACTIONS_HELP = """actions, run in order:
   move:X,Y       move the cursor to client coordinates X,Y
   click:X,Y      left click at X,Y            rclick:X,Y   right click
+  press:X,Y      left button down at X,Y      release:X,Y  and up: a drag, with move: between
+  wheel:X,Y,N    turn the wheel N notches at X,Y, up for positive N
   key:NAME       press and release a key      down:NAME / up:NAME   hold, release
   text:STRING    type STRING as a keyboard would, into whatever has focus
   wait:SECONDS   pause, for the game to react
   shot:FILE.png  screenshot to FILE.png, with any held keys still held
 NAME is a letter or digit, F1-F12, NUMPAD0-NUMPAD9, a virtual-key code as 0xNN,
 or one of: """ + ", ".join(sorted(k for k in KEYS if not k.startswith(("f", "numpad"))))
+
+
+POINT_ACTIONS = ("move", "click", "rclick", "press", "release")
 
 
 def virtual_key(name):
@@ -1069,6 +1075,7 @@ class Input:
         self.place = place
         self.shoot = shoot
         self.held = set()
+        self.pressed = False
 
     def post(self, message, wparam, lparam):
         if not user32.PostMessageW(self.hwnd, message, wparam, lparam):
@@ -1117,14 +1124,37 @@ class Input:
     def run(self, action):
         """One action, as validate_action has already accepted it."""
         kind, _, arg = action.partition(":")
-        if kind in ("move", "click", "rclick"):
+        if kind in POINT_ACTIONS:
             x, y = self.place(*(int(v) for v in arg.split(",")))
             if kind == "move":
+                # A move during a drag says the button is down, as Windows does.
+                self.post(WM_MOUSEMOVE, self.modifiers() | (MK_LBUTTON if self.pressed else 0),
+                          mouse_param(x, y))
+            elif kind == "press":
                 self.post(WM_MOUSEMOVE, self.modifiers(), mouse_param(x, y))
+                time.sleep(0.08)
+                self.post(WM_LBUTTONDOWN, self.modifiers() | MK_LBUTTON, mouse_param(x, y))
+                self.pressed = True
+            elif kind == "release":
+                self.post(WM_MOUSEMOVE, self.modifiers() | MK_LBUTTON, mouse_param(x, y))
+                time.sleep(0.08)
+                self.post(WM_LBUTTONUP, self.modifiers(), mouse_param(x, y))
+                self.pressed = False
             elif kind == "click":
                 self.click(x, y, WM_LBUTTONDOWN, WM_LBUTTONUP, MK_LBUTTON)
             else:
                 self.click(x, y, WM_RBUTTONDOWN, WM_RBUTTONUP, MK_RBUTTON)
+        elif kind == "wheel":
+            x, y, notches = (int(v) for v in arg.split(","))
+            x, y = self.place(x, y)
+            self.post(WM_MOUSEMOVE, self.modifiers(), mouse_param(x, y))
+            time.sleep(0.08)
+            # The wheel's message carries screen coordinates, unlike the others.
+            point = wt.POINT(x, y)
+            user32.ClientToScreen(self.hwnd, ctypes.byref(point))
+            delta = (notches * WHEEL_DELTA) & 0xFFFF
+            self.post(WM_MOUSEWHEEL, (delta << 16) | self.modifiers(),
+                      mouse_param(point.x & 0xFFFF, point.y & 0xFFFF))
         elif kind == "key":
             vk = virtual_key(arg)
             self.key(vk, False)
@@ -1167,6 +1197,8 @@ def send_input(run_id, actions, then=None):
         finally:
             for vk in list(source.held):
                 source.key(vk, True)
+            if source.pressed:
+                source.post(WM_LBUTTONUP, 0, 0)
 
     return on_desktop(run_id, drive)
 
@@ -1174,11 +1206,16 @@ def send_input(run_id, actions, then=None):
 def validate_action(action):
     """Raises for an action Input.run would refuse, before any is sent."""
     kind, _, arg = action.partition(":")
-    if kind in ("move", "click", "rclick"):
+    if kind in POINT_ACTIONS:
         try:
             x, y = (int(v) for v in arg.split(","))
         except ValueError:
             raise HarnessError(f"{action!r}: expected {kind}:X,Y") from None
+    elif kind == "wheel":
+        try:
+            x, y, notches = (int(v) for v in arg.split(","))
+        except ValueError:
+            raise HarnessError(f"{action!r}: expected wheel:X,Y,NOTCHES") from None
     elif kind in ("key", "down", "up"):
         virtual_key(arg)
     elif kind == "wait":

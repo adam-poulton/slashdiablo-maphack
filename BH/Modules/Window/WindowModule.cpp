@@ -13,7 +13,8 @@ WindowModule::WindowModule(std::string moduleName, std::string toggleName,
 	wasOpen(false),
 	lastFront(NULL),
 	searchEveryPanel(false),
-	focusSearchOnOpen(true) {
+	focusSearchOnOpen(true),
+	escapeIsOurs(false) {
 	InitializeCriticalSection(&crit);
 }
 
@@ -335,6 +336,15 @@ void WindowModule::OnKey(bool up, BYTE key, LPARAM lParam, bool* block) {
 	if (!toggle.state || !ui || ui->IsMinimized())
 		return;
 
+	// The keyboard is in one window at a time, the one with focus. Every other
+	// open window leaves the key to that one, or to the game where none has
+	// focus: a window left open beside the game does not take the keys the game
+	// is played with. Escape alone reaches a window without focus.
+	if (!ui->IsActive()) {
+		OnEscape(up, key, block);
+		return;
+	}
+
 	// First refusal, so a panel can spend a key the window would otherwise take.
 	UIPanel* active = GetActivePanel();
 	if (active && active->OnKey(up, key)) {
@@ -367,12 +377,29 @@ void WindowModule::OnKey(bool up, BYTE key, LPARAM lParam, bool* block) {
 		return;
 	}
 
-	// Closes the window rather than opening the game menu. A focused search box
-	// drops focus on this same press without swallowing it, so one press does
-	// both rather than the first press appearing to do nothing.
-	if (key == VK_ESCAPE) {
-		*block = true;
-		if (up)
-			ShowWindow(false);
+	OnEscape(up, key, block);
+}
+
+// Escape closes one window rather than opening the game menu: the one with
+// focus, or with focus in none the one in front. A focused search box drops
+// focus on this same press without swallowing it, so one press does both rather
+// than the first press appearing to do nothing.
+//
+// Which window is settled on the press and it closes on the release. Asked again
+// on the release, a window that had just closed would have left the next one in
+// front, and one press would go on to close them all.
+void WindowModule::OnEscape(bool up, BYTE key, bool* block) {
+	if (key != VK_ESCAPE)
+		return;
+	if (!up) {
+		UI* focused = UI::GetFocused();
+		escapeIsOurs = (focused ? focused : UI::GetFront()) == ui;
+	}
+	if (!escapeIsOurs)
+		return;
+	*block = true;
+	if (up) {
+		escapeIsOurs = false;
+		ShowWindow(false);
 	}
 }

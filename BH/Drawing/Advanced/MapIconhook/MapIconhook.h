@@ -83,6 +83,7 @@ namespace Drawing {
 			unsigned int GetYSize();
 			bool IsActive();
 			HookVisibility GetVisibility();
+			bool IsCoveredAt(unsigned int x, unsigned int y);
 	};
 
 	// Edits how one kind of marker is drawn: its icon and size, the colours of the

@@ -34,9 +34,7 @@ SetTab::SetTab(UI* ui, QueryBuilder* conditions) : UIPanel("Sets", ui),
 	list->SetColumns(columns);
 	list->SetGroupColor(Gold);
 
-	// Placed and switched on by UpdateSummary().
-	summary = new Tooltiphook(InGame, 0, 0);
-	summary->SetActive(false);
+	summary = new CodexSummary(tab);
 
 	ApplyLayout();
 }
@@ -53,8 +51,7 @@ void SetTab::ApplyLayout() {
 	// The window has already taken its search box and its footer out of the
 	// height, so the list has all of what is left.
 	list->SetBaseY(0);
-	list->SetSize(contentWidth, laidOutHeight);
-	summary->SetMaxWidth(contentWidth);
+	list->SetSize(summary->Layout(contentWidth, laidOutHeight), laidOutHeight);
 }
 
 std::vector<ChatCommand> SetTab::GetCommands() {
@@ -149,7 +146,7 @@ void SetTab::UpdateSummary() {
 	bool describable = IsActive() && row >= 0 && row < (int)rowPieces.size() &&
 		rowPieces[row] != NULL;
 	if (!describable) {
-		summary->SetActive(false);
+		summary->Hide();
 		shownSummary = -1;
 		return;
 	}
@@ -159,9 +156,7 @@ void SetTab::UpdateSummary() {
 		shownSummary = row;
 	}
 
-	// Must follow SetLines(): where it fits depends on how big it turned out.
-	summary->PlaceBeside(tab->GetX(), tab->GetY(), tab->GetXSize(), tab->GetYSize());
-	summary->SetActive(true);
+	summary->Show();
 }
 
 void SetTab::Search(const std::string& text) {
@@ -171,7 +166,7 @@ void SetTab::Search(const std::string& text) {
 }
 
 void SetTab::OnClose() {
-	summary->SetActive(false);
+	summary->Hide();
 	shownSummary = -1;
 	foldOnPush = true;
 	Search("");

@@ -70,6 +70,7 @@ namespace Drawing {
 			unsigned int GetYSize();
 			bool IsActive();
 			HookVisibility GetVisibility();
+			bool IsCoveredAt(unsigned int x, unsigned int y);
 	};
 
 	class UI : public HookGroup {
@@ -295,6 +296,17 @@ namespace Drawing {
 			static void Draw(HookVisibility screen);
 
 			static void Sort(UI* zero);
+
+			// The open window the keyboard is in, and the open window drawn
+			// over the others. Either is NULL where there is none: a window
+			// gives focus up to a click outside it, so windows can be open
+			// with the keyboard in none of them.
+			static UI* GetFocused();
+			static UI* GetFront();
+
+			// Whether an open window in front of this one, on the same screen,
+			// lies over the point.
+			bool IsCoveredAt(unsigned int x, unsigned int y);
 
 			bool OnLeftClick(bool up, unsigned int mouseX, unsigned int mouseY);
 			static bool LeftClick(HookVisibility screen, bool up, unsigned int mouseX, unsigned int mouseY);

@@ -23,6 +23,13 @@ namespace Drawing {
 			// is on: a hook in a group carries Group rather than a screen of its
 			// own, so this is the only thing that can answer for it.
 			virtual HookVisibility GetVisibility() = 0;
+
+			// Whether something drawn in front of the group hides this point of
+			// it. A hook there does not hear the mouse: a window lying under
+			// another is not what a click on the one over it was aimed at. A
+			// group inside a hook asks that hook, and one that nothing is ever
+			// drawn in front of has nothing to say.
+			virtual bool IsCoveredAt(unsigned int x, unsigned int y) { return false; };
 	};
 
 	// What a control draws itself in while it is switched off. One value, so that
@@ -186,6 +193,10 @@ namespace Drawing {
 
 			//Determine if the given x/y set is within the hooks drawing area.
 			bool InRange(unsigned int x, unsigned int y);
+
+			// Whether something drawn in front of the hook's group hides this
+			// point. A hook in no group is never behind anything.
+			bool IsCoveredAt(unsigned int x, unsigned int y);
 
 
 			// How far below the hook's top its text is drawn.

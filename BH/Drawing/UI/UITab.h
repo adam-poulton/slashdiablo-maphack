@@ -16,6 +16,7 @@ namespace Drawing {
 			// The tab, and every hook built into it, is on whichever screen its
 			// window is.
 			HookVisibility GetVisibility() { return ui->GetVisibility(); };
+			bool IsCoveredAt(unsigned int x, unsigned int y) { return ui->IsCoveredAt(x, y); };
 
 			unsigned int GetX() { return ui->GetX(); };
 			unsigned int GetY() { return ui->GetY() + ui->GetChromeAboveHeight(); };
@@ -39,6 +40,10 @@ namespace Drawing {
 			// Also gates whether this tab's hooks handle clicks and keys, so a
 			// window that isn't on screen must not report an active tab.
 			bool IsActive() { return ui->IsVisible() && ui->GetActiveTab() == this && !ui->IsMinimized(); };
+
+			// Whether the keyboard is in this tab: it is the one in front, of the
+			// window that has focus.
+			bool HasFocus() { return IsActive() && ui->IsActive(); };
 
 			// A tab with no row to be drawn in is nowhere, and must not claim the
 			// strip of panel that would otherwise be under it.

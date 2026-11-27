@@ -264,6 +264,10 @@ HookVisibility MapIconContent::GetVisibility() {
 	return editor->GetScreen();
 }
 
+bool MapIconContent::IsCoveredAt(unsigned int x, unsigned int y) {
+	return editor->IsCoveredAt(x, y);
+}
+
 /* MapIconhook
  */
 static Texthook* Label(HookGroup* group, unsigned int x, const char* text) {

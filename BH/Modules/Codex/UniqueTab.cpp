@@ -31,9 +31,7 @@ UniqueTab::UniqueTab(UI* ui, QueryBuilder* conditions) : UIPanel("Uniques", ui),
 	columns.push_back(ListColumn("", 0, UQ_COL_BASE_WEIGHT, UQ_COL_GAP, unique, White));
 	list->SetColumns(columns);
 
-	// Placed and switched on by UpdateSummary().
-	summary = new Tooltiphook(InGame, 0, 0);
-	summary->SetActive(false);
+	summary = new CodexSummary(tab);
 
 	ApplyLayout();
 }
@@ -50,8 +48,7 @@ void UniqueTab::ApplyLayout() {
 	// The window has already taken its search box and its footer out of the
 	// height, so the list has all of what is left.
 	list->SetBaseY(0);
-	list->SetSize(contentWidth, laidOutHeight);
-	summary->SetMaxWidth(contentWidth);
+	list->SetSize(summary->Layout(contentWidth, laidOutHeight), laidOutHeight);
 }
 
 std::vector<ChatCommand> UniqueTab::GetCommands() {
@@ -113,7 +110,7 @@ void UniqueTab::UpdateSummary() {
 		row = list->GetSelectedRow();
 
 	if (!IsActive() || row < 0 || row >= (int)results.size()) {
-		summary->SetActive(false);
+		summary->Hide();
 		shownSummary = -1;
 		return;
 	}
@@ -123,9 +120,7 @@ void UniqueTab::UpdateSummary() {
 		shownSummary = row;
 	}
 
-	// Must follow SetLines(): where it fits depends on how big it turned out.
-	summary->PlaceBeside(tab->GetX(), tab->GetY(), tab->GetXSize(), tab->GetYSize());
-	summary->SetActive(true);
+	summary->Show();
 }
 
 void UniqueTab::Search(const std::string& text) {
@@ -135,7 +130,7 @@ void UniqueTab::Search(const std::string& text) {
 }
 
 void UniqueTab::OnClose() {
-	summary->SetActive(false);
+	summary->Hide();
 	shownSummary = -1;
 	Search("");
 }

@@ -29,6 +29,7 @@ namespace Drawing {
 			// Whatever the box itself is on, which for a box inside a panel is
 			// whatever that panel's window is on.
 			HookVisibility GetVisibility();
+			bool IsCoveredAt(unsigned int x, unsigned int y);
 	};
 
 	// A vertically scrolling box that other hooks live inside, for contents taller
