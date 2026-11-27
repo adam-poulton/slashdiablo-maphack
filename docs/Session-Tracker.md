@@ -62,9 +62,37 @@ character, stash and so on) covers its half of the screen.
   games without the number they end in, so `baal-12` and `baal-13` are both
   `baal`, and a run with two finished games or more opens with what they
   average.
+* **Kills** - the areas you fought in, with what died there, how long you
+  spent and the experience earned; the kinds of monster killed; and every
+  unique monster, super unique and act boss, with when it died and where.
+* **Drops** - every drop the item filter pinged: when, the item in the colour
+  it was announced in, where it fell, which game, and its ping tier.
+
+The search box filters whichever tab is in front, by any text on the row: a
+game's name, an area, a monster, an item.
 
 `.session new`, or the `New session` hotkey, ends the session and starts
 another from the game you are in.
+
+### What counts as a kill
+
+A monster counts when BH saw it alive and then saw it dead. The game only tells
+your client about monsters near you, and never says who landed the blow, so
+these are monsters that died in view: yours and your party's alike, and not the
+ones that died across the map. Experience is the exact measure of what you
+earned.
+
+Townspeople, mercenaries, summons, walls, doors and bone prisons are left out,
+by what the game's own monster table says of them, and so are the tentacles and
+the clone Baal throws up during his fight.
+
+### What counts as a drop
+
+An item on the ground that your item filter pings: shown on the map, at or
+under your `Ping tiers <=` setting. An item is one drop however often it is
+pinged. As with the run tracker, items in a town are left out, and so is
+anything a rule marks `%NOTRACK%`. The run tracker's own
+`Run Details Ping Level` has no say here, nor this in that.
 
 ## Automap variables
 
@@ -86,6 +114,8 @@ AutomapInfo[19]:        XP: %SESSIONXPPERSEC% (now %RECENTXPPERSEC%)
 | `%RECENTXPPERSEC%` | Experience per second over the last minute of play |
 | `%SESSIONLEVELS%` | Levels gained this session |
 | `%SESSIONDEATHS%` | Deaths this session |
+| `%SESSIONKILLS%` | Monsters that died in view this session |
+| `%SESSIONDROPS%` | Drops the item filter pinged this session |
 
 ## Settings
 
@@ -136,10 +166,14 @@ since the session started and `e` is the kind of event.
 ```
 {"t":0,"e":"session","v":1,"start":1795779614,"account":"...","realm":"...","char":"Sorc_One","class":1,"hardcore":false,"expansion":true,"bh":"1.10.1"}
 {"t":0,"e":"join","game":"baal-12","diff":2,"level":87,"exp":2097310703}
-{"t":0,"e":"area","area":109,"town":true}
+{"t":0,"e":"area","area":109,"town":true,"name":"Harrogath"}
 {"t":0,"e":"players","count":8}
+{"t":41000,"e":"area","area":131,"town":false,"name":"Throne of Destruction"}
 {"t":64000,"e":"exp","exp":2097999999}
+{"t":64000,"e":"kills","area":131,"class":571,"name":"Minion of Destruction","tier":"normal","n":4}
 {"t":64100,"e":"level","level":88}
+{"t":66000,"e":"notable","area":131,"class":571,"name":"Lister the Tormentor","kind":"Minion of Destruction","tier":"superunique","su":65}
+{"t":67000,"e":"drop","id":77,"name":"Ist Rune","code":"r24","quality":2,"color":8,"ping":1,"area":131,"areaName":"Throne of Destruction"}
 {"t":70000,"e":"death"}
 {"t":91000,"e":"leave"}
 ```
@@ -149,11 +183,14 @@ since the session started and `e` is the kind of event.
 | `session` | Who the session belongs to and when it started (`start`, seconds since 1970) |
 | `join` | A game was joined: its name, difficulty (0 Normal, 1 Nightmare, 2 Hell), and the level and experience you came in with |
 | `leave` | The game was left |
-| `area` | You entered an area (its number in `Levels.txt`), and whether it is a town |
+| `area` | You entered an area (its number in `Levels.txt`), its name, and whether it is a town |
 | `players` | The number of players in the game changed |
 | `exp` | Your experience total changed. Written at most once a second while it is moving |
 | `level` | You reached a level |
 | `death` | You died |
+| `kills` | `n` monsters of one kind (`class`, their row in `MonStats.txt`) and one `tier` (`normal`, `minion` or `champion`) died in view in an area. Written at most once a second |
+| `notable` | One unique monster died in view: its own `name`, the `kind` of monster it is, its `tier` (`unique`, `superunique` or `boss`), and for a super unique its row in `SuperUniques.txt` as `su` |
+| `drop` | The item filter pinged an item: its unit `id`, name, item `code`, `quality`, the text `color` it was announced in, the `ping` tier of the rule, and where it fell |
 
 A tool reading these files should skip any line or kind of event it does not
 know, as later versions will add more.

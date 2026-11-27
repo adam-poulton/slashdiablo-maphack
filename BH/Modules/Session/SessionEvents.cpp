@@ -45,6 +45,41 @@ namespace {
 			line[kKind] = "area";
 			line["area"] = fact.area;
 			line["town"] = fact.town;
+			if (!fact.name.empty())
+				line["name"] = fact.name;
+		}
+
+		void operator()(const Killed& fact) const {
+			line[kKind] = "kills";
+			line["area"] = fact.area;
+			line["class"] = fact.classId;
+			line["name"] = fact.name;
+			line["tier"] = NameOf(fact.tier);
+			line["n"] = fact.count;
+		}
+
+		void operator()(const Notable& fact) const {
+			line[kKind] = "notable";
+			line["area"] = fact.area;
+			line["class"] = fact.classId;
+			line["name"] = fact.name;
+			line["kind"] = fact.kind;
+			line["tier"] = NameOf(fact.tier);
+			if (fact.superUnique >= 0)
+				line["su"] = fact.superUnique;
+		}
+
+		void operator()(const Dropped& fact) const {
+			line[kKind] = "drop";
+			line["id"] = fact.id;
+			line["name"] = fact.name;
+			line["code"] = fact.code;
+			line["quality"] = fact.quality;
+			line["color"] = fact.color;
+			line["ping"] = fact.ping;
+			line["area"] = fact.area;
+			if (!fact.areaName.empty())
+				line["areaName"] = fact.areaName;
 		}
 
 		void operator()(const Experience& fact) const {
@@ -95,6 +130,16 @@ namespace {
 		return found != line.end() && found->is_boolean() && found->get<bool>();
 	}
 
+	// A tier by its name. One this build has no name for is the least of them:
+	// the kill is still a kill.
+	Tier TierNamed(const std::string& name) {
+		for (int tier = 0; tier < TierCount; tier++) {
+			if (name == NameOf((Tier)tier))
+				return (Tier)tier;
+		}
+		return TierNormal;
+	}
+
 	bool ReadFact(const Json& line, Fact& into) {
 		const std::string kind = Text(line, kKind);
 		if (kind == "session") {
@@ -121,6 +166,35 @@ namespace {
 			AreaEntered fact;
 			fact.area = (unsigned int)Number(line, "area");
 			fact.town = Flag(line, "town");
+			fact.name = Text(line, "name");
+			into = fact;
+		} else if (kind == "kills") {
+			Killed fact;
+			fact.area = (unsigned int)Number(line, "area");
+			fact.classId = (unsigned int)Number(line, "class");
+			fact.name = Text(line, "name");
+			fact.tier = TierNamed(Text(line, "tier"));
+			fact.count = (unsigned int)Number(line, "n");
+			into = fact;
+		} else if (kind == "notable") {
+			Notable fact;
+			fact.area = (unsigned int)Number(line, "area");
+			fact.classId = (unsigned int)Number(line, "class");
+			fact.name = Text(line, "name");
+			fact.kind = Text(line, "kind");
+			fact.tier = TierNamed(Text(line, "tier"));
+			fact.superUnique = line.contains("su") ? (int)Number(line, "su") : -1;
+			into = fact;
+		} else if (kind == "drop") {
+			Dropped fact;
+			fact.id = (unsigned int)Number(line, "id");
+			fact.name = Text(line, "name");
+			fact.code = Text(line, "code");
+			fact.quality = (unsigned int)Number(line, "quality");
+			fact.color = (unsigned int)Number(line, "color");
+			fact.ping = (unsigned int)Number(line, "ping");
+			fact.area = (unsigned int)Number(line, "area");
+			fact.areaName = Text(line, "areaName");
 			into = fact;
 		} else if (kind == "exp") {
 			Experience fact;
@@ -141,6 +215,12 @@ namespace {
 		}
 		return true;
 	}
+}
+
+const char* NameOf(Tier tier) {
+	static const char* const names[TierCount] = { "normal", "minion", "champion",
+		"unique", "superunique", "boss" };
+	return tier < TierCount ? names[tier] : names[TierNormal];
 }
 
 std::string ToLine(const Event& event) {

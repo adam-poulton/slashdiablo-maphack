@@ -59,9 +59,11 @@
      "drawn": {"text": "79,199,440"}},
     {"check": "and how far the next level is",
      "drawn": {"contains": "to go"}},
-    {"shot": "window-overview", "crop": [0, 0, 520, 370]},
+    {"check": "what died, and what of it was more than ordinary",
+     "drawn": {"text": "1,713 (40 champion, 16 unique)"}},
+    {"shot": "window-overview", "crop": [0, 0, 680, 420]},
 
-    {"do": ["click:367,22", "move:700,450"]},
+    {"do": ["click:247,22", "move:700,450"]},
     {"check": "the Games tab lists the games under their run",
      "drawn": {"text": "baal (Hell)"}},
     {"check": "with what the finished ones average",
@@ -70,6 +72,37 @@
      "drawn": {"text": "80 - 81"}},
     {"check": "the footer counts the games",
      "drawn": {"text": "8 games, 24:34 played"}},
-    {"shot": "window-games", "crop": [0, 0, 520, 370]}
+    {"shot": "window-games", "crop": [0, 0, 680, 420]},
+
+    {"do": ["click:412,22", "move:700,450"]},
+    {"check": "the Kills tab lists the areas fought in by their whole names",
+     "drawn": {"text": "The Worldstone Keep Level 3"}},
+    {"check": "with the experience earned in each",
+     "drawn": {"text": "+37.18M xp"}},
+    {"check": "the kinds of monster",
+     "drawn": {"text": "Minion of Destruction"}},
+    {"check": "and each unique monster with where it died",
+     "drawn": {"text": "Lister the Tormentor"}},
+    {"check": "the footer counts the kills",
+     "drawn": {"text": "1,713 kills in 6 areas"}},
+    {"shot": "window-kills", "crop": [0, 0, 680, 420]},
+
+    {"do": ["click:577,22", "move:700,450"]},
+    {"check": "the Drops tab lists what the item filter pinged",
+     "drawn": {"text": "Harlequin Crest Shako"}},
+    {"check": "with where it fell",
+     "drawn": {"text": "The Worldstone Chamber"}},
+    {"check": "the footer counts the drops",
+     "drawn": {"text": "9 drops"}},
+    {"shot": "window-drops", "crop": [0, 0, 680, 420]},
+
+    {"do": ["click:200,43", "text:rune", "move:700,450"]},
+    {"check": "a search keeps the drops that have the text",
+     "drawn": {"text": "Ist Rune"}},
+    {"check": "and no others",
+     "drawn": {"text": "Harlequin Crest Shako"}, "count": 0},
+    {"check": "the footer counts what matched",
+     "drawn": {"text": "3 matching \"rune\""}},
+    {"shot": "window-drops-searched", "crop": [0, 0, 680, 420]}
   ]
 }

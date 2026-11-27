@@ -15,6 +15,17 @@
 // inside a game is dropped outside one, and time never runs backwards.
 class SessionModel {
 	public:
+		// Monsters that died in view, by what kind of monster each was.
+		struct KillCounts {
+			unsigned int byTier[SessionEvents::TierCount];
+
+			KillCounts() : byTier() {}
+			unsigned int Total() const;
+
+			// Unique monsters of every sort: unique, super unique and act boss.
+			unsigned int Uniques() const;
+		};
+
 		struct Game {
 			std::string name;
 			unsigned int difficulty;
@@ -29,13 +40,38 @@ class SessionModel {
 			unsigned long long lost;
 			unsigned int deaths;
 			unsigned int players;			// the most there were at once
+			unsigned int kills;
+			unsigned int drops;
 		};
 
 		struct Area {
+			std::string name;				// empty where the log never gave one
 			bool town;
 			unsigned long long ms;			// of stays that have ended
 			unsigned long long gained;
 			unsigned int entries;
+			KillCounts kills;
+		};
+
+		struct Monster {
+			std::string name;
+			KillCounts kills;
+		};
+
+		struct NotableKill {
+			unsigned long long at;
+			unsigned int game;				// its place in Games()
+			unsigned int area;
+			unsigned int classId;
+			std::string name;
+			SessionEvents::Tier tier;
+			int superUnique;
+		};
+
+		struct Drop {
+			unsigned long long at;
+			unsigned int game;
+			SessionEvents::Dropped item;
 		};
 
 		// How far back RecentRate() can be asked to look.
@@ -77,6 +113,15 @@ class SessionModel {
 		// Time in an area, with the stay in progress if the character is there.
 		unsigned long long AreaMs(unsigned int area, unsigned long long now) const;
 
+		const KillCounts& KillTotals() const { return kills; }
+
+		// By the monster's row in MonStats.txt.
+		const std::map<unsigned int, Monster>& Monsters() const { return monsters; }
+
+		// In the order they happened.
+		const std::vector<NotableKill>& Notables() const { return notables; }
+		const std::vector<Drop>& Drops() const { return drops; }
+
 	private:
 		struct Change {
 			unsigned long long at;
@@ -101,6 +146,13 @@ class SessionModel {
 
 		std::deque<Change> recent;			// experience changes within kRecentMs
 
+		KillCounts kills;
+		std::map<unsigned int, Monster> monsters;
+		std::vector<NotableKill> notables;
+		std::vector<Drop> drops;
+
+		void CountKills(unsigned int area, unsigned int classId, const std::string& name,
+			SessionEvents::Tier tier, unsigned int count);
 		void LeaveArea(unsigned long long at);
 		void CloseGame(unsigned long long at);
 
@@ -116,4 +168,7 @@ class SessionModel {
 		void On(const SessionEvents::LevelReached& fact, unsigned long long at);
 		void On(const SessionEvents::Died& fact, unsigned long long at);
 		void On(const SessionEvents::Players& fact, unsigned long long at);
+		void On(const SessionEvents::Killed& fact, unsigned long long at);
+		void On(const SessionEvents::Notable& fact, unsigned long long at);
+		void On(const SessionEvents::Dropped& fact, unsigned long long at);
 };

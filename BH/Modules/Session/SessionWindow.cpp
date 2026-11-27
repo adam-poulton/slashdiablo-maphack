@@ -8,8 +8,8 @@
 #include "SessionPanel.h"
 
 // What a window nobody has sized yet opens at.
-#define SESSION_WINDOW_WIDTH	490
-#define SESSION_WINDOW_HEIGHT	350
+#define SESSION_WINDOW_WIDTH	660
+#define SESSION_WINDOW_HEIGHT	400
 
 void SessionWindow::OnLoad() {
 	LoadConfig();
@@ -19,11 +19,17 @@ void SessionWindow::OnLoad() {
 		"Bound to nothing, it is still reached by typing .session in chat.");
 
 	CreateUI("Session", "Session", SESSION_WINDOW_WIDTH, SESSION_WINDOW_HEIGHT);
-	// There is nothing in the window to type into.
+	// One box for every tab, each saying what it searches as it comes forward.
+	// The caret stays out of it on opening: the window is opened to be read,
+	// often in the middle of a game.
+	GetUI()->EnableSearch("Search");
 	SetFocusSearchOnOpen(false);
+	SetSearchEveryPanel(false);
 
 	AddPanel(new OverviewPanel(GetUI()));
 	AddPanel(new GamesPanel(GetUI()));
+	AddPanel(new KillsPanel(GetUI()));
+	AddPanel(new DropsPanel(GetUI()));
 
 	GetUI()->SetFooterAction("position HUD", []() -> void {
 		Session::RequestHudPlacing(true);

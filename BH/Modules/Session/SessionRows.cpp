@@ -1,4 +1,5 @@
 #include "SessionRows.h"
+#include <algorithm>
 #include <cctype>
 #include <cstdio>
 #include "SessionFormat.h"
@@ -102,6 +103,48 @@ namespace {
 		return row;
 	}
 
+	// "1,234", and what of them were more than ordinary: "1,234 (12 champion, 9 unique)".
+	std::string KillSummary(const SessionModel::KillCounts& kills) {
+		std::string text = Count(kills.Total());
+		const unsigned int champions = kills.byTier[SessionEvents::TierChampion];
+		const unsigned int uniques = kills.Uniques();
+		if (champions == 0 && uniques == 0)
+			return text;
+		text += " (";
+		if (champions > 0)
+			text += Count(champions) + " champion";
+		if (uniques > 0)
+			text += std::string(champions > 0 ? ", " : "") + Count(uniques) + " unique";
+		return text + ")";
+	}
+
+	// A count, or nothing where there is nothing to count: a column of zeroes
+	// hides the figures in it.
+	std::string Some(unsigned int count) {
+		return count > 0 ? Count(count) : std::string();
+	}
+
+	std::string AreaLabel(const SessionModel& model, unsigned int area) {
+		std::map<unsigned int, SessionModel::Area>::const_iterator known = model.Areas().find(area);
+		if (known != model.Areas().end() && !known->second.name.empty())
+			return known->second.name;
+		return "Area " + std::to_string(area);
+	}
+
+	std::string Lower(std::string text) {
+		for (char& c : text)
+			c = (char)std::tolower((unsigned char)c);
+		return text;
+	}
+
+	bool Has(const Row& row, const std::string& lowered) {
+		for (const std::string& cell : row.cells) {
+			if (Lower(cell).find(lowered) != std::string::npos)
+				return true;
+		}
+		return false;
+	}
+
 	struct Run {
 		std::string name;
 		unsigned int difficulty;
@@ -161,6 +204,8 @@ std::vector<Row> Overview(const SessionModel& model, unsigned long long now,
 	rows.push_back(Pair("Time played", ShortClock(model.PlayedMs(now))));
 	rows.push_back(Pair("Games", std::to_string(model.Games().size())));
 	rows.push_back(Pair("Deaths", std::to_string(model.Deaths())));
+	rows.push_back(Pair("Kills", KillSummary(model.KillTotals())));
+	rows.push_back(Pair("Drops", std::to_string(model.Drops().size())));
 
 	rows.push_back(Heading("Experience"));
 	rows.push_back(Pair("Gained", Count((long long)model.Gained())));
@@ -229,6 +274,111 @@ std::vector<Row> Games(const SessionModel& model, unsigned long long now) {
 			rows.push_back(GameRow(games[index], index + 1, now));
 	}
 	return rows;
+}
+
+std::vector<Row> Kills(const SessionModel& model, unsigned long long now) {
+	using SessionEvents::TierChampion;
+	std::vector<Row> rows;
+
+	// Wherever something died, and wherever outside a town time was spent.
+	std::vector<unsigned int> fought;
+	for (const auto& area : model.Areas()) {
+		if (area.second.kills.Total() > 0 || (!area.second.town && model.AreaMs(area.first, now) > 0))
+			fought.push_back(area.first);
+	}
+	std::stable_sort(fought.begin(), fought.end(), [&model](unsigned int a, unsigned int b) {
+		return model.Areas().at(a).kills.Total() > model.Areas().at(b).kills.Total();
+	});
+	if (!fought.empty())
+		rows.push_back(Heading("Areas"));
+	for (unsigned int id : fought) {
+		const SessionModel::Area& area = model.Areas().at(id);
+		Row row = { std::vector<std::string>(KillColumns), false, false };
+		row.cells[KillName] = AreaLabel(model, id);
+		row.cells[KillTotal] = Some(area.kills.Total());
+		row.cells[KillChampions] = Some(area.kills.byTier[TierChampion]);
+		row.cells[KillUniques] = Some(area.kills.Uniques());
+		row.cells[KillTime] = ShortClock(model.AreaMs(id, now));
+		row.cells[KillDetail] = area.gained > 0 ? ShortAmount((long long)area.gained) + " xp" : "";
+		rows.push_back(row);
+	}
+
+	std::vector<unsigned int> kinds;
+	for (const auto& monster : model.Monsters())
+		kinds.push_back(monster.first);
+	std::stable_sort(kinds.begin(), kinds.end(), [&model](unsigned int a, unsigned int b) {
+		return model.Monsters().at(a).kills.Total() > model.Monsters().at(b).kills.Total();
+	});
+	if (!kinds.empty())
+		rows.push_back(Heading("Monsters"));
+	for (unsigned int id : kinds) {
+		const SessionModel::Monster& monster = model.Monsters().at(id);
+		Row row = { std::vector<std::string>(KillColumns), false, false };
+		row.cells[KillName] = monster.name.empty() ? "Monster " + std::to_string(id) : monster.name;
+		row.cells[KillTotal] = Some(monster.kills.Total());
+		row.cells[KillChampions] = Some(monster.kills.byTier[TierChampion]);
+		row.cells[KillUniques] = Some(monster.kills.Uniques());
+		rows.push_back(row);
+	}
+
+	if (!model.Notables().empty())
+		rows.push_back(Heading("Unique monsters"));
+	for (size_t i = model.Notables().size(); i-- > 0;) {
+		const SessionModel::NotableKill& kill = model.Notables()[i];
+		Row row = { std::vector<std::string>(KillColumns), false, false };
+		row.cells[KillName] = kill.name;
+		row.cells[KillTime] = ShortClock(kill.at);
+		row.cells[KillDetail] = AreaLabel(model, kill.area);
+		rows.push_back(row);
+	}
+	return rows;
+}
+
+std::vector<Row> Drops(const SessionModel& model) {
+	std::vector<Row> rows;
+	for (size_t i = model.Drops().size(); i-- > 0;) {
+		const SessionModel::Drop& drop = model.Drops()[i];
+		Row row = { std::vector<std::string>(DropColumns), false, false };
+		row.cells[DropTime] = ShortClock(drop.at);
+		row.cells[DropItem] = drop.item.name;
+		row.cells[DropArea] = drop.item.areaName.empty() ? AreaLabel(model, drop.item.area) :
+			drop.item.areaName;
+		row.cells[DropGame] = std::to_string(drop.game + 1);
+		row.cells[DropPing] = std::to_string(drop.item.ping);
+		row.colors.assign(DropColumns, -1);
+		row.colors[DropItem] = (int)drop.item.color;
+		rows.push_back(row);
+	}
+	return rows;
+}
+
+std::vector<Row> Matching(const std::vector<Row>& rows, const std::string& text) {
+	if (text.empty())
+		return rows;
+	const std::string lowered = Lower(text);
+
+	std::vector<Row> matching;
+	const Row* heading = NULL;		// the one the row in hand stands under
+	bool headingShown = false;
+	bool wholeSection = false;		// the heading itself has the text
+	for (const Row& row : rows) {
+		if (row.heading) {
+			heading = &row;
+			wholeSection = Has(row, lowered);
+			headingShown = wholeSection;
+			if (wholeSection)
+				matching.push_back(row);
+			continue;
+		}
+		if (row.summary || (!wholeSection && !Has(row, lowered)))
+			continue;
+		if (heading && !headingShown) {
+			matching.push_back(*heading);
+			headingShown = true;
+		}
+		matching.push_back(row);
+	}
+	return matching;
 }
 
 }

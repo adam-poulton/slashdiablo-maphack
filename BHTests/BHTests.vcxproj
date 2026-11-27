@@ -105,6 +105,7 @@
     <ClCompile Include="ItemGridTests.cpp" />
     <ClCompile Include="PortalDelayTests.cpp" />
     <ClCompile Include="HudLayoutTests.cpp" />
+    <ClCompile Include="KillKindsTests.cpp" />
     <ClCompile Include="SessionEventsTests.cpp" />
     <ClCompile Include="SessionFileTests.cpp" />
     <ClCompile Include="SessionFormatTests.cpp" />
@@ -150,6 +151,7 @@
     <ClCompile Include="..\BH\Modules\ItemMover\ItemGrid.cpp" />
     <ClCompile Include="..\BH\Modules\TownPortal\PortalDelay.cpp" />
     <ClCompile Include="..\BH\Modules\Session\HudLayout.cpp" />
+    <ClCompile Include="..\BH\Modules\Session\KillKinds.cpp" />
     <ClCompile Include="..\BH\Modules\Session\SessionEvents.cpp" />
     <ClCompile Include="..\BH\Modules\Session\SessionFile.cpp" />
     <ClCompile Include="..\BH\Modules\Session\SessionFormat.cpp" />

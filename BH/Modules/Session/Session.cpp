@@ -27,6 +27,7 @@ namespace {
 	const char* const kTokens[] = {
 		"SESSIONTIME", "SESSIONPLAYTIME", "SESSIONXPGAINED", "SESSIONXPPERSEC",
 		"SESSIONXPPERSECLONG", "RECENTXPPERSEC", "SESSIONLEVELS", "SESSIONDEATHS",
+		"SESSIONKILLS", "SESSIONDROPS",
 	};
 
 	const char* const kHeading = "Session";
@@ -143,6 +144,7 @@ void Session::OnLoop() {
 	std::vector<GameProbe::Seen> seen;
 	probe.Sample(tick, seen);
 	Take(seen);
+	TakeDrops(tick);
 	PublishTokens(tick);
 }
 
@@ -161,6 +163,10 @@ void Session::OnGameExit() {
 	probe.Leave(BHGetTickCount(), seen);
 	Take(seen);
 	hud.SetBeingPlaced(false);
+	{
+		std::lock_guard<std::mutex> dropsHeld(dropLock);
+		notedDrops.clear();
+	}
 }
 
 void Session::OnKey(bool up, BYTE key, LPARAM lParam, bool* block) {
@@ -221,14 +227,48 @@ void Session::Take(const std::vector<GameProbe::Seen>& seen) {
 		return;
 
 	for (const GameProbe::Seen& one : seen) {
-		if (std::holds_alternative<Joined>(one.fact))
+		if (std::holds_alternative<Joined>(one.fact)) {
 			current = SessionFor(probe.GetIdentity(), one.tick);
+			takenDrops.clear();
+		}
 		if (!current || current->shown)
 			continue;
 		Record(*current, { NowOf(*current, one.tick), one.fact });
 	}
 	if (current)
 		Write(*current);
+}
+
+void Session::TakeDrops(unsigned long long tick) {
+	// Kept until there is a game to put them in: the first of a game's drops
+	// can be pinged before the player's stats have appeared.
+	if (!current || current->shown || !current->model.InGame())
+		return;
+	std::vector<DropNote> noted;
+	{
+		std::lock_guard<std::mutex> held(dropLock);
+		noted.swap(notedDrops);
+	}
+	if (noted.empty())
+		return;
+
+	for (const DropNote& note : noted) {
+		if (!takenDrops.insert(note.id).second)
+			continue;
+		Dropped fact;
+		fact.id = note.id;
+		fact.name = SessionFormat::Plain(note.name);
+		fact.code = note.code;
+		fact.quality = note.quality;
+		fact.color = note.color;
+		fact.ping = note.ping;
+		fact.area = note.area;
+		// The area a drop lands in is the item's, and need not be one the
+		// character has reached, so its name is asked for here.
+		fact.areaName = note.area ? GameProbe::AreaName(note.area) : std::string();
+		Record(*current, { NowOf(*current, tick), fact });
+	}
+	Write(*current);
 }
 
 Session::Live* Session::SessionFor(const GameProbe::Identity& who,
@@ -311,6 +351,8 @@ void Session::PublishTokens(unsigned long long tick) {
 		SessionFormat::Rate(model.RecentRate(now, kRecentWindowMs)));
 	screenInfo->SetAutomapToken("SESSIONLEVELS", std::to_string(model.LevelsGained()));
 	screenInfo->SetAutomapToken("SESSIONDEATHS", std::to_string(model.Deaths()));
+	screenInfo->SetAutomapToken("SESSIONKILLS", std::to_string(model.KillTotals().Total()));
+	screenInfo->SetAutomapToken("SESSIONDROPS", std::to_string(model.Drops().size()));
 }
 
 // A token with nothing in it is written as nothing, where one nobody has set is
@@ -332,6 +374,14 @@ bool Session::Read(const std::function<void(const SessionModel&, unsigned long l
 		return false;
 	reader(self->current->model, self->NowOf(*self->current, BHGetTickCount()));
 	return true;
+}
+
+void Session::NoteDrop(const DropNote& drop) {
+	Session* self = instance;
+	if (!self || !enabled)
+		return;
+	std::lock_guard<std::mutex> held(self->dropLock);
+	self->notedDrops.push_back(drop);
 }
 
 void Session::RequestNew() {

@@ -363,3 +363,123 @@ TEST_CASE("a game remembers the most players it held at once") {
 
 	CHECK(model.Games()[0].players == 8);
 }
+
+TEST_CASE("kills are counted by tier, for the session, the game, the area and the kind") {
+	SessionModel model = After({
+		{ 0, Join(0) },
+		{ 0, AreaEntered{ 131, false, "Throne of Destruction" } },
+		{ 1 * kSecond, Killed{ 131, 571, "Minion of Destruction", TierNormal, 4 } },
+		{ 2 * kSecond, Killed{ 131, 571, "Minion of Destruction", TierChampion, 2 } },
+		{ 3 * kSecond, Killed{ 131, 641, "Hell Witch", TierMinion, 1 } },
+	});
+
+	CHECK(model.KillTotals().Total() == 7);
+	CHECK(model.KillTotals().byTier[TierNormal] == 4);
+	CHECK(model.KillTotals().byTier[TierChampion] == 2);
+	CHECK(model.KillTotals().byTier[TierMinion] == 1);
+	CHECK(model.KillTotals().Uniques() == 0);
+	CHECK(model.Games()[0].kills == 7);
+	CHECK(model.Areas().at(131).kills.Total() == 7);
+	CHECK(model.Areas().at(131).name == "Throne of Destruction");
+
+	REQUIRE(model.Monsters().size() == 2);
+	CHECK(model.Monsters().at(571).name == "Minion of Destruction");
+	CHECK(model.Monsters().at(571).kills.Total() == 6);
+	CHECK(model.Monsters().at(571).kills.byTier[TierChampion] == 2);
+	CHECK(model.Monsters().at(641).kills.Total() == 1);
+}
+
+TEST_CASE("a unique monster is a kill, and is remembered by name") {
+	SessionModel model = After({
+		{ 0, Join(0) },
+		{ 0, AreaEntered{ 131, false, "Throne of Destruction" } },
+		{ 5 * kSecond, Notable{ 131, 571, "Lister the Tormentor", "Minion of Destruction", TierSuperUnique, 65 } },
+		{ 6 * kSecond, AreaEntered{ 132, false, "The Worldstone Chamber" } },
+		{ 9 * kSecond, Notable{ 132, 544, "Baal", "Baal", TierBoss, -1 } },
+	});
+
+	CHECK(model.KillTotals().Total() == 2);
+	CHECK(model.KillTotals().Uniques() == 2);
+	CHECK(model.KillTotals().byTier[TierSuperUnique] == 1);
+	CHECK(model.KillTotals().byTier[TierBoss] == 1);
+	CHECK(model.Areas().at(132).kills.byTier[TierBoss] == 1);
+
+	REQUIRE(model.Notables().size() == 2);
+	CHECK(model.Notables()[0].at == 5 * kSecond);
+	CHECK(model.Notables()[0].name == "Lister the Tormentor");
+	CHECK(model.Notables()[0].area == 131);
+	CHECK(model.Notables()[0].game == 0);
+	CHECK(model.Notables()[1].tier == TierBoss);
+
+	// Under the kind of monster it is, which is not what it is called.
+	CHECK(model.Monsters().at(571).name == "Minion of Destruction");
+	CHECK(model.Monsters().at(571).kills.byTier[TierSuperUnique] == 1);
+}
+
+TEST_CASE("kills in a later game are that game's, and the session's as well") {
+	SessionModel model = After({
+		{ 0, Join(0) },
+		{ 1 * kSecond, Killed{ 131, 571, "Minion of Destruction", TierNormal, 4 } },
+		{ 10 * kSecond, Left() },
+		{ 20 * kSecond, Join(0) },
+		{ 21 * kSecond, Killed{ 131, 571, "Minion of Destruction", TierNormal, 3 } },
+	});
+
+	CHECK(model.Games()[0].kills == 4);
+	CHECK(model.Games()[1].kills == 3);
+	CHECK(model.KillTotals().Total() == 7);
+}
+
+TEST_CASE("a kill of a tier there is none of is no kill") {
+	SessionModel model = After({
+		{ 0, Join(0) },
+		{ 1 * kSecond, Killed{ 131, 571, "x", TierCount, 4 } },
+		{ 2 * kSecond, Notable{ 131, 571, "x", "x", TierCount, -1 } },
+	});
+
+	CHECK(model.KillTotals().Total() == 0);
+	CHECK(model.Notables().empty());
+}
+
+TEST_CASE("drops are kept in order, each with the game it fell in") {
+	SessionModel model = After({
+		{ 0, Join(0) },
+		{ 5 * kSecond, Dropped{ 1001, "Ist Rune", "r24", 2, 8, 1, 131, "Throne of Destruction" } },
+		{ 10 * kSecond, Left() },
+		{ 20 * kSecond, Join(0) },
+		{ 25 * kSecond, Dropped{ 1001, "Ring", "rin", 6, 9, 3, 108, "Chaos Sanctuary" } },
+	});
+
+	REQUIRE(model.Drops().size() == 2);
+	CHECK(model.Drops()[0].at == 5 * kSecond);
+	CHECK(model.Drops()[0].game == 0);
+	CHECK(model.Drops()[0].item.name == "Ist Rune");
+	CHECK(model.Drops()[1].game == 1);
+	CHECK(model.Drops()[1].item.areaName == "Chaos Sanctuary");
+	CHECK(model.Games()[0].drops == 1);
+	CHECK(model.Games()[1].drops == 1);
+}
+
+TEST_CASE("a drop names an area the log had entered without a name") {
+	SessionModel model = After({
+		{ 0, Join(0) },
+		{ 0, AreaEntered{ 131, false } },
+		{ 5 * kSecond, Dropped{ 1001, "Ist Rune", "r24", 2, 8, 1, 131, "Throne of Destruction" } },
+	});
+
+	CHECK(model.Areas().at(131).name == "Throne of Destruction");
+}
+
+TEST_CASE("kills and drops outside a game are dropped") {
+	SessionModel model = After({
+		{ 0, Killed{ 131, 571, "Minion of Destruction", TierNormal, 4 } },
+		{ 0, Notable{ 132, 544, "Baal", "Baal", TierBoss, -1 } },
+		{ 0, Dropped{ 1001, "Ist Rune", "r24", 2, 8, 1, 131, "" } },
+	});
+
+	CHECK(model.KillTotals().Total() == 0);
+	CHECK(model.Monsters().empty());
+	CHECK(model.Notables().empty());
+	CHECK(model.Drops().empty());
+	CHECK(model.Areas().empty());
+}

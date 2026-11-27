@@ -22,4 +22,12 @@ std::string ShortRate(double perSecond);
 // A whole number with its thousands marked, "12,345,678".
 std::string Count(long long number);
 
+// An amount gained or lost, signed and to about three figures: "+37.18M",
+// "+980.4K", "-125".
+std::string ShortAmount(long long amount);
+
+// A name as the game writes one, made a line of plain text: without the colour
+// codes the game puts in it, and with a space where it broke onto a new line.
+std::string Plain(const std::string& name);
+
 }

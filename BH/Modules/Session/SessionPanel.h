@@ -13,6 +13,7 @@ class SessionPanel : public UIPanel {
 	private:
 		Drawing::Listhook* list;
 		std::vector<SessionRows::Row> pushed;	// what the list was last given
+		std::string search;						// what the window's search box holds
 		std::string status;
 		unsigned long long refreshedAt;
 		unsigned int laidOutWidth;
@@ -36,6 +37,7 @@ class SessionPanel : public UIPanel {
 	public:
 		void OnDraw();
 		void OnOpen();
+		void Search(const std::string& text);
 		std::string GetStatus() { return status; }
 };
 
@@ -47,6 +49,7 @@ class OverviewPanel : public SessionPanel {
 
 	public:
 		explicit OverviewPanel(Drawing::UI* ui);
+		std::string GetSearchPlaceholder() { return "Search the overview"; }
 };
 
 // Every game of the session, under the kind of run it was.
@@ -58,4 +61,29 @@ class GamesPanel : public SessionPanel {
 
 	public:
 		explicit GamesPanel(Drawing::UI* ui);
+		std::string GetSearchPlaceholder() { return "Search games by name"; }
+};
+
+// What died, where, and of what kind.
+class KillsPanel : public SessionPanel {
+	protected:
+		std::vector<SessionRows::Row> BuildRows(const SessionModel& model,
+			unsigned long long now);
+		std::string BuildStatus(const SessionModel& model, unsigned long long now);
+
+	public:
+		explicit KillsPanel(Drawing::UI* ui);
+		std::string GetSearchPlaceholder() { return "Search by area or monster"; }
+};
+
+// Every drop the item filter pinged.
+class DropsPanel : public SessionPanel {
+	protected:
+		std::vector<SessionRows::Row> BuildRows(const SessionModel& model,
+			unsigned long long now);
+		std::string BuildStatus(const SessionModel& model, unsigned long long now);
+
+	public:
+		explicit DropsPanel(Drawing::UI* ui);
+		std::string GetSearchPlaceholder() { return "Search drops by item or area"; }
 };

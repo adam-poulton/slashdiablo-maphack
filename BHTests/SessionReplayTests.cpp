@@ -12,7 +12,9 @@
  * fixtures/session-baal-runs.jsonl is a sitting of eight games on a level 80
  * character: five Baal runs and two Chaos runs finished, a death in the first
  * Chaos run, level 81 reached on the way, and a sixth Baal run still being
- * played where the log stops. The harness puts the same log on screen.
+ * played where the log stops. Monsters die all through it, Baal and Diablo and
+ * their lieutenants among them, and nine items drop. The harness puts the same
+ * log on screen.
  */
 
 using namespace SessionEvents;
@@ -52,7 +54,7 @@ TEST_CASE("every line of a recorded session is an event, and is written back as 
 		REQUIRE(FromLine(line, event));
 		REQUIRE(ToLine(event) == line);
 	}
-	CHECK(lines == 1387);
+	CHECK(lines == 2171);
 }
 
 TEST_CASE("a recorded session comes to what was played") {
@@ -98,6 +100,49 @@ TEST_CASE("a recorded session's experience is credited where it was earned") {
 		CHECK(area.second.gained <= model.Areas().at(throne).gained);
 	CHECK(model.Areas().at(109).town);
 	CHECK(model.Areas().at(109).gained == 0);
+}
+
+TEST_CASE("a recorded session's kills are counted by tier, area and kind") {
+	SessionModel model = Replayed();
+	const SessionModel::KillCounts& kills = model.KillTotals();
+
+	// 1697 in batches, and sixteen unique monsters each told on its own.
+	CHECK(kills.Total() == 1713);
+	CHECK(kills.Uniques() == 16);
+	CHECK(kills.byTier[TierBoss] == 7);
+	CHECK(kills.byTier[TierSuperUnique] == 9);
+	CHECK(model.Notables().size() == 16);
+
+	unsigned int byArea = 0, byKind = 0, byGame = 0;
+	for (const auto& area : model.Areas())
+		byArea += area.second.kills.Total();
+	for (const auto& monster : model.Monsters())
+		byKind += monster.second.kills.Total();
+	for (const SessionModel::Game& game : model.Games())
+		byGame += game.kills;
+	CHECK(byArea == kills.Total());
+	CHECK(byKind == kills.Total());
+	CHECK(byGame == kills.Total());
+
+	CHECK(model.Areas().at(131).name == "Throne of Destruction");
+	CHECK(model.Areas().at(109).kills.Total() == 0);
+	CHECK(model.Monsters().at(544).name == "Baal");
+	CHECK(model.Monsters().at(544).kills.byTier[TierBoss] == 5);
+	CHECK(model.Notables().front().name == "Lister the Tormentor");
+	CHECK(model.Notables().front().superUnique == 65);
+}
+
+TEST_CASE("a recorded session's drops are kept in the order they fell") {
+	SessionModel model = Replayed();
+
+	REQUIRE(model.Drops().size() == 9);
+	CHECK(model.Drops().front().item.name == "Ist Rune");
+	CHECK(model.Drops().front().game == 0);
+	CHECK(model.Drops().front().item.areaName == "Throne of Destruction");
+	CHECK(model.Drops().back().item.name == "Grand Charm");
+	CHECK(model.Drops().back().game == 7);
+	CHECK(model.Games()[1].drops == 2);
+	CHECK(model.Games()[2].drops == 0);
 }
 
 TEST_CASE("a recorded session's games are listed by run") {

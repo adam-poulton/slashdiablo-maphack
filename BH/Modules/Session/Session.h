@@ -4,6 +4,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <string>
 #include <vector>
 #include "../Module.h"
@@ -25,6 +26,19 @@ class ScreenInfo;
 // It counts for itself and beside the run tracker in ScreenInfo, whose figures,
 // tokens and file are no part of this and are not changed by it.
 class Session : public Module {
+	public:
+		// An item on the ground that the item filter pinged, as whichever part
+		// of the filter pinged it knows it.
+		struct DropNote {
+			unsigned int id;			// the item's unit id
+			std::string name;
+			std::string code;
+			unsigned int quality;
+			unsigned int color;			// the text colour it was, or would be, announced in
+			unsigned int ping;
+			unsigned int area;
+		};
+
 	private:
 		struct Live {
 			unsigned long long beganAt;				// tick the session's clock reads zero at
@@ -61,6 +75,13 @@ class Session : public Module {
 
 		SessionHud hud;
 
+		// Drops are noted from wherever the item filter runs and taken on the
+		// game loop. An item is one drop however many times it is pinged, so
+		// those already taken in this game are remembered.
+		std::mutex dropLock;
+		std::vector<DropNote> notedDrops;
+		std::set<unsigned int> takenDrops;
+
 		// What a key or a command asked for, done on the game loop.
 		std::atomic<bool> wantsNew;
 		std::atomic<bool> wantsPlacing;			// to start placing the HUD, or to stop
@@ -71,6 +92,7 @@ class Session : public Module {
 		unsigned long long publishedAt;
 
 		void Take(const std::vector<GameProbe::Seen>& seen);
+		void TakeDrops(unsigned long long tick);
 		Live* SessionFor(const GameProbe::Identity& who, unsigned long long tick);
 		void Record(Live& session, const SessionEvents::Event& event);
 		unsigned long long NowOf(const Live& session, unsigned long long tick) const;
@@ -104,6 +126,10 @@ class Session : public Module {
 		// Hands the session in hand, and the moment on its clock, to whoever
 		// wants to read it. False, having called nothing, where there is none.
 		static bool Read(const std::function<void(const SessionModel&, unsigned long long)>& reader);
+
+		// Called for each ground item the filter pings, from any thread, and as
+		// often as the filter pings it.
+		static void NoteDrop(const DropNote& drop);
 
 		// Asked for from a chat command or a window, and done on the game loop.
 		static void RequestNew();

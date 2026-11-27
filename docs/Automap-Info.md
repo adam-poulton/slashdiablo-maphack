@@ -129,6 +129,8 @@ time in the lobby does not lower them.
 | `%RECENTXPPERSEC%` | Experience per second over the last minute of play |
 | `%SESSIONLEVELS%` | Levels gained this session |
 | `%SESSIONDEATHS%` | Deaths this session |
+| `%SESSIONKILLS%` | Monsters that died in view this session |
+| `%SESSIONDROPS%` | Drops the item filter pinged this session |
 
 ## Overlay position
 

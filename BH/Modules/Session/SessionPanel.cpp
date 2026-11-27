@@ -23,7 +23,7 @@ namespace {
 			return false;
 		for (size_t i = 0; i < a.size(); i++) {
 			if (a[i].heading != b[i].heading || a[i].summary != b[i].summary ||
-					a[i].cells != b[i].cells)
+					a[i].cells != b[i].cells || a[i].colors != b[i].colors)
 				return false;
 		}
 		return true;
@@ -36,6 +36,9 @@ namespace {
 			ListRow one(row.cells, row.heading);
 			if (row.summary)
 				one.colors.assign(row.cells.size(), Grey);
+			// Disabled is the list's word for a cell that takes its column's.
+			for (int color : row.colors)
+				one.colors.push_back(color < 0 ? Disabled : (TextColor)color);
 			listed.push_back(one);
 		}
 		return listed;
@@ -69,6 +72,29 @@ namespace {
 		columns[SessionRows::GameLevel] = ListColumn("Level", 58, 0, kColumnGap, White);
 		return columns;
 	}
+
+	std::vector<ListColumn> KillsColumns() {
+		std::vector<ListColumn> columns(SessionRows::KillColumns);
+		// The two columns of names share what the figures leave: an area's name
+		// in the first, and in the last the area a unique monster died in.
+		columns[SessionRows::KillName] = ListColumn("", 180, 1, 0, White);
+		columns[SessionRows::KillTotal] = ListColumn("Kills", 36, 0, kColumnGap, White);
+		columns[SessionRows::KillChampions] = ListColumn("Champion", 60, 0, kColumnGap, White);
+		columns[SessionRows::KillUniques] = ListColumn("Unique", 46, 0, kColumnGap, White);
+		columns[SessionRows::KillTime] = ListColumn("Time", 40, 0, kColumnGap, White);
+		columns[SessionRows::KillDetail] = ListColumn("", 150, 1, kColumnGap, Grey);
+		return columns;
+	}
+
+	std::vector<ListColumn> DropsColumns() {
+		std::vector<ListColumn> columns(SessionRows::DropColumns);
+		columns[SessionRows::DropTime] = ListColumn("Time", 44, 0, 0, Grey);
+		columns[SessionRows::DropItem] = ListColumn("Item", 140, 2, kColumnGap, White);
+		columns[SessionRows::DropArea] = ListColumn("Area", 110, 1, kColumnGap, Grey);
+		columns[SessionRows::DropGame] = ListColumn("Game", 34, 0, kColumnGap, Grey);
+		columns[SessionRows::DropPing] = ListColumn("Tier", 26, 0, kColumnGap, Grey);
+		return columns;
+	}
 }
 
 SessionPanel::SessionPanel(std::string name, UI* ui, const std::vector<ListColumn>& columns) :
@@ -95,6 +121,16 @@ void SessionPanel::Refresh() {
 		status = Session::IsEnabled() ? "No session yet" :
 			"The session tracker is off";
 	}
+	if (!search.empty() && !rows.empty()) {
+		rows = SessionRows::Matching(rows, search);
+		size_t matching = 0;
+		for (const SessionRows::Row& row : rows) {
+			if (!row.heading)
+				matching++;
+		}
+		status = (matching > 0 ? std::to_string(matching) + " matching \"" : "Nothing matches \"") +
+			search + "\"";
+	}
 
 	// Rows are pushed only when they differ: pushing them refits every cell.
 	if (!Same(rows, pushed)) {
@@ -104,6 +140,14 @@ void SessionPanel::Refresh() {
 }
 
 void SessionPanel::OnOpen() {
+	refreshedAt = 0;
+}
+
+void SessionPanel::Search(const std::string& text) {
+	if (text == search)
+		return;
+	search = text;
+	list->SetScrollTop(0);
 	refreshedAt = 0;
 }
 
@@ -146,4 +190,38 @@ std::string GamesPanel::BuildStatus(const SessionModel& model, unsigned long lon
 		return "No games yet";
 	return std::to_string(games) + (games == 1 ? " game, " : " games, ") +
 		SessionFormat::ShortClock(model.PlayedMs(now)) + " played";
+}
+
+KillsPanel::KillsPanel(UI* ui) : SessionPanel("Kills", ui, KillsColumns()) {}
+
+std::vector<SessionRows::Row> KillsPanel::BuildRows(const SessionModel& model,
+		unsigned long long now) {
+	return SessionRows::Kills(model, now);
+}
+
+std::string KillsPanel::BuildStatus(const SessionModel& model, unsigned long long now) {
+	const unsigned int kills = model.KillTotals().Total();
+	if (kills == 0)
+		return "No kills yet";
+	unsigned int areas = 0;
+	for (const auto& area : model.Areas()) {
+		if (area.second.kills.Total() > 0)
+			areas++;
+	}
+	return SessionFormat::Count(kills) + (kills == 1 ? " kill in " : " kills in ") +
+		std::to_string(areas) + (areas == 1 ? " area" : " areas");
+}
+
+DropsPanel::DropsPanel(UI* ui) : SessionPanel("Drops", ui, DropsColumns()) {}
+
+std::vector<SessionRows::Row> DropsPanel::BuildRows(const SessionModel& model,
+		unsigned long long now) {
+	return SessionRows::Drops(model);
+}
+
+std::string DropsPanel::BuildStatus(const SessionModel& model, unsigned long long now) {
+	const size_t drops = model.Drops().size();
+	if (drops == 0)
+		return "No drops yet";
+	return std::to_string(drops) + (drops == 1 ? " drop" : " drops");
 }

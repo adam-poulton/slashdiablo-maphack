@@ -51,6 +51,8 @@ void SessionModel::On(const AreaEntered& fact, unsigned long long at) {
 
 	Area& entered = areas[fact.area];
 	entered.town = fact.town;
+	if (!fact.name.empty())
+		entered.name = fact.name;
 	entered.entries++;
 	inArea = true;
 	area = fact.area;
@@ -105,6 +107,56 @@ void SessionModel::On(const Players& fact, unsigned long long at) {
 		return;
 	Game& game = games.back();
 	game.players = std::max(game.players, fact.count);
+}
+
+void SessionModel::On(const SessionEvents::Killed& fact, unsigned long long at) {
+	if (!InGame() || fact.tier >= TierCount)
+		return;
+	CountKills(fact.area, fact.classId, fact.name, fact.tier, fact.count);
+}
+
+void SessionModel::On(const Notable& fact, unsigned long long at) {
+	if (!InGame() || fact.tier >= TierCount)
+		return;
+	CountKills(fact.area, fact.classId, fact.kind, fact.tier, 1);
+	notables.push_back({ at, (unsigned int)games.size() - 1, fact.area, fact.classId,
+		fact.name, fact.tier, fact.superUnique });
+}
+
+void SessionModel::On(const Dropped& fact, unsigned long long at) {
+	if (!InGame())
+		return;
+	games.back().drops++;
+	drops.push_back({ at, (unsigned int)games.size() - 1, fact });
+	// A drop can name an area the character has not walked into yet.
+	if (!fact.areaName.empty()) {
+		std::map<unsigned int, Area>::iterator known = areas.find(fact.area);
+		if (known != areas.end() && known->second.name.empty())
+			known->second.name = fact.areaName;
+	}
+}
+
+void SessionModel::CountKills(unsigned int where, unsigned int classId,
+		const std::string& name, Tier tier, unsigned int count) {
+	kills.byTier[tier] += count;
+	games.back().kills += count;
+	areas[where].kills.byTier[tier] += count;
+
+	Monster& monster = monsters[classId];
+	if (monster.name.empty())
+		monster.name = name;
+	monster.kills.byTier[tier] += count;
+}
+
+unsigned int SessionModel::KillCounts::Total() const {
+	unsigned int total = 0;
+	for (unsigned int count : byTier)
+		total += count;
+	return total;
+}
+
+unsigned int SessionModel::KillCounts::Uniques() const {
+	return byTier[TierUnique] + byTier[TierSuperUnique] + byTier[TierBoss];
 }
 
 void SessionModel::LeaveArea(unsigned long long at) {

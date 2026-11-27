@@ -3,10 +3,45 @@
 #include "../../Constants.h"
 #include "../../D2Helpers.h"
 #include "../../D2Ptrs.h"
+#include "KillKinds.h"
 
 using namespace SessionEvents;
 
 namespace {
+	// What the game's alignment stat reads for a monster on the player's side:
+	// a mercenary, a summons, a monster a Paladin converted.
+	const DWORD kFriendly = 2;
+
+	std::string Narrow(const wchar_t* text) {
+		if (!text)
+			return std::string();
+		char* ansi = UnicodeToAnsi(text);
+		std::string narrow(ansi);
+		delete[] ansi;
+		return narrow;
+	}
+
+	// D2Client's own level name function takes the level in esi. BH's stub for
+	// it leaves the level there, where the compiler expects to find esi as it
+	// left it, so this calls the function and puts esi back.
+	__declspec(naked) wchar_t* __fastcall LevelName(DWORD level) {
+		__asm {
+			push esi
+			mov esi, ecx
+			call D2CLIENT_GetLevelName_I
+			pop esi
+			ret
+		}
+	}
+
+	bool IsDead(UnitAny* monster) {
+		return monster->dwMode == NPC_MODE_DEATH || monster->dwMode == NPC_MODE_DEAD;
+	}
+
+	bool IsFriendly(UnitAny* monster) {
+		return D2COMMON_GetUnitStat(monster, STAT_ALIGNMENT, 0) == kFriendly;
+	}
+
 	// A name from a fixed-size field of the game's, which need not end in a zero.
 	template <size_t N>
 	std::string Name(const char (&field)[N]) {
@@ -38,6 +73,13 @@ void GameProbe::Reset() {
 	players = 0;
 	seenAlive = false;
 	dead = false;
+	monsters.clear();
+	kills.clear();
+	toldKillsAt = 0;
+}
+
+std::string GameProbe::AreaName(unsigned int area) {
+	return Narrow(LevelName(area));
 }
 
 void GameProbe::TellExperience(unsigned long long tick, std::vector<Seen>& seen) {
@@ -46,6 +88,83 @@ void GameProbe::TellExperience(unsigned long long tick, std::vector<Seen>& seen)
 	seen.push_back({ tick, Experience{ experience } });
 	toldExperience = experience;
 	toldExperienceAt = tick;
+}
+
+void GameProbe::TellKills(unsigned long long tick, std::vector<Seen>& seen) {
+	for (const auto& tally : kills) {
+		Killed fact;
+		fact.area = std::get<0>(tally.first);
+		fact.classId = std::get<1>(tally.first);
+		fact.tier = std::get<2>(tally.first);
+		fact.name = tally.second.name;
+		fact.count = tally.second.count;
+		seen.push_back({ tick, fact });
+	}
+	kills.clear();
+	toldKillsAt = tick;
+}
+
+// A monster seen alive and then dead has been killed, by whoever killed it: the
+// client is not told who.
+void GameProbe::WatchMonsters(UnitAny* player, unsigned long long tick, std::vector<Seen>& seen) {
+	for (Room1* room = player->pAct->pRoom1; room; room = room->pRoomNext) {
+		for (UnitAny* unit = room->pUnitFirst; unit; unit = unit->pListNext) {
+			if (unit->dwType != UNIT_MONSTER)
+				continue;
+			const bool isDead = IsDead(unit);
+
+			std::unordered_map<unsigned int, Watched>::iterator found = monsters.find(unit->dwUnitId);
+			if (found == monsters.end()) {
+				monsters[unit->dwUnitId] = { !isDead, !isDead && IsFriendly(unit), false };
+				continue;
+			}
+
+			Watched& watched = found->second;
+			if (!isDead) {
+				watched.alive = true;
+				continue;
+			}
+			if (!watched.alive || watched.counted)
+				continue;
+			watched.counted = true;
+			// Asked again as it dies: a monster's stats are not always there the
+			// first time it is seen.
+			if (!watched.friendly && !IsFriendly(unit))
+				CountKill(unit, tick, seen);
+		}
+	}
+}
+
+void GameProbe::CountKill(UnitAny* monster, unsigned long long tick, std::vector<Seen>& seen) {
+	MonsterData* data = monster->pMonsterData;
+	if (!data || !data->pMonStatsTxt)
+		return;
+	MonStatsTxt* txt = data->pMonStatsTxt;
+
+	const KillKinds::Kind kind = { monster->dwTxtFileNo, txt->dwFlags.bKillable != 0,
+		txt->dwFlags.bNPC != 0, txt->dwFlags.bNeverCount != 0, txt->bAlign };
+	if (!KillKinds::Counts(kind))
+		return;
+
+	const Tier tier = KillKinds::TierOf({ txt->dwFlags.bPrimeEvil != 0, data->fSuperUniq != 0,
+		data->fBoss != 0, data->fChamp != 0, data->fMinion != 0 });
+	const std::string kindName = Narrow(D2LANG_GetLocaleText(txt->wNameStr));
+
+	if (tier < TierUnique) {
+		Tally& tally = kills[TallyKey(area, monster->dwTxtFileNo, tier)];
+		tally.name = kindName;
+		tally.count++;
+		return;
+	}
+
+	Notable fact;
+	fact.area = area;
+	fact.classId = monster->dwTxtFileNo;
+	fact.name = Narrow(D2CLIENT_GetUnitName(monster));
+	fact.kind = kindName;
+	fact.tier = tier;
+	fact.superUnique = data->fSuperUniq ? (int)data->wUniqueNo : -1;
+	seen.push_back({ tick, fact });
 }
 
 void GameProbe::Sample(unsigned long long tick, std::vector<Seen>& seen) {
@@ -93,7 +212,8 @@ void GameProbe::Sample(unsigned long long tick, std::vector<Seen>& seen) {
 	const unsigned int nowArea = player->pPath->pRoom1->pRoom2->pLevel->dwLevelNo;
 	if (nowArea != area) {
 		TellExperience(tick, seen);
-		seen.push_back({ tick, AreaEntered{ nowArea, IsTown(nowArea) } });
+		TellKills(tick, seen);
+		seen.push_back({ tick, AreaEntered{ nowArea, IsTown(nowArea), AreaName(nowArea) } });
 		area = nowArea;
 	}
 
@@ -121,13 +241,18 @@ void GameProbe::Sample(unsigned long long tick, std::vector<Seen>& seen) {
 		players = nowPlayers;
 	}
 
-	if (tick - toldExperienceAt >= kExperienceEveryMs)
+	WatchMonsters(player, tick, seen);
+
+	if (tick - toldExperienceAt >= kTellEveryMs)
 		TellExperience(tick, seen);
+	if (tick - toldKillsAt >= kTellEveryMs)
+		TellKills(tick, seen);
 }
 
 void GameProbe::Leave(unsigned long long tick, std::vector<Seen>& seen) {
 	if (joined) {
 		TellExperience(tick, seen);
+		TellKills(tick, seen);
 		seen.push_back({ tick, Left() });
 	}
 	Reset();

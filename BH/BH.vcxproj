@@ -273,6 +273,7 @@ if defined D2Path (
     <ClCompile Include="Modules\TownPortal\TownPortal.cpp" />
     <ClCompile Include="Modules\Session\GameProbe.cpp" />
     <ClCompile Include="Modules\Session\HudLayout.cpp" />
+    <ClCompile Include="Modules\Session\KillKinds.cpp" />
     <ClCompile Include="Modules\Session\Session.cpp" />
     <ClCompile Include="Modules\Session\SessionEvents.cpp" />
     <ClCompile Include="Modules\Session\SessionFile.cpp" />
@@ -433,6 +434,7 @@ if defined D2Path (
     <ClInclude Include="Modules\TownPortal\TownPortal.h" />
     <ClInclude Include="Modules\Session\GameProbe.h" />
     <ClInclude Include="Modules\Session\HudLayout.h" />
+    <ClInclude Include="Modules\Session\KillKinds.h" />
     <ClInclude Include="Modules\Session\Session.h" />
     <ClInclude Include="Modules\Session\SessionEvents.h" />
     <ClInclude Include="Modules\Session\SessionFile.h" />

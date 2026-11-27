@@ -8,7 +8,9 @@
 
 using SessionFormat::Clock;
 using SessionFormat::Count;
+using SessionFormat::Plain;
 using SessionFormat::Rate;
+using SessionFormat::ShortAmount;
 using SessionFormat::ShortClock;
 using SessionFormat::ShortRate;
 
@@ -64,6 +66,34 @@ TEST_CASE("a short rate is signed and kept to about three figures") {
 	CHECK(ShortRate(2500000000.0) == "+2.50B/s");
 	CHECK(ShortRate(-12500) == "-12.5K/s");
 	CHECK(ShortRate(-125) == "-125/s");
+}
+
+TEST_CASE("a short amount is signed and kept to about three figures") {
+	CHECK(ShortAmount(0) == "+0");
+	CHECK(ShortAmount(125) == "+125");
+	CHECK(ShortAmount(6000) == "+6.0K");
+	CHECK(ShortAmount(980400) == "+980.4K");
+	CHECK(ShortAmount(37179764) == "+37.18M");
+	CHECK(ShortAmount(3520485254ll) == "+3.52B");
+	CHECK(ShortAmount(-2650000) == "-2.65M");
+}
+
+TEST_CASE("a name is made plain by taking the game's colour codes out of it") {
+	CHECK(Plain("Ist Rune") == "Ist Rune");
+	CHECK(Plain("\xFF" "c8Ist Rune") == "Ist Rune");
+	CHECK(Plain("\xFF" "c4Harlequin Crest\xFF" "c0 Shako") == "Harlequin Crest Shako");
+	CHECK(Plain("") == "");
+}
+
+TEST_CASE("a name that broke onto a new line is one line") {
+	CHECK(Plain("Shako\nHarlequin Crest") == "Shako Harlequin Crest");
+	CHECK(Plain("Shako\r\nHarlequin Crest") == "Shako Harlequin Crest");
+	CHECK(Plain("\nShako\n") == "Shako");
+}
+
+TEST_CASE("a colour code cut short at the end of a name is dropped") {
+	CHECK(Plain("Ring\xFF" "c") == "Ring");
+	CHECK(Plain("Ring\xFF") == "Ring\xFF");
 }
 
 TEST_CASE("a count has its thousands marked") {
