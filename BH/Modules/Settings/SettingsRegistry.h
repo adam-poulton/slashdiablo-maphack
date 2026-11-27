@@ -31,7 +31,7 @@ namespace Settings {
 		// How markers on the automap are drawn, a tab of the Forge for each kind
 		// of thing marked. Not tabs of the settings window, which is why it lists
 		// the categories it shows rather than taking every one registered.
-		const char* const Chests = "Chests";
+		const char* const Clickables = "Clickables";
 	}
 
 	// Headings that more than one module registers under. Two modules naming the

@@ -11,7 +11,7 @@ class MarkerPanel;
 // BH_settings.cfg (see ForgeFile).
 class ForgeWindow : public WindowModule {
 	private:
-		MarkerPanel* chests;
+		MarkerPanel* clickables;
 		bool showedDirty;		// what the footer last said about unsaved work
 
 	protected:
@@ -19,7 +19,7 @@ class ForgeWindow : public WindowModule {
 
 	public:
 		ForgeWindow() : WindowModule("Forge", "Show Forge", "None"),
-			chests(NULL), showedDirty(false) {};
+			clickables(NULL), showedDirty(false) {};
 
 		void OnLoad();
 		void OnDraw();

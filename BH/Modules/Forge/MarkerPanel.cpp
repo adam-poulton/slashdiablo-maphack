@@ -310,13 +310,14 @@ void MarkerPanel::Layout() {
 
 // Over the name the pointer is on, rebuilt only when that changes: the pointer
 // rests on one row for many frames. Not while a picker or a dropdown is open,
-// which the tip would be drawn over.
+// which the tip would be drawn over, nor through a window drawn over this one.
 void MarkerPanel::UpdateTip() {
 	int over = -1;
-	if (IsActive() && !Colorhook::current && !Combohook::current) {
+	unsigned int x = Hook::GetMouseX(), y = Hook::GetMouseY();
+	if (IsActive() && !Colorhook::current && !Combohook::current &&
+			!tab->IsCoveredAt(x, y)) {
 		for (unsigned int i = 0; i < markers.size() && over < 0; i++) {
-			if (!markers[i].help.empty() &&
-					markers[i].row->InRange(Hook::GetMouseX(), Hook::GetMouseY()))
+			if (!markers[i].help.empty() && markers[i].row->InRange(x, y))
 				over = (int)i;
 		}
 	}

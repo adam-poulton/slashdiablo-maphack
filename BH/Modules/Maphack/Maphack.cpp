@@ -68,15 +68,16 @@ static DWORD mSkipQuestMessage = 1;
 
 DrawDirective automapDraw(true, DEFAULT_MINIMAP_GHOST);
 
-// Each kind of chest marker, in ChestKind order: what it is kept as in the Forge's
-// chests tab, and what it is called and said to be where it is styled.
+// Each kind of chest marker, in ChestKind order: what it is kept as in the
+// "chests" section of the Forge's file, and what it is called and said to be on
+// the Clickables tab, where it is styled.
 static const char* const ChestTab = "chests";
 static const struct {
 	const char* id;
 	const char* label;
 	const char* help;
 } ChestMarkers[ChestKind::KindCount] = {
-	{ "chest", "Chests", "Chests that open with a click." },
+	{ "chest", "Regular chests", "Chests that open with a click." },
 	{ "locked", "Locked chests", "Chests that need a key." },
 	{ "super", "Super chests", "Lower Kurast's hut chests, and if chosen, every other super chest and sparkly chest." },
 	{ "container", "Containers", "Whatever is opened for loot that is not a chest: barrels, urns, jars, baskets, caskets, corpses, racks and stashes." },
@@ -575,11 +576,11 @@ void Maphack::OnLoad() {
 		"Opens the automap as you enter a game rather than waiting to be asked.");
 
 	for (int kind = 0; kind < ChestKind::KindCount; kind++)
-		Settings::AddMapIcon(GetName(), Settings::Category::Chests,
+		Settings::AddMapIcon(GetName(), Settings::Category::Clickables,
 			ChestMarkerKey((ChestKind::Kind)kind), ChestMarkers[kind].label,
 			&chestStyles[kind], MapIconOptions(ChestIcons(), true, true),
 			ChestMarkers[kind].help, "Show Chests");
-	Settings::AddEnum(GetName(), Settings::Category::Chests,
+	Settings::AddEnum(GetName(), Settings::Category::Clickables,
 		ChestMarkerKey(ChestKind::SuperChest) + ".scope", "Marked in", &superChestScope,
 		SuperChestScopeLabels, "", ChestMarkerKey(ChestKind::SuperChest));
 

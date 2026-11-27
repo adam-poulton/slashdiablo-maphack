@@ -689,7 +689,8 @@ void SettingsPanel::Relayout() {
 
 	unsigned int width = (laidOutWidth > 2 * UI_CONTENT_MARGIN) ?
 		(laidOutWidth - (2 * UI_CONTENT_MARGIN)) : 0;
-	box->SetSize(width, laidOutHeight);
+	box->SetSize(width, laidOutHeight > FOOTER_RULE_CLEARANCE ?
+		laidOutHeight - FOOTER_RULE_CLEARANCE : 0);
 
 	// A row that the filter has dropped is not drawn, but it would still be
 	// clicked where it used to be, so it is switched off rather than just left out
@@ -938,12 +939,14 @@ void SettingsPanel::ApplyDependencies() {
 // Whether the cursor is over a hook, whether or not that hook is taking input.
 // Hook::InRange answers no for anything disabled, which is the wrong question
 // here: a setting greyed out because its parent is off is precisely the one whose
-// help someone is reaching for.
+// help someone is reaching for. Never through a window drawn over this one: the
+// help would be for a setting that cannot be seen.
 static bool Over(Hook* hook) {
 	if (!hook || !hook->IsActive())
 		return false;
-	return UI::InPos((*p_D2CLIENT_MouseX), (*p_D2CLIENT_MouseY),
-		hook->GetX(), hook->GetY(), hook->GetXSize(), hook->GetYSize());
+	unsigned int x = (*p_D2CLIENT_MouseX), y = (*p_D2CLIENT_MouseY);
+	return UI::InPos(x, y, hook->GetX(), hook->GetY(), hook->GetXSize(),
+		hook->GetYSize()) && !hook->IsCoveredAt(x, y);
 }
 
 Hook* SettingsPanel::NamedHook(const Row& row) {

@@ -21,7 +21,7 @@ using namespace Drawing;
 #define SUMMARY_LINE_HEIGHT		12
 #define SUMMARY_FONT			0
 
-#define SUMMARY_HINT_TEXT		"Point at a row to read it here"
+#define SUMMARY_HINT_TEXT		"Select an item to view"
 #define SUMMARY_HINT_TOP		12
 #define SUMMARY_HINT_COLOR		Grey
 
@@ -86,14 +86,18 @@ unsigned int CodexSummary::Layout(unsigned int contentWidth, unsigned int height
 
 	unsigned int ruleX = UI_CONTENT_MARGIN + listWidth + SUMMARY_GAP;
 	rule->SetBaseX(ruleX);
+	// The rule and the pane's scrollbar stop short of the footer's rule, as far
+	// as the search band leaves them below the search box.
+	unsigned int reach = height > FOOTER_RULE_CLEARANCE ?
+		height - FOOTER_RULE_CLEARANCE : 0;
 	rule->SetBaseY(0);
-	rule->SetYSize(height);
+	rule->SetYSize(reach);
 
 	unsigned int textX = ruleX + 1 + SUMMARY_PAD;
 	unsigned int textWidth = share - 1 - SUMMARY_PAD;
 	pane->SetBaseX(textX);
 	pane->SetBaseY(SUMMARY_TOP);
-	pane->SetSize(textWidth, height > SUMMARY_TOP ? height - SUMMARY_TOP : 0);
+	pane->SetSize(textWidth, reach > SUMMARY_TOP ? reach - SUMMARY_TOP : 0);
 
 	hint->SetBaseX(textX);
 	hint->SetBaseY(SUMMARY_HINT_TOP);

@@ -30,6 +30,7 @@ namespace Drawing {
 	#define SEARCH_BUTTON_GAP	4	// search box to the button beside it
 	#define FOOTER_BAND_GAP		6	// contents to footer line
 	#define FOOTER_BAND_HEIGHT	8	// the footer line itself
+	#define FOOTER_RULE_CLEARANCE	6	// a scrollbar or divider run down a panel, to the footer's rule
 	#define FOOTER_ACTION_GAP	10	// between what the window says and what it offers
 	#define TITLE_SUBTITLE_GAP	6	// title bar name to the subtitle beside it
 

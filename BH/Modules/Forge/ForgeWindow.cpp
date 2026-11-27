@@ -22,8 +22,8 @@ void ForgeWindow::OnLoad() {
 	// one of them, as they will be when there are more.
 	GetUI()->SetLoneTabShown(true);
 
-	chests = new MarkerPanel(GetUI(), "Chests", Settings::Category::Chests);
-	AddPanel(chests);
+	clickables = new MarkerPanel(GetUI(), "Clickables", Settings::Category::Clickables);
+	AddPanel(clickables);
 
 	// Saved as it closes and offered back while open, as the settings window is.
 	// A file that cannot be saved is said in the footer while the window is open,

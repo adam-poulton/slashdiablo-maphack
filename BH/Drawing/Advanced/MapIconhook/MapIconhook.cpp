@@ -37,18 +37,19 @@ static_assert(MIH_CELL >= MapIcon::ChestHeight + 4,
 // marker, so there is still something to choose between: a grey outline.
 #define MIH_BARE_LOOK			MapIcon::Look(MapIcon::NoColor, 0xD0, 1)
 
-// The preview across the top, and the gap under it.
+// The preview across the top, under its name, and the gap under it.
+#define MIH_PREVIEW_LABEL_TEXT	"Preview"
+#define MIH_PREVIEW_LABEL_HEIGHT	16
 #define MIH_PREVIEW_HEIGHT		56
 #define MIH_PREVIEW_GAP			10
 
-// A shape is shown twice: magnified, where its border and fill can be made out,
-// and beside that at the size the map draws it, in a pane of its own wide enough
-// for its caption. Each pane's caption sits along the bottom of the preview. The
-// magnified shape keeps clear of the frame and of the captions, and a preview
-// with less than the least room for it shows the marker at the map's size alone.
-#define MIH_PREVIEW_ACTUAL_WIDTH	96
-#define MIH_PREVIEW_ACTUAL_TEXT		"Actual scale"
-#define MIH_PREVIEW_MAGNIFIED_MIN	64
+// A shape is shown twice, in two boxes that split the preview evenly: at the
+// size the map draws it, and beside that magnified, where its border and fill
+// can be made out. Each box says how many times life size it is in its bottom
+// left corner. The shape keeps clear of the frame and of that caption, and a
+// preview with less than the least room for two boxes shows the marker at the
+// map's size alone.
+#define MIH_PREVIEW_BOX_MIN			64
 #define MIH_PREVIEW_MAGNIFY_MOST	6
 #define MIH_PREVIEW_PAD				4
 #define MIH_PREVIEW_CAPTION_INSET	4
@@ -168,8 +169,8 @@ void MapIconPreviewhook::OnDraw() {
 	Lock();
 	int left = (int)GetX();
 	int top = (int)GetY();
-	Framehook::Draw(left, top, xSize, ySize, 0, BTNormal);
 	if (!style->Draws()) {
+		Framehook::Draw(left, top, xSize, ySize, 0, BTNormal);
 		Texthook::Draw(left + (int)xSize / 2, top + ((int)ySize - MIH_TEXT_HEIGHT) / 2,
 			Center, 0, MIH_PREVIEW_EMPTY_COLOR, MIH_PREVIEW_EMPTY_TEXT);
 		Unlock();
@@ -177,37 +178,44 @@ void MapIconPreviewhook::OnDraw() {
 	}
 
 	// The game's sprite is big enough to read as it is, and a preview too narrow
-	// for two panes keeps the one that is true to the map.
+	// for two boxes keeps the one that is true to the map.
 	bool magnified = MapIcon::IsShape(style->Icon()) && style->Look().Draws() &&
-		xSize >= MIH_PREVIEW_ACTUAL_WIDTH + MIH_PREVIEW_MAGNIFIED_MIN;
+		xSize >= 2 * MIH_PREVIEW_BOX_MIN;
 	if (!magnified) {
+		Framehook::Draw(left, top, xSize, ySize, 0, BTNormal);
 		DrawPane(left, top, (int)xSize, (int)ySize, 1);
 		Unlock();
 		return;
 	}
 
-	int actualLeft = left + (int)xSize - MIH_PREVIEW_ACTUAL_WIDTH;
-	int captionTop = top + (int)ySize - MIH_PREVIEW_CAPTION_INSET - MIH_TEXT_HEIGHT;
-	int paneHeight = captionTop - top;
-	int magnifiedWidth = actualLeft - left;
+	// A frame is drawn on its box's outermost pixels and the pixel outside them,
+	// so where the two boxes meet their frames land on the same two columns and
+	// the line between them is the frame's own.
+	int actualWidth = (int)xSize / 2;
+	int magnifiedLeft = left + actualWidth;
+	int magnifiedWidth = (int)xSize - actualWidth;
+	int roomHeight = (int)ySize - MIH_PREVIEW_CAPTION_INSET - MIH_TEXT_HEIGHT;
 
 	bool bordered = style->borderColor != MapIcon::NoColor;
 	MapIcon::Rect bounds = MapIcon::Extent(MapIcon::Rasterize(style->Icon(),
 		style->size, bordered ? style->borderWidth : 0));
 	unsigned int scale = MapIcon::FitScale(bounds,
-		magnifiedWidth - 2 * MIH_PREVIEW_PAD, paneHeight - MIH_PREVIEW_PAD,
+		magnifiedWidth - 2 * MIH_PREVIEW_PAD, roomHeight - MIH_PREVIEW_PAD,
 		MIH_PREVIEW_MAGNIFY_MOST);
 
-	DrawPane(left, top, magnifiedWidth, paneHeight, scale);
+	DrawBox(left, top, actualWidth, 1);
+	DrawBox(magnifiedLeft, top, magnifiedWidth, scale);
+	Unlock();
+}
+
+// One of the two boxes: its frame, the marker in what the caption leaves of it,
+// and the caption.
+void MapIconPreviewhook::DrawBox(int left, int top, int width, unsigned int scale) {
+	int captionTop = top + (int)ySize - MIH_PREVIEW_CAPTION_INSET - MIH_TEXT_HEIGHT;
+	Framehook::Draw(left, top, width, ySize, 0, BTNormal);
+	DrawPane(left, top, width, captionTop - top, scale);
 	Texthook::Draw(left + MIH_PREVIEW_CAPTION_INSET, captionTop, None, 0,
 		MIH_PREVIEW_CAPTION_COLOR, "%ux", scale);
-
-	Boxhook::Draw(actualLeft, top + MIH_PREVIEW_PAD, 1, ySize - 2 * MIH_PREVIEW_PAD,
-		UI_SURFACE_RULE, BTNormal);
-	DrawPane(actualLeft + 1, top, MIH_PREVIEW_ACTUAL_WIDTH - 1, paneHeight, 1);
-	Texthook::Draw(actualLeft + MIH_PREVIEW_ACTUAL_WIDTH / 2, captionTop, Center, 0,
-		MIH_PREVIEW_CAPTION_COLOR, MIH_PREVIEW_ACTUAL_TEXT);
-	Unlock();
 }
 
 // The marker in the middle of a patch of the preview, each of its pixels drawn
@@ -281,8 +289,9 @@ MapIconhook::MapIconhook(HookGroup* group, unsigned int x, unsigned int y,
 		Hook(group, x, y), style(style), options(options), content(NULL),
 		iconLabel(NULL), icon(NULL), sizeLabel(NULL), size(NULL), fill(NULL),
 		border(NULL), widthLabel(NULL), width(NULL), line(NULL), lineColor(NULL),
-		preview(NULL), xSize(0), ySize(0), labelWidth(0) {
+		previewLabel(NULL), preview(NULL), xSize(0), ySize(0), labelWidth(0) {
 	content = new MapIconContent(this);
+	previewLabel = Label(content, 0, MIH_PREVIEW_LABEL_TEXT);
 	preview = new MapIconPreviewhook(content, 0, 0, style);
 	if (!options.icons.empty()) {
 		iconLabel = Label(content, 0, "Icon");
@@ -324,6 +333,7 @@ MapIconhook::~MapIconhook() {
 	delete width;
 	delete line;
 	delete lineColor;
+	delete previewLabel;
 	delete preview;
 	delete content;
 }
@@ -378,8 +388,9 @@ void MapIconhook::SetLabelWidth(unsigned int newWidth) {
 // Row by row from the top. Only where things are placed depends on the width;
 // nothing in it depends on the style's values.
 void MapIconhook::Layout() {
+	previewLabel->SetBaseY(0);
 	preview->SetBaseX(0);
-	preview->SetBaseY(0);
+	preview->SetBaseY(MIH_PREVIEW_LABEL_HEIGHT);
 	preview->SetSize(xSize, MIH_PREVIEW_HEIGHT);
 
 	// One rail for both sliders, cut short only by an editor too narrow for it.
@@ -389,7 +400,7 @@ void MapIconhook::Layout() {
 	if (rail < MIH_RAIL_MIN)
 		rail = MIH_RAIL_MIN;
 
-	unsigned int row = MIH_PREVIEW_HEIGHT + MIH_PREVIEW_GAP;
+	unsigned int row = MIH_PREVIEW_LABEL_HEIGHT + MIH_PREVIEW_HEIGHT + MIH_PREVIEW_GAP;
 	if (icon) {
 		// A row of its own height, its label centred on it as the others are.
 		unsigned int textTop = (MIH_ICON_ROW_HEIGHT - MIH_TEXT_HEIGHT) / 2;
