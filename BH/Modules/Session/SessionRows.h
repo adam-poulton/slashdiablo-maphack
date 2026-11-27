@@ -1,7 +1,9 @@
 #pragma once
 #include <string>
 #include <vector>
+#include "RouteEdit.h"
 #include "RunStore.h"
+#include "SessionHistory.h"
 #include "SessionModel.h"
 #include "SplitRoute.h"
 
@@ -27,6 +29,7 @@ struct Row {
 const int kColorBehind = 1;		// red
 const int kColorAhead = 2;		// green
 const int kColorBest = 4;		// gold
+const int kColorAction = 3;		// blue: a row that does something when clicked
 
 // What the overview is told that a session's events do not hold.
 struct Level {
@@ -116,6 +119,72 @@ std::string RouteOf(const std::string& key);
 // routes there are to run, each with its best, and the runs of the session
 // that are over.
 std::vector<Row> Runs(const SessionModel& model, const RunsShown& shown);
+
+// The rest of a key that starts as given. False where it starts otherwise.
+bool KeyRest(const std::string& key, const char* prefix, std::string& rest);
+
+// The columns of History(), left to right.
+enum HistoryColumn {
+	HistoryStarted,
+	HistoryCharacter,
+	HistoryLevel,
+	HistoryPlayed,
+	HistoryGames,
+	HistoryExperience,
+	HistoryRate,
+	HistoryKills,
+	HistoryDrops,
+	HistoryColumns
+};
+
+// What the History tab is told beside the sessions there have been.
+struct HistoryShown {
+	bool hasCurrent;						// there is a session being played to go back to
+	std::string viewing;					// the log being looked at, or "" for that session
+	std::string (*started)(long long);		// a moment, as the tab writes one
+};
+
+// The key of a session's row, and the log a key is of: "" for the session being
+// played. False for a key that is no session's.
+std::string SessionKey(const std::string& file);
+bool SessionOf(const std::string& key, std::string& file);
+
+// The session being played, where there is one, and under it every session
+// there is a log of, as the index has them: when it began, whose it was, and
+// what it came to. The one being looked at is marked.
+std::vector<Row> History(const std::vector<SessionIndex::Entry>& entries,
+	const HistoryShown& shown);
+
+// The columns of Routes(), left to right.
+enum RouteColumn {
+	RouteName,
+	RouteDetail,
+	RouteColumns
+};
+
+// How the keys of the Routes tab's rows start.
+namespace RouteKeys {
+	const char* const kEdit = "edit:";	// a route to change, by its id
+	const char* const kPick = "pick:";	// a split of that route, by its place
+	const char* const kAdd = "add:";	// a split to add: its place in the catalogue, or "level"
+	const char* const kDo = "do:";		// new, copy, restore, up, down, remove, use, rename, delete
+}
+
+// What the Routes tab is told.
+struct RoutesShown {
+	const std::vector<Splits::Route>* routes;
+	std::string chosen;		// the id of the route runs are timed on
+	std::string editing;	// the id of the route being changed
+	int split;				// the split of it picked out, or -1
+	std::string text;		// what the search box holds
+	bool deleting;			// deleting the route has been asked for once, and waits to be asked again
+};
+
+// The routes there are, the one being changed split by split with what can be
+// done to it, and the splits there are to add to it. The text narrows what
+// there is to add, names a level to add ("level 24"), and is what the route can
+// be renamed to.
+std::vector<Row> Routes(const RoutesShown& shown);
 
 // The rows that have the text in them, whatever its case, under the headings
 // they stood under. A heading that has it keeps every row under it. A summary

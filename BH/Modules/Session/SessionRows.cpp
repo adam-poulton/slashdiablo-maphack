@@ -427,7 +427,8 @@ std::vector<Row> Runs(const SessionModel& model, const RunsShown& shown) {
 		const unsigned long long clock = shown.clock == RunStore::RealTime ?
 			model.RunRealMs(shown.now) : model.RunGameMs(shown.now);
 		const RunCompare::Lines lines = RunCompare::Compare(*active, best, shown.clock, clock);
-		const RunStore::Times* times = best ? &best->by[shown.clock] : NULL;
+		const RunStore::Times* times = best && best->IsOf(RunStore::SplitsOf(*active)) ?
+			&best->by[shown.clock] : NULL;
 
 		rows.push_back(Heading(active->name));
 		for (unsigned int i = 0; i < lines.splits.size(); i++)
@@ -448,7 +449,10 @@ std::vector<Row> Runs(const SessionModel& model, const RunsShown& shown) {
 		rows.push_back(Heading("Routes"));
 		for (const ::Splits::Route& route : *shown.routes) {
 			const RunStore::Best* best = BestFor(model, shown, route.id);
-			const RunStore::Times* times = best ? &best->by[shown.clock] : NULL;
+			std::vector<std::string> names;
+			for (const ::Splits::Split& split : route.splits)
+				names.push_back(split.name);
+			const RunStore::Times* times = best && best->IsOf(names) ? &best->by[shown.clock] : NULL;
 			Row row = { std::vector<std::string>(SplitColumns), false, false };
 			row.key = RouteKey(route.id);
 			row.cells[SplitName] = (route.id == shown.selected ? "> " : "") + route.name;
@@ -477,6 +481,184 @@ std::vector<Row> Runs(const SessionModel& model, const RunsShown& shown) {
 	}
 	return rows;
 }
+
+namespace {
+	const char* const kSessionPrefix = "session:";
+	const char* const kMarker = "> ";
+
+	Row ActionRow(const std::string& text, const std::string& what) {
+		Row row = { std::vector<std::string>(RouteColumns), false, false };
+		row.cells[RouteName] = text;
+		row.colors.assign(RouteColumns, -1);
+		row.colors[RouteName] = kColorAction;
+		row.key = RouteKeys::kDo + what;
+		return row;
+	}
+
+	Row Note(const std::string& text) {
+		Row row = { std::vector<std::string>(RouteColumns), false, true };
+		row.cells[RouteName] = text;
+		return row;
+	}
+
+	std::string SplitCount(size_t splits) {
+		return std::to_string(splits) + (splits == 1 ? " split" : " splits");
+	}
+
+	bool PresetMissing(const std::vector<::Splits::Route>& routes) {
+		for (const ::Splits::Route& preset : ::Splits::Presets()) {
+			bool there = false;
+			for (const ::Splits::Route& route : routes)
+				there = there || route.id == preset.id;
+			if (!there)
+				return true;
+		}
+		return false;
+	}
+}
+
+std::string SessionKey(const std::string& file) {
+	return kSessionPrefix + file;
+}
+
+bool SessionOf(const std::string& key, std::string& file) {
+	return KeyRest(key, kSessionPrefix, file);
+}
+
+bool KeyRest(const std::string& key, const char* prefix, std::string& rest) {
+	const std::string start = prefix;
+	if (key.compare(0, start.size(), start) != 0)
+		return false;
+	rest = key.substr(start.size());
+	return true;
+}
+
+std::vector<Row> History(const std::vector<SessionIndex::Entry>& entries,
+		const HistoryShown& shown) {
+	std::vector<Row> rows;
+	if (shown.hasCurrent) {
+		Row row = { std::vector<std::string>(HistoryColumns), false, false };
+		row.cells[HistoryStarted] = (shown.viewing.empty() ? kMarker : "") +
+			std::string("This session");
+		row.key = SessionKey("");
+		rows.push_back(row);
+	}
+
+	if (!entries.empty())
+		rows.push_back(Heading("Past sessions"));
+	for (const SessionIndex::Entry& entry : entries) {
+		Row row = { std::vector<std::string>(HistoryColumns), false, false };
+		row.cells[HistoryStarted] = (entry.file == shown.viewing ? kMarker : "") +
+			(shown.started ? shown.started(entry.startedAt) : std::string());
+		row.cells[HistoryCharacter] = entry.character + (entry.hardcore ? " (HC)" : "");
+		row.cells[HistoryLevel] = entry.level > 0 ? std::to_string(entry.level) : std::string();
+		row.cells[HistoryPlayed] = ShortClock(entry.playedMs);
+		row.cells[HistoryGames] = std::to_string(entry.games);
+		row.cells[HistoryExperience] = ShortAmount(entry.experience);
+		row.cells[HistoryRate] = ShortRate(RateOf(entry.experience, entry.playedMs));
+		row.cells[HistoryKills] = Some(entry.kills);
+		row.cells[HistoryDrops] = Some(entry.drops);
+		row.key = SessionKey(entry.file);
+		rows.push_back(row);
+	}
+	return rows;
+}
+
+std::vector<Row> Routes(const RoutesShown& shown) {
+	std::vector<Row> rows;
+	if (!shown.routes)
+		return rows;
+	const std::vector<::Splits::Route>& routes = *shown.routes;
+
+	const ::Splits::Route* editing = NULL;
+	for (const ::Splits::Route& route : routes) {
+		if (route.id == shown.editing)
+			editing = &route;
+	}
+
+	rows.push_back(Heading("Routes"));
+	for (const ::Splits::Route& route : routes) {
+		Row row = { std::vector<std::string>(RouteColumns), false, false };
+		row.cells[RouteName] = (&route == editing ? kMarker : "") + route.name;
+		row.cells[RouteDetail] = SplitCount(route.splits.size()) +
+			(route.id == shown.chosen ? ", the route runs are timed on" : "");
+		row.key = RouteKeys::kEdit + route.id;
+		rows.push_back(row);
+	}
+	rows.push_back(ActionRow("New route", "new"));
+	if (editing)
+		rows.push_back(ActionRow("Copy " + editing->name, "copy"));
+	if (PresetMissing(routes))
+		rows.push_back(ActionRow("Put back the routes BH comes with", "restore"));
+	if (!editing)
+		return rows;
+
+	const bool picked = shown.split >= 0 && (size_t)shown.split < editing->splits.size();
+	rows.push_back(Heading(editing->name));
+	for (size_t i = 0; i < editing->splits.size(); i++) {
+		const ::Splits::Split& split = editing->splits[i];
+		Row row = { std::vector<std::string>(RouteColumns), false, false };
+		row.cells[RouteName] = (picked && (size_t)shown.split == i ? kMarker : "") +
+			std::to_string(i + 1) + ". " + split.name;
+		row.cells[RouteDetail] = RouteEdit::Describe(split);
+		row.key = RouteKeys::kPick + std::to_string(i);
+		rows.push_back(row);
+	}
+	if (editing->splits.empty())
+		rows.push_back(Note("No splits yet"));
+	if (picked) {
+		const std::string& name = editing->splits[shown.split].name;
+		if (shown.split > 0)
+			rows.push_back(ActionRow("Move " + name + " up", "up"));
+		if ((size_t)shown.split + 1 < editing->splits.size())
+			rows.push_back(ActionRow("Move " + name + " down", "down"));
+		rows.push_back(ActionRow("Remove " + name, "remove"));
+	}
+	if (editing->id != shown.chosen && !editing->splits.empty())
+		rows.push_back(ActionRow("Time runs on this route", "use"));
+	if (!shown.text.empty() && shown.text != editing->name)
+		rows.push_back(ActionRow("Rename this route to \"" + shown.text + "\"", "rename"));
+	if (routes.size() > 1) {
+		Row row = ActionRow(shown.deleting ? "Click again to delete " + editing->name :
+			"Delete this route", "delete");
+		if (shown.deleting)
+			row.colors[RouteName] = kColorBehind;
+		rows.push_back(row);
+	}
+
+	// What there is to add, under the difficulty each is of. The search box
+	// narrows these and nothing above them.
+	const std::string wanted = Lower(shown.text);
+	::Splits::Split level;
+	if (RouteEdit::LevelSplit(shown.text, level)) {
+		rows.push_back(Heading("Add a split: any difficulty"));
+		Row row = { std::vector<std::string>(RouteColumns), false, false };
+		row.cells[RouteName] = level.name;
+		row.cells[RouteDetail] = RouteEdit::Describe(level);
+		row.key = std::string(RouteKeys::kAdd) + "level";
+		rows.push_back(row);
+	}
+	const std::vector<::Splits::Split>& catalogue = RouteEdit::Catalogue();
+	int difficulty = -2;
+	for (size_t i = 0; i < catalogue.size(); i++) {
+		const ::Splits::Split& split = catalogue[i];
+		const std::string described = RouteEdit::Describe(split);
+		if (!wanted.empty() && Lower(split.name).find(wanted) == std::string::npos &&
+				Lower(described).find(wanted) == std::string::npos)
+			continue;
+		if (split.difficulty != difficulty) {
+			difficulty = split.difficulty;
+			rows.push_back(Heading("Add a split: " + DifficultyOf((unsigned int)difficulty)));
+		}
+		Row row = { std::vector<std::string>(RouteColumns), false, false };
+		row.cells[RouteName] = split.name;
+		row.cells[RouteDetail] = described;
+		row.key = RouteKeys::kAdd + std::to_string(i);
+		rows.push_back(row);
+	}
+	return rows;
+}
+
 std::vector<Row> Matching(const std::vector<Row>& rows, const std::string& text) {
 	if (text.empty())
 		return rows;

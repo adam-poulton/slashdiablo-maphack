@@ -205,7 +205,8 @@ namespace {
 					into.splits.push_back(split);
 			}
 		}
-		return !into.id.empty() && !into.splits.empty();
+		// A route with no splits yet is one still being put together.
+		return !into.id.empty();
 	}
 
 	// Where a byte of the text is, as an editor counts it.

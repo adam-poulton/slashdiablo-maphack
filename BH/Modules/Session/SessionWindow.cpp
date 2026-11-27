@@ -15,7 +15,8 @@ void SessionWindow::OnLoad() {
 	LoadConfig();
 
 	RegisterToggleKey(Settings::Category::Input, "Session window",
-		"Opens the session window: what this sitting has come to, and its games. "
+		"Opens the session window: what this sitting has come to, its games, and "
+		"the sessions before it. "
 		"Bound to nothing, it is still reached by typing .session in chat.");
 
 	CreateUI("Session", "Session", SESSION_WINDOW_WIDTH, SESSION_WINDOW_HEIGHT);
@@ -31,6 +32,8 @@ void SessionWindow::OnLoad() {
 	AddPanel(new GamesPanel(GetUI()));
 	AddPanel(new KillsPanel(GetUI()));
 	AddPanel(new DropsPanel(GetUI()));
+	AddPanel(new HistoryPanel(GetUI()));
+	AddPanel(new RoutesPanel(GetUI()));
 
 	GetUI()->SetFooterAction("position HUD", []() -> void {
 		Session::RequestHudPlacing(true);
@@ -47,10 +50,13 @@ std::vector<ChatCommand> SessionWindow::GetOwnCommands() {
 }
 
 // A HUD left being placed would go on taking the mouse with nothing on screen
-// to say why.
+// to say why. And a window opened again is opened on the session being played,
+// not on whichever past one was last looked through.
 void SessionWindow::OnOpenStateChanged(bool open) {
-	if (!open)
-		Session::RequestHudPlacing(false);
+	if (open)
+		return;
+	Session::RequestHudPlacing(false);
+	Session::ViewPast("");
 }
 
 void SessionWindow::OnUserInput(const wchar_t* msg, bool fromGame, bool* block) {

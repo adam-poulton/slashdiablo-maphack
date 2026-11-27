@@ -44,15 +44,45 @@ namespace {
 		return listed;
 	}
 
-	std::string TimeOfDay(long long epochSeconds) {
+	std::string Written(long long epochSeconds, const char* form) {
 		if (epochSeconds <= 0)
 			return std::string();
 		const time_t moment = (time_t)epochSeconds;
 		std::tm local = {};
 		localtime_s(&local, &moment);
-		char text[16];
-		strftime(text, sizeof(text), "%H:%M", &local);
+		char text[32];
+		strftime(text, sizeof(text), form, &local);
 		return text;
+	}
+
+	std::string TimeOfDay(long long epochSeconds) {
+		return Written(epochSeconds, "%H:%M");
+	}
+
+	// A moment that may be of another day: "27 Nov 21:14".
+	std::string DayAndTime(long long epochSeconds) {
+		return Written(epochSeconds, "%#d %b %H:%M");
+	}
+
+	std::vector<ListColumn> HistoryColumns() {
+		std::vector<ListColumn> columns(SessionRows::HistoryColumns);
+		columns[SessionRows::HistoryStarted] = ListColumn("Started", 92, 0, 0, White);
+		columns[SessionRows::HistoryCharacter] = ListColumn("Character", 90, 1, kColumnGap, White);
+		columns[SessionRows::HistoryLevel] = ListColumn("Level", 32, 0, kColumnGap, Grey);
+		columns[SessionRows::HistoryPlayed] = ListColumn("Played", 48, 0, kColumnGap, White);
+		columns[SessionRows::HistoryGames] = ListColumn("Games", 38, 0, kColumnGap, White);
+		columns[SessionRows::HistoryExperience] = ListColumn("Experience", 66, 0, kColumnGap, White);
+		columns[SessionRows::HistoryRate] = ListColumn("Per second", 66, 0, kColumnGap, White);
+		columns[SessionRows::HistoryKills] = ListColumn("Kills", 40, 0, kColumnGap, Grey);
+		columns[SessionRows::HistoryDrops] = ListColumn("Drops", 36, 0, kColumnGap, Grey);
+		return columns;
+	}
+
+	std::vector<ListColumn> RoutesColumns() {
+		std::vector<ListColumn> columns(SessionRows::RouteColumns);
+		columns[SessionRows::RouteName] = ListColumn("", 220, 1, 0, White, Gold);
+		columns[SessionRows::RouteDetail] = ListColumn("", 220, 1, kColumnGap, Grey);
+		return columns;
 	}
 
 	std::vector<ListColumn> OverviewColumns() {
@@ -108,31 +138,25 @@ namespace {
 	}
 }
 
-SessionPanel::SessionPanel(std::string name, UI* ui, const std::vector<ListColumn>& columns) :
-		UIPanel(name, ui), refreshedAt(0) {
+SessionListPanel::SessionListPanel(std::string name, UI* ui,
+		const std::vector<ListColumn>& columns) : UIPanel(name, ui), refreshedAt(0) {
 	list = new Listhook(tab, UI_CONTENT_MARGIN, 0, 0, 0);
 	list->SetColumns(columns);
 	ApplyLayout();
 }
 
-void SessionPanel::ApplyLayout() {
+void SessionListPanel::ApplyLayout() {
 	laidOutWidth = tab->GetXSize();
 	laidOutHeight = tab->GetYSize();
 	list->SetSize(laidOutWidth > 2 * UI_CONTENT_MARGIN ? laidOutWidth - 2 * UI_CONTENT_MARGIN : 0,
 		laidOutHeight);
 }
 
-void SessionPanel::Refresh() {
+void SessionListPanel::Refresh() {
 	std::vector<SessionRows::Row> rows;
-	const bool read = Session::Read([&](const Session::View& view) {
-		rows = BuildRows(view);
-		status = BuildStatus(view);
-	});
-	if (!read) {
-		status = Session::IsEnabled() ? "No session yet" :
-			"The session tracker is off";
-	}
-	if (!search.empty() && !rows.empty()) {
+	status.clear();
+	ReadRows(rows, status);
+	if (!UsesSearchItself() && !search.empty() && !rows.empty()) {
 		rows = SessionRows::Matching(rows, search);
 		size_t matching = 0;
 		for (const SessionRows::Row& row : rows) {
@@ -150,11 +174,11 @@ void SessionPanel::Refresh() {
 	}
 }
 
-void SessionPanel::OnOpen() {
+void SessionListPanel::OnOpen() {
 	refreshedAt = 0;
 }
 
-void SessionPanel::Search(const std::string& text) {
+void SessionListPanel::Search(const std::string& text) {
 	if (text == search)
 		return;
 	search = text;
@@ -162,7 +186,7 @@ void SessionPanel::Search(const std::string& text) {
 	refreshedAt = 0;
 }
 
-void SessionPanel::OnDraw() {
+void SessionListPanel::OnDraw() {
 	if (!IsActive())
 		return;
 	if (tab->GetXSize() != laidOutWidth || tab->GetYSize() != laidOutHeight)
@@ -171,8 +195,12 @@ void SessionPanel::OnDraw() {
 	// Taken before the rows are read again: the row clicked is one of those the
 	// list was last given.
 	const int clicked = list->TakeClickedRow();
+	const int rightClicked = list->TakeRightClickedRow();
 	if (clicked >= 0 && (size_t)clicked < pushed.size()) {
 		OnRowClicked(pushed[clicked]);
+		refreshedAt = 0;
+	} else if (rightClicked >= 0 && (size_t)rightClicked < pushed.size()) {
+		OnRowRightClicked(pushed[rightClicked]);
 		refreshedAt = 0;
 	}
 
@@ -180,6 +208,26 @@ void SessionPanel::OnDraw() {
 	if (refreshedAt == 0 || tick - refreshedAt >= kRefreshEveryMs) {
 		refreshedAt = tick;
 		Refresh();
+	}
+}
+
+SessionPanel::SessionPanel(std::string name, UI* ui, const std::vector<ListColumn>& columns) :
+		SessionListPanel(name, ui, columns) {}
+
+void SessionPanel::ReadRows(std::vector<SessionRows::Row>& rows, std::string& status) {
+	const bool read = Session::Read([&](const Session::View& view) {
+		rows = BuildRows(view);
+		status = BuildStatus(view);
+		// A session that is over is said to be, whichever tab it is read in.
+		if (!view.viewing.empty()) {
+			const SessionEvents::Started& header = view.model.Header();
+			const std::string whose = header.character + ", " + DayAndTime(header.startedAt);
+			status = status.empty() ? whose : whose + ": " + status;
+		}
+	});
+	if (!read) {
+		status = Session::IsEnabled() ? "No session yet" :
+			"The session tracker is off";
 	}
 }
 
@@ -193,7 +241,9 @@ std::vector<SessionRows::Row> OverviewPanel::BuildRows(const Session::View& view
 		if (reached >= 1 && reached < kLastLevel)
 			level = { ExpByLevel[reached - 1], ExpByLevel[reached] };
 	}
-	return SessionRows::Overview(model, view.now, level, TimeOfDay(model.Header().startedAt));
+	const long long startedAt = model.Header().startedAt;
+	return SessionRows::Overview(model, view.now, level,
+		view.viewing.empty() ? TimeOfDay(startedAt) : DayAndTime(startedAt));
 }
 
 GamesPanel::GamesPanel(UI* ui) : SessionPanel("Games", ui, GamesColumns()) {}
@@ -243,6 +293,7 @@ std::string DropsPanel::BuildStatus(const Session::View& view) {
 		return "No drops yet";
 	return std::to_string(drops) + (drops == 1 ? " drop" : " drops");
 }
+
 SplitsPanel::SplitsPanel(UI* ui) : SessionPanel("Splits", ui, SplitsColumns()) {}
 
 std::vector<SessionRows::Row> SplitsPanel::BuildRows(const Session::View& view) {
@@ -262,4 +313,162 @@ void SplitsPanel::OnRowClicked(const SessionRows::Row& row) {
 	const std::string route = SessionRows::RouteOf(row.key);
 	if (!route.empty())
 		Session::RequestRoute(route);
+}
+
+HistoryPanel::HistoryPanel(UI* ui) : SessionListPanel("History", ui, HistoryColumns()) {}
+
+void HistoryPanel::ReadRows(std::vector<SessionRows::Row>& rows, std::string& status) {
+	Session::ReadHistory([&](const Session::HistoryView& view) {
+		rows = SessionRows::History(view.entries, { view.hasCurrent, view.viewing, DayAndTime });
+		const size_t sessions = view.entries.size();
+		if (sessions == 0 && view.pending == 0) {
+			status = "No past sessions";
+			return;
+		}
+		status = std::to_string(sessions) + (sessions == 1 ? " past session" : " past sessions");
+		if (view.pending > 0)
+			status += ", reading " + std::to_string(view.pending) + " more";
+		else
+			status += ". Click one to look through it";
+	});
+}
+
+void HistoryPanel::OnRowClicked(const SessionRows::Row& row) {
+	std::string file;
+	if (!SessionRows::SessionOf(row.key, file))
+		return;
+	if (!Session::ViewPast(file))
+		PrintText(Red, "\377c4Session:\377c1 that session's file could not be read.");
+}
+
+RoutesPanel::RoutesPanel(UI* ui) : SessionListPanel("Routes", ui, RoutesColumns()),
+		split(-1), deleting(false) {}
+
+void RoutesPanel::OnClose() {
+	deleting = false;
+}
+
+void RoutesPanel::ReadRows(std::vector<SessionRows::Row>& rows, std::string& status) {
+	Session::ReadRoutes([&](const Session::RoutesView& view) {
+		const Splits::Route* found = NULL;
+		for (const Splits::Route& route : view.routes) {
+			if (route.id == editing)
+				found = &route;
+		}
+		// The route runs are timed on is the one to start with, and to fall
+		// back on when the one being changed has gone.
+		if (!found) {
+			editing = view.chosen;
+			split = -1;
+			deleting = false;
+		} else if (split >= (int)found->splits.size()) {
+			split = -1;
+		}
+
+		rows = SessionRows::Routes({ &view.routes, view.chosen, editing, split, SearchText(),
+			deleting });
+		if (!view.editable)
+			status = "BH_routes.json could not be read, so routes cannot be changed here";
+		else if (split >= 0)
+			status = "A split clicked below is added after the one picked out";
+		else
+			status = "Click a split below to add it. Right click one of the route's to remove it";
+	});
+}
+
+void RoutesPanel::OnRowClicked(const SessionRows::Row& row) {
+	using namespace SessionRows;
+	std::string rest;
+	const bool confirming = deleting;
+	deleting = false;
+
+	if (KeyRest(row.key, RouteKeys::kEdit, rest)) {
+		editing = rest;
+		split = -1;
+	} else if (KeyRest(row.key, RouteKeys::kPick, rest)) {
+		const int picked = atoi(rest.c_str());
+		split = split == picked ? -1 : picked;
+	} else if (KeyRest(row.key, RouteKeys::kAdd, rest)) {
+		Splits::Split added;
+		if (rest == "level") {
+			if (!RouteEdit::LevelSplit(SearchText(), added))
+				return;
+		} else {
+			const size_t index = (size_t)atoi(rest.c_str());
+			if (index >= RouteEdit::Catalogue().size())
+				return;
+			added = RouteEdit::Catalogue()[index];
+		}
+		Session::EditRoutes([&](std::vector<Splits::Route>& routes) {
+			for (Splits::Route& route : routes) {
+				if (route.id == editing)
+					split = (int)RouteEdit::AddSplit(route, added, split);
+			}
+		});
+	} else if (KeyRest(row.key, RouteKeys::kDo, rest)) {
+		if (rest == "delete" && !confirming)
+			deleting = true;
+		else
+			Act(rest);
+	}
+}
+
+void RoutesPanel::OnRowRightClicked(const SessionRows::Row& row) {
+	std::string rest;
+	deleting = false;
+	if (!SessionRows::KeyRest(row.key, SessionRows::RouteKeys::kPick, rest))
+		return;
+	const unsigned int index = (unsigned int)atoi(rest.c_str());
+	Session::EditRoutes([&](std::vector<Splits::Route>& routes) {
+		for (Splits::Route& route : routes) {
+			if (route.id == editing)
+				RouteEdit::RemoveSplit(route, index);
+		}
+	});
+	split = -1;
+}
+
+void RoutesPanel::Act(const std::string& what) {
+	if (what == "use") {
+		Session::RequestRoute(editing);
+		return;
+	}
+
+	const std::string text = SearchText();
+	Session::EditRoutes([&](std::vector<Splits::Route>& routes) {
+		Splits::Route* route = NULL;
+		for (Splits::Route& each : routes) {
+			if (each.id == editing)
+				route = &each;
+		}
+
+		if (what == "new") {
+			editing = RouteEdit::Add(routes, NULL);
+			split = -1;
+		} else if (what == "restore") {
+			RouteEdit::Restore(routes);
+		} else if (!route) {
+			return;
+		} else if (what == "copy") {
+			const Splits::Route original = *route;
+			editing = RouteEdit::Add(routes, &original);
+			split = -1;
+		} else if (what == "rename") {
+			RouteEdit::Rename(routes, editing, text);
+		} else if (what == "delete") {
+			if (routes.size() > 1)
+				RouteEdit::Remove(routes, editing);
+			editing.clear();
+			split = -1;
+		} else if (split < 0) {
+			return;
+		} else if (what == "up" || what == "down") {
+			const int by = what == "up" ? -1 : 1;
+			if (RouteEdit::MoveSplit(*route, (unsigned int)split, by))
+				split += by;
+		} else if (what == "remove") {
+			RouteEdit::RemoveSplit(*route, (unsigned int)split);
+			split = -1;
+		}
+	});
 }

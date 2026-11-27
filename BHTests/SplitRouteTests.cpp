@@ -189,7 +189,6 @@ TEST_CASE("every kind of trigger is read") {
 TEST_CASE("what cannot be made sense of is left out, and the rest is read") {
 	const std::vector<Route> routes = ReadOrFail(R"({"routes": [
 		{"name": "No id", "splits": [{"name": "A", "when": [{"boss": 1}]}]},
-		{"id": "empty", "splits": []},
 		{"id": "kept", "splits": [
 			{"when": [{"boss": 1}]},
 			{"name": "A", "when": [{"dragon": 7}, {"boss": 2}, 12]},
@@ -208,4 +207,19 @@ TEST_CASE("what cannot be made sense of is left out, and the rest is read") {
 	// A split nothing marks is one to split by hand.
 	CHECK(routes[0].splits[1].name == "By hand");
 	CHECK(routes[0].splits[1].when.empty());
+}
+
+TEST_CASE("a route with no splits yet is read as one still being put together") {
+	const std::vector<Route> routes = ReadOrFail(R"({"routes": [
+		{"id": "empty", "name": "Mine", "splits": []},
+		{"id": "none"}
+	]})");
+	REQUIRE(routes.size() == 2);
+	CHECK(routes[0].name == "Mine");
+	CHECK(routes[0].splits.empty());
+	CHECK(routes[1].splits.empty());
+
+	std::vector<Route> again;
+	REQUIRE(Splits::Read(Splits::Write(routes), again, NULL));
+	CHECK(again.size() == 2);
 }

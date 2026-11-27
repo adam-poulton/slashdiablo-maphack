@@ -227,8 +227,10 @@ usually the right text a pixel or a colour away.
 for BH loading and its settings, `item-drops.json` and
 `item-drops-high-level.json` for the item filter on recorded drops, for a new
 character and for Daicos in Hell, `session.json` for the session HUD and
-window on a recorded session, and `session-run.json` for a timed run against
-its best, on the recorded race in `BHTests\fixtures\session-race.jsonl`. One written to check a single change can stay
+window on a recorded session, `session-run.json` for a timed run against
+its best, on the recorded race in `BHTests\fixtures\session-race.jsonl`, and
+`session-history.json` for a past session looked through and a route put
+together in the window. One written to check a single change can stay
 in a scratch folder.
 
 ## Tests

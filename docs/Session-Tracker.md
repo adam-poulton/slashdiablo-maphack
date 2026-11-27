@@ -83,12 +83,34 @@ character, stash and so on) covers its half of the screen.
   unique monster, super unique and act boss, with when it died and where.
 * **Drops** - every drop the item filter pinged: when, the item in the colour
   it was announced in, where it fell, which game, and its ping tier.
+* **History** - the sessions before this one (below).
+* **Routes** - the routes there are to time a run on, and the changing of them
+  (under Runs and splits).
 
 The search box filters whichever tab is in front, by any text on the row: a
-game's name, an area, a monster, an item.
+game's name, an area, a monster, an item. In the Routes tab it has a use of its
+own, given there.
 
 `.session new`, or the `New session` hotkey, ends the session and starts
 another from the game you are in.
+
+### Past sessions
+
+The History tab lists every session there is a file of, newest first: when it
+started, the character and its level, time played, games, experience gained and
+per second, kills and drops. They are the sessions of every character and every
+game client of this install.
+
+Click one to look through it: the Overview, Splits, Games, Kills and Drops tabs
+then show that session, and the footer says whose it is and when it began. Click
+`This session`, or close the window, to go back to the one you are playing. The
+HUD and the automap variables stay on the session you are playing throughout.
+A past session's runs are set beside the other runs of that session, not
+beside your bests as they are now.
+
+A session shows up here once `Keep session history` has written it. The first
+time the tab is opened on a folder of many sessions it reads them a few at a
+time, and the footer says how many are still to come.
 
 ### What counts as a kill
 
@@ -132,13 +154,14 @@ carry over a restart of the game client.
 | `.run reset` | `Reset run` | Gives the run up |
 | `.route <name>` | | Chooses the route. With no name it lists them |
 
-A route can also be chosen by clicking it in the Splits tab, or with the
-`Run route` setting.
+A route can also be chosen by clicking it in the Splits tab, with
+`Time runs on this route` in the Routes tab, or with the `Run route` setting.
 
 ### Routes
 
 BH comes with these, and writes them to `BH_routes.json` beside
-`BH_settings.cfg` the first time it runs, for you to change or add to:
+`BH_settings.cfg` the first time it runs. Change them or add your own in the
+Routes tab, or in the file itself:
 
 | Id | Route |
 | --- | --- |
@@ -147,6 +170,35 @@ BH comes with these, and writes them to `BH_routes.json` beside
 | `milestones-normal` | The bosses and the steps between them: Radament, the Horadric Cube, the staff, the amulet, the Summoner, Khalim's Will, Travincal, Izual, the Hellforge, Shenk, Anya and the Ancients |
 | `act1` to `act5` | One act's boss alone, as the per-act leaderboards time it |
 | `completionist-normal` | Every quest, the Cow King and level 40, in any order |
+
+### Changing a route in the window
+
+The Routes tab of the session window lists the routes, then the splits of the
+one being changed, then every split there is to add.
+
+* Click a route to change it. `New route` starts one with no splits, and
+  `Copy` starts one from the route being changed.
+* Click a split under `Add a split` to add it to the route. There is one for
+  each act boss, quest and quest item, the Cow King and every quest done, in
+  Normal, Nightmare and Hell. It goes at the end, or after the split you have
+  picked out by clicking it in the route.
+* With a split picked out, `Move up`, `Move down` and `Remove` act on it. A
+  right click on a split of the route removes it too.
+* Type in the search box to narrow the splits there are to add. Type
+  `level 24` there to be offered a split for reaching that level, or a name to
+  be offered `Rename this route`.
+* `Delete this route` asks to be clicked twice. Once one of the routes BH comes
+  with is gone, `Put back the routes BH comes with` returns the missing ones
+  and leaves the rest alone.
+
+Every change is written to `BH_routes.json` as it is made. A run being timed
+keeps the splits it started with. A split for an area or a particular monster,
+one that wants several things at once, or one you mark by hand is written in
+the file, as below; the window shows such a split and can move or remove it.
+If BH cannot read the file, the window leaves it alone and says so, and runs
+are timed on the routes BH comes with until the file is mended.
+
+### The routes file
 
 A split is reached when any one of the things under its `when` happens, or
 every one of them where the split says `"all": true`:
@@ -197,6 +249,10 @@ Bests are kept in `BH_runs.json` beside `BH_settings.cfg`, apart for each
 route, each character class, and softcore and hardcore. A run you give up still
 counts as an attempt and still sets a best stretch.
 
+A best belongs to the splits it was run on. Change a route's splits and its
+best is no longer compared with; the first run on the changed route starts its
+bests over. Renaming a route changes nothing.
+
 `Compare runs on` picks the clock: `Time in game`, the one chosen to begin
 with, leaves out time spent between games, which is how the leaderboards time
 a run. `Real time` counts everything since the run began. Both are always kept,
@@ -234,6 +290,7 @@ Under `Session` on the Display tab of the settings window:
 ```
 Session Tracker: True
 Keep Session History: True
+Session History Kept: 200
 Session HUD: True
 Session HUD View: 0
 Session HUD Run View: 3
@@ -245,7 +302,11 @@ Session Compare Clock: 1
 
 * **Session tracker** - turns the tracker on. With it off nothing is tracked,
   the HUD is not drawn and the variables above are empty.
-* **Keep session history** - writes each session to a file of its own.
+* **Keep session history** - writes each session to a file of its own, which is
+  what the History tab lists.
+* **Sessions kept** - how many of those files are kept. Past that the oldest
+  are deleted, when BH loads and whenever a new one is started. 0 keeps them
+  all.
 * **Session HUD** - shows the HUD.
 * **HUD view** - `Line` (0), `Compact` (1), `Splits` (2) or `Full` (3).
 * **HUD view during a run** - `Same` (0), or a view and one: `Splits` (3) to
@@ -325,6 +386,10 @@ since the session started and `e` is the kind of event.
 
 A tool reading these files should skip any line or kind of event it does not
 know, as later versions will add more.
+
+`index.json` in the same folder is what the History tab lists from: a summary
+of each file, worked out by reading it once. It holds nothing the files do not,
+and BH writes it again from them if it is deleted.
 
 ## Related
 

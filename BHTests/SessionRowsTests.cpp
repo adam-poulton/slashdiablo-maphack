@@ -716,3 +716,301 @@ TEST_CASE("the tab's times are on the clock asked for") {
 	CHECK(Under(Runs(model, Shown(NULL, 160 * kSecond, RunStore::GameTime)),
 		"Act bosses (Normal)")[0].cells[SplitTime] == "1:30");
 }
+namespace {
+
+std::string Moment(long long at) {
+	return "at " + std::to_string(at);
+}
+
+SessionIndex::Entry Past(const std::string& file, const std::string& character,
+		long long startedAt) {
+	SessionIndex::Entry entry = {};
+	entry.file = file;
+	entry.character = character;
+	entry.startedAt = startedAt;
+	entry.level = 87;
+	entry.playedMs = 100 * kSecond;
+	entry.games = 4;
+	entry.experience = 2500000;
+	entry.kills = 1234;
+	return entry;
+}
+
+std::vector<std::string> Keys(const std::vector<Row>& rows) {
+	std::vector<std::string> keys;
+	for (const Row& row : rows) {
+		if (!row.key.empty())
+			keys.push_back(row.key);
+	}
+	return keys;
+}
+
+const Row* Keyed(const std::vector<Row>& rows, const std::string& key) {
+	for (const Row& row : rows) {
+		if (row.key == key)
+			return &row;
+	}
+	return NULL;
+}
+
+std::vector<Splits::Route> TwoRoutes() {
+	return {
+		{ "one", "First", { { "Andariel", 0, false, { { Splits::Trigger::Boss, 156, 0, "" } } },
+			{ "By hand", -1, false, {} } } },
+		{ "two", "Second", {} },
+	};
+}
+
+RoutesShown Editing(const std::vector<Splits::Route>& routes, const std::string& editing,
+		int split = -1, const std::string& text = "") {
+	return { &routes, "one", editing, split, text, false };
+}
+
+}
+
+TEST_CASE("a key is told by how it starts") {
+	std::string rest;
+	CHECK(KeyRest("edit:one", RouteKeys::kEdit, rest));
+	CHECK(rest == "one");
+	CHECK(KeyRest("do:", RouteKeys::kDo, rest));
+	CHECK(rest.empty());
+	CHECK_FALSE(KeyRest("pick:1", RouteKeys::kAdd, rest));
+	CHECK_FALSE(KeyRest("", RouteKeys::kAdd, rest));
+}
+
+TEST_CASE("past sessions are listed as the index has them, under the one being played") {
+	const std::vector<SessionIndex::Entry> entries = {
+		Past("b.jsonl", "Sorc_One", 2000), Past("a.jsonl", "Barb_Two", 1000) };
+	const std::vector<Row> rows = History(entries, { true, "", Moment });
+
+	REQUIRE(rows.size() == 4);
+	CHECK(rows[0].cells[HistoryStarted] == "> This session");
+	CHECK(rows[0].key == SessionKey(""));
+	CHECK(rows[1].heading);
+	CHECK(rows[1].cells[0] == "Past sessions");
+
+	const Row& latest = rows[2];
+	CHECK(latest.key == "session:b.jsonl");
+	CHECK(latest.cells[HistoryStarted] == "at 2000");
+	CHECK(latest.cells[HistoryCharacter] == "Sorc_One");
+	CHECK(latest.cells[HistoryLevel] == "87");
+	CHECK(latest.cells[HistoryPlayed] == "1:40");
+	CHECK(latest.cells[HistoryGames] == "4");
+	CHECK(latest.cells[HistoryExperience] == "+2.50M");
+	CHECK(latest.cells[HistoryRate] == "+25.0K/s");
+	CHECK(latest.cells[HistoryKills] == "1,234");
+	CHECK(latest.cells[HistoryDrops] == "");
+	CHECK(rows[3].cells[HistoryCharacter] == "Barb_Two");
+}
+
+TEST_CASE("the session being looked at is the one marked") {
+	const std::vector<SessionIndex::Entry> entries = {
+		Past("b.jsonl", "Sorc_One", 2000), Past("a.jsonl", "Barb_Two", 1000) };
+	const std::vector<Row> rows = History(entries, { true, "a.jsonl", Moment });
+	CHECK(rows[0].cells[HistoryStarted] == "This session");
+	CHECK(rows[2].cells[HistoryStarted] == "at 2000");
+	CHECK(rows[3].cells[HistoryStarted] == "> at 1000");
+}
+
+TEST_CASE("with no session being played there is none to go back to") {
+	const std::vector<Row> rows = History({ Past("a.jsonl", "Barb_Two", 1000) },
+		{ false, "", Moment });
+	REQUIRE(rows.size() == 2);
+	CHECK(rows[0].heading);
+	CHECK(History({}, { false, "", Moment }).empty());
+}
+
+TEST_CASE("a hardcore character and a session that lost experience are listed as such") {
+	SessionIndex::Entry entry = Past("a.jsonl", "Barb_Two", 1000);
+	entry.hardcore = true;
+	entry.experience = -5000;
+	entry.level = 0;
+	const std::vector<Row> rows = History({ entry }, { false, "", Moment });
+	CHECK(rows[1].cells[HistoryCharacter] == "Barb_Two (HC)");
+	CHECK(rows[1].cells[HistoryExperience] == "-5.0K");
+	CHECK(rows[1].cells[HistoryLevel] == "");
+}
+
+TEST_CASE("a session's key is its log, and the session being played has none") {
+	std::string file = "x";
+	CHECK(SessionOf(SessionKey("a.jsonl"), file));
+	CHECK(file == "a.jsonl");
+	CHECK(SessionOf(SessionKey(""), file));
+	CHECK(file.empty());
+	CHECK_FALSE(SessionOf("route:a", file));
+}
+
+TEST_CASE("the routes are listed with the one being changed marked and the one runs are timed on said") {
+	const std::vector<Splits::Route> routes = TwoRoutes();
+	const std::vector<Row> rows = Routes(Editing(routes, "two"));
+
+	const Row* first = Keyed(rows, "edit:one");
+	const Row* second = Keyed(rows, "edit:two");
+	REQUIRE(first != NULL);
+	REQUIRE(second != NULL);
+	CHECK(first->cells[RouteName] == "First");
+	CHECK(first->cells[RouteDetail] == "2 splits, the route runs are timed on");
+	CHECK(second->cells[RouteName] == "> Second");
+	CHECK(second->cells[RouteDetail] == "0 splits");
+	CHECK(Headings(rows)[0] == "Routes");
+	CHECK(Headings(rows)[1] == "Second");
+}
+
+TEST_CASE("the route being changed is listed split by split with what marks each") {
+	const std::vector<Splits::Route> routes = TwoRoutes();
+	const std::vector<Row> rows = Routes(Editing(routes, "one", 1));
+
+	const Row* andariel = Keyed(rows, "pick:0");
+	const Row* byHand = Keyed(rows, "pick:1");
+	REQUIRE(andariel != NULL);
+	REQUIRE(byHand != NULL);
+	CHECK(andariel->cells[RouteName] == "1. Andariel");
+	CHECK(andariel->cells[RouteDetail] == "Normal: kill");
+	CHECK(byHand->cells[RouteName] == "> 2. By hand");
+	CHECK(byHand->cells[RouteDetail] == "marked by hand");
+}
+
+TEST_CASE("what can be done to a route is what is offered") {
+	const std::vector<Splits::Route> routes = TwoRoutes();
+
+	// Nothing picked out, on the route runs are timed on.
+	std::vector<Row> rows = Routes(Editing(routes, "one"));
+	CHECK(Keyed(rows, "do:new") != NULL);
+	CHECK(Keyed(rows, "do:copy")->cells[RouteName] == "Copy First");
+	CHECK(Keyed(rows, "do:delete") != NULL);
+	CHECK(Keyed(rows, "do:up") == NULL);
+	CHECK(Keyed(rows, "do:remove") == NULL);
+	CHECK(Keyed(rows, "do:use") == NULL);
+	CHECK(Keyed(rows, "do:rename") == NULL);
+	CHECK(Keyed(rows, "do:new")->colors[RouteName] == kColorAction);
+
+	// The first split can only go down, and the last only up.
+	rows = Routes(Editing(routes, "one", 0));
+	CHECK(Keyed(rows, "do:up") == NULL);
+	CHECK(Keyed(rows, "do:down")->cells[RouteName] == "Move Andariel down");
+	CHECK(Keyed(rows, "do:remove")->cells[RouteName] == "Remove Andariel");
+	rows = Routes(Editing(routes, "one", 1));
+	CHECK(Keyed(rows, "do:up")->cells[RouteName] == "Move By hand up");
+	CHECK(Keyed(rows, "do:down") == NULL);
+
+	// A place that is no split of the route picks nothing out.
+	rows = Routes(Editing(routes, "one", 7));
+	CHECK(Keyed(rows, "do:remove") == NULL);
+}
+
+TEST_CASE("a route with no splits cannot be timed on and says it has none") {
+	const std::vector<Splits::Route> routes = TwoRoutes();
+	const std::vector<Row> rows = Routes(Editing(routes, "two"));
+	CHECK(Keyed(rows, "do:use") == NULL);
+	bool said = false;
+	for (const Row& row : rows)
+		said = said || (row.summary && row.cells[RouteName] == "No splits yet");
+	CHECK(said);
+
+	std::vector<Splits::Route> filled = routes;
+	filled[1].splits = filled[0].splits;
+	CHECK(Keyed(Routes(Editing(filled, "two")), "do:use") != NULL);
+}
+
+TEST_CASE("the only route there is cannot be deleted") {
+	std::vector<Splits::Route> routes = TwoRoutes();
+	routes.pop_back();
+	CHECK(Keyed(Routes(Editing(routes, "one")), "do:delete") == NULL);
+}
+
+TEST_CASE("the routes BH comes with are offered back only while one is missing") {
+	std::vector<Splits::Route> routes = Splits::Presets();
+	CHECK(Keyed(Routes(Editing(routes, routes[0].id)), "do:restore") == NULL);
+	routes.pop_back();
+	CHECK(Keyed(Routes(Editing(routes, routes[0].id)), "do:restore") != NULL);
+}
+
+TEST_CASE("the text is what the route can be renamed to") {
+	const std::vector<Splits::Route> routes = TwoRoutes();
+	const std::vector<Row> rows = Routes(Editing(routes, "one", -1, "Hell rush"));
+	const Row* rename = Keyed(rows, "do:rename");
+	REQUIRE(rename != NULL);
+	CHECK(rename->cells[RouteName] == "Rename this route to \"Hell rush\"");
+	CHECK(Keyed(Routes(Editing(routes, "one", -1, "First")), "do:rename") == NULL);
+}
+
+TEST_CASE("every split of the catalogue is there to add, under its difficulty") {
+	const std::vector<Splits::Route> routes = TwoRoutes();
+	const std::vector<Row> rows = Routes(Editing(routes, "one"));
+
+	size_t offered = 0;
+	for (const std::string& key : Keys(rows)) {
+		std::string rest;
+		if (KeyRest(key, RouteKeys::kAdd, rest))
+			offered++;
+	}
+	CHECK(offered == RouteEdit::Catalogue().size());
+
+	const std::vector<std::string> headings = Headings(rows);
+	REQUIRE(headings.size() == 5);
+	CHECK(headings[2] == "Add a split: Normal");
+	CHECK(headings[3] == "Add a split: Nightmare");
+	CHECK(headings[4] == "Add a split: Hell");
+
+	const Row* first = Keyed(rows, "add:0");
+	REQUIRE(first != NULL);
+	CHECK(first->cells[RouteName] == "Andariel");
+	CHECK(first->cells[RouteDetail] == "Normal: kill or quest");
+}
+
+TEST_CASE("the text narrows what there is to add and nothing above it") {
+	const std::vector<Splits::Route> routes = TwoRoutes();
+	const std::vector<Row> rows = Routes(Editing(routes, "one", -1, "DURIEL"));
+
+	CHECK(Keyed(rows, "edit:two") != NULL);
+	CHECK(Keyed(rows, "pick:0") != NULL);
+	std::vector<std::string> adding;
+	for (const Row& row : rows) {
+		std::string rest;
+		if (KeyRest(row.key, RouteKeys::kAdd, rest))
+			adding.push_back(row.cells[RouteName]);
+	}
+	CHECK(adding == std::vector<std::string>{ "Duriel", "Duriel (NM)", "Duriel (Hell)" });
+
+	// By what marks a split as well as by its name.
+	const std::vector<Row> items = Routes(Editing(routes, "one", -1, "item box"));
+	CHECK(Keyed(items, "add:level") == NULL);
+	size_t cubes = 0;
+	for (const Row& row : items) {
+		std::string rest;
+		if (KeyRest(row.key, RouteKeys::kAdd, rest))
+			cubes++;
+	}
+	CHECK(cubes == 3);
+}
+
+TEST_CASE("a level asked for in the text is there to add") {
+	const std::vector<Splits::Route> routes = TwoRoutes();
+	const std::vector<Row> rows = Routes(Editing(routes, "one", -1, "level 24"));
+	const Row* level = Keyed(rows, "add:level");
+	REQUIRE(level != NULL);
+	CHECK(level->cells[RouteName] == "Level 24");
+	CHECK(level->cells[RouteDetail] == "level 24");
+}
+
+TEST_CASE("with no route being changed there are only the routes") {
+	const std::vector<Splits::Route> routes = TwoRoutes();
+	const std::vector<Row> rows = Routes(Editing(routes, "gone"));
+	CHECK(Headings(rows) == std::vector<std::string>{ "Routes" });
+	CHECK(Keyed(rows, "do:new") != NULL);
+	CHECK(Keyed(rows, "do:copy") == NULL);
+	CHECK(Keyed(rows, "add:0") == NULL);
+}
+
+TEST_CASE("deleting a route is asked for twice") {
+	const std::vector<Splits::Route> routes = TwoRoutes();
+	RoutesShown shown = Editing(routes, "two");
+	std::vector<Row> rows = Routes(shown);
+	CHECK(Keyed(rows, "do:delete")->cells[RouteName] == "Delete this route");
+	CHECK(Keyed(rows, "do:delete")->colors[RouteName] == kColorAction);
+
+	shown.deleting = true;
+	rows = Routes(shown);
+	CHECK(Keyed(rows, "do:delete")->cells[RouteName] == "Click again to delete Second");
+	CHECK(Keyed(rows, "do:delete")->colors[RouteName] == kColorBehind);
+}

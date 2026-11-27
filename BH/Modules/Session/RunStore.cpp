@@ -66,16 +66,35 @@ const RunStore::Best* RunStore::Find(const std::string& key) const {
 	return found != bests.end() ? &found->second : NULL;
 }
 
+bool RunStore::Best::IsOf(const std::vector<std::string>& splits) const {
+	for (const Times& times : by) {
+		if (times.splits.size() != splits.size() || times.segments.size() != splits.size())
+			return false;
+	}
+	return names.empty() || names == splits;
+}
+
+std::vector<std::string> RunStore::SplitsOf(const SessionModel::Run& run) {
+	std::vector<std::string> names;
+	for (const RunSplit& split : run.splits)
+		names.push_back(split.name);
+	return names;
+}
+
 void RunStore::Record(const std::string& key, const SessionModel::Run& run) {
 	const size_t splits = run.splits.size();
+	const std::vector<std::string> names = SplitsOf(run);
 	std::map<std::string, Best>::iterator found = bests.find(key);
-	if (found == bests.end()) {
+	// Times kept for a route that has since been changed are of some other
+	// route: not times to beat, nor attempts at this one.
+	if (found == bests.end() || !found->second.IsOf(names)) {
 		Best none = {};
 		for (int clock = 0; clock < Clocks; clock++)
 			none.by[clock] = NoTimes(splits);
-		found = bests.insert({ key, none }).first;
+		found = bests.insert_or_assign(key, none).first;
 	}
 	Best& best = found->second;
+	best.names = names;
 
 	best.attempts++;
 	if (run.finished)
@@ -84,10 +103,6 @@ void RunStore::Record(const std::string& key, const SessionModel::Run& run) {
 	for (int each = 0; each < Clocks; each++) {
 		const Clock clock = (Clock)each;
 		Times& times = best.by[clock];
-		// Times kept for a route that has since gained or lost a split are of
-		// some other route, and are not times to beat.
-		if (times.splits.size() != splits || times.segments.size() != splits)
-			times = NoTimes(splits);
 
 		for (unsigned int i = 0; i < splits; i++) {
 			const long long segment = RunCompare::Segment(run, i, clock);
@@ -123,6 +138,11 @@ bool RunStore::Read(const std::string& text) {
 		for (int clock = 0; clock < Clocks; clock++)
 			best.by[clock] = json.contains(kClockNames[clock]) ?
 				ReadTimes(json[kClockNames[clock]]) : NoTimes(0);
+		Json::const_iterator names = json.find("names");
+		if (names != json.end() && names->is_array()) {
+			for (const Json& name : *names)
+				best.names.push_back(name.is_string() ? name.get<std::string>() : std::string());
+		}
 		bests[each.key()] = best;
 	}
 	return true;
@@ -134,6 +154,7 @@ std::string RunStore::Write() const {
 		Json json = Json::object();
 		json["attempts"] = each.second.attempts;
 		json["finished"] = each.second.finished;
+		json["names"] = each.second.names;
 		for (int clock = 0; clock < Clocks; clock++)
 			json[kClockNames[clock]] = WriteTimes(each.second.by[clock]);
 		kept[each.first] = json;
@@ -161,9 +182,8 @@ long long Segment(const SessionModel::Run& run, unsigned int index, RunStore::Cl
 Lines Compare(const SessionModel::Run& run, const RunStore::Best* best, RunStore::Clock clock,
 		unsigned long long now) {
 	const size_t splits = run.splits.size();
-	const RunStore::Times* times = best ? &best->by[clock] : NULL;
-	if (times && (times->splits.size() != splits || times->segments.size() != splits))
-		times = NULL;
+	const RunStore::Times* times = best && best->IsOf(RunStore::SplitsOf(run)) ?
+		&best->by[clock] : NULL;
 
 	Lines lines;
 	lines.current = -1;
@@ -214,7 +234,8 @@ Lines Compare(const SessionModel::Run& run, const RunStore::Best* best, RunStore
 		}
 		if (known)
 			lines.bestPossible = possible;
-	}	return lines;
+	}
+	return lines;
 }
 
 }

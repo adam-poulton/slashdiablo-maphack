@@ -42,7 +42,7 @@
      "drawn": {"text": "Andariel", "font": 6}, "count": 0},
     {"shot": "hud-line", "crop": [472, 0, 400, 40]},
 
-    {"do": ["key:enter", "text:.session", "key:enter", "click:198,22", "move:700,450"]},
+    {"do": ["key:enter", "text:.session", "key:enter", "click:141,22", "move:700,450"]},
     {"check": "the Splits tab marks the split the run is on",
      "drawn": {"text": "> Mephisto"}},
     {"check": "gives the level each split was reached at",

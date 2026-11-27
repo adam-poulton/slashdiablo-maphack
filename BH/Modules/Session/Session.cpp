@@ -44,6 +44,22 @@ namespace {
 
 	const char* const kHeading = "Session";
 
+	// How many logs are kept where nobody has said, and the most that can be
+	// asked for.
+	const unsigned int kDefaultKept = 200;
+	const unsigned int kMostKept = 9999;
+
+	// Logs not yet in the index are read a few at a time, each time the list of
+	// sessions is asked for, and the folder is looked over again this often
+	// once they all are.
+	const unsigned int kLogsReadAtOnce = 4;
+	const unsigned long long kHistoryCheckEveryMs = 2000;
+
+	std::string FileNameOf(const std::string& path) {
+		const size_t slash = path.find_last_of("\\/");
+		return slash == std::string::npos ? path : path.substr(slash + 1);
+	}
+
 	std::string KeyFor(const GameProbe::Identity& who) {
 		return who.account + "\n" + who.realm + "\n" + who.character;
 	}
@@ -62,6 +78,7 @@ namespace {
 Session* Session::instance = NULL;
 bool Session::enabled = true;
 bool Session::keepHistory = true;
+unsigned int Session::sessionsKept = kDefaultKept;
 bool Session::hudOn = true;
 unsigned int Session::hudView = HudLayout::ViewLine;
 unsigned int Session::hudRunView = HudLayout::ViewSplits + 1;
@@ -78,9 +95,10 @@ unsigned int Session::runUndoKey = 0;
 unsigned int Session::runSkipKey = 0;
 unsigned int Session::runResetKey = 0;
 
-Session::Session() : Module("Session Tracker"), current(NULL), wantsNew(false),
-		wantsPlacing(false), wantsViewStep(0), wantsView(-1), wantsRun(RunNothing),
-		screenInfo(NULL), publishedAt(0) {
+Session::Session() : Module("Session Tracker"), current(NULL), routesEditable(true),
+		historyCheckedAt(0), historyPending(0), wantsNew(false), wantsPlacing(false),
+		wantsViewStep(0), wantsView(-1), wantsRun(RunNothing), screenInfo(NULL),
+		publishedAt(0) {
 	instance = this;
 }
 
@@ -93,6 +111,9 @@ void Session::OnLoad() {
 	std::string kept;
 	if (WholeFile::Read(BH::path + kBestsFile, kept))
 		bests.Read(kept);
+	history.reset(new SessionHistory(BH::path + kFolder));
+	history->Load();
+	Prune();
 
 	Settings::AddHeading(GetName(), Settings::Category::Display, kHeading);
 	Settings::AddBool(GetName(), Settings::Category::Display, "Session Tracker",
@@ -101,8 +122,13 @@ void Session::OnLoad() {
 		"and how fast it is coming, and deaths.");
 	Settings::AddBool(GetName(), Settings::Category::Display, "Keep Session History",
 		"Keep session history", &keepHistory,
-		"Writes each session to a file of its own in BH_sessions, beside the settings.",
+		"Writes each session to a file of its own in BH_sessions, beside the settings. "
+		"The History tab of the session window lists them.",
 		"Session Tracker");
+	Settings::AddNumber(GetName(), Settings::Category::Display, "Session History Kept",
+		"Sessions kept", &sessionsKept, kMostKept,
+		"How many session files are kept. Past that the oldest are deleted. 0 keeps "
+		"them all.", "Keep Session History");
 	Settings::AddBool(GetName(), Settings::Category::Display, "Session HUD",
 		"Session HUD", &hudOn,
 		"Shows the session's figures over the game. It takes no clicks: type "
@@ -161,6 +187,9 @@ void Session::OnLoad() {
 void Session::LoadConfig() {
 	BH::config->ReadBoolean("Session Tracker", enabled);
 	BH::config->ReadBoolean("Keep Session History", keepHistory);
+	BH::config->ReadInt("Session History Kept", sessionsKept, kDefaultKept);
+	if (sessionsKept > kMostKept)
+		sessionsKept = kMostKept;
 	BH::config->ReadBoolean("Session HUD", hudOn);
 	BH::config->ReadInt("Session HUD View", hudView, HudLayout::ViewLine);
 	if (hudView >= HudLayout::ViewCount)
@@ -202,6 +231,7 @@ void Session::OnSettingsChanged(const vector<string>& keys) {
 	}
 	if (current)
 		Write(*current);
+	Prune();
 }
 
 void Session::OnLoop() {
@@ -446,6 +476,8 @@ void Session::Write(Live& session) {
 			session.unwritable = true;
 			return;
 		}
+		// One more log than there was.
+		Prune();
 	}
 
 	for (; session.written < session.log.size(); session.written++)
@@ -496,15 +528,121 @@ bool Session::Read(const std::function<void(const View&)>& reader) {
 	if (!self)
 		return false;
 	std::lock_guard<std::mutex> held(self->lock);
-	if (!self->current)
+	const Live* shown = self->viewed ? self->viewed.get() : self->current;
+	if (!shown)
 		return false;
-	const Live& session = *self->current;
+	const Live& session = *shown;
 	const Splits::Route* chosen = self->ChosenRoute();
 	const View view = { session.model, self->NowOf(session, BHGetTickCount()),
 		self->BestsFor(session), self->routes, chosen ? chosen->id : std::string(),
-		(RunStore::Clock)compareClock };
+		(RunStore::Clock)compareClock, self->viewed ? self->viewedFile : std::string() };
 	reader(view);
 	return true;
+}
+
+bool Session::ReadHistory(const std::function<void(const HistoryView&)>& reader) {
+	Session* self = instance;
+	if (!self || !self->history)
+		return false;
+	std::lock_guard<std::mutex> held(self->lock);
+
+	const unsigned long long tick = BHGetTickCount();
+	if (self->historyPending > 0 || self->historyCheckedAt == 0 ||
+			tick - self->historyCheckedAt >= kHistoryCheckEveryMs) {
+		// The session being played is listed as itself, and not as one that is
+		// over.
+		std::set<std::string> playing;
+		if (self->current && self->current->file.IsOpen())
+			playing.insert(FileNameOf(self->current->file.GetPath()));
+		self->historyPending = self->history->Reconcile(kLogsReadAtOnce, playing);
+		self->historyCheckedAt = tick;
+	}
+
+	const HistoryView view = { self->history->Entries(), self->current != NULL,
+		self->viewed ? self->viewedFile : std::string(), self->historyPending };
+	reader(view);
+	return true;
+}
+
+bool Session::ViewPast(const std::string& file) {
+	Session* self = instance;
+	if (!self)
+		return false;
+	std::lock_guard<std::mutex> held(self->lock);
+	if (file.empty()) {
+		self->viewed.reset();
+		self->viewedFile.clear();
+		return true;
+	}
+
+	std::vector<Event> events;
+	if (!self->history || !self->history->ReadLog(file, events) || events.empty())
+		return false;
+	self->viewed = Replayed(events);
+	self->viewedFile = file;
+	return true;
+}
+
+bool Session::ReadRoutes(const std::function<void(const RoutesView&)>& reader) {
+	Session* self = instance;
+	if (!self)
+		return false;
+	std::lock_guard<std::mutex> held(self->lock);
+	const Splits::Route* chosen = self->ChosenRoute();
+	const RoutesView view = { self->routes, chosen ? chosen->id : std::string(),
+		self->routesEditable };
+	reader(view);
+	return true;
+}
+
+bool Session::EditRoutes(const std::function<void(std::vector<Splits::Route>&)>& edit) {
+	Session* self = instance;
+	if (!self)
+		return false;
+	std::lock_guard<std::mutex> held(self->lock);
+	if (!self->routesEditable)
+		return false;
+
+	edit(self->routes);
+	// There is always a route to time a run on.
+	if (self->routes.empty())
+		self->routes = Splits::Presets();
+	WholeFile::Write(BH::path + kRoutesFile, Splits::Write(self->routes));
+	self->probe.Watch(Splits::ItemCodes(self->routes));
+	return true;
+}
+
+std::unique_ptr<Session::Live> Session::Replayed(const std::vector<Event>& events) {
+	std::unique_ptr<Live> log(new Live());
+	log->beganAt = 0;
+	log->written = 0;
+	log->unwritable = false;
+	log->shown = true;
+	log->shownAt = events.empty() ? 0 : events.back().at;
+	log->hadBest = false;
+	for (const Event& event : events)
+		log->model.Apply(event);
+
+	const Started& header = log->model.Header();
+	for (const SessionModel::Run& run : log->model.Runs()) {
+		if (run.ended)
+			log->ownBests.Record(RunStore::KeyFor(run.route, header.classId, header.hardcore), run);
+	}
+	return log;
+}
+
+std::set<std::string> Session::OpenLogs() const {
+	std::set<std::string> open;
+	for (const auto& held : sessions) {
+		if (held.second->file.IsOpen())
+			open.insert(FileNameOf(held.second->file.GetPath()));
+	}
+	return open;
+}
+
+void Session::Prune() {
+	if (history && keepHistory && sessionsKept > 0)
+		history->Prune(sessionsKept, OpenLogs());
 }
 
 void Session::TakeFact(Live& session, unsigned long long at, const Fact& fact) {
@@ -535,10 +673,14 @@ void Session::TakeFact(Live& session, unsigned long long at, const Fact& fact) {
 void Session::LoadRoutes() {
 	const std::string path = BH::path + kRoutesFile;
 	std::string text;
+	routesEditable = true;
 	if (!WholeFile::Read(path, text) || WholeFile::IsBlank(text)) {
 		routes = Splits::Presets();
 		WholeFile::Write(path, Splits::Write(routes));
-	} else if (!Splits::Read(text, routes, NULL) || routes.empty()) {
+	} else if (!Splits::Read(text, routes, NULL)) {
+		routes = Splits::Presets();
+		routesEditable = false;
+	} else if (routes.empty()) {
 		routes = Splits::Presets();
 	}
 	probe.Watch(Splits::ItemCodes(routes));
@@ -561,8 +703,13 @@ void Session::ChooseRoute(const std::string& asked) {
 
 void Session::StartRun(Live& session, unsigned long long at) {
 	const Splits::Route* route = ChosenRoute();
-	if (!route || route->splits.empty() || !session.model.InGame())
+	if (!route || !session.model.InGame())
 		return;
+	if (route->splits.empty()) {
+		PrintText(White, "\377c4Session:\377c0 %s has no splits to time a run by.",
+			route->name.c_str());
+		return;
+	}
 	if (session.evaluator.Running())
 		EndRun(session, at, false);
 
@@ -661,7 +808,7 @@ void Session::ActOnRun(RunAction action, unsigned long long tick) {
 }
 
 const RunStore& Session::BestsFor(const Live& session) const {
-	return session.shown ? shownBests : bests;
+	return session.shown ? session.ownBests : bests;
 }
 
 // The best of the route the session's latest run is on, for a character of its
@@ -733,26 +880,8 @@ void Session::Show(const std::vector<Event>& events) {
 		return;
 	std::lock_guard<std::mutex> held(self->lock);
 
-	self->shown.reset(new Live());
-	Live& log = *self->shown;
-	log.beganAt = 0;
-	log.written = 0;
-	log.unwritable = false;
-	log.shown = true;
-	log.shownAt = events.empty() ? 0 : events.back().at;
-	log.hadBest = false;
-	for (const Event& event : events)
-		log.model.Apply(event);
-
-	// The runs the log holds that are over are what its run in hand is set
-	// beside: nothing of the player's own bests is shown against it.
-	self->shownBests = RunStore();
-	const Started& header = log.model.Header();
-	for (const SessionModel::Run& run : log.model.Runs()) {
-		if (run.ended)
-			self->shownBests.Record(RunStore::KeyFor(run.route, header.classId, header.hardcore), run);
-	}
-	self->current = &log;
+	self->shown = Replayed(events);
+	self->current = self->shown.get();
 	self->publishedAt = 0;
 }
 #endif

@@ -164,8 +164,9 @@ TEST_CASE("times kept for a route that has since changed length are not times to
 	store.Record(kKey, RunOf({ 100, 250, 400 }, true));
 	store.Record(kKey, RunOf({ 500, 900 }, true));
 
+	// Nor are the runs that set them attempts at the route as it is now.
 	const RunStore::Best* best = store.Find(kKey);
-	CHECK(best->attempts == 2);
+	CHECK(best->attempts == 1);
 	CHECK(best->by[RunStore::RealTime].total == 900 * kSecond);
 	CHECK(Seconds(best->by[RunStore::RealTime].splits) == std::vector<long long>{ 500, 900 });
 }
@@ -334,4 +335,70 @@ TEST_CASE("bests kept for a route of another length are not compared with") {
 		95 * kSecond);
 	CHECK(lines.bestTotal == -1);
 	CHECK_FALSE(lines.splits[0].compared);
+}
+
+TEST_CASE("bests are kept with the names of the splits they are of") {
+	RunStore store;
+	store.Record(kKey, RunOf({ 100, 250, 400 }, true));
+	const RunStore::Best* best = store.Find(kKey);
+	REQUIRE(best != NULL);
+	CHECK(best->names == std::vector<std::string>{ "Split 1", "Split 2", "Split 3" });
+	CHECK(best->IsOf({ "Split 1", "Split 2", "Split 3" }));
+	CHECK_FALSE(best->IsOf({ "Split 1", "Split 3", "Split 2" }));
+	CHECK_FALSE(best->IsOf({ "Split 1", "Split 2" }));
+
+	RunStore read;
+	REQUIRE(read.Read(store.Write()));
+	REQUIRE(read.Find(kKey) != NULL);
+	CHECK(read.Find(kKey)->names == best->names);
+}
+
+TEST_CASE("bests of a route whose splits have since changed are not compared with") {
+	RunStore store;
+	store.Record(kKey, RunOf({ 100, 250, 400 }, true));
+
+	Run run = RunOf({ 90, -1, -1 }, false);
+	run.ended = false;
+	run.splits[1].name = "Another";
+	const RunCompare::Lines lines = RunCompare::Compare(run, store.Find(kKey), RunStore::RealTime,
+		95 * kSecond);
+	CHECK(lines.bestTotal == -1);
+	CHECK(lines.sumOfBest == -1);
+	CHECK_FALSE(lines.splits[0].compared);
+}
+
+TEST_CASE("a run on a route that has changed starts its bests over") {
+	RunStore store;
+	store.Record(kKey, RunOf({ 100, 250, 400 }, true));
+	store.Record(kKey, RunOf({ 100, 250, 400 }, false));
+	CHECK(store.Find(kKey)->attempts == 2);
+
+	Run changed = RunOf({ 500, 600, 700 }, true);
+	changed.splits[2].name = "Another";
+	store.Record(kKey, changed);
+
+	const RunStore::Best* best = store.Find(kKey);
+	REQUIRE(best != NULL);
+	CHECK(best->attempts == 1);
+	CHECK(best->finished == 1);
+	CHECK(best->by[RunStore::RealTime].total == 700 * kSecond);
+	CHECK(best->names.back() == "Another");
+}
+
+TEST_CASE("bests kept without names go by how many splits there are") {
+	RunStore store;
+	REQUIRE(store.Read(R"({"bests": {"bosses-normal/1/sc": {"attempts": 1, "finished": 1,
+		"real": {"total": 250000, "splits": [100000, 250000], "segments": [100000, 150000]},
+		"game": {"total": 250000, "splits": [100000, 250000], "segments": [100000, 150000]}}}})"));
+	const RunStore::Best* best = store.Find(kKey);
+	REQUIRE(best != NULL);
+	CHECK(best->names.empty());
+	CHECK(best->IsOf({ "Anything", "At all" }));
+	CHECK_FALSE(best->IsOf({ "One" }));
+
+	// The next run on it says what they are called, and keeps what was there.
+	store.Record(kKey, RunOf({ 90, 300 }, true));
+	CHECK(store.Find(kKey)->attempts == 2);
+	CHECK(store.Find(kKey)->names == std::vector<std::string>{ "Split 1", "Split 2" });
+	CHECK(store.Find(kKey)->by[RunStore::RealTime].segments[0] == 90 * kSecond);
 }

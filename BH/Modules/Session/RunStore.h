@@ -30,6 +30,14 @@ class RunStore {
 			unsigned int attempts;
 			unsigned int finished;
 			Times by[Clocks];
+
+			// The splits these are the times of, by name: a route that has been
+			// changed since is another route, and its times are not these. Empty
+			// where they were not kept, and the number of splits is all there is
+			// to go by.
+			std::vector<std::string> names;
+
+			bool IsOf(const std::vector<std::string>& splits) const;
 		};
 
 		// What a route's bests are kept under: the route, the class playing it
@@ -40,8 +48,12 @@ class RunStore {
 
 		// Takes a run that has ended into the bests it is kept under. A run that
 		// was given up still counts as an attempt, and still sets a best for any
-		// stretch it did faster than before.
+		// stretch it did faster than before. Bests of other splits than the
+		// run's are started over.
 		void Record(const std::string& key, const SessionModel::Run& run);
+
+		// The names of a run's splits, which is what its bests are known by.
+		static std::vector<std::string> SplitsOf(const SessionModel::Run& run);
 
 		bool Read(const std::string& text);
 		std::string Write() const;

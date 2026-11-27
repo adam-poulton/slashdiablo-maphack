@@ -13,6 +13,7 @@
 #include "RunEvaluator.h"
 #include "RunStore.h"
 #include "SessionFile.h"
+#include "SessionHistory.h"
 #include "SessionHud.h"
 #include "SessionModel.h"
 #include "SplitRoute.h"
@@ -43,7 +44,8 @@ class Session : public Module {
 			unsigned int area;
 		};
 
-		// The session in hand, as whoever shows it is handed it.
+		// The session to show, as whoever shows it is handed it: the one being
+		// played, or one that is over and has been asked for to look through.
 		struct View {
 			const SessionModel& model;
 			unsigned long long now;						// on the session's clock
@@ -51,6 +53,21 @@ class Session : public Module {
 			const std::vector<Splits::Route>& routes;
 			std::string route;							// the id of the one a run would start on
 			RunStore::Clock clock;
+			std::string viewing;						// the log of a session that is over, or ""
+		};
+
+		// The sessions there are logs of.
+		struct HistoryView {
+			const std::vector<SessionIndex::Entry>& entries;	// newest first
+			bool hasCurrent;							// a session is being played
+			std::string viewing;						// the log being looked through, or ""
+			unsigned int pending;						// logs still to be read
+		};
+
+		struct RoutesView {
+			const std::vector<Splits::Route>& routes;
+			std::string chosen;							// the id of the one a run would start on
+			bool editable;								// false where their file is one BH could not read
 		};
 
 		// What can be asked of the run in hand.
@@ -80,15 +97,19 @@ class Session : public Module {
 			RunStore::Best bestBefore;
 
 			// A log put up to be looked at: it takes nothing from the game, is
-			// written nowhere, and its clock stands at the log's last event.
+			// written nowhere, and its clock stands at the log's last event. Its
+			// runs are set beside bests of its own, made from the runs it holds
+			// that are over, and nothing of the player's bests as they are now.
 			bool shown;
 			unsigned long long shownAt;
+			RunStore ownBests;
 		};
 
 		static Session* instance;
 
 		static bool enabled;
 		static bool keepHistory;
+		static unsigned int sessionsKept;		// logs kept, or 0 for all of them
 		static bool hudOn;
 		static unsigned int hudView;
 		static unsigned int hudRunView;			// 0 for the same, or a view and one
@@ -115,12 +136,18 @@ class Session : public Module {
 
 		SessionHud hud;
 
-		// The routes there are to run and the best each has been run. A log put
-		// up to be looked at is compared with bests of its own, made from the
-		// runs it holds.
+		// The routes there are to run and the best each has been run.
 		std::vector<Splits::Route> routes;
+		bool routesEditable;
 		RunStore bests;
-		RunStore shownBests;
+
+		// The logs there are, and the one of them being looked through in the
+		// window. The HUD and the tokens go on showing the session being played.
+		std::unique_ptr<SessionHistory> history;
+		std::unique_ptr<Live> viewed;
+		std::string viewedFile;
+		unsigned long long historyCheckedAt;
+		unsigned int historyPending;
 
 		// Drops are noted from wherever the item filter runs and taken on the
 		// game loop. An item is one drop however many times it is pinged, so
@@ -154,6 +181,16 @@ class Session : public Module {
 		// Brings the file up to date with the log, opening it if history has
 		// been asked for since the session began.
 		void Write(Live& session);
+
+		// A log as a session to look at.
+		static std::unique_ptr<Live> Replayed(const std::vector<SessionEvents::Event>& events);
+
+		// The logs this client has open, by name.
+		std::set<std::string> OpenLogs() const;
+
+		// Deletes the oldest logs past the number kept, and none this client has
+		// open.
+		void Prune();
 
 		// Ends the session in hand. The game being played, if there is one, is
 		// joined again as the first of the next.
@@ -193,9 +230,26 @@ class Session : public Module {
 
 		static bool IsEnabled() { return enabled; }
 
-		// Hands the session in hand to whoever wants to read it. False, having
-		// called nothing, where there is none.
+		// Hands the session to show to whoever wants to read it: the one being
+		// looked through where there is one, and otherwise the one being played.
+		// False, having called nothing, where there is neither.
 		static bool Read(const std::function<void(const View&)>& reader);
+
+		// Hands over the sessions there are logs of, reading a few more of the
+		// logs not yet read each time it is asked.
+		static bool ReadHistory(const std::function<void(const HistoryView&)>& reader);
+
+		// Puts a session that is over up to be looked through, by its log's
+		// name, or goes back to the one being played for "". False where the log
+		// could not be read.
+		static bool ViewPast(const std::string& file);
+
+		static bool ReadRoutes(const std::function<void(const RoutesView&)>& reader);
+
+		// Changes the routes and writes them to their file. False, having
+		// changed nothing, where the file is one BH could not read: it is its
+		// owner's to mend, and is not written over.
+		static bool EditRoutes(const std::function<void(std::vector<Splits::Route>&)>& edit);
 
 		// Called for each ground item the filter pings, from any thread, and as
 		// often as the filter pings it.
