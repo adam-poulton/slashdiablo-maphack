@@ -111,6 +111,7 @@ static const struct {
 	{ Settings::Category::Input, Settings::Heading::PanelHotkeys },
 	{ Settings::Category::Input, "QOL hotkeys" },
 	{ Settings::Category::Input, "Stash export" },
+	{ Settings::Category::Input, "NPC menu" },
 	{ Settings::Category::Input, "Shopping" },
 	{ Settings::Category::Input, Settings::Heading::Gambling },
 };

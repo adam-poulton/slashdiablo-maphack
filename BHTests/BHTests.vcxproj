@@ -104,6 +104,7 @@
     <ClCompile Include="ItemGridTests.cpp" />
     <ClCompile Include="PortalDelayTests.cpp" />
     <ClCompile Include="GambleRefreshTests.cpp" />
+    <ClCompile Include="TalkMenuTests.cpp" />
     <ClCompile Include="MapIconTests.cpp" />
     <ClCompile Include="ShopTests.cpp" />
     <ClCompile Include="PropertyStatsTests.cpp" />
@@ -143,6 +144,7 @@
     <ClCompile Include="..\BH\Modules\AgentDriver\ItemDrop.cpp" />
     <ClCompile Include="..\BH\Modules\Shop\GambleMarks.cpp" />
     <ClCompile Include="..\BH\Modules\Shop\GambleRefresh.cpp" />
+    <ClCompile Include="..\BH\Modules\NpcTalk\TalkMenu.cpp" />
     <ClCompile Include="..\BH\Drawing\MapIcon\MapIcon.cpp" />
     <ClCompile Include="..\BH\Modules\Shop\ShopHighlights.cpp" />
     <ClCompile Include="..\BH\Modules\Item\CaptureFormat.cpp" />
