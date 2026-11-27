@@ -14,6 +14,7 @@
 #include "Modules\Party\Party.h"
 #include "Modules\ChatColor\ChatColor.h"
 #include "Modules\Shop\Shop.h"
+#include "Modules\NpcTalk\NpcTalk.h"
 #include "Modules\TownPortal\TownPortal.h"
 #include "Modules\StashExport\StashExport.h"
 #include "Modules\Codex\CodexWindow.h"

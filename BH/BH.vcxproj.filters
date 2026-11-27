@@ -89,6 +89,8 @@
     <ClCompile Include="Mustache.cpp" />
     <ClCompile Include="Patch.cpp" />
     <ClCompile Include="Modules\StashExport\StashExport.cpp" />
+    <ClCompile Include="Modules\NpcTalk\NpcTalk.cpp" />
+    <ClCompile Include="Modules\NpcTalk\TalkMenu.cpp" />
     <ClCompile Include="Modules\TownPortal\PortalDelay.cpp" />
     <ClCompile Include="Modules\TownPortal\TownPortal.cpp" />
     <ClCompile Include="Modules\AgentDriver\AgentDriver.cpp" />
@@ -213,6 +215,8 @@
     <ClInclude Include="Mustache.h" />
     <ClInclude Include="Patch.h" />
     <ClInclude Include="Modules\StashExport\StashExport.h" />
+    <ClInclude Include="Modules\NpcTalk\NpcTalk.h" />
+    <ClInclude Include="Modules\NpcTalk\TalkMenu.h" />
     <ClInclude Include="Modules\TownPortal\PortalDelay.h" />
     <ClInclude Include="Modules\TownPortal\TownPortal.h" />
     <ClInclude Include="Modules\AgentDriver\AgentDriver.h" />
