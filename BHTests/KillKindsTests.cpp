@@ -69,11 +69,17 @@ TEST_CASE("Baal's tentacles and his clone are part of his fight, not kills") {
 	CHECK(Counts(Monster(571)));
 }
 
-TEST_CASE("a monster is the most that can be said of it") {
+TEST_CASE("a monster is what the game marks it") {
 	CHECK(TierOf({ false, false, false, false, false }) == TierNormal);
 	CHECK(TierOf({ false, false, false, false, true }) == TierMinion);
 	CHECK(TierOf({ false, false, false, true, false }) == TierChampion);
 	CHECK(TierOf({ false, false, true, false, false }) == TierUnique);
+}
+
+TEST_CASE("a champion is marked unique as well, and is a champion") {
+	// As the game marks a Champion, Berserker, Fanatic, Ghostly or Possessed
+	// monster: seen in a session's log as 25 "unique" kills named for champions.
+	CHECK(TierOf({ false, false, true, true, false }) == TierChampion);
 }
 
 TEST_CASE("a super unique is marked unique as well, and is a super unique") {

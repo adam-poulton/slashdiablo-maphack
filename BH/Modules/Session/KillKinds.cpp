@@ -24,10 +24,10 @@ Tier TierOf(const Marks& marks) {
 		return TierBoss;
 	if (marks.superUnique)
 		return TierSuperUnique;
-	if (marks.unique)
-		return TierUnique;
 	if (marks.champion)
 		return TierChampion;
+	if (marks.unique)
+		return TierUnique;
 	if (marks.minion)
 		return TierMinion;
 	return TierNormal;

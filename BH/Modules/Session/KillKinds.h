@@ -30,8 +30,9 @@ struct Marks {
 	bool minion;
 };
 
-// The most that can be said of it. A super unique is marked unique as well, and
-// a champion is not a minion of anything.
+// What it is. The game marks a champion unique as well as champion, and a super
+// unique unique as well as super unique, so unique alone is what is left once
+// neither of those is so.
 SessionEvents::Tier TierOf(const Marks& marks);
 
 }
