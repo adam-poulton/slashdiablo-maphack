@@ -746,7 +746,9 @@ void Shop::DrawRefreshButton() {
 	int mouseX = *p_D2CLIENT_MouseX;
 	int mouseY = *p_D2CLIENT_MouseY;
 	bool hovered = box.Contains(mouseX, mouseY);
-	bool down = (buttonHeld && hovered) || refresher.Busy();
+	// As D2Client draws its own buttons at 0x95E02: the frame follows the press
+	// alone, so a held button stays down with the mouse off it.
+	bool down = buttonHeld || refresher.Busy();
 
 	// The game's cell context is 0x48 bytes, zeroed, with the frame first and
 	// the cell file at 0x34.
