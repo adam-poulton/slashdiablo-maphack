@@ -595,9 +595,13 @@ void Shop::OnLoop() {
 // until it gives up. Ending the wait as an answer would is safe if the answer
 // does come after all: the game takes it as it takes one for a trade not
 // waiting on it.
+//
+// Only a trade's wait is ended. The same dialog holds input for Cain's identify
+// and the like, which never set the tick a trade is timed from, and whose
+// answer the game drops once the wait is no longer theirs.
 void Shop::EndUnansweredTrade() {
 	if (!buyCooldownPatch->IsInstalled() || !*p_D2CLIENT_TradeWaitDialog ||
-			*p_D2CLIENT_TradeCloseAt != 0)
+			*p_D2CLIENT_TalkState != TALK_STATE_TRADE || *p_D2CLIENT_TradeCloseAt != 0)
 		return;
 	if (GetTickCount() - *p_D2CLIENT_LastTradeTick < TRADE_ANSWER_TIMEOUT)
 		return;
@@ -742,7 +746,9 @@ void Shop::DrawRefreshButton() {
 	int mouseX = *p_D2CLIENT_MouseX;
 	int mouseY = *p_D2CLIENT_MouseY;
 	bool hovered = box.Contains(mouseX, mouseY);
-	bool down = (buttonHeld && hovered) || refresher.Busy();
+	// As D2Client draws its own buttons at 0x95E02: the frame follows the press
+	// alone, so a held button stays down with the mouse off it.
+	bool down = buttonHeld || refresher.Busy();
 
 	// The game's cell context is 0x48 bytes, zeroed, with the frame first and
 	// the cell file at 0x34.

@@ -134,6 +134,7 @@ void BH::Initialize()
 	new Maphack();
 	new ChatColor();
 	new Shop();
+	new NpcTalk();
 	new TownPortal();
 	new StashExport();
 	new AccountsWindow();

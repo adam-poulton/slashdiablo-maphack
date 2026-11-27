@@ -207,6 +207,11 @@ VARPTR(D2CLIENT, GoldDialogAmount, DWORD, 0x11BBB0, 0x11D568)
 
 VARPTR(D2CLIENT, NPCMenu, NPCMenu*, 0xF3BA0, 0xF1A90)
 VARPTR(D2CLIENT, NPCMenuAmount, DWORD, 0xF42F0, 0xF21E0)
+// 1.13c only. The talk menu of the NPC being talked to, NULL while it is not
+// up, and the dialog on top of every other, which is the one taking input and
+// the one the game's own close (0xA3D20) takes down.
+VARPTR(D2CLIENT, TalkMenu, Dialog*, 0x119763, 0x119763)
+VARPTR(D2CLIENT, TopDialog, Dialog*, 0x11BC00, 0x11BC00)
 
 VARPTR(D2CLIENT, TradeLayout, InventoryLayout, 0x10B288, 0x101598)
 VARPTR(D2CLIENT, StashLayout, InventoryLayout, 0x10B2D0, 0x1015E0)
@@ -270,6 +275,13 @@ VARPTR(D2CLIENT, TransactionDialog, void*, 0x11975B, 0x1018D3)
 // that never answers leaves it up for 60 s, after which the game stops taking
 // input altogether.
 VARPTR(D2CLIENT, TradeWaitDialog, void*, 0x11975F, 0x11975F)
+// 1.13c only. What the talk with an NPC is doing. While the wait dialog is up it
+// says what is waited on, and the server's answer (packet 0x2A, 0x4BC80) is
+// handed on by it: 5 for a trade, sent by 0x46EE0, and 0xA for anything else
+// that waits, such as Cain's identify (0x46AF0). An answer that finds neither
+// is dropped.
+VARPTR(D2CLIENT, TalkState, DWORD, 0x119663, 0x119663)
+#define TALK_STATE_TRADE 5
 VARPTR(D2CLIENT, LastTradeTick, DWORD, 0x122309, 0x122309)
 // When the answered trade's dialog closes, 0 until the answer has come, and the
 // game's own handling of an answer, which clears the trade and has the dialog

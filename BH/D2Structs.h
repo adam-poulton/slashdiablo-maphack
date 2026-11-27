@@ -726,6 +726,34 @@ struct OverheadMsg {
 
 #pragma pack(pop)
 
+// A D2Client dialog: an NPC's talk menu, or a box that holds input while the
+// server answers. 1.13c only: 0xA3E40 makes one and puts it on top of the
+// others, 0xA36F0 adds a line, and a click or Enter on a line calls its
+// function with no arguments (0xA3D06, 0xA4357).
+#define DIALOG_MAX_LINES 10
+
+struct DialogLine {
+	wchar_t wText[120];					//0x00
+	DWORD dwColor;						//0xF0
+	DWORD _1[4];						//0xF4
+	DWORD dwKind;						//0x104
+	BOOL (__stdcall *fnPick)(void);		//0x108
+	DWORD bSelectable;					//0x10C
+};
+
+struct Dialog {
+	DWORD dwCreated;					//0x00, in GetTickCount() milliseconds
+	BYTE _1[0x40];						//0x04
+	int nSelected;						//0x44, -1 for none
+	BYTE _2[4];							//0x48
+	DWORD dwSelectable;					//0x4C, how many lines can be picked
+	DWORD dwLines;						//0x50
+	BYTE _3[0x14];						//0x54
+	DialogLine Lines[DIALOG_MAX_LINES];	//0x68
+	void* _4;							//0xB08
+	Dialog* pBelow;						//0xB0C
+};
+
 struct D2MSG {
 	HWND myHWND;
 	char lpBuf[256];
