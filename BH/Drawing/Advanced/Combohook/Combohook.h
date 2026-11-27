@@ -108,6 +108,15 @@ namespace Drawing {
 			bool Scrolls() { return VisibleRows() < options.size(); };
 
 			std::vector<std::string> GetOptions() { return options; };
+
+			// Replaces what the box offers, for options that follow what is being
+			// edited. The value is left where it is.
+			void SetOptions(const std::vector<std::string>& newOptions) {
+				Lock();
+				options = newOptions;
+				scroll = 0;
+				Unlock();
+			};
 			unsigned int NewOption(std::string opt) { Lock(); options.push_back(opt); Unlock(); return options.size() - 1; };
 			//Clamped to the options there actually are. The value behind the box is
 			//read from the config, so it can name an option that does not exist -

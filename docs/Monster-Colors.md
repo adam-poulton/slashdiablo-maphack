@@ -1,3 +1,5 @@
+Note: monsters are now styled in the Forge (`.forge` in chat, or its hotkey), on its `Monsters` tab: a marker for each rank, and rules for particular monsters, super uniques, modifiers and levels, picked by name rather than by number. The settings described below still work, but only as what the Forge starts from. Once anything is changed there, what it saves in `BH_forge.json` is what counts.
+
 Note: As of BH 1.9.9, Monster Color lines go in the `BH_settings.cfg` file, not `BH.cfg`.
 
 The "Monster Color" parameters in BH_settings.cfg let you control the colors of monster symbols placed on the map. Here is the default configuration:

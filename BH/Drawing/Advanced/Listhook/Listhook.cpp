@@ -5,6 +5,7 @@
 #include "../../Basic/Texthook/TextMetrics.h"
 #include "../../../D2Ptrs.h"
 #include "../../GroupStyle.h"
+#include "../Checkhook/Checkhook.h"
 
 using namespace std;
 using namespace Drawing;
@@ -26,7 +27,8 @@ using namespace Drawing;
 
 
 Listhook::Listhook(HookVisibility visibility, unsigned int x, unsigned int y, unsigned int xSize, unsigned int ySize) :
-Hook(visibility, x, y), xSize(xSize), ySize(ySize), font(0), scrollTop(0), headerColor(Gold),
+Hook(visibility, x, y), xSize(xSize), ySize(ySize), font(0), rowPadding(LIST_ROW_PADDING),
+scrollTop(0), headerColor(Gold),
 groupColor(UI_GROUP_COLOR), groupHoverColor(UI_GROUP_HOVER_COLOR),
 groupIndent(UI_GROUP_INDENT),
 hasGroups(false), floating(false),
@@ -37,7 +39,8 @@ draggingThumb(false), thumbGrabOffset(0) {
 }
 
 Listhook::Listhook(HookGroup* group, unsigned int x, unsigned int y, unsigned int xSize, unsigned int ySize) :
-Hook(group, x, y), xSize(xSize), ySize(ySize), font(0), scrollTop(0), headerColor(Gold),
+Hook(group, x, y), xSize(xSize), ySize(ySize), font(0), rowPadding(LIST_ROW_PADDING),
+scrollTop(0), headerColor(Gold),
 groupColor(UI_GROUP_COLOR), groupHoverColor(UI_GROUP_HOVER_COLOR),
 groupIndent(UI_GROUP_INDENT),
 hasGroups(false), floating(false),
@@ -72,6 +75,20 @@ void Listhook::SetFont(unsigned int newFont) {
 		ClampScroll();
 		Unlock();
 	}
+}
+
+void Listhook::SetRowPadding(unsigned int padding) {
+	Lock();
+	rowPadding = (padding < LIST_ROW_PADDING) ? LIST_ROW_PADDING : padding;
+	ClampScroll();
+	Unlock();
+}
+
+void Listhook::SetRowCheck(int row, bool checked) {
+	Lock();
+	if (row >= 0 && row < (int)rows.size() && rows[row].check >= 0)
+		rows[row].check = checked ? 1 : 0;
+	Unlock();
 }
 
 void Listhook::SetColumns(const std::vector<ListColumn>& newColumns) {
@@ -407,7 +424,7 @@ void Listhook::FitRows() {
 }
 
 unsigned int Listhook::GetRowHeight() {
-	return BaselineOffset(font) + LIST_ROW_PADDING;
+	return BaselineOffset(font) + rowPadding;
 }
 
 unsigned int Listhook::GetHeaderHeight() {
@@ -785,10 +802,13 @@ void Listhook::OnDraw() {
 
 	int hovered = GetHoveredRow();
 	unsigned int first = GetFirstVisibleRow(), last = GetLastVisibleRow();
+	// Text is centred in whatever a row has past the least it needs.
+	unsigned int textInset = (rowPadding - LIST_ROW_PADDING) / 2;
 	for (unsigned int position = first; position < last; position++, y += rowHeight) {
 		unsigned int r = shown[position];
 		if (r >= fitted.size())
 			continue;
+		unsigned int textY = y + textInset;
 
 		if (rows[r].group) {
 			bool selected = ((int)r == selectedRow);
@@ -800,15 +820,15 @@ void Listhook::OnDraw() {
 
 			std::string marker = GroupMarker(r);
 			if (marker.length() > 0) {
-				Texthook::Draw(GetX() + GroupMarkerX(r), y, None, font,
+				Texthook::Draw(GetX() + GroupMarkerX(r), textY, None, font,
 					UI_GROUP_DIM_COLOR, "%s", marker.c_str());
 			}
 			if (fitted[r].size() > 0 && fitted[r][0].length() > 0) {
-				Texthook::Draw(GetX() + GroupLabelX(), y, None, font, color, "%s",
+				Texthook::Draw(GetX() + GroupLabelX(), textY, None, font, color, "%s",
 					fitted[r][0].c_str());
 			}
 			if (fitted[r].size() > 1 && fitted[r][1].length() > 0) {
-				Texthook::Draw(GetX() + groupCountX[r], y, None, font,
+				Texthook::Draw(GetX() + groupCountX[r], textY, None, font,
 					UI_GROUP_DIM_COLOR, "%s", fitted[r][1].c_str());
 			}
 			continue;
@@ -819,6 +839,12 @@ void Listhook::OnDraw() {
 		// whichever row happens to be under the mouse.
 		if (selected)
 			Boxhook::Draw(GetX() - 2, y, contentWidth, rowHeight, UI_SURFACE_BAND, BTNormal);
+		if (rows[r].check >= 0 && !cellX[r].empty()) {
+			unsigned int boxY = y + (rowHeight > CHECK_BOX_SIZE ?
+				(rowHeight - CHECK_BOX_SIZE) / 2 : 0);
+			Checkhook::DrawBox(GetX() + cellX[r][0], boxY, rows[r].check > 0,
+				(selected || (int)r == hovered) ? White : Gold);
+		}
 		for (unsigned int c = 0; c < fitted[r].size(); c++) {
 			if (fitted[r][c].length() == 0)
 				continue;
@@ -830,7 +856,7 @@ void Listhook::OnDraw() {
 			// Over the top of either, so the lift is the last word.
 			if ((selected || (int)r == hovered) && columns[c].hoverColor != Disabled)
 				color = columns[c].hoverColor;
-			Texthook::Draw(GetX() + cellX[r][c], y, None, font, color, "%s",
+			Texthook::Draw(GetX() + cellX[r][c], textY, None, font, color, "%s",
 				fitted[r][c].c_str());
 		}
 	}

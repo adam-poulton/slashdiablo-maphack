@@ -1,4 +1,5 @@
 #include "MapIconhook.h"
+#include <algorithm>
 #include "../../../D2Ptrs.h"
 #include "../../Basic/Boxhook/Boxhook.h"
 #include "../../Basic/Framehook/Framehook.h"
@@ -75,19 +76,28 @@ static_assert(MIH_CELL >= MapIcon::ChestHeight + 4,
 #define MIH_LABEL_COLOR			Gold
 #define MIH_LABEL_HOVER			Tan
 
+// What a style laid over another says of a part it leaves alone, and what it can
+// do to the line, in MapIconOverride::Line order.
+#define MIH_UNCHANGED_TEXT		"Unchanged"
+static const char* const LineChanges[] = { MIH_UNCHANGED_TEXT, "None", "Drawn" };
+
 /* MapIconCombohook
  */
-std::vector<std::string> MapIconCombohook::Labels(const std::vector<MapIcon::Icon>& icons) {
+std::vector<std::string> MapIconCombohook::Labels(const std::vector<MapIcon::Icon>& icons,
+		bool unchanged) {
 	std::vector<std::string> labels;
+	if (unchanged)
+		labels.push_back(MIH_UNCHANGED_TEXT);
 	for (MapIcon::Icon icon : icons)
 		labels.push_back(MapIcon::Label(icon));
 	return labels;
 }
 
-unsigned int MapIconCombohook::Width(const std::vector<MapIcon::Icon>& icons) {
+unsigned int MapIconCombohook::Width(const std::vector<MapIcon::Icon>& icons,
+		bool unchanged) {
 	unsigned int widest = 0;
-	for (MapIcon::Icon icon : icons) {
-		unsigned int width = (unsigned int)Texthook::GetTextSize(MapIcon::Label(icon), 0).x;
+	for (const std::string& label : Labels(icons, unchanged)) {
+		unsigned int width = (unsigned int)Texthook::GetTextSize(label, 0).x;
 		if (width > widest)
 			widest = width;
 	}
@@ -96,9 +106,11 @@ unsigned int MapIconCombohook::Width(const std::vector<MapIcon::Icon>& icons) {
 }
 
 MapIconCombohook::MapIconCombohook(HookGroup* group, unsigned int x, unsigned int y,
-		MapIconStyle* style, std::vector<MapIcon::Icon> icons) :
-		Combohook(group, x, y, Width(icons), &index, Labels(icons)), style(style),
-		icons(icons), index(0) {
+		MapIconStyle* style, std::vector<MapIcon::Icon> icons,
+		const MapIconOverride* partial) :
+		Combohook(group, x, y, Width(icons, partial != NULL), &index,
+			Labels(icons, partial != NULL)),
+		style(style), icons(icons), partial(partial), index(0) {
 	SetMaxVisible(MIH_OPTION_ROWS);
 }
 
@@ -115,36 +127,57 @@ unsigned int MapIconCombohook::GetTextInset() {
 }
 
 void MapIconCombohook::OnSelected(unsigned int option) {
-	if (option >= icons.size())
+	if (option >= icons.size() + Lead())
 		return;
 	Lock();
-	style->icon = icons[option];
+	if (partial && option == 0) {
+		*partial->setsIcon = false;
+	} else {
+		style->icon = icons[option - Lead()];
+		if (partial)
+			*partial->setsIcon = true;
+	}
 	Unlock();
+}
+
+void MapIconCombohook::DrawIcon(MapIcon::Icon shown, const MapIcon::Look& look,
+		int cx, int cy) {
+	if (shown == MapIcon::None) {
+		D2GFX_DrawLine(cx - MIH_NONE_HALF_WIDTH, cy, cx + MIH_NONE_HALF_WIDTH, cy,
+			MIH_NONE_COLOR, -1);
+		return;
+	}
+	MapIcon::Draw(shown, MIH_CELL_ICON_SIZE, cx, cy, look.Draws() ? look : MIH_BARE_LOOK);
 }
 
 void MapIconCombohook::DrawOption(unsigned int option, unsigned int x, unsigned int y,
 		unsigned int width, TextColor color) {
-	if (option >= icons.size())
+	if (option >= icons.size() + Lead())
 		return;
-	MapIcon::Icon shown = icons[option];
 	int cx = (int)x + MIH_CELL / 2;
 	int cy = (int)y + MIH_CELL / 2;
-	if (shown == MapIcon::None) {
-		D2GFX_DrawLine(cx - MIH_NONE_HALF_WIDTH, cy, cx + MIH_NONE_HALF_WIDTH, cy,
-			MIH_NONE_COLOR, -1);
+	const char* label = MIH_UNCHANGED_TEXT;
+	if (partial && option == 0) {
+		const MapIconStyle& base = *partial->base;
+		DrawIcon(base.DrawsIcon() ? base.Icon() : MapIcon::None, base.Look(), cx, cy);
 	} else {
-		MapIcon::Look look = style->Look();
-		MapIcon::Draw(shown, MIH_CELL_ICON_SIZE, cx, cy, look.Draws() ? look : MIH_BARE_LOOK);
+		MapIcon::Icon shown = icons[option - Lead()];
+		DrawIcon(shown, style->Look(), cx, cy);
+		label = MapIcon::Label(shown);
 	}
 	Texthook::Draw(x + MIH_OPTION_LABEL_LEFT, y + GetTextInset(), None, 0, color, "%s",
-		MapIcon::Label(shown));
+		label);
 }
 
 void MapIconCombohook::OnDraw() {
-	for (unsigned int i = 0; i < icons.size(); i++) {
-		if (icons[i] == style->Icon()) {
-			index = i;
-			break;
+	if (partial && !*partial->setsIcon) {
+		index = 0;
+	} else {
+		for (unsigned int i = 0; i < icons.size(); i++) {
+			if (icons[i] == style->Icon()) {
+				index = i + Lead();
+				break;
+			}
 		}
 	}
 	Combohook::OnDraw();
@@ -286,16 +319,34 @@ static Texthook* Label(HookGroup* group, unsigned int x, const char* text) {
 
 MapIconhook::MapIconhook(HookGroup* group, unsigned int x, unsigned int y,
 		MapIconStyle* style, MapIconOptions options) :
-		Hook(group, x, y), style(style), options(options), content(NULL),
+		Hook(group, x, y), style(style), options(options), overrides(false),
+		shown(*style), content(NULL),
 		iconLabel(NULL), icon(NULL), sizeLabel(NULL), size(NULL), fill(NULL),
-		border(NULL), widthLabel(NULL), width(NULL), line(NULL), lineColor(NULL),
+		border(NULL), widthLabel(NULL), width(NULL), line(NULL), lineLabel(NULL),
+		lineChange(NULL), lineColor(NULL),
 		previewLabel(NULL), preview(NULL), xSize(0), ySize(0), labelWidth(0) {
+	Build();
+}
+
+MapIconhook::MapIconhook(HookGroup* group, unsigned int x, unsigned int y,
+		MapIconStyle* style, MapIconOptions options, MapIconOverride partial) :
+		Hook(group, x, y), style(style), options(options), partial(partial),
+		overrides(true), shown(partial.Over(*style)), content(NULL),
+		iconLabel(NULL), icon(NULL), sizeLabel(NULL), size(NULL), fill(NULL),
+		border(NULL), widthLabel(NULL), width(NULL), line(NULL), lineLabel(NULL),
+		lineChange(NULL), lineColor(NULL),
+		previewLabel(NULL), preview(NULL), xSize(0), ySize(0), labelWidth(0) {
+	Build();
+}
+
+void MapIconhook::Build() {
 	content = new MapIconContent(this);
 	previewLabel = Label(content, 0, MIH_PREVIEW_LABEL_TEXT);
-	preview = new MapIconPreviewhook(content, 0, 0, style);
+	preview = new MapIconPreviewhook(content, 0, 0, &shown);
 	if (!options.icons.empty()) {
 		iconLabel = Label(content, 0, "Icon");
-		icon = new MapIconCombohook(content, 0, 0, style, options.icons);
+		icon = new MapIconCombohook(content, 0, 0, style, options.icons,
+			overrides ? &partial : NULL);
 	}
 	if (options.size) {
 		sizeLabel = Label(content, 0, "Size");
@@ -310,9 +361,21 @@ MapIconhook::MapIconhook(HookGroup* group, unsigned int x, unsigned int y,
 	width = new Sliderhook(content, 0, 0, MIH_RAIL_WIDTH, &style->borderWidth,
 		MapIcon::MinBorder, MapIcon::MaxBorder, 1, MIH_BORDER_UNIT);
 	if (options.line) {
-		line = new Checkhook(content, 0, 0, &style->line, "Draw line");
-		line->SetTextColor(MIH_LABEL_COLOR);
-		line->SetHoverColor(MIH_LABEL_HOVER);
+		if (overrides) {
+			std::vector<std::string> changes(LineChanges, LineChanges + 3);
+			unsigned int widest = 0;
+			for (const std::string& change : changes)
+				widest = (std::max)(widest, (unsigned int)Texthook::GetTextSize(change, 0).x);
+			lineLabel = Label(content, 0, "Line");
+			lineChange = new Combohook(content, 0, 0,
+				COMBO_PADDING_X + widest + MIH_OPTION_ARROW_ROOM +
+					(unsigned int)Texthook::GetTextSize("v", 0).x + COMBO_PADDING_X,
+				partial.line, changes);
+		} else {
+			line = new Checkhook(content, 0, 0, &style->line, "Draw line");
+			line->SetTextColor(MIH_LABEL_COLOR);
+			line->SetHoverColor(MIH_LABEL_HOVER);
+		}
 		lineColor = new Colorhook(content, MIH_INDENT, 0, &style->lineColor, "Line color");
 	}
 	labelWidth = GetNaturalLabelWidth();
@@ -332,6 +395,8 @@ MapIconhook::~MapIconhook() {
 	delete widthLabel;
 	delete width;
 	delete line;
+	delete lineLabel;
+	delete lineChange;
 	delete lineColor;
 	delete previewLabel;
 	delete preview;
@@ -346,7 +411,7 @@ unsigned int MapIconhook::RowY(unsigned int rowTop, Hook* hook) {
 // indent.
 unsigned int MapIconhook::GetNaturalLabelWidth() {
 	unsigned int widest = 0;
-	Texthook* labels[] = { iconLabel, sizeLabel, widthLabel };
+	Texthook* labels[] = { iconLabel, sizeLabel, widthLabel, lineLabel };
 	for (Texthook* label : labels) {
 		if (label && label->GetBaseX() + label->GetXSize() > widest)
 			widest = label->GetBaseX() + label->GetXSize();
@@ -368,6 +433,8 @@ unsigned int MapIconhook::GetMinXSize() {
 	unsigned int controls = MIH_RAIL_WIDTH + ReadoutRoom();
 	if (icon && icon->GetXSize() > controls)
 		controls = icon->GetXSize();
+	if (lineChange && lineChange->GetXSize() > controls)
+		controls = lineChange->GetXSize();
 	return labelWidth + controls;
 }
 
@@ -425,8 +492,14 @@ void MapIconhook::Layout() {
 	width->SetBaseX(labelWidth);
 	width->SetBaseY(RowY(row, width));
 	row += MAP_ICON_ROW_HEIGHT;
-	if (line) {
-		line->SetBaseY(RowY(row, line));
+	if (lineColor) {
+		if (lineChange) {
+			lineLabel->SetBaseY(RowY(row, lineLabel));
+			lineChange->SetBaseX(labelWidth);
+			lineChange->SetBaseY(RowY(row, lineChange));
+		} else {
+			line->SetBaseY(RowY(row, line));
+		}
 		row += MAP_ICON_ROW_HEIGHT;
 		lineColor->SetBaseY(RowY(row, lineColor));
 		row += MAP_ICON_ROW_HEIGHT;
@@ -435,7 +508,8 @@ void MapIconhook::Layout() {
 }
 
 void MapIconhook::Refresh() {
-	bool shape = MapIcon::IsShape(style->Icon());
+	shown = overrides ? partial.Over(*style) : *style;
+	bool shape = MapIcon::IsShape(style->Icon()) && (!overrides || *partial.setsIcon);
 	bool bordered = shape && style->borderColor != MapIcon::NoColor;
 	if (size) {
 		size->SetEnabled(shape);
@@ -446,7 +520,8 @@ void MapIconhook::Refresh() {
 	width->SetEnabled(bordered);
 	widthLabel->SetEnabled(bordered);
 	if (lineColor)
-		lineColor->SetEnabled(style->line);
+		lineColor->SetEnabled(overrides ? *partial.line == MapIconOverride::LineOn :
+			style->line);
 }
 
 // The controls are in a group of the editor's own, which nothing else draws.

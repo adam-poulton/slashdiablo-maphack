@@ -20,12 +20,14 @@ namespace Drawing {
 			TextColor color, hoverColor, disabledColor;//Holds text color/hover color.
 			std::string text;//The text beside the checkhook.
 
+		public:
 			//The box and, when checked, the mark in it. Apart from OnDraw so that
 			//what the box looks like sits in one place rather than mixed in with
-			//placing the label beside it.
+			//placing the label beside it, and public so that a row of a list can
+			//carry the same box.
 			static void DrawBox(unsigned int x, unsigned int y, bool checked,
 				TextColor color);
-		public:
+
 			Checkhook(HookVisibility visibility, unsigned int x, unsigned int y, bool* checked, std::string formatString, ...);
 			Checkhook(HookGroup* group, unsigned int x, unsigned int y, bool* checked, std::string formatString, ...);
 

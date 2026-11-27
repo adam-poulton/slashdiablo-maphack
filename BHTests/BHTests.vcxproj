@@ -101,6 +101,7 @@
     <ClCompile Include="SliderRangeTests.cpp" />
     <ClCompile Include="RoomFrontierTests.cpp" />
     <ClCompile Include="ChestKindTests.cpp" />
+    <ClCompile Include="MonsterMarksTests.cpp" />
     <ClCompile Include="ItemGridTests.cpp" />
     <ClCompile Include="PortalDelayTests.cpp" />
     <ClCompile Include="GambleRefreshTests.cpp" />
@@ -129,12 +130,15 @@
     <ClCompile Include="..\BH\Modules\Accounts\AccountFile.cpp" />
     <ClCompile Include="..\BH\WholeFile.cpp" />
     <ClCompile Include="..\BH\Modules\Forge\ForgeStore.cpp" />
+    <ClCompile Include="..\BH\Modules\Forge\ForgeCodec.cpp" />
     <ClCompile Include="..\BH\Modules\Forge\ForgeFile.cpp" />
     <ClCompile Include="..\BH\Modules\Accounts\AccountClaim.cpp" />
     <ClCompile Include="..\BH\Modules\Accounts\LoginScreen.cpp" />
     <ClCompile Include="..\BH\Modules\Accounts\AccountRows.cpp" />
     <ClCompile Include="..\BH\Modules\Maphack\RoomFrontier.cpp" />
     <ClCompile Include="..\BH\Modules\Maphack\ChestKind.cpp" />
+    <ClCompile Include="..\BH\Modules\Maphack\MonsterMarks.cpp" />
+    <ClCompile Include="..\BH\Modules\Maphack\MonsterNames.cpp" />
     <ClCompile Include="..\BH\Modules\ItemMover\ItemGrid.cpp" />
     <ClCompile Include="..\BH\Modules\TownPortal\PortalDelay.cpp" />
     <ClCompile Include="..\BH\Modules\AgentDriver\AgentKeys.cpp" />

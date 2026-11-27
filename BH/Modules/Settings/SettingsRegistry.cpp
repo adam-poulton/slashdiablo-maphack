@@ -143,6 +143,16 @@ namespace Settings {
 		Add(descriptor);
 	}
 
+	void AddRecord(std::string owner, std::string category, std::string key,
+			std::string label, std::function<std::string()> write,
+			std::function<void(const std::string&)> read, std::string help,
+			std::string parent) {
+		Descriptor descriptor = Common(KindRecord, owner, category, key, label, help, parent);
+		descriptor.writeRecord = write;
+		descriptor.readRecord = read;
+		Add(descriptor);
+	}
+
 	// The text is the label: there is no value for a key to name, and a search
 	// still has something to match on.
 	void AddNote(std::string owner, std::string category, std::string text) {
@@ -248,6 +258,10 @@ namespace Settings {
 				if (descriptor.textValue)
 					snapshot.text = *descriptor.textValue;
 				break;
+			case KindRecord:
+				if (descriptor.writeRecord)
+					snapshot.text = descriptor.writeRecord();
+				break;
 			default:
 				break;
 		}
@@ -295,6 +309,10 @@ namespace Settings {
 			case KindText:
 				if (descriptor.textValue)
 					*descriptor.textValue = snapshot.text;
+				break;
+			case KindRecord:
+				if (descriptor.readRecord)
+					descriptor.readRecord(snapshot.text);
 				break;
 			default:
 				break;

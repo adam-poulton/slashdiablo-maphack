@@ -339,3 +339,87 @@ TEST_CASE("A Forge file that is not valid is left as it is, and says why") {
 	CHECK(temp.Read().find("\"locked\"") != std::string::npos);
 	CHECK(temp.Read().find("\"size\": 3") != std::string::npos);
 }
+
+namespace {
+
+// A list of numbers kept as a tab's own value, the way a module keeps one.
+struct Numbers {
+	std::string text = "[]";
+	bool given = false;
+
+	void Bind(ForgeStore& store) {
+		store.BindValue("monsters", "rules",
+			[this]() { return text; },
+			[this](const std::string* stored) {
+				given = stored != NULL;
+				text = stored ? *stored : "[]";
+			},
+			[this]() { return text == "[]"; });
+	}
+};
+
+}  // namespace
+
+TEST_CASE("A tab's own value is read from beside its markers, and is its default without one") {
+	ForgeStore store;
+	REQUIRE(store.Load(R"({ "monsters": { "boss": { "size": 5 }, "rules": [1, 2] } })"));
+	Numbers numbers;
+	numbers.Bind(store);
+	CHECK(numbers.given);
+	CHECK(numbers.text == "[1,2]");
+	CHECK_FALSE(store.HasChanges());
+
+	ForgeStore empty;
+	REQUIRE(empty.Load(""));
+	Numbers none;
+	none.text = "[9]";
+	none.Bind(empty);
+	CHECK_FALSE(none.given);
+	CHECK(none.text == "[]");
+	CHECK_FALSE(empty.HasChanges());
+}
+
+TEST_CASE("A tab's own value is written beside its markers, and leaves the file at its default") {
+	ForgeStore store;
+	REQUIRE(store.Load(""));
+	MapIconStyle style;
+	store.BindStyle("monsters", "boss", &style, Defaults());
+	Numbers numbers;
+	numbers.Bind(store);
+
+	numbers.text = "[3, {\"minLevel\": 85}]";
+	style.size = 5;
+	CHECK(store.HasChanges());
+	std::string text = Saved(store);
+	CHECK(text.find("\"rules\": [\n      3,") != std::string::npos);
+	CHECK(text.find("\"minLevel\": 85") != std::string::npos);
+	CHECK(text.find("\"boss\": {") != std::string::npos);
+	store.MarkSaved(text);
+	CHECK_FALSE(store.HasChanges());
+
+	// Back at its default it goes, and the marker beside it stays.
+	numbers.text = "[]";
+	CHECK(store.HasChanges());
+	text = Saved(store, text);
+	CHECK(text.find("rules") == std::string::npos);
+	CHECK(text.find("\"boss\": {") != std::string::npos);
+
+	store.MarkSaved(text);
+	style = Defaults();
+	text = Saved(store, text);
+	CHECK(text.find("monsters") == std::string::npos);
+}
+
+TEST_CASE("A tab's own value this client left alone is another client's to change") {
+	ForgeStore store;
+	REQUIRE(store.Load(R"({ "monsters": { "rules": [1] } })"));
+	MapIconStyle style;
+	store.BindStyle("monsters", "boss", &style, Defaults());
+	Numbers numbers;
+	numbers.Bind(store);
+
+	style.size = 6;
+	std::string text = Saved(store, R"({ "monsters": { "rules": [1, 2, 3] } })");
+	CHECK(text.find("3") != std::string::npos);
+	CHECK(text.find("\"size\": 6") != std::string::npos);
+}

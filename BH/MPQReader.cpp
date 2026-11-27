@@ -1,5 +1,6 @@
 #include "MPQReader.h"
 #include "BH.h"
+#include "Modules/Maphack/MonsterNames.h"
 
 std::map<std::string, MPQData*> MpqDataMap;
 
@@ -87,6 +88,19 @@ bool ReadMPQFiles() {
 		std::transform(key.begin(), key.end(), key.begin(), ::tolower);
 		MpqDataMap[key] = new MPQData(txt_data);
 	}
+
+	// Kept as text: these are the widest tables the game has, and all that is
+	// wanted of them is a handful of columns.
+	std::string monsterTables[2];
+	const char* const monsterFiles[2] = { "MonStats", "SuperUniques" };
+	for (int i = 0; i < 2; i++) {
+		BufferData buffer = loadFile(std::string("data\\global\\excel\\") + monsterFiles[i] + ".txt");
+		if (buffer.data) {
+			monsterTables[i].assign((const char*)buffer.data, buffer.size);
+			delete[] buffer.data;
+		}
+	}
+	MonsterNames::SetTables(monsterTables[0], monsterTables[1]);
 	return true;
 }
 

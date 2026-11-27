@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <string>
 #include <vector>
 #include "../../Config.h"
@@ -32,6 +33,7 @@ namespace Settings {
 		// of thing marked. Not tabs of the settings window, which is why it lists
 		// the categories it shows rather than taking every one registered.
 		const char* const Clickables = "Clickables";
+		const char* const Monsters = "Monsters";
 	}
 
 	// Headings that more than one module registers under. Two modules naming the
@@ -55,6 +57,7 @@ namespace Settings {
 		KindNote,		// no value at all: something the panel has to say
 		KindHeading,	// a rule across the panel, naming the settings below it
 		KindMapIcon,	// how a marker is drawn on the map: icon, size, colours, border, line
+		KindRecord,		// a value in a shape of the module's own, kept as text
 	};
 
 	// Which value pointer means anything follows from the kind. The hotkey, enum,
@@ -85,6 +88,8 @@ namespace Settings {
 		MapIcon::Icon swatch;				// KindColor, what the colour is shown as
 		MapIconStyle* styleValue;			// KindMapIcon
 		MapIconOptions styleOptions;		// KindMapIcon, what can be changed about it
+		std::function<std::string()> writeRecord;				// KindRecord
+		std::function<void(const std::string&)> readRecord;	// KindRecord
 
 		Descriptor() : kind(KindBool), boolValue(NULL), toggleValue(NULL),
 			intValue(NULL), textValue(NULL), numberMax(0), numberMin(0),
@@ -182,6 +187,19 @@ namespace Settings {
 	void AddMapIcon(std::string owner, std::string category, std::string key,
 		std::string label, MapIconStyle* value, MapIconOptions options,
 		std::string help = "", std::string parent = "");
+
+	// A setting in a shape no other kind holds, such as a list a window of the
+	// module's own edits. The registry knows nothing of the shape: write gives the
+	// value as text, and read takes back text that write gave. That is all it needs
+	// to tell that the value changed, to say so to the module, and to put it back
+	// as it was last saved. write is asked every frame, so it should cost little
+	// while nothing has changed.
+	//
+	// Where the value is kept is the module's business, as it is for a map icon.
+	void AddRecord(std::string owner, std::string category, std::string key,
+		std::string label, std::function<std::string()> write,
+		std::function<void(const std::string&)> read, std::string help = "",
+		std::string parent = "");
 
 	// Something to say rather than something to set: a caveat, or what a gesture
 	// does. A note carries no value and nothing can be bound to it, but it is
