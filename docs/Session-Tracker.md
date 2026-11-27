@@ -1,6 +1,7 @@
 The session tracker keeps track of a sitting on a character: how long you have
 played, how many games, how much experience you have gained and how fast it is
-coming, where you spent the time, and how often you died.
+coming, where you spent the time, and how often you died. It shows it in a
+small HUD over the game and in a window of its own.
 
 It is on by default, and it runs beside the [run tracker](Run-Tracker.md)
 without changing it: the run tracker's variables, its settings and its CSV file
@@ -22,10 +23,53 @@ Two clocks run through a session:
 Rates are worked out over play time, so waiting for the next game does not drag
 your experience per second down.
 
-## Showing it
+## The HUD
 
-The session's figures are [automap variables](Automap-Info.md), so they can go
-on the automap and in run tracker columns like any other:
+The HUD shows the session over the game, at the top of the screen until you
+move it. It has two views:
+
+* **Line** - one line: session time, the game's number and how long it has run,
+  and experience per second over the session.
+* **Compact** - three rows: session time and time played, the game's time and
+  rate, and the session's rate beside the rate over the last minute.
+
+The HUD takes no clicks. Clicking, dragging or scrolling on it does what it
+would have done had the HUD not been there, so it cannot be moved or changed by
+accident in a fight. To change it you ask:
+
+* `.hud line` or `.hud compact` picks a view, as do the `HUD view` setting and
+  the `Cycle HUD view` hotkey.
+* `.hud move`, the `Position HUD` hotkey or `position HUD` in the session
+  window lets you place it. The HUD is outlined: drag it anywhere, turn the
+  mouse wheel over it to step through its views, and press Escape when done.
+
+The HUD remembers the corner or edge it is nearest to, so one placed at the
+bottom right stays at the bottom right in another view or at another
+resolution. It is not drawn while one of the game's own panels (inventory,
+character, stash and so on) covers its half of the screen.
+
+## The session window
+
+`.session`, or the `Session window` hotkey, opens a window on the session:
+
+* **Overview** - the character, when the session started, session time and time
+  played, games and deaths; experience gained, lost to deaths and per second,
+  over the session, with lobby time counted, and over the last minute and five;
+  levels gained and how long the next level is at this rate; and the game you
+  are in.
+* **Games** - every game of the session under the kind of run it was, with its
+  length, experience, experience per second and level. A run is named for its
+  games without the number they end in, so `baal-12` and `baal-13` are both
+  `baal`, and a run with two finished games or more opens with what they
+  average.
+
+`.session new`, or the `New session` hotkey, ends the session and starts
+another from the game you are in.
+
+## Automap variables
+
+The session's figures are also [automap variables](Automap-Info.md), so they
+can go on the automap and in run tracker columns like any other:
 
 ```
 AutomapInfo[18]:        Session: %SESSIONTIME% (%SESSIONPLAYTIME% played)
@@ -45,16 +89,35 @@ AutomapInfo[19]:        XP: %SESSIONXPPERSEC% (now %RECENTXPPERSEC%)
 
 ## Settings
 
-Both are under `Session` on the Display tab of the settings window:
+Under `Session` on the Display tab of the settings window:
 
 ```
 Session Tracker: True
 Keep Session History: True
+Session HUD: True
+Session HUD View: 0
+Session HUD Background: 1
 ```
 
-* **Session tracker** - turns the tracker on. With it off nothing is tracked and
-  the variables above are empty.
+* **Session tracker** - turns the tracker on. With it off nothing is tracked,
+  the HUD is not drawn and the variables above are empty.
 * **Keep session history** - writes each session to a file of its own.
+* **Session HUD** - shows the HUD.
+* **HUD view** - `Line` (0) or `Compact` (1).
+* **HUD background** - what the HUD's text is drawn on: `None` (0),
+  `Translucent` (1) or `Solid` (2).
+
+And the hotkeys, under `Session` and `Panel hotkeys` on the Input tab, none of
+them bound until you bind them:
+
+```
+Show Session: True, None
+Session HUD Cycle View: None
+Session HUD Position: None
+Session New: None
+```
+
+Where the HUD was placed is kept in `UI.ini`, with the windows' positions.
 
 ## Session files
 
@@ -99,3 +162,4 @@ know, as later versions will add more.
 
 * [Automap Info](Automap-Info.md) - every variable that can be shown
 * [Run Tracker](Run-Tracker.md) - one CSV row per game
+* [Chat Commands](Chat-Commands.md) - `.session` and `.hud` among the rest

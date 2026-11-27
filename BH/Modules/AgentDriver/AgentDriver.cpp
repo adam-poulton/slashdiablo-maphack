@@ -17,6 +17,8 @@
 #include "../../Constants.h"
 #include "../../StringUtil.h"
 #include "../../Drawing/Hook.h"
+#include "../Session/Session.h"
+#include "../Session/SessionFile.h"
 #include "AgentKeys.h"
 #include "AgentScreen.h"
 #include "DrawLog.h"
@@ -202,6 +204,20 @@ json PrepareDrop(const RequestPtr& request, Drop& drop) {
 	return json();
 }
 
+// Puts {"path": FILE}'s session log up for the HUD and the session window to
+// show, which is how a session with a history is looked at without playing one.
+json ShowSession(const json& body) {
+	if (!body.contains("path") || !body["path"].is_string())
+		return Failure("a session's \"path\" is the log to show");
+	std::vector<SessionEvents::Event> events;
+	if (!SessionFile::Read(body["path"].get<std::string>(), events))
+		return Failure("cannot read the session log");
+	if (events.empty())
+		return Failure("the session log holds no events");
+	Session::Show(events);
+	return {{"ok", true}, {"events", events.size()}};
+}
+
 // Hands a packet to the client as though the server had sent it, through the
 // same call the game loop makes for each batch it receives, BH's own packet
 // hook included.
@@ -226,6 +242,8 @@ void Dispatch(const RequestPtr& request, bool inGame) {
 		waitingForFrame.push_back(request);
 	} else if (command == "shot") {
 		RequestFrame(request);
+	} else if (command == "session") {
+		request->reply.set_value(inGame ? ShowSession(request->body) : Failure("not in a game"));
 	} else if (command == "exit" || command == "drop") {
 		if (!inGame || !IsGameReady()) {
 			request->reply.set_value(Failure("not in a game"));

@@ -17,6 +17,7 @@
 #include "Modules\NpcTalk\NpcTalk.h"
 #include "Modules\TownPortal\TownPortal.h"
 #include "Modules\Session\Session.h"
+#include "Modules\Session\SessionWindow.h"
 #include "Modules\StashExport\StashExport.h"
 #include "Modules\Codex\CodexWindow.h"
 #include "Modules\Forge\ForgeWindow.h"

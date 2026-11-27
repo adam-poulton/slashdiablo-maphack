@@ -216,6 +216,20 @@ class ReadingScenarios(unittest.TestCase):
             {"check": "the ring lies there", "item": {"code": "rin", "contains": "Ring"}, "count": 1,
              "hold": ["alt"]}))
 
+    def test_a_session_log_to_show_is_read(self):
+        loaded = scenario.load_scenario(scenario_with({"session": "BHTests/fixtures/session-baal-runs.jsonl"}))
+        scenario.check_sessions(loaded)
+        self.assertEqual(scenario.describe_step(loaded["steps"][0]),
+                         "show the session log `BHTests/fixtures/session-baal-runs.jsonl`")
+
+    def test_a_session_step_is_refused_with_its_reason(self):
+        self.assertRefused(scenario_with({"session": True}), '"session" is the path of a session log')
+        self.assertRefused(scenario_with({"session": ""}), '"session" is the path of a session log')
+        self.assertRefused(scenario_with({"session": "a.jsonl", "offset": [1, 1]}), "does not take offset")
+        with self.assertRaisesRegex(HarnessError, "step 2: no session log at"):
+            scenario.check_sessions(scenario.load_scenario(scenario_with(
+                {"leave": True}, {"session": "BHTests/fixtures/none.jsonl"})))
+
     def test_a_drop_or_item_check_is_refused_with_its_reason(self):
         self.assertRefused(scenario_with({"drop": {}}), 'a "capture" to pick from or a "packet"')
         self.assertRefused(scenario_with({"drop": {"capture": "c.txt", "packet": "9c"}}), "one of them")

@@ -1,5 +1,6 @@
 #include "Session.h"
 #include <ctime>
+#include <filesystem>
 #include "../../BH.h"
 #include "../../Common.h"
 #include "../../Constants.h"
@@ -28,20 +29,46 @@ namespace {
 		"SESSIONXPPERSECLONG", "RECENTXPPERSEC", "SESSIONLEVELS", "SESSIONDEATHS",
 	};
 
+	const char* const kHeading = "Session";
+
 	std::string KeyFor(const GameProbe::Identity& who) {
 		return who.account + "\n" + who.realm + "\n" + who.character;
 	}
+
+	// A log's path, with a number after its name where that name is taken: two
+	// sessions of one character can begin in the same second.
+	std::string FreePath(const std::string& folder, const std::string& name) {
+		const size_t dot = name.find_last_of('.');
+		std::string path = folder + name;
+		for (unsigned int n = 2; std::filesystem::exists(path) && n < 100; n++)
+			path = folder + name.substr(0, dot) + "-" + std::to_string(n) + name.substr(dot);
+		return path;
+	}
 }
 
+Session* Session::instance = NULL;
 bool Session::enabled = true;
 bool Session::keepHistory = true;
+bool Session::hudOn = true;
+unsigned int Session::hudView = HudLayout::ViewLine;
+unsigned int Session::hudBackground = SessionHud::BackgroundTranslucent;
+unsigned int Session::cycleViewKey = 0;
+unsigned int Session::placeHudKey = 0;
+unsigned int Session::newSessionKey = 0;
+
+Session::Session() : Module("Session Tracker"), current(NULL), wantsNew(false),
+		wantsPlacing(false), wantsViewStep(0), wantsView(-1), screenInfo(NULL),
+		publishedAt(0) {
+	instance = this;
+}
 
 void Session::OnLoad() {
 	LoadConfig();
 	screenInfo = (ScreenInfo*)BH::moduleManager->Get("Screen Info");
 	ClearTokens();
+	hud.Load(&hudView);
 
-	Settings::AddHeading(GetName(), Settings::Category::Display, "Session");
+	Settings::AddHeading(GetName(), Settings::Category::Display, kHeading);
 	Settings::AddBool(GetName(), Settings::Category::Display, "Session Tracker",
 		"Session tracker", &enabled,
 		"Keeps track of a sitting on a character: time played, games, experience "
@@ -50,11 +77,46 @@ void Session::OnLoad() {
 		"Keep session history", &keepHistory,
 		"Writes each session to a file of its own in BH_sessions, beside the settings.",
 		"Session Tracker");
+	Settings::AddBool(GetName(), Settings::Category::Display, "Session HUD",
+		"Session HUD", &hudOn,
+		"Shows the session's figures over the game. It takes no clicks: type "
+		".hud move, or use Position HUD, to place it.",
+		"Session Tracker");
+	std::vector<std::string> views;
+	for (int view = 0; view < HudLayout::ViewCount; view++)
+		views.push_back(HudLayout::NameOf((HudLayout::View)view));
+	Settings::AddEnum(GetName(), Settings::Category::Display, "Session HUD View",
+		"HUD view", &hudView, views,
+		"How much the HUD shows, from one line upwards.", "Session HUD");
+	Settings::AddEnum(GetName(), Settings::Category::Display, "Session HUD Background",
+		"HUD background", &hudBackground, { "None", "Translucent", "Solid" },
+		"What the HUD's text is drawn on.", "Session HUD");
+
+	Settings::AddHeading(GetName(), Settings::Category::Input, kHeading);
+	Settings::AddKey(GetName(), Settings::Category::Input, "Session HUD Cycle View",
+		"Cycle HUD view", &cycleViewKey, "Steps the session HUD on to its next view.");
+	Settings::AddKey(GetName(), Settings::Category::Input, "Session HUD Position",
+		"Position HUD", &placeHudKey,
+		"Lets the session HUD be dragged to where you want it, and again to finish.");
+	Settings::AddKey(GetName(), Settings::Category::Input, "Session New",
+		"New session", &newSessionKey,
+		"Ends the session and starts another from the game you are in.");
 }
 
 void Session::LoadConfig() {
 	BH::config->ReadBoolean("Session Tracker", enabled);
 	BH::config->ReadBoolean("Keep Session History", keepHistory);
+	BH::config->ReadBoolean("Session HUD", hudOn);
+	BH::config->ReadInt("Session HUD View", hudView, HudLayout::ViewLine);
+	if (hudView >= HudLayout::ViewCount)
+		hudView = HudLayout::ViewLine;
+	BH::config->ReadInt("Session HUD Background", hudBackground,
+		SessionHud::BackgroundTranslucent);
+	if (hudBackground > SessionHud::BackgroundSolid)
+		hudBackground = SessionHud::BackgroundTranslucent;
+	BH::config->ReadKey("Session HUD Cycle View", "None", cycleViewKey);
+	BH::config->ReadKey("Session HUD Position", "None", placeHudKey);
+	BH::config->ReadKey("Session New", "None", newSessionKey);
 }
 
 void Session::OnSettingsChanged(const vector<string>& keys) {
@@ -65,6 +127,7 @@ void Session::OnSettingsChanged(const vector<string>& keys) {
 		probe.Leave(BHGetTickCount(), seen);
 		Take(seen);
 		ClearTokens();
+		hud.SetBeingPlaced(false);
 	}
 	if (current)
 		Write(*current);
@@ -76,10 +139,20 @@ void Session::OnLoop() {
 
 	const unsigned long long tick = BHGetTickCount();
 	std::lock_guard<std::mutex> held(lock);
+	ActOnRequests();
 	std::vector<GameProbe::Seen> seen;
 	probe.Sample(tick, seen);
 	Take(seen);
 	PublishTokens(tick);
+}
+
+void Session::OnDraw() {
+	if (!enabled || (!hudOn && !hud.IsBeingPlaced()))
+		return;
+
+	std::lock_guard<std::mutex> held(lock);
+	if (current)
+		hud.Draw(current->model, NowOf(*current, BHGetTickCount()), hudBackground);
 }
 
 void Session::OnGameExit() {
@@ -87,6 +160,60 @@ void Session::OnGameExit() {
 	std::vector<GameProbe::Seen> seen;
 	probe.Leave(BHGetTickCount(), seen);
 	Take(seen);
+	hud.SetBeingPlaced(false);
+}
+
+void Session::OnKey(bool up, BYTE key, LPARAM lParam, bool* block) {
+	if (!enabled || key == 0)
+		return;
+	if (key != cycleViewKey && key != placeHudKey && key != newSessionKey)
+		return;
+
+	*block = true;
+	if (up)
+		return;
+	if (key == cycleViewKey)
+		wantsViewStep++;
+	else if (key == placeHudKey)
+		wantsPlacing = true;
+	else
+		wantsNew = true;
+}
+
+void Session::ActOnRequests() {
+	if (wantsNew.exchange(false))
+		StartNew();
+
+	const int view = wantsView.exchange(-1);
+	if (view >= 0 && view < HudLayout::ViewCount)
+		hudView = (unsigned int)view;
+	const int steps = wantsViewStep.exchange(0);
+	if (steps != 0)
+		hudView = HudLayout::Next((HudLayout::View)hudView, steps);
+
+	if (wantsPlacing.exchange(false)) {
+		hud.SetBeingPlaced(!hud.IsBeingPlaced());
+		// A HUD is placed to be looked at.
+		if (hud.IsBeingPlaced())
+			hudOn = true;
+	}
+}
+
+void Session::StartNew() {
+	std::vector<GameProbe::Seen> seen;
+	probe.Leave(BHGetTickCount(), seen);
+	Take(seen);
+
+	for (auto held = sessions.begin(); held != sessions.end(); ++held) {
+		if (held->second.get() == current) {
+			sessions.erase(held);
+			break;
+		}
+	}
+	if (shown.get() == current)
+		shown.reset();
+	current = NULL;
+	ClearTokens();
 }
 
 void Session::Take(const std::vector<GameProbe::Seen>& seen) {
@@ -96,11 +223,9 @@ void Session::Take(const std::vector<GameProbe::Seen>& seen) {
 	for (const GameProbe::Seen& one : seen) {
 		if (std::holds_alternative<Joined>(one.fact))
 			current = SessionFor(probe.GetIdentity(), one.tick);
-		if (!current)
+		if (!current || current->shown)
 			continue;
-		const unsigned long long at =
-			one.tick > current->beganAt ? one.tick - current->beganAt : 0;
-		Record(*current, { at, one.fact });
+		Record(*current, { NowOf(*current, one.tick), one.fact });
 	}
 	if (current)
 		Write(*current);
@@ -116,6 +241,8 @@ Session::Live* Session::SessionFor(const GameProbe::Identity& who,
 	held->beganAt = tick;
 	held->written = 0;
 	held->unwritable = false;
+	held->shown = false;
+	held->shownAt = 0;
 
 	Started fact;
 	// The wall clock at the tick the session's clock starts from, which is a
@@ -137,8 +264,15 @@ void Session::Record(Live& session, const Event& event) {
 	session.log.push_back(event);
 }
 
+unsigned long long Session::NowOf(const Live& session, unsigned long long tick) const {
+	if (session.shown)
+		return session.shownAt;
+	return tick > session.beganAt ? tick - session.beganAt : 0;
+}
+
 void Session::Write(Live& session) {
-	if (!keepHistory || session.unwritable || session.written == session.log.size())
+	if (!keepHistory || session.shown || session.unwritable ||
+			session.written == session.log.size())
 		return;
 
 	if (!session.file.IsOpen()) {
@@ -146,8 +280,8 @@ void Session::Write(Live& session) {
 		const time_t began = (time_t)header.startedAt;
 		std::tm local = {};
 		localtime_s(&local, &began);
-		const std::string path = BH::path + kFolder +
-			SessionFile::NameFor(local, header.character, GetCurrentProcessId());
+		const std::string path = FreePath(BH::path + kFolder,
+			SessionFile::NameFor(local, header.character, GetCurrentProcessId()));
 		if (!session.file.Open(path)) {
 			session.unwritable = true;
 			return;
@@ -165,7 +299,7 @@ void Session::PublishTokens(unsigned long long tick) {
 	publishedAt = tick;
 
 	const SessionModel& model = current->model;
-	const unsigned long long now = tick > current->beganAt ? tick - current->beganAt : 0;
+	const unsigned long long now = NowOf(*current, tick);
 	const long long net = (long long)model.Gained() - (long long)model.Lost();
 
 	screenInfo->SetAutomapToken("SESSIONTIME", SessionFormat::Clock(now));
@@ -188,3 +322,50 @@ void Session::ClearTokens() {
 		screenInfo->SetAutomapToken(token, "");
 	publishedAt = 0;
 }
+
+bool Session::Read(const std::function<void(const SessionModel&, unsigned long long)>& reader) {
+	Session* self = instance;
+	if (!self)
+		return false;
+	std::lock_guard<std::mutex> held(self->lock);
+	if (!self->current)
+		return false;
+	reader(self->current->model, self->NowOf(*self->current, BHGetTickCount()));
+	return true;
+}
+
+void Session::RequestNew() {
+	if (instance)
+		instance->wantsNew = true;
+}
+
+void Session::RequestHudView(HudLayout::View view) {
+	if (instance)
+		instance->wantsView = (int)view;
+}
+
+void Session::RequestHudPlacing(bool placing) {
+	if (instance && instance->hud.IsBeingPlaced() != placing)
+		instance->wantsPlacing = true;
+}
+
+#ifdef BH_AGENT
+void Session::Show(const std::vector<Event>& events) {
+	Session* self = instance;
+	if (!self)
+		return;
+	std::lock_guard<std::mutex> held(self->lock);
+
+	self->shown.reset(new Live());
+	Live& log = *self->shown;
+	log.beganAt = 0;
+	log.written = 0;
+	log.unwritable = false;
+	log.shown = true;
+	log.shownAt = events.empty() ? 0 : events.back().at;
+	for (const Event& event : events)
+		log.model.Apply(event);
+	self->current = &log;
+	self->publishedAt = 0;
+}
+#endif

@@ -21,6 +21,9 @@ Codex:
   .set (.sets) <search> - Opens the Sets tab
   .cube (.recipe, .recipes) <search> - Opens the Recipes tab
   .base (.bases) <search> - Opens the Bases tab
+Session:
+  .session <new> - Opens the session window
+  .hud <view|move> - Changes or moves the HUD
 ```
 
 A command in brackets is another name for the one in front of it, not a command
@@ -68,6 +71,17 @@ already typed in its search box.
 | `.set` | `.sets` | Opens the Sets tab. |
 | `.cube` | `.recipe`, `.recipes` | Opens the Recipes tab. |
 | `.base` | `.bases` | Opens the Bases tab. |
+
+## Session
+
+The [session tracker](Session-Tracker.md): its window and its HUD.
+
+| Command | What it does |
+| --- | --- |
+| `.session` | Opens the session window. |
+| `.session new` | Ends the session and starts another from the game you are in. |
+| `.hud line`, `.hud compact` | Sets the HUD's view. |
+| `.hud move` | Lets the HUD be dragged to where you want it. Escape when done. |
 
 ## Adding one
 

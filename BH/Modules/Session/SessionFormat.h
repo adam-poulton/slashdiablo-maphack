@@ -12,4 +12,14 @@ std::string Clock(unsigned long long ms);
 // billions with two decimals, "+1.25M/s": the form %LASTXPPERSEC% has.
 std::string Rate(double perSecond);
 
+// The forms the HUD and the session window write, which have no run tracker
+// token to match and are kept short: a length of time without the hours it has
+// not reached, "3:21" and "1:02:03", and a rate to about three figures,
+// "+980.4K/s" and "+1.25M/s".
+std::string ShortClock(unsigned long long ms);
+std::string ShortRate(double perSecond);
+
+// A whole number with its thousands marked, "12,345,678".
+std::string Count(long long number);
+
 }
