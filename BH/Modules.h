@@ -18,6 +18,8 @@
 #include "Modules\TownPortal\TownPortal.h"
 #include "Modules\Session\Session.h"
 #include "Modules\Session\SessionWindow.h"
+#include "Modules\Race\Race.h"
+#include "Modules\Race\RaceWindow.h"
 #include "Modules\StashExport\StashExport.h"
 #include "Modules\Codex\CodexWindow.h"
 #include "Modules\Forge\ForgeWindow.h"

@@ -1,12 +1,12 @@
 #include "doctest.h"
 #include <vector>
-#include "Modules/Session/RunEvaluator.h"
+#include "Modules/Race/RunEvaluator.h"
 
 /*
  * Which splits of a route the game reaches as a run goes.
  */
 
-using namespace SessionEvents;
+using namespace PlayEvents;
 
 namespace {
 

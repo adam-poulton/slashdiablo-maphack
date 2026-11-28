@@ -5,21 +5,22 @@
 #include <tuple>
 #include <unordered_map>
 #include <vector>
-#include "SessionEvents.h"
+#include "PlayEvents.h"
 
 struct UnitAny;
 
-// The only part of the session tracker that reads the game. Looks at the player
-// once per game loop and says what changed since it last looked.
+// What reads the game for the session tracker and the race timer, each of
+// which has one of its own. Looks at the player once per game loop and says
+// what changed since it last looked.
 //
 // What it says is stamped with the tick it was seen at rather than with a
-// session's time, because whose session a game belongs to is not known until the
+// time on its owner's clock, because whose game it is is not known until the
 // character in it is.
 class GameProbe {
 	public:
 		struct Seen {
 			unsigned long long tick;	// BHGetTickCount()
-			SessionEvents::Fact fact;
+			PlayEvents::Fact fact;
 		};
 
 		// Who is playing, read as a game is joined.
@@ -70,7 +71,7 @@ class GameProbe {
 			std::string name;
 			unsigned int count;
 		};
-		typedef std::tuple<unsigned int, unsigned int, SessionEvents::Tier> TallyKey;	// area, class, tier
+		typedef std::tuple<unsigned int, unsigned int, PlayEvents::Tier> TallyKey;	// area, class, tier
 
 		bool present;					// the player has been seen in this game
 		bool joined;					// and Joined has been said

@@ -3,11 +3,12 @@
 #include <variant>
 #include <vector>
 
-// What the session tracker was told, one fact at a time and in the order it was
-// told them. Every figure the tracker shows is worked out from these and nothing
-// else, so a session's log is the session: written a line per event as it
-// happens, it can be read back into the same totals.
-namespace SessionEvents {
+// What the session tracker and the race timer are told, one fact at a time and
+// in the order they are told them. Every figure either shows is worked out from
+// these and nothing else, so a session's log is the session: written a line per
+// event as it happens, it can be read back into the same totals. Each takes
+// what it keeps of them and passes over the rest.
+namespace PlayEvents {
 
 // The first event of every session: whose it is, and what the wall clock said
 // when the session's own clock read zero.
@@ -147,14 +148,14 @@ typedef std::variant<Started, Joined, Left, AreaEntered, Experience, LevelReache
 	SplitUndone, SplitSkipped, RunEnded> Fact;
 
 struct Event {
-	unsigned long long at;		// milliseconds since the session began
+	unsigned long long at;		// milliseconds since the clock they are kept on began
 	Fact fact;
 };
 
 // What a tier is called, in the log and wherever it is shown.
 const char* NameOf(Tier tier);
 
-// One line of a session's log, without its newline: a JSON object.
+// One line of a log, without its newline: a JSON object.
 std::string ToLine(const Event& event);
 
 // False for a line that is not an event this build knows, which a reader skips:

@@ -2,7 +2,7 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "SessionModel.h"
+#include "RunModel.h"
 
 // The best a route has been run: the fastest finished run, and the fastest each
 // stretch between two splits has ever been done, kept for each of the two clocks
@@ -50,10 +50,10 @@ class RunStore {
 		// was given up still counts as an attempt, and still sets a best for any
 		// stretch it did faster than before. Bests of other splits than the
 		// run's are started over.
-		void Record(const std::string& key, const SessionModel::Run& run);
+		void Record(const std::string& key, const RunModel::Run& run);
 
 		// The names of a run's splits, which is what its bests are known by.
-		static std::vector<std::string> SplitsOf(const SessionModel::Run& run);
+		static std::vector<std::string> SplitsOf(const RunModel::Run& run);
 
 		bool Read(const std::string& text);
 		std::string Write() const;
@@ -67,7 +67,7 @@ namespace RunCompare {
 
 struct Line {
 	std::string name;
-	SessionModel::RunSplit::State state;
+	RunModel::Split::State state;
 	long long time;			// when it was reached, or -1
 	long long best;			// when the best run reached it, or -1
 	bool compared;			// whether there is a difference to give
@@ -88,11 +88,11 @@ struct Lines {
 // The stretch that ends at a split: from the split before it, or from the
 // start for the first. -1 where either end was not reached, or they were
 // reached out of order.
-long long Segment(const SessionModel::Run& run, unsigned int index, RunStore::Clock clock);
+long long Segment(const RunModel::Run& run, unsigned int index, RunStore::Clock clock);
 
 // `now` is how long the run has gone on the clock asked for, which is what its
 // own total is once it has ended.
-Lines Compare(const SessionModel::Run& run, const RunStore::Best* best, RunStore::Clock clock,
+Lines Compare(const RunModel::Run& run, const RunStore::Best* best, RunStore::Clock clock,
 	unsigned long long now);
 
 }

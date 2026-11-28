@@ -1,5 +1,5 @@
 #include "doctest.h"
-#include "Modules/Session/KillKinds.h"
+#include "Modules/Tracking/KillKinds.h"
 
 /*
  * Which deaths are kills, and what kind of monster each was.
@@ -9,7 +9,7 @@
  */
 
 using namespace KillKinds;
-using namespace SessionEvents;
+using namespace PlayEvents;
 
 namespace {
 

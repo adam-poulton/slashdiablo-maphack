@@ -40,9 +40,9 @@ namespace {
 namespace SessionIndex {
 
 Entry Summarise(const std::string& file, unsigned long long size,
-		const std::vector<SessionEvents::Event>& events) {
+		const std::vector<PlayEvents::Event>& events) {
 	SessionModel model;
-	for (const SessionEvents::Event& event : events)
+	for (const PlayEvents::Event& event : events)
 		model.Apply(event);
 	const unsigned long long end = events.empty() ? 0 : events.back().at;
 
@@ -61,11 +61,6 @@ Entry Summarise(const std::string& file, unsigned long long size,
 	entry.kills = model.KillTotals().Total();
 	entry.drops = (unsigned int)model.Drops().size();
 	entry.deaths = model.Deaths();
-	entry.runsFinished = 0;
-	for (const SessionModel::Run& run : model.Runs()) {
-		if (run.finished)
-			entry.runsFinished++;
-	}
 	return entry;
 }
 
@@ -87,7 +82,6 @@ std::string Write(const std::vector<Entry>& entries) {
 		json["kills"] = entry.kills;
 		json["drops"] = entry.drops;
 		json["deaths"] = entry.deaths;
-		json["runs"] = entry.runsFinished;
 		listed.push_back(json);
 	}
 	Json file = Json::object();
@@ -120,7 +114,6 @@ bool Read(const std::string& text, std::vector<Entry>& entries) {
 		entry.kills = json.value("kills", 0u);
 		entry.drops = json.value("drops", 0u);
 		entry.deaths = json.value("deaths", 0u);
-		entry.runsFinished = json.value("runs", 0u);
 		entries.push_back(entry);
 	}
 	return true;
@@ -193,7 +186,7 @@ unsigned int SessionHistory::Reconcile(unsigned int budget, const std::set<std::
 	unsigned int pending = (unsigned int)logs.size();
 	for (std::map<std::string, unsigned long long>::reverse_iterator log = logs.rbegin();
 			log != logs.rend() && budget > 0; ++log, budget--) {
-		std::vector<SessionEvents::Event> events;
+		std::vector<PlayEvents::Event> events;
 		if (SessionFile::Read(folder + log->first, events))
 			entries.push_back(SessionIndex::Summarise(log->first, log->second, events));
 		pending--;
@@ -208,7 +201,7 @@ unsigned int SessionHistory::Reconcile(unsigned int budget, const std::set<std::
 }
 
 bool SessionHistory::ReadLog(const std::string& file,
-		std::vector<SessionEvents::Event>& events) const {
+		std::vector<PlayEvents::Event>& events) const {
 	// A name and nothing more: the logs are in the one folder.
 	if (file.find_first_of("\\/") != std::string::npos)
 		return false;

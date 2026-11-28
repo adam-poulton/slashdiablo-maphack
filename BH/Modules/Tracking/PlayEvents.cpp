@@ -1,10 +1,10 @@
-#include "SessionEvents.h"
+#include "PlayEvents.h"
 #include "nlohmann/json.hpp"
 
 // Ordered, so a line reads the same way every time: when, what, then the rest.
 typedef nlohmann::ordered_json Json;
 
-namespace SessionEvents {
+namespace PlayEvents {
 
 namespace {
 	// What the log's lines say of themselves, on the line that starts a session.

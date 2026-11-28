@@ -136,7 +136,9 @@ session HUD and window to show: a log as BH's session tracker writes them to
 with a death and a level gained. A run only ever stands in the Rogue Encampment,
 so this is how a session with a history is looked at. The log's clock stands at
 its last event, so what is drawn does not change from one frame to the next,
-and it stays up until a game is joined.
+and it stays up until a game is joined. A log that holds a timed run, such as
+`BHTests\fixtures\session-race.jsonl`, goes up for the race HUD and window as
+well.
 
 ## Scenarios
 
@@ -227,10 +229,13 @@ usually the right text a pixel or a colour away.
 for BH loading and its settings, `item-drops.json` and
 `item-drops-high-level.json` for the item filter on recorded drops, for a new
 character and for Daicos in Hell, `session.json` for the session HUD and
-window on a recorded session, `session-run.json` for a timed run against
+window on a recorded session, `session-history.json` for a past session
+looked through, `race.json` for the race HUD and window on a timed run against
 its best, on the recorded race in `BHTests\fixtures\session-race.jsonl`, and
-`session-history.json` for a past session looked through and a route put
-together in the window. One written to check a single change can stay
+`race-routes.json` for a route picked, a run started and stopped with the
+buttons, and a route made and changed on the edit page, and `race-games.json` for a
+new character's run starting by itself, carrying on into the next game and
+becoming the best to beat. One written to check a single change can stay
 in a scratch folder.
 
 ## Tests

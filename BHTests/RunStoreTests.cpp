@@ -1,7 +1,7 @@
 #include "doctest.h"
 #include <string>
 #include <vector>
-#include "Modules/Session/RunStore.h"
+#include "Modules/Race/RunStore.h"
 
 /*
  * The best a route has been run, and a run set beside it.
@@ -12,8 +12,8 @@
 
 namespace {
 
-typedef SessionModel::Run Run;
-typedef SessionModel::RunSplit RunSplit;
+typedef RunModel::Run Run;
+typedef RunModel::Split RunSplit;
 
 const long long kSecond = 1000;
 const char* const kKey = "bosses-normal/1/sc";

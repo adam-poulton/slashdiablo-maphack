@@ -1,7 +1,7 @@
 #include "SessionModel.h"
 #include <algorithm>
 
-using namespace SessionEvents;
+using namespace PlayEvents;
 
 namespace {
 	double PerSecond(long long amount, unsigned long long ms) {
@@ -109,7 +109,7 @@ void SessionModel::On(const Players& fact, unsigned long long at) {
 	game.players = std::max(game.players, fact.count);
 }
 
-void SessionModel::On(const SessionEvents::Killed& fact, unsigned long long at) {
+void SessionModel::On(const PlayEvents::Killed& fact, unsigned long long at) {
 	if (!InGame() || fact.tier >= TierCount)
 		return;
 	CountKills(fact.area, fact.classId, fact.name, fact.tier, fact.count);
@@ -236,86 +236,4 @@ unsigned long long SessionModel::AreaMs(unsigned int which,
 	if (inArea && area == which && now > enteredAt)
 		ms += now - enteredAt;
 	return ms;
-}
-
-// Quest state and items held are what a route's triggers are read against as a
-// run goes. What they came to is in the splits that were reached.
-void SessionModel::On(const Quest& fact, unsigned long long at) {}
-void SessionModel::On(const ItemHeld& fact, unsigned long long at) {}
-
-SessionModel::Run* SessionModel::Active() {
-	return !runs.empty() && !runs.back().ended ? &runs.back() : NULL;
-}
-
-const SessionModel::Run* SessionModel::ActiveRun() const {
-	return !runs.empty() && !runs.back().ended ? &runs.back() : NULL;
-}
-
-unsigned long long SessionModel::RunRealMs(unsigned long long now) const {
-	const Run* run = ActiveRun();
-	return run && now > run->startedAt ? now - run->startedAt : 0;
-}
-
-unsigned long long SessionModel::RunGameMs(unsigned long long now) const {
-	const Run* run = ActiveRun();
-	if (!run)
-		return 0;
-	const unsigned long long played = PlayedMs(now);
-	return played > run->startedPlayedMs ? played - run->startedPlayedMs : 0;
-}
-
-void SessionModel::EndRun(unsigned long long at, bool finished) {
-	Run* run = Active();
-	if (!run)
-		return;
-	run->realMs = RunRealMs(at);
-	run->gameMs = RunGameMs(at);
-	run->ended = true;
-	run->finished = finished;
-}
-
-void SessionModel::On(const RunStarted& fact, unsigned long long at) {
-	// A run begun while another is going is the end of that one.
-	EndRun(at, false);
-
-	Run run = {};
-	run.route = fact.route;
-	run.name = fact.name;
-	for (const std::string& name : fact.splits)
-		run.splits.push_back({ name, RunSplit::Open, false, 0, 0, 0 });
-	run.startedAt = at;
-	run.startedPlayedMs = PlayedMs(at);
-	runs.push_back(run);
-}
-
-void SessionModel::On(const SplitReached& fact, unsigned long long at) {
-	Run* run = Active();
-	if (!run || fact.index >= run->splits.size())
-		return;
-	RunSplit& split = run->splits[fact.index];
-	split.state = RunSplit::Reached;
-	split.manual = fact.manual;
-	split.realMs = RunRealMs(at);
-	split.gameMs = RunGameMs(at);
-	split.level = Level();
-}
-
-void SessionModel::On(const SplitUndone& fact, unsigned long long at) {
-	Run* run = Active();
-	if (!run || fact.index >= run->splits.size())
-		return;
-	const std::string name = run->splits[fact.index].name;
-	run->splits[fact.index] = { name, RunSplit::Open, false, 0, 0, 0 };
-}
-
-void SessionModel::On(const SplitSkipped& fact, unsigned long long at) {
-	Run* run = Active();
-	if (!run || fact.index >= run->splits.size())
-		return;
-	const std::string name = run->splits[fact.index].name;
-	run->splits[fact.index] = { name, RunSplit::Skipped, true, 0, 0, 0 };
-}
-
-void SessionModel::On(const RunEnded& fact, unsigned long long at) {
-	EndRun(at, fact.finished);
 }

@@ -1,4 +1,4 @@
-#include "SessionHud.h"
+#include "PlacedHud.h"
 #include <algorithm>
 #include "../../BH.h"
 #include "../../Constants.h"
@@ -6,7 +6,7 @@
 #include "../../Drawing/Basic/Texthook/TextMetrics.h"
 
 using namespace Drawing;
-using namespace HudLayout;
+using namespace HudBlock;
 
 namespace {
 	// The small font, and the spacing that makes one line of it as tall as a
@@ -27,11 +27,6 @@ namespace {
 			default:			return Grey;
 		}
 	}
-
-	// Where the HUD goes until it is moved: the top of the screen, in the middle.
-	const Place kDefaultPlace = { SideMiddle, SideNear, 0, 3 };
-
-	const char* const kSection = "SessionHud";
 
 	// The outline of a HUD being placed, and the gap to what is written by it.
 	const unsigned int kOutlineColor = 0x0D;
@@ -82,49 +77,50 @@ namespace {
 	std::string IniPath() {
 		return BH::path + "UI.ini";
 	}
-
-	// Read as text: a distance from the middle can be negative, which the
-	// integer read does not promise to give back.
-	int StoredInt(const char* key, int otherwise) {
-		char text[32];
-		GetPrivateProfileString(kSection, key, "", text, sizeof(text), IniPath().c_str());
-		return text[0] ? atoi(text) : otherwise;
-	}
-
-	Side StoredSide(const char* key, Side otherwise) {
-		const int stored = StoredInt(key, otherwise);
-		return stored >= SideNear && stored <= SideFar ? (Side)stored : otherwise;
-	}
 }
 
-SessionHud::SessionHud() : handle(NULL), viewSteps(0), place(kDefaultPlace),
-	at({ 0, 0 }), size({ 0, 0 }), placing(false), dragging(false), grabbed({ 0, 0 }) {}
+PlacedHud::PlacedHud(const char* section, const Place& unmoved) : section(section),
+	unmoved(unmoved), handle(NULL), viewSteps(0), place(unmoved), at({ 0, 0 }),
+	size({ 0, 0 }), placing(false), dragging(false), grabbed({ 0, 0 }) {}
 
-void SessionHud::Load() {
+// Read as text: a distance from the middle can be negative, which the integer
+// read does not promise to give back.
+int PlacedHud::StoredInt(const char* key, int otherwise) const {
+	char text[32];
+	GetPrivateProfileString(section, key, "", text, sizeof(text), IniPath().c_str());
+	return text[0] ? atoi(text) : otherwise;
+}
+
+Side PlacedHud::StoredSide(const char* key, Side otherwise) const {
+	const int stored = StoredInt(key, otherwise);
+	return stored >= SideNear && stored <= SideFar ? (Side)stored : otherwise;
+}
+
+void PlacedHud::Load() {
 	if (!handle)
 		handle = new Handle(this);
 
-	place.across = StoredSide("Across", kDefaultPlace.across);
-	place.down = StoredSide("Down", kDefaultPlace.down);
-	place.x = StoredInt("X", kDefaultPlace.x);
-	place.y = StoredInt("Y", kDefaultPlace.y);
+	place.across = StoredSide("Across", unmoved.across);
+	place.down = StoredSide("Down", unmoved.down);
+	place.x = StoredInt("X", unmoved.x);
+	place.y = StoredInt("Y", unmoved.y);
 }
 
-void SessionHud::Save() {
+void PlacedHud::Save() {
 	const std::string path = IniPath();
-	WritePrivateProfileString(kSection, "Across", std::to_string((int)place.across).c_str(), path.c_str());
-	WritePrivateProfileString(kSection, "Down", std::to_string((int)place.down).c_str(), path.c_str());
-	WritePrivateProfileString(kSection, "X", std::to_string(place.x).c_str(), path.c_str());
-	WritePrivateProfileString(kSection, "Y", std::to_string(place.y).c_str(), path.c_str());
+	WritePrivateProfileString(section, "Across", std::to_string((int)place.across).c_str(), path.c_str());
+	WritePrivateProfileString(section, "Down", std::to_string((int)place.down).c_str(), path.c_str());
+	WritePrivateProfileString(section, "X", std::to_string(place.x).c_str(), path.c_str());
+	WritePrivateProfileString(section, "Y", std::to_string(place.y).c_str(), path.c_str());
 }
 
-int SessionHud::TakeViewSteps() {
+int PlacedHud::TakeViewSteps() {
 	const int steps = viewSteps;
 	viewSteps = 0;
 	return steps;
 }
 
-void SessionHud::SetBeingPlaced(bool place) {
+void PlacedHud::SetBeingPlaced(bool place) {
 	if (placing == place || !handle)
 		return;
 	placing = place;
@@ -136,7 +132,7 @@ void SessionHud::SetBeingPlaced(bool place) {
 }
 
 // Keeps the corner that was taken hold of under the cursor.
-void SessionHud::Follow() {
+void PlacedHud::Follow() {
 	const Size within = Placeable();
 	const Point corner = {
 		(std::max)(0, (std::min)(Hook::GetMouseX() - grabbed.x - kFrameEdge, within.width - size.width)),
@@ -145,8 +141,12 @@ void SessionHud::Follow() {
 	place = PlaceOf(corner, size, within);
 }
 
-void SessionHud::Draw(const Figures& figures, HudLayout::View view, unsigned int background) {
-	const Block block = ArrangeSections(Sections(view, figures), GameMetrics());
+void PlacedHud::Draw(const std::vector<Section>& sections, unsigned int background) {
+	const Block block = ArrangeSections(sections, GameMetrics());
+	if (block.cells.empty()) {
+		size = { 0, 0 };
+		return;
+	}
 
 	size = block.size;
 	if (dragging)
@@ -175,7 +175,9 @@ void SessionHud::Draw(const Figures& figures, HudLayout::View view, unsigned int
 	}
 }
 
-void SessionHud::DrawOutline() {
+void PlacedHud::DrawOutline() {
+	if (size.width <= 0 || size.height <= 0)
+		return;
 	const unsigned int x = at.x, y = at.y, width = size.width, height = size.height;
 	Boxhook::Draw(x, y, width, 1, kOutlineColor, BTNormal);
 	Boxhook::Draw(x, y + height - 1, width, 1, kOutlineColor, BTNormal);
@@ -196,24 +198,24 @@ void SessionHud::DrawOutline() {
 	Texthook::Draw(hintX, hintY, None, kFont, Gold, "%s", kHint);
 }
 
-SessionHud::Handle::Handle(SessionHud* hud) : Hook(InGame, 0, 0), hud(hud) {
+PlacedHud::Handle::Handle(PlacedHud* hud) : Hook(InGame, 0, 0), hud(hud) {
 	SetActive(false);
 }
 
-unsigned int SessionHud::Handle::GetXSize() {
+unsigned int PlacedHud::Handle::GetXSize() {
 	return hud->size.width;
 }
 
-unsigned int SessionHud::Handle::GetYSize() {
+unsigned int PlacedHud::Handle::GetYSize() {
 	return hud->size.height;
 }
 
-void SessionHud::Handle::OnDraw() {
+void PlacedHud::Handle::OnDraw() {
 	if (IsActive())
 		hud->DrawOutline();
 }
 
-bool SessionHud::Handle::OnLeftClick(bool up, unsigned int x, unsigned int y) {
+bool PlacedHud::Handle::OnLeftClick(bool up, unsigned int x, unsigned int y) {
 	if (up) {
 		if (!hud->dragging)
 			return false;
@@ -228,7 +230,7 @@ bool SessionHud::Handle::OnLeftClick(bool up, unsigned int x, unsigned int y) {
 	return true;
 }
 
-bool SessionHud::Handle::OnMouseWheel(int notches, unsigned int x, unsigned int y) {
+bool PlacedHud::Handle::OnMouseWheel(int notches, unsigned int x, unsigned int y) {
 	if (!InRange(x, y))
 		return false;
 	// Towards the user is on to the next view, as it is down a list.
@@ -236,7 +238,7 @@ bool SessionHud::Handle::OnMouseWheel(int notches, unsigned int x, unsigned int 
 	return true;
 }
 
-bool SessionHud::Handle::OnKey(bool up, BYTE key, LPARAM lParam) {
+bool PlacedHud::Handle::OnKey(bool up, BYTE key, LPARAM lParam) {
 	if (key != VK_ESCAPE)
 		return false;
 	// Ended on the release, so that the press that ends it is not also a press

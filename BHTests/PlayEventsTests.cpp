@@ -1,7 +1,7 @@
 #include "doctest.h"
 #include <string>
 #include <vector>
-#include "Modules/Session/SessionEvents.h"
+#include "Modules/Tracking/PlayEvents.h"
 
 /*
  * A session's events as lines of its log.
@@ -12,7 +12,7 @@
  * event this one has never heard of.
  */
 
-using namespace SessionEvents;
+using namespace PlayEvents;
 
 namespace {
 

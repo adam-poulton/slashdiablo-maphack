@@ -2,7 +2,7 @@
 #include <set>
 #include <string>
 #include <vector>
-#include "Modules/Session/RouteEdit.h"
+#include "Modules/Race/RouteEdit.h"
 
 /*
  * Changing routes: what there is to build one from, and what can be done to it.
@@ -152,6 +152,20 @@ TEST_CASE("a split says in a few words what marks it") {
 		"area 37");
 }
 
+TEST_CASE("a split's difficulty and what marks it are each said on their own") {
+	CHECK(RouteEdit::DifficultyOf(*Named("Andariel")) == "Normal");
+	CHECK(RouteEdit::MarkedBy(*Named("Andariel")) == "kill or quest");
+	CHECK(RouteEdit::DifficultyOf(*Named("Horadric Cube (Hell)")) == "Hell");
+	CHECK(RouteEdit::MarkedBy(*Named("Horadric Cube (Hell)")) == "item box");
+
+	Split level;
+	REQUIRE(RouteEdit::LevelSplit("level 40", level));
+	CHECK(RouteEdit::DifficultyOf(level) == "Any difficulty");
+	CHECK(RouteEdit::MarkedBy(level) == "level 40");
+
+	CHECK(RouteEdit::MarkedBy(Plain("By hand")) == "hand");
+}
+
 TEST_CASE("a new route has no splits, and a name and an id no other route has") {
 	std::vector<Route> routes = Splits::Presets();
 	const size_t before = routes.size();
@@ -185,12 +199,12 @@ TEST_CASE("a copy of a route has its splits and is a route of its own") {
 
 TEST_CASE("a route is removed and renamed by its id") {
 	std::vector<Route> routes = { Abc(), { "other", "Other", {} } };
-	RouteEdit::Rename(routes, "other", "Mine");
+	CHECK(RouteEdit::Rename(routes, "other", "Mine"));
 	CHECK(routes[1].name == "Mine");
 	// A route is called something.
-	RouteEdit::Rename(routes, "other", "");
+	CHECK_FALSE(RouteEdit::Rename(routes, "other", ""));
 	CHECK(routes[1].name == "Mine");
-	RouteEdit::Rename(routes, "none", "Nobody's");
+	CHECK_FALSE(RouteEdit::Rename(routes, "none", "Nobody's"));
 
 	RouteEdit::Remove(routes, "abc");
 	REQUIRE(routes.size() == 1);
@@ -199,15 +213,28 @@ TEST_CASE("a route is removed and renamed by its id") {
 	CHECK(routes.size() == 1);
 }
 
+TEST_CASE("a route cannot take the name another has") {
+	std::vector<Route> routes = { Abc(), { "other", "Other", {} } };
+	const std::string before = routes[0].name;
+	CHECK_FALSE(RouteEdit::Rename(routes, "abc", "OTHER"));
+	CHECK(routes[0].name == before);
+	// Its own, written another way, is no other's.
+	CHECK(RouteEdit::Rename(routes, "other", "OTHER"));
+	CHECK(routes[1].name == "OTHER");
+}
+
 TEST_CASE("the routes BH comes with are put back where they are missing, and no other is touched") {
 	std::vector<Route> routes = Splits::Presets();
 	const size_t all = routes.size();
+	CHECK_FALSE(RouteEdit::PresetsMissing(routes));
 	RouteEdit::Remove(routes, "act3");
 	RouteEdit::Remove(routes, "bosses-hell");
+	CHECK(RouteEdit::PresetsMissing(routes));
 	routes[0].name = "Renamed";
 	routes.push_back(Abc());
 
 	RouteEdit::Restore(routes);
+	CHECK_FALSE(RouteEdit::PresetsMissing(routes));
 	CHECK(routes.size() == all + 1);
 	CHECK(Splits::Find(routes, "act3") != NULL);
 	CHECK(Splits::Find(routes, "bosses-hell") != NULL);

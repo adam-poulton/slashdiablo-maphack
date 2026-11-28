@@ -2,7 +2,7 @@
 #include "nlohmann/json.hpp"
 
 typedef nlohmann::ordered_json Json;
-typedef SessionModel::RunSplit RunSplit;
+typedef RunModel::Split RunSplit;
 
 namespace {
 	const unsigned int kFileVersion = 1;
@@ -14,7 +14,7 @@ namespace {
 		return (long long)(clock == RunStore::RealTime ? split.realMs : split.gameMs);
 	}
 
-	long long TotalOf(const SessionModel::Run& run, RunStore::Clock clock) {
+	long long TotalOf(const RunModel::Run& run, RunStore::Clock clock) {
 		return (long long)(clock == RunStore::RealTime ? run.realMs : run.gameMs);
 	}
 
@@ -74,14 +74,14 @@ bool RunStore::Best::IsOf(const std::vector<std::string>& splits) const {
 	return names.empty() || names == splits;
 }
 
-std::vector<std::string> RunStore::SplitsOf(const SessionModel::Run& run) {
+std::vector<std::string> RunStore::SplitsOf(const RunModel::Run& run) {
 	std::vector<std::string> names;
 	for (const RunSplit& split : run.splits)
 		names.push_back(split.name);
 	return names;
 }
 
-void RunStore::Record(const std::string& key, const SessionModel::Run& run) {
+void RunStore::Record(const std::string& key, const RunModel::Run& run) {
 	const size_t splits = run.splits.size();
 	const std::vector<std::string> names = SplitsOf(run);
 	std::map<std::string, Best>::iterator found = bests.find(key);
@@ -167,7 +167,7 @@ std::string RunStore::Write() const {
 
 namespace RunCompare {
 
-long long Segment(const SessionModel::Run& run, unsigned int index, RunStore::Clock clock) {
+long long Segment(const RunModel::Run& run, unsigned int index, RunStore::Clock clock) {
 	if (index >= run.splits.size())
 		return -1;
 	const long long end = TimeOf(run.splits[index], clock);
@@ -179,7 +179,7 @@ long long Segment(const SessionModel::Run& run, unsigned int index, RunStore::Cl
 	return begin >= 0 && begin <= end ? end - begin : -1;
 }
 
-Lines Compare(const SessionModel::Run& run, const RunStore::Best* best, RunStore::Clock clock,
+Lines Compare(const RunModel::Run& run, const RunStore::Best* best, RunStore::Clock clock,
 		unsigned long long now) {
 	const size_t splits = run.splits.size();
 	const RunStore::Times* times = best && best->IsOf(RunStore::SplitsOf(run)) ?

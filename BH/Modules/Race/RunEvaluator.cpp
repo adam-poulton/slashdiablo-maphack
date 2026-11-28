@@ -1,6 +1,6 @@
 #include "RunEvaluator.h"
 
-using namespace SessionEvents;
+using namespace PlayEvents;
 using Splits::Trigger;
 
 namespace {

@@ -1,7 +1,7 @@
 #pragma once
-#include "SessionEvents.h"
+#include "PlayEvents.h"
 
-// What the session tracker makes of a monster that died: whether it is a kill
+// What is made of a monster that died: whether it is a kill
 // at all, and what kind of monster it was. Asked of what the game says about
 // the monster, with no game needed to ask it.
 namespace KillKinds {
@@ -33,6 +33,6 @@ struct Marks {
 // What it is. The game marks a champion unique as well as champion, and a super
 // unique unique as well as super unique, so unique alone is what is left once
 // neither of those is so.
-SessionEvents::Tier TierOf(const Marks& marks);
+PlayEvents::Tier TierOf(const Marks& marks);
 
 }

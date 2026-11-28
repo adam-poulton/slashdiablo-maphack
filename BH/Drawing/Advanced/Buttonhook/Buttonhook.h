@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+#include "../../../Constants.h"
 #include "../../Hook.h"
 
 namespace Drawing {
@@ -17,13 +19,17 @@ namespace Drawing {
 	#define BUTTON_ICON_DIVISOR		4
 	#define BUTTON_ICON_MIN_INSET	2
 
-	// A square button with a mark in the middle and no label.
+	// Space kept either side of a button's label, inside its frame.
+	#define BUTTON_LABEL_PADDING	9
+
+	// A button: a square one with a mark in the middle, or one as wide as the
+	// label it carries.
 	//
-	// It says what it is by its fill and its colour rather than by its text,
-	// which is what lets it sit on a row beside a search box without taking
-	// width from it. The fill follows the pressed state, the way an input box's
-	// follows its caret, so a button that opens something looks open while that
-	// something is open.
+	// A square one says what it is by its fill and its colour rather than by
+	// text, which is what lets it sit on a row beside a search box without
+	// taking width from it. The fill follows the pressed state, the way an input
+	// box's follows its caret, so a button that opens something looks open while
+	// that something is open.
 	//
 	// What the colours mean is the owner's business: a button is told what to
 	// draw itself in, and not what it is for.
@@ -37,6 +43,11 @@ namespace Drawing {
 			// from boxes and lines and those take the palette directly.
 			unsigned int color, hoverColor;
 
+			// Empty for a button that carries a mark. A label is text, and is
+			// drawn in the colours text is.
+			std::string label;
+			TextColor labelColor, labelHoverColor;
+
 			void DrawFilter(unsigned int x, unsigned int y, unsigned int side,
 				unsigned int shade);
 			void DrawClose(unsigned int x, unsigned int y, unsigned int side,
@@ -47,12 +58,22 @@ namespace Drawing {
 			Buttonhook(HookGroup* group, unsigned int x, unsigned int y,
 				unsigned int size, ButtonIcon icon);
 
+			// A button with a label in place of a mark: as tall as asked, and as
+			// wide as its label and the space either side of it.
+			Buttonhook(HookGroup* group, unsigned int x, unsigned int y,
+				unsigned int height, std::string label);
+
+			std::string GetLabel() { return label; };
+			void SetLabel(std::string newLabel) { Lock(); label = newLabel; Unlock(); };
+			void SetLabelColors(TextColor idle, TextColor hover) { Lock(); labelColor = idle; labelHoverColor = hover; Unlock(); };
+
 			ButtonIcon GetIcon() { return icon; };
 			void SetIcon(ButtonIcon newIcon) { Lock(); icon = newIcon; Unlock(); };
 
-			// Square, so one number sizes it. Matching the height of whatever it
+			// One number sizes it: the side of a square button, and the height
+			// of one with a label. Matching the height of whatever it
 			// sits beside is what makes it look like part of that row.
-			unsigned int GetXSize() { return size; };
+			unsigned int GetXSize();
 			unsigned int GetYSize() { return size; };
 			void SetSize(unsigned int newSize) { Lock(); size = newSize; Unlock(); };
 

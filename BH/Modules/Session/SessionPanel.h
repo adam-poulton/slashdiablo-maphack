@@ -29,15 +29,8 @@ class SessionListPanel : public UIPanel {
 		// The rows to list, and what the footer says while this tab is in front.
 		virtual void ReadRows(std::vector<SessionRows::Row>& rows, std::string& status) = 0;
 
-		// A row of the list was clicked, with the left button or the right.
+		// A row of the list was clicked.
 		virtual void OnRowClicked(const SessionRows::Row& row) {}
-		virtual void OnRowRightClicked(const SessionRows::Row& row) {}
-
-		// Whether the tab puts the search text to a use of its own. Where it
-		// does not, the rows listed are those that have the text in them.
-		virtual bool UsesSearchItself() { return false; }
-
-		const std::string& SearchText() const { return search; }
 
 	public:
 		void OnDraw();
@@ -95,19 +88,6 @@ class KillsPanel : public SessionPanel {
 		std::string GetSearchPlaceholder() { return "Search by area or monster"; }
 };
 
-// The run being timed against the best its route has been run, the routes there
-// are to run, and the runs of the session. Clicking a route chooses it.
-class SplitsPanel : public SessionPanel {
-	protected:
-		std::vector<SessionRows::Row> BuildRows(const Session::View& view);
-		std::string BuildStatus(const Session::View& view);
-		void OnRowClicked(const SessionRows::Row& row);
-
-	public:
-		explicit SplitsPanel(Drawing::UI* ui);
-		std::string GetSearchPlaceholder() { return "Search splits and routes"; }
-};
-
 // Every drop the item filter pinged.
 class DropsPanel : public SessionPanel {
 	protected:
@@ -129,28 +109,4 @@ class HistoryPanel : public SessionListPanel {
 	public:
 		explicit HistoryPanel(Drawing::UI* ui);
 		std::string GetSearchPlaceholder() { return "Search sessions by character or date"; }
-};
-
-// The routes there are, and the changing of them: a route is picked to change,
-// a split of it is picked out, and a split clicked in the list of those there
-// are is added after it. The search box narrows that list, and is where a name
-// for the route or a level to add is typed.
-class RoutesPanel : public SessionListPanel {
-	private:
-		std::string editing;	// the id of the route being changed
-		int split;				// the split of it picked out, or -1
-		bool deleting;			// deleting the route has been asked for once
-
-		void Act(const std::string& what);
-
-	protected:
-		void ReadRows(std::vector<SessionRows::Row>& rows, std::string& status);
-		void OnRowClicked(const SessionRows::Row& row);
-		void OnRowRightClicked(const SessionRows::Row& row);
-		bool UsesSearchItself() { return true; }
-
-	public:
-		explicit RoutesPanel(Drawing::UI* ui);
-		std::string GetSearchPlaceholder() { return "Find a split, or type a route name or level 24"; }
-		void OnClose();
 };

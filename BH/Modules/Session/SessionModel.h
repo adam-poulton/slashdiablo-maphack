@@ -3,7 +3,7 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "SessionEvents.h"
+#include "../Tracking/PlayEvents.h"
 
 // A session's totals, worked out from its events and from nothing else: it never
 // asks the game or the clock anything. Whatever is still running when a figure is
@@ -17,7 +17,7 @@ class SessionModel {
 	public:
 		// Monsters that died in view, by what kind of monster each was.
 		struct KillCounts {
-			unsigned int byTier[SessionEvents::TierCount];
+			unsigned int byTier[PlayEvents::TierCount];
 
 			KillCounts() : byTier() {}
 			unsigned int Total() const;
@@ -64,39 +64,14 @@ class SessionModel {
 			unsigned int area;
 			unsigned int classId;
 			std::string name;
-			SessionEvents::Tier tier;
+			PlayEvents::Tier tier;
 			int superUnique;
 		};
 
 		struct Drop {
 			unsigned long long at;
 			unsigned int game;
-			SessionEvents::Dropped item;
-		};
-
-		struct RunSplit {
-			enum State { Open, Reached, Skipped };
-
-			std::string name;
-			State state;
-			bool manual;
-			unsigned long long realMs;		// from the run's start, once reached
-			unsigned long long gameMs;		// the part of that spent in a game
-			unsigned int level;				// the character's, as it was reached
-		};
-
-		// A run against a route: a clock from when it began and the splits
-		// reached on the way.
-		struct Run {
-			std::string route;
-			std::string name;
-			std::vector<RunSplit> splits;
-			unsigned long long startedAt;
-			unsigned long long startedPlayedMs;	// time in games when it began
-			bool ended;
-			bool finished;
-			unsigned long long realMs;		// how long it ran, once it has ended
-			unsigned long long gameMs;
+			PlayEvents::Dropped item;
 		};
 
 		// How far back RecentRate() can be asked to look.
@@ -104,10 +79,10 @@ class SessionModel {
 
 		SessionModel();
 
-		void Apply(const SessionEvents::Event& event);
+		void Apply(const PlayEvents::Event& event);
 
 		bool HasStarted() const { return started; }
-		const SessionEvents::Started& Header() const { return header; }
+		const PlayEvents::Started& Header() const { return header; }
 
 		const std::vector<Game>& Games() const { return games; }
 		bool InGame() const { return !games.empty() && games.back().open; }
@@ -147,15 +122,6 @@ class SessionModel {
 		const std::vector<NotableKill>& Notables() const { return notables; }
 		const std::vector<Drop>& Drops() const { return drops; }
 
-		// Every run of the session, the one in hand last if there is one.
-		const std::vector<Run>& Runs() const { return runs; }
-		const Run* ActiveRun() const;
-
-		// How long the run in hand has gone, and the part of that spent in a
-		// game. 0 where there is none.
-		unsigned long long RunRealMs(unsigned long long now) const;
-		unsigned long long RunGameMs(unsigned long long now) const;
-
 		// The character's level as the session last had it.
 		unsigned int Level() const { return games.empty() ? 0 : games.back().level; }
 
@@ -166,7 +132,7 @@ class SessionModel {
 		};
 
 		bool started;
-		SessionEvents::Started header;
+		PlayEvents::Started header;
 		std::vector<Game> games;
 		std::map<unsigned int, Area> areas;
 
@@ -187,13 +153,9 @@ class SessionModel {
 		std::map<unsigned int, Monster> monsters;
 		std::vector<NotableKill> notables;
 		std::vector<Drop> drops;
-		std::vector<Run> runs;
-
-		Run* Active();
-		void EndRun(unsigned long long at, bool finished);
 
 		void CountKills(unsigned int area, unsigned int classId, const std::string& name,
-			SessionEvents::Tier tier, unsigned int count);
+			PlayEvents::Tier tier, unsigned int count);
 		void LeaveArea(unsigned long long at);
 		void CloseGame(unsigned long long at);
 
@@ -201,22 +163,20 @@ class SessionModel {
 		unsigned long long PlayedBetween(unsigned long long from,
 			unsigned long long to) const;
 
-		void On(const SessionEvents::Started& fact, unsigned long long at);
-		void On(const SessionEvents::Joined& fact, unsigned long long at);
-		void On(const SessionEvents::Left& fact, unsigned long long at);
-		void On(const SessionEvents::AreaEntered& fact, unsigned long long at);
-		void On(const SessionEvents::Experience& fact, unsigned long long at);
-		void On(const SessionEvents::LevelReached& fact, unsigned long long at);
-		void On(const SessionEvents::Died& fact, unsigned long long at);
-		void On(const SessionEvents::Players& fact, unsigned long long at);
-		void On(const SessionEvents::Killed& fact, unsigned long long at);
-		void On(const SessionEvents::Notable& fact, unsigned long long at);
-		void On(const SessionEvents::Dropped& fact, unsigned long long at);
-		void On(const SessionEvents::Quest& fact, unsigned long long at);
-		void On(const SessionEvents::ItemHeld& fact, unsigned long long at);
-		void On(const SessionEvents::RunStarted& fact, unsigned long long at);
-		void On(const SessionEvents::SplitReached& fact, unsigned long long at);
-		void On(const SessionEvents::SplitUndone& fact, unsigned long long at);
-		void On(const SessionEvents::SplitSkipped& fact, unsigned long long at);
-		void On(const SessionEvents::RunEnded& fact, unsigned long long at);
+		void On(const PlayEvents::Started& fact, unsigned long long at);
+		void On(const PlayEvents::Joined& fact, unsigned long long at);
+		void On(const PlayEvents::Left& fact, unsigned long long at);
+		void On(const PlayEvents::AreaEntered& fact, unsigned long long at);
+		void On(const PlayEvents::Experience& fact, unsigned long long at);
+		void On(const PlayEvents::LevelReached& fact, unsigned long long at);
+		void On(const PlayEvents::Died& fact, unsigned long long at);
+		void On(const PlayEvents::Players& fact, unsigned long long at);
+		void On(const PlayEvents::Killed& fact, unsigned long long at);
+		void On(const PlayEvents::Notable& fact, unsigned long long at);
+		void On(const PlayEvents::Dropped& fact, unsigned long long at);
+
+		// Everything else that can happen is no part of a session's totals: what
+		// a timed run is read from, and the run itself.
+		template <typename Other>
+		void On(const Other& fact, unsigned long long at) {}
 };

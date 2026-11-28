@@ -1,7 +1,7 @@
 #include "doctest.h"
 #include <string>
 #include <vector>
-#include "Modules/Session/SplitRoute.h"
+#include "Modules/Race/SplitRoute.h"
 
 /*
  * The routes a run is timed against: the ones BH comes with, and the file they

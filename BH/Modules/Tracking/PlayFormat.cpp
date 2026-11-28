@@ -1,8 +1,8 @@
-#include "SessionFormat.h"
+#include "PlayFormat.h"
 #include <cmath>
 #include <cstdio>
 
-namespace SessionFormat {
+namespace PlayFormat {
 
 std::string Clock(unsigned long long ms) {
 	const unsigned long long seconds = ms / 1000;

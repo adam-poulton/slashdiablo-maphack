@@ -24,8 +24,10 @@ Codex:
 Session:
   .session <new> - Opens the session window
   .hud <view|move> - Changes or moves the HUD
-  .run <start|split|undo|skip|reset> - Times a run
-  .route <name> - Chooses the route runs are timed on
+Race:
+  .race <hud view|hud move> - Opens the race window
+  .run <start|stop|split|undo|skip> - Times a run
+  .route <name> - Picks the route runs are timed on
 ```
 
 A command in brackets is another name for the one in front of it, not a command
@@ -82,12 +84,22 @@ The [session tracker](Session-Tracker.md): its window and its HUD.
 | --- | --- |
 | `.session` | Opens the session window. |
 | `.session new` | Ends the session and starts another from the game you are in. |
-| `.hud line`, `.hud compact`, `.hud splits`, `.hud full` | Sets the HUD's view. |
+| `.hud line`, `.hud compact`, `.hud full` | Sets the HUD's view. |
 | `.hud move` | Lets the HUD be dragged to where you want it. Escape when done. |
-| `.run start` | Starts timing a run on the chosen route. |
+
+## Race
+
+The [race timer](Race-Timer.md): its window, its HUD and the run being timed.
+
+| Command | What it does |
+| --- | --- |
+| `.race` | Opens the race window. |
+| `.race hud splits`, `.race hud line` | Sets the race HUD's view. |
+| `.race hud move` | Lets the race HUD be dragged to where you want it. Escape when done. |
+| `.run start` | Starts timing a run on the route picked. |
+| `.run stop` | Gives up the run being timed. |
 | `.run split`, `.run undo`, `.run skip` | Marks the split the run is on as reached, takes back the last one reached, or passes over the one it is on. |
-| `.run reset` | Gives up the run being timed. |
-| `.route` | Lists the routes. `.route bosses-hell` chooses one, by its id or its name. |
+| `.route` | Lists the routes. `.route bosses-hell` picks one, by its id or its name. |
 
 ## Adding one
 

@@ -1,19 +1,19 @@
 #include "doctest.h"
-#include "Modules/Session/SessionFormat.h"
+#include "Modules/Tracking/PlayFormat.h"
 
 /*
  * How the session tracker writes a length of time and a rate, which is how the
  * run tracker's own tokens write theirs.
  */
 
-using SessionFormat::Clock;
-using SessionFormat::Count;
-using SessionFormat::Delta;
-using SessionFormat::Plain;
-using SessionFormat::Rate;
-using SessionFormat::ShortAmount;
-using SessionFormat::ShortClock;
-using SessionFormat::ShortRate;
+using PlayFormat::Clock;
+using PlayFormat::Count;
+using PlayFormat::Delta;
+using PlayFormat::Plain;
+using PlayFormat::Rate;
+using PlayFormat::ShortAmount;
+using PlayFormat::ShortClock;
+using PlayFormat::ShortRate;
 
 TEST_CASE("a length of time is hours, minutes and seconds, two digits each") {
 	CHECK(Clock(0) == "00:00:00");

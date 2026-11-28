@@ -19,10 +19,10 @@ bool SessionFile::Open(const std::string& to) {
 	return file.is_open();
 }
 
-void SessionFile::Append(const SessionEvents::Event& event) {
+void SessionFile::Append(const PlayEvents::Event& event) {
 	if (!file.is_open())
 		return;
-	file << SessionEvents::ToLine(event) << '\n';
+	file << PlayEvents::ToLine(event) << '\n';
 }
 
 void SessionFile::Flush() {
@@ -31,15 +31,15 @@ void SessionFile::Flush() {
 }
 
 bool SessionFile::Read(const std::string& path,
-		std::vector<SessionEvents::Event>& into) {
+		std::vector<PlayEvents::Event>& into) {
 	std::ifstream file(path.c_str(), std::ios::binary);
 	if (!file.is_open())
 		return false;
 
 	std::string line;
 	while (std::getline(file, line)) {
-		SessionEvents::Event event;
-		if (SessionEvents::FromLine(line, event))
+		PlayEvents::Event event;
+		if (PlayEvents::FromLine(line, event))
 			into.push_back(event);
 	}
 	return true;

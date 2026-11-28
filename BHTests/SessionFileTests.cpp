@@ -17,7 +17,7 @@
  * never finished.
  */
 
-using namespace SessionEvents;
+using namespace PlayEvents;
 
 namespace {
 

@@ -134,18 +134,28 @@ bool LevelSplit(const std::string& text, Split& split) {
 	return true;
 }
 
-std::string Describe(const Split& split) {
+std::string DifficultyOf(const Split& split) {
+	return split.difficulty >= 0 && split.difficulty < 3 ? kDifficulties[split.difficulty] :
+		"Any difficulty";
+}
+
+std::string MarkedBy(const Split& split) {
 	if (split.when.empty())
-		return "marked by hand";
+		return "hand";
 	std::string text;
 	for (const Trigger& trigger : split.when) {
 		if (!text.empty())
 			text += split.all ? " and " : " or ";
 		text += Kind(trigger);
 	}
-	if (split.difficulty >= 0 && split.difficulty < 3)
-		text = std::string(kDifficulties[split.difficulty]) + ": " + text;
 	return text;
+}
+
+std::string Describe(const Split& split) {
+	if (split.when.empty())
+		return "marked by hand";
+	const bool anyDifficulty = split.difficulty < 0 || split.difficulty >= 3;
+	return (anyDifficulty ? std::string() : DifficultyOf(split) + ": ") + MarkedBy(split);
 }
 
 std::string Add(std::vector<Route>& routes, const Route* copyOf) {
@@ -169,10 +179,16 @@ void Remove(std::vector<Route>& routes, const std::string& id) {
 	}
 }
 
-void Rename(std::vector<Route>& routes, const std::string& id, const std::string& name) {
+bool Rename(std::vector<Route>& routes, const std::string& id, const std::string& name) {
 	Route* route = Find(routes, id);
-	if (route && !name.empty())
-		route->name = name;
+	if (!route || name.empty())
+		return false;
+	for (const Route& other : routes) {
+		if (&other != route && Lower(other.name) == Lower(name))
+			return false;
+	}
+	route->name = name;
+	return true;
 }
 
 void Restore(std::vector<Route>& routes) {
@@ -180,6 +196,17 @@ void Restore(std::vector<Route>& routes) {
 		if (!Find(routes, preset.id))
 			routes.push_back(preset);
 	}
+}
+
+bool PresetsMissing(const std::vector<Route>& routes) {
+	for (const Route& preset : Splits::Presets()) {
+		bool there = false;
+		for (const Route& route : routes)
+			there = there || route.id == preset.id;
+		if (!there)
+			return true;
+	}
+	return false;
 }
 
 unsigned int AddSplit(Route& route, const Split& split, int after) {

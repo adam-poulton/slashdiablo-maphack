@@ -131,6 +131,14 @@ time in the lobby does not lower them.
 | `%SESSIONDEATHS%` | Deaths this session |
 | `%SESSIONKILLS%` | Monsters that died in view this session |
 | `%SESSIONDROPS%` | Drops the item filter pinged this session |
+
+## Race timer
+
+The [race timer](Race-Timer.md) times a run against a route. Both are empty
+while no run is being timed.
+
+| Variable | Meaning |
+| --- | --- |
 | `%RUNTIME%` | The clock of the run being timed |
 | `%RUNSPLIT%` | The split the run is on |
 
@@ -153,4 +161,5 @@ trial and error.
 
 * [Run Tracker](Run-Tracker.md) — writing these same statistics to a file
 * [Session Tracker](Session-Tracker.md) - what a session is, and the files it keeps
+* [Race Timer](Race-Timer.md) - runs timed against a route, with splits
 * [Advanced Item Display](Advanced-Item-Display.md)

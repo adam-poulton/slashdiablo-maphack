@@ -5,7 +5,8 @@ small HUD over the game and in a window of its own.
 
 It is on by default, and it runs beside the [run tracker](Run-Tracker.md)
 without changing it: the run tracker's variables, its settings and its CSV file
-are exactly as they were.
+are exactly as they were. Timing a run against a route, with splits, is the
+[race timer](Race-Timer.md)'s, which is a tool of its own.
 
 ## What a session is
 
@@ -26,33 +27,20 @@ your experience per second down.
 ## The HUD
 
 The HUD shows the session over the game, at the top of the screen until you
-move it. It has four views:
+move it. It has three views:
 
 * **Line** - one line: session time, the game's number and how long it has run,
-  and experience per second over the session. During a run: the split the run
-  is on, the run's clock, and how the last split stood against your best.
+  and experience per second over the session.
 * **Compact** - three rows: session time and time played, the game's time and
-  rate, and the session's rate beside the rate over the last minute. During a
-  run a fourth row gives the split, the clock and the last split's standing.
-* **Splits** - the run being timed, split by split: when each was reached and
-  how far ahead or behind your best run, the time to beat for the ones still to
-  come, and the run's clock over your best time. A long route shows the eight
-  splits around the one you are on.
-* **Full** - the splits, then the Compact rows, then kills, deaths and the last
-  drop.
-
-Splits and Full show a run, so with none being timed they show what Compact
-does. `HUD view during a run` picks the view the HUD takes by itself while a
-run is being timed, and goes back from when it ends: `Splits` unless you change
-it, or `Same` to leave the HUD as it is.
+  rate, and the session's rate beside the rate over the last minute.
+* **Full** - the Compact rows, then kills, deaths and the last drop.
 
 The HUD takes no clicks. Clicking, dragging or scrolling on it does what it
 would have done had the HUD not been there, so it cannot be moved or changed by
 accident in a fight. To change it you ask:
 
-* `.hud line`, `.hud compact`, `.hud splits` or `.hud full` picks a view, as do
-  the `HUD view` settings and the `Cycle HUD view` hotkey. During a run these
-  change the view the run is shown in.
+* `.hud line`, `.hud compact` or `.hud full` picks a view, as do the `HUD view`
+  setting and the `Cycle HUD view` hotkey.
 * `.hud move`, the `Position HUD` hotkey or `position HUD` in the session
   window lets you place it. The HUD is outlined: drag it anywhere, turn the
   mouse wheel over it to step through its views, and press Escape when done.
@@ -71,8 +59,6 @@ character, stash and so on) covers its half of the screen.
   over the session, with lobby time counted, and over the last minute and five;
   levels gained and how long the next level is at this rate; and the game you
   are in.
-* **Splits** - the run being timed against your best on its route (below), the
-  routes there are, and the runs of the session that are over.
 * **Games** - every game of the session under the kind of run it was, with its
   length, experience, experience per second and level. A run is named for its
   games without the number they end in, so `baal-12` and `baal-13` are both
@@ -84,12 +70,9 @@ character, stash and so on) covers its half of the screen.
 * **Drops** - every drop the item filter pinged: when, the item in the colour
   it was announced in, where it fell, which game, and its ping tier.
 * **History** - the sessions before this one (below).
-* **Routes** - the routes there are to time a run on, and the changing of them
-  (under Runs and splits).
 
 The search box filters whichever tab is in front, by any text on the row: a
-game's name, an area, a monster, an item. In the Routes tab it has a use of its
-own, given there.
+game's name, an area, a monster, an item.
 
 `.session new`, or the `New session` hotkey, ends the session and starts
 another from the game you are in.
@@ -101,12 +84,10 @@ started, the character and its level, time played, games, experience gained and
 per second, kills and drops. They are the sessions of every character and every
 game client of this install.
 
-Click one to look through it: the Overview, Splits, Games, Kills and Drops tabs
-then show that session, and the footer says whose it is and when it began. Click
+Click one to look through it: the Overview, Games, Kills and Drops tabs then
+show that session, and the footer says whose it is and when it began. Click
 `This session`, or close the window, to go back to the one you are playing. The
 HUD and the automap variables stay on the session you are playing throughout.
-A past session's runs are set beside the other runs of that session, not
-beside your bests as they are now.
 
 A session shows up here once `Keep session history` has written it. The first
 time the tab is opened on a folder of many sessions it reads them a few at a
@@ -132,132 +113,6 @@ pinged. As with the run tracker, items in a town are left out, and so is
 anything a rule marks `%NOTRACK%`. The run tracker's own
 `Run Details Ping Level` has no say here, nor this in that.
 
-## Runs and splits
-
-A run is a clock started against a **route**: a list of splits, each reached by
-something happening in the game. BH watches for those things and marks the
-splits itself.
-
-A run starts by itself when a new character (level 1, no experience) joins its
-first game, which is where the speedrun leaderboards start their timer. Turn
-that off with `Start a run with a new character`, and start one by hand with
-`.run start` or the `Start run` hotkey, on any character. A run carries on from
-game to game until its last split is reached or you give it up. It does not
-carry over a restart of the game client.
-
-| Command | Hotkey | What it does |
-| --- | --- | --- |
-| `.run start` | `Start run` | Starts a run on the chosen route, in place of any being timed |
-| `.run split` | `Split` | Marks the split the run is on as reached |
-| `.run undo` | `Undo split` | Takes back the split last reached |
-| `.run skip` | `Skip split` | Passes over the split the run is on |
-| `.run reset` | `Reset run` | Gives the run up |
-| `.route <name>` | | Chooses the route. With no name it lists them |
-
-A route can also be chosen by clicking it in the Splits tab, with
-`Time runs on this route` in the Routes tab, or with the `Run route` setting.
-
-### Routes
-
-BH comes with these, and writes them to `BH_routes.json` beside
-`BH_settings.cfg` the first time it runs. Change them or add your own in the
-Routes tab, or in the file itself:
-
-| Id | Route |
-| --- | --- |
-| `bosses-normal` | Andariel, Duriel, Mephisto, Diablo and Baal in Normal. The one chosen to begin with |
-| `bosses-hell` | The same five in Normal, Nightmare and Hell: fifteen splits |
-| `milestones-normal` | The bosses and the steps between them: Radament, the Horadric Cube, the staff, the amulet, the Summoner, Khalim's Will, Travincal, Izual, the Hellforge, Shenk, Anya and the Ancients |
-| `act1` to `act5` | One act's boss alone, as the per-act leaderboards time it |
-| `completionist-normal` | Every quest, the Cow King and level 40, in any order |
-
-### Changing a route in the window
-
-The Routes tab of the session window lists the routes, then the splits of the
-one being changed, then every split there is to add.
-
-* Click a route to change it. `New route` starts one with no splits, and
-  `Copy` starts one from the route being changed.
-* Click a split under `Add a split` to add it to the route. There is one for
-  each act boss, quest and quest item, the Cow King and every quest done, in
-  Normal, Nightmare and Hell. It goes at the end, or after the split you have
-  picked out by clicking it in the route.
-* With a split picked out, `Move up`, `Move down` and `Remove` act on it. A
-  right click on a split of the route removes it too.
-* Type in the search box to narrow the splits there are to add. Type
-  `level 24` there to be offered a split for reaching that level, or a name to
-  be offered `Rename this route`.
-* `Delete this route` asks to be clicked twice. Once one of the routes BH comes
-  with is gone, `Put back the routes BH comes with` returns the missing ones
-  and leaves the rest alone.
-
-Every change is written to `BH_routes.json` as it is made. A run being timed
-keeps the splits it started with. A split for an area or a particular monster,
-one that wants several things at once, or one you mark by hand is written in
-the file, as below; the window shows such a split and can move or remove it.
-If BH cannot read the file, the window leaves it alone and says so, and runs
-are timed on the routes BH comes with until the file is mended.
-
-### The routes file
-
-A split is reached when any one of the things under its `when` happens, or
-every one of them where the split says `"all": true`:
-
-```
-{
-  "id": "mine",
-  "name": "My route",
-  "splits": [
-    { "name": "Andariel", "difficulty": "normal",
-      "when": [ { "boss": 156 }, { "quest": 6, "mask": 3 } ] },
-    { "name": "Cube", "when": [ { "item": "box" } ] },
-    { "name": "Level 24", "when": [ { "level": 24 } ] },
-    { "name": "Something only I can judge" }
-  ]
-}
-```
-
-| In `when` | The split is reached when |
-| --- | --- |
-| `{"boss": N}` | A monster of that kind dies in view: its row in `MonStats.txt` |
-| `{"superunique": N}` | That super unique dies in view: its row in `SuperUniques.txt` |
-| `{"quest": N, "mask": M}` | Any of those bits of the quest's state is set. Without a mask, the quest is done |
-| `{"area": N}` | That area is entered: its number in `Levels.txt` |
-| `{"level": N}` | The character reaches that level |
-| `{"item": "code"}` | An item with that code comes into the character's keeping |
-| `{"allQuests": true}` | Every quest of the difficulty is done |
-
-`difficulty` (`normal`, `nightmare` or `hell`) ties a split to things that
-happen in that difficulty; without it any will do. A split with no `when` is one
-you mark yourself with `.run split`.
-
-The act bosses are given both their death and their quest, because the game
-only tells your client about monsters near you: a boss your party kills across
-the map is caught by the quest a moment later. Splits are reached in whatever
-order the game reaches them, and one that was already so when the run began (a
-level already passed) is passed over.
-
-### Your best
-
-Each finished run is compared with the fastest you have finished its route: at
-every split the HUD and the Splits tab show how far ahead (green) or behind
-(red) you are, and mark in gold a stretch between two splits done faster than
-you have ever done it. The Splits tab adds the sum of your best stretches, and
-the best time the run in hand could still come to.
-
-Bests are kept in `BH_runs.json` beside `BH_settings.cfg`, apart for each
-route, each character class, and softcore and hardcore. A run you give up still
-counts as an attempt and still sets a best stretch.
-
-A best belongs to the splits it was run on. Change a route's splits and its
-best is no longer compared with; the first run on the changed route starts its
-bests over. Renaming a route changes nothing.
-
-`Compare runs on` picks the clock: `Time in game`, the one chosen to begin
-with, leaves out time spent between games, which is how the leaderboards time
-a run. `Real time` counts everything since the run began. Both are always kept,
-so changing the setting loses nothing.
-
 ## Automap variables
 
 The session's figures are also [automap variables](Automap-Info.md), so they
@@ -280,8 +135,6 @@ AutomapInfo[19]:        XP: %SESSIONXPPERSEC% (now %RECENTXPPERSEC%)
 | `%SESSIONDEATHS%` | Deaths this session |
 | `%SESSIONKILLS%` | Monsters that died in view this session |
 | `%SESSIONDROPS%` | Drops the item filter pinged this session |
-| `%RUNTIME%` | The clock of the run being timed |
-| `%RUNSPLIT%` | The split the run is on |
 
 ## Settings
 
@@ -293,11 +146,7 @@ Keep Session History: True
 Session History Kept: 200
 Session HUD: True
 Session HUD View: 0
-Session HUD Run View: 3
 Session HUD Background: 1
-Session Auto Start Runs: True
-Session Route: bosses-normal
-Session Compare Clock: 1
 ```
 
 * **Session tracker** - turns the tracker on. With it off nothing is tracked,
@@ -308,15 +157,9 @@ Session Compare Clock: 1
   are deleted, when BH loads and whenever a new one is started. 0 keeps them
   all.
 * **Session HUD** - shows the HUD.
-* **HUD view** - `Line` (0), `Compact` (1), `Splits` (2) or `Full` (3).
-* **HUD view during a run** - `Same` (0), or a view and one: `Splits` (3) to
-  begin with.
+* **HUD view** - `Line` (0), `Compact` (1) or `Full` (2).
 * **HUD background** - what the HUD's text is drawn on: `None` (0),
   `Translucent` (1) or `Solid` (2).
-* **Start a run with a new character** - times a run from a new character's
-  first game.
-* **Run route** - the id of the route runs are timed on.
-* **Compare runs on** - `Real time` (0) or `Time in game` (1).
 
 And the hotkeys, under `Session` and `Panel hotkeys` on the Input tab, none of
 them bound until you bind them:
@@ -326,11 +169,6 @@ Show Session: True, None
 Session HUD Cycle View: None
 Session HUD Position: None
 Session New: None
-Session Run Start: None
-Session Run Split: None
-Session Run Undo: None
-Session Run Skip: None
-Session Run Reset: None
 ```
 
 Where the HUD was placed is kept in `UI.ini`, with the windows' positions.
@@ -377,11 +215,6 @@ since the session started and `e` is the kind of event.
 | `kills` | `n` monsters of one kind (`class`, their row in `MonStats.txt`) and one `tier` (`normal`, `minion` or `champion`) died in view in an area. Written at most once a second |
 | `notable` | One unique monster died in view: its own `name`, the `kind` of monster it is, its `tier` (`unique`, `superunique` or `boss`), and for a super unique its row in `SuperUniques.txt` as `su` |
 | `quest` | A quest's state changed: its place in the game's quest state, and the sixteen `bits` the game keeps for it |
-| `item` | An item a route watches for came into your keeping, by its `code` |
-| `run` | A run started: the route's id and name, and the names of its `splits` |
-| `split` | A split of the run was reached, by its `index`, and `manual` where you marked it |
-| `unsplit`, `skip` | A split was taken back, or passed over |
-| `end` | The run ended, `finished` or given up |
 | `drop` | The item filter pinged an item: its unit `id`, name, item `code`, `quality`, the text `color` it was announced in, the `ping` tier of the rule, and where it fell |
 
 A tool reading these files should skip any line or kind of event it does not
@@ -393,6 +226,7 @@ and BH writes it again from them if it is deleted.
 
 ## Related
 
+* [Race Timer](Race-Timer.md) - runs timed against a route, with splits
 * [Automap Info](Automap-Info.md) - every variable that can be shown
 * [Run Tracker](Run-Tracker.md) - one CSV row per game
 * [Chat Commands](Chat-Commands.md) - `.session` and `.hud` among the rest

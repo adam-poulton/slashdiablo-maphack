@@ -3,7 +3,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include "SessionEvents.h"
+#include "../Tracking/PlayEvents.h"
 
 // A session's log on disk: a line per event, only ever added to.
 //
@@ -23,12 +23,12 @@ class SessionFile {
 		bool IsOpen() const { return file.is_open(); }
 		const std::string& GetPath() const { return path; }
 
-		void Append(const SessionEvents::Event& event);
+		void Append(const PlayEvents::Event& event);
 		void Flush();
 
 		// Every event of a log, in order. False where there is no such file.
 		static bool Read(const std::string& path,
-			std::vector<SessionEvents::Event>& into);
+			std::vector<PlayEvents::Event>& into);
 
 		// What a session's log is called: when it began, whose it is, and the
 		// client that wrote it, which is what keeps two clients starting in the

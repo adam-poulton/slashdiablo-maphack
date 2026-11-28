@@ -5,7 +5,7 @@
 #include "../../D2Ptrs.h"
 #include "KillKinds.h"
 
-using namespace SessionEvents;
+using namespace PlayEvents;
 
 namespace {
 	// What the game's alignment stat reads for a monster on the player's side:

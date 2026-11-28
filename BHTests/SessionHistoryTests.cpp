@@ -17,7 +17,7 @@
  * that has gone.
  */
 
-using namespace SessionEvents;
+using namespace PlayEvents;
 
 namespace {
 
@@ -113,20 +113,6 @@ TEST_CASE("a session is summed up from its log") {
 	CHECK(entry.kills == 3);
 	CHECK(entry.drops == 1);
 	CHECK(entry.deaths == 1);
-	CHECK(entry.runsFinished == 0);
-}
-
-TEST_CASE("only the runs that were finished are counted") {
-	const std::vector<Event> events = {
-		{ 0, Someone("Sorc_One") },
-		{ 0, Joined{ "", 0, 1, 0 } },
-		{ 0, RunStarted{ "act1", "Act 1", { "Andariel" } } },
-		{ 1000, RunEnded{ false } },
-		{ 1000, RunStarted{ "act1", "Act 1", { "Andariel" } } },
-		{ 5000, SplitReached{ 0, false } },
-		{ 5000, RunEnded{ true } },
-	};
-	CHECK(SessionIndex::Summarise("one.jsonl", 0, events).runsFinished == 1);
 }
 
 TEST_CASE("a log with nothing in it sums up to nothing") {

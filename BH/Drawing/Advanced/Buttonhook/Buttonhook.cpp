@@ -2,6 +2,8 @@
 #include "../../Basic/Boxhook/Boxhook.h"
 #include "../../Basic/Framehook/Framehook.h"
 #include "../../Basic/Linehook/Linehook.h"
+#include "../../Basic/Texthook/Texthook.h"
+#include "../../Basic/Texthook/TextMetrics.h"
 #include "../../../D2Ptrs.h"
 
 namespace Drawing {
@@ -10,6 +12,9 @@ namespace Drawing {
 // every other unlit piece of chrome uses, and it is what a disabled button
 // stays at whatever colour the owner asked for.
 #define BUTTON_DISABLED_SHADE	0xD0
+
+// The font a label is written in.
+#define BUTTON_LABEL_FONT		0
 
 namespace {
 
@@ -26,12 +31,23 @@ unsigned int Odd(unsigned int size) {
 Buttonhook::Buttonhook(HookVisibility visibility, unsigned int x, unsigned int y,
 		unsigned int size, ButtonIcon icon) :
 	Hook(visibility, x, y), icon(icon), size(size), pressed(false),
-	color(0xD0), hoverColor(0x20) {}
+	color(0xD0), hoverColor(0x20), labelColor(Gold), labelHoverColor(Tan) {}
 
 Buttonhook::Buttonhook(HookGroup* group, unsigned int x, unsigned int y,
 		unsigned int size, ButtonIcon icon) :
 	Hook(group, x, y), icon(icon), size(size), pressed(false),
-	color(0xD0), hoverColor(0x20) {}
+	color(0xD0), hoverColor(0x20), labelColor(Gold), labelHoverColor(Tan) {}
+
+Buttonhook::Buttonhook(HookGroup* group, unsigned int x, unsigned int y,
+		unsigned int height, std::string label) :
+	Hook(group, x, y), icon(IconFilter), size(height), pressed(false),
+	color(0xD0), hoverColor(0x20), label(label), labelColor(Gold), labelHoverColor(Tan) {}
+
+unsigned int Buttonhook::GetXSize() {
+	if (label.empty())
+		return size;
+	return Texthook::GetTextSize(label, BUTTON_LABEL_FONT).x + 2 * BUTTON_LABEL_PADDING;
+}
 
 bool Buttonhook::IsHovered() {
 	return IsActive() && IsEnabled() &&
@@ -79,8 +95,19 @@ void Buttonhook::OnDraw() {
 	// field, which is how the search box beside it says whether it has the
 	// caret. One convention for both, so the row reads as one row.
 	BoxTrans fill = pressed ? BTFull : BTOneHalf;
-	D2GFX_DrawRectangle(GetX(), GetY(), GetX() + size, GetY() + size, 0, fill);
-	Framehook::DrawBorder(GetX(), GetY(), size, size, fill);
+	const unsigned int width = GetXSize();
+	D2GFX_DrawRectangle(GetX(), GetY(), GetX() + width, GetY() + size, 0, fill);
+	Framehook::DrawBorder(GetX(), GetY(), width, size, fill);
+
+	if (!label.empty()) {
+		const TextColor tone = !IsEnabled() ? Grey : (IsHovered() ? labelHoverColor : labelColor);
+		const unsigned int textHeight = BaselineOffset(BUTTON_LABEL_FONT);
+		Texthook::Draw(GetX() + BUTTON_LABEL_PADDING,
+			GetY() + (size > textHeight ? (size - textHeight) / 2 : 0), None,
+			BUTTON_LABEL_FONT, tone, "%s", label.c_str());
+		Unlock();
+		return;
+	}
 
 	unsigned int shade = !IsEnabled() ? BUTTON_DISABLED_SHADE :
 		(IsHovered() ? hoverColor : color);

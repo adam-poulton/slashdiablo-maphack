@@ -1,6 +1,6 @@
 #include "KillKinds.h"
 
-using namespace SessionEvents;
+using namespace PlayEvents;
 
 namespace KillKinds {
 

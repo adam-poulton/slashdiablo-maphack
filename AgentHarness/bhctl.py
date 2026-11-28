@@ -878,6 +878,8 @@ def drop(run_id, packet, offset=(0, 0)):
 def session(run_id, path):
     """Puts a session log, as BH's session tracker writes them to BH_sessions,
     up in place of the session being played, for its HUD and window to show.
+    A log that holds a timed run goes up for the race timer's HUD and window too.
+    A log that holds a timed run goes up for the race timer's HUD and window too.
     The log's clock stands at its last event, so what is drawn does not move.
     It stays up until a game is joined. Returns how many events it held."""
     path = Path(path).resolve()

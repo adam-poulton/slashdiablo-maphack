@@ -4,7 +4,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "SessionEvents.h"
+#include "../Tracking/PlayEvents.h"
 #include "SplitRoute.h"
 
 // Watches what happens in the game for a run in hand and says which of the
@@ -27,7 +27,7 @@ class RunEvaluator {
 		const Splits::Route& GetRoute() const { return route; }
 
 		// What an event reaches, as indices into the route's splits, in order.
-		std::vector<unsigned int> Feed(const SessionEvents::Fact& fact);
+		std::vector<unsigned int> Feed(const PlayEvents::Fact& fact);
 
 		// A split dealt with by the player is not then reached by the game, and
 		// one taken back can be.
@@ -58,7 +58,7 @@ class RunEvaluator {
 		std::set<InDifficulty> areas;
 		std::set<std::pair<unsigned int, std::string>> items;
 
-		void Take(const SessionEvents::Fact& fact);
+		void Take(const PlayEvents::Fact& fact);
 		bool Met(const Splits::Split& split) const;
 		bool MetIn(const Splits::Trigger& trigger, unsigned int where) const;
 		bool AllQuestsDone(unsigned int where) const;

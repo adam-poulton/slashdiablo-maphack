@@ -138,6 +138,8 @@ void BH::Initialize()
 	new TownPortal();
 	new Session();
 	new SessionWindow();
+	new Race();
+	new RaceWindow();
 	new StashExport();
 	new AccountsWindow();
 	new CodexWindow();

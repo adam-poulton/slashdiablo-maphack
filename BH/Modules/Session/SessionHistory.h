@@ -2,7 +2,7 @@
 #include <set>
 #include <string>
 #include <vector>
-#include "SessionEvents.h"
+#include "../Tracking/PlayEvents.h"
 
 // The sessions that are over, as far as their logs say: what there is to list
 // of each without reading its log again, and the folder the logs are kept in.
@@ -25,11 +25,10 @@ struct Entry {
 	unsigned int kills;
 	unsigned int drops;
 	unsigned int deaths;
-	unsigned int runsFinished;
 };
 
 Entry Summarise(const std::string& file, unsigned long long size,
-	const std::vector<SessionEvents::Event>& events);
+	const std::vector<PlayEvents::Event>& events);
 
 std::string Write(const std::vector<Entry>& entries);
 bool Read(const std::string& text, std::vector<Entry>& entries);
@@ -61,7 +60,7 @@ class SessionHistory {
 		// Newest first.
 		const std::vector<SessionIndex::Entry>& Entries() const { return entries; }
 
-		bool ReadLog(const std::string& file, std::vector<SessionEvents::Event>& events) const;
+		bool ReadLog(const std::string& file, std::vector<PlayEvents::Event>& events) const;
 
 		// Deletes the oldest logs past `keep`, never one that is spared. Answers
 		// how many went.
