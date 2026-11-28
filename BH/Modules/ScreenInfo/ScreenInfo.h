@@ -119,6 +119,11 @@ class ScreenInfo : public Module {
 
 		void RecordStartSnapshot();
 		std::string ReplaceAutomapTokens(std::string& v);		
+
+		// A token another module keeps, for AutomapInfo lines and run tracker
+		// columns to name as they do this module's own. Called on the game's
+		// thread, which is the one the tokens are replaced on.
+		void SetAutomapToken(const std::string& name, const std::string& value) { automap[name] = value; }
 		void WriteRunTrackerData();
 		void DrawPopup(wchar_t* buffName, int x, int y);
 		vector<wstring> strBreakApart(wstring str, wchar_t delimiter);

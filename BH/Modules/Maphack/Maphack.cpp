@@ -15,6 +15,7 @@
 #include "../Item/Item.h"
 #include "../../AsyncDrawBuffer.h"
 #include "../ScreenInfo/ScreenInfo.h"
+#include "../Session/Session.h"
 #include "RoomFrontier.h"
 #include <algorithm>
 #include <cmath>
@@ -778,6 +779,12 @@ void Maphack::OnDraw() {
 							PrintText(ItemColorFromQuality(unit->pItemData->dwQuality), "%s", itemName.c_str());
 							if (!action->noTracking && !IsTown(GetPlayerArea()) && action->pingLevel <= Item::GetTrackerPingLevel()) {
 								ScreenInfo::AddDrop(unit);
+							}
+							if (!action->noTracking && !IsTown(GetPlayerArea())) {
+								Session::NoteDrop({ unit->dwUnitId, itemName, uInfo.itemCode,
+									unit->pItemData->dwQuality,
+									(unsigned int)ItemColorFromQuality(unit->pItemData->dwQuality),
+									action->pingLevel, GetPlayerArea() });
 							}
 							//PrintText(ItemColorFromQuality(unit->pItemData->dwQuality), "%s %x", itemName.c_str(), dwFlags);
 							break;

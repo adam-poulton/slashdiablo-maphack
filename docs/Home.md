@@ -38,6 +38,10 @@ Here are some guides to creating your own configuration files:
   variables you can display
 * [Run Tracker](Run-Tracker.md) — recording each run's statistics and drops to a
   file
+* [Session Tracker](Session-Tracker.md) - time played, experience and deaths
+  across a whole sitting on a character, and the files it keeps
+* [Race Timer](Race-Timer.md) - runs timed against a route, with splits marked
+  from what happens in the game
 * [Codex](Codex.md) — the in-game reference window, its Runewords,
   Uniques, Sets and Recipes tabs and the chat commands that open them
 * [Chat Commands](Chat-Commands.md) - every command BH answers, and why

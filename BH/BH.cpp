@@ -136,6 +136,10 @@ void BH::Initialize()
 	new Shop();
 	new NpcTalk();
 	new TownPortal();
+	new Session();
+	new SessionWindow();
+	new Race();
+	new RaceWindow();
 	new StashExport();
 	new AccountsWindow();
 	new CodexWindow();

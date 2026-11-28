@@ -1,0 +1,35 @@
+{
+  "title": "A past session is listed and looked through in the Session window",
+  "start": "game",
+  "steps": [
+    {"check": "the session has begun: its HUD is up",
+     "drawn": {"text": "Game 1", "font": 6, "inside": [472, 0, 400, 22]}},
+    {"do": ["key:enter", "text:.session new", "key:enter"]},
+    {"do": ["key:enter", "text:.session", "key:enter", "click:594,22", "move:700,450"]},
+
+    {"check": "the History tab marks the session being played",
+     "drawn": {"text": "> This session"}},
+    {"check": "and lists the one ended before it under whose it was",
+     "drawn": {"text": "Agent", "inside": [120, 92, 130, 18]}},
+    {"check": "the footer counts the past sessions and says what a click does",
+     "drawn": {"text": "1 past session. Click one to look through it"}},
+    {"shot": "history", "crop": [0, 0, 680, 420]},
+
+    {"do": ["click:150,101", "move:700,450"]},
+    {"check": "a click marks the past session as the one being looked through",
+     "drawn": {"contains": "> ", "inside": [20, 92, 105, 18]}},
+    {"check": "and not the one being played",
+     "drawn": {"text": "This session"}},
+
+    {"do": ["click:66,22", "move:700,450"]},
+    {"check": "the Overview is the past session's, with the day it began",
+     "drawn": {"text": "Agent, level 1 Sorceress"}},
+    {"check": "and the footer says whose session is up",
+     "drawn": {"contains": "Agent, ", "inside": [300, 380, 360, 24]}},
+    {"shot": "history-overview", "crop": [0, 0, 680, 420]},
+
+    {"do": ["click:594,22", "click:60,77", "move:700,450"]},
+    {"check": "clicking the session being played goes back to it",
+     "drawn": {"text": "> This session"}}
+  ]
+}

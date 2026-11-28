@@ -9,6 +9,7 @@
 #include "../../D2Stubs.h"
 #include "../../D2Helpers.h"
 #include "../ScreenInfo/ScreenInfo.h"
+#include "../Session/Session.h"
 #include "ItemGrid.h"
 
 // This module was inspired by the RedVex plugin "Item Mover", written by kaiks.
@@ -692,6 +693,13 @@ void ItemMover::OnGamePacketRecv(BYTE* packet, bool* block) {
 						}
 						if (color == UNDEFINED_COLOR) {
 							color = ItemColorFromQuality(item.quality);
+						}
+						if (!noTracking && !IsTown(GetPlayerArea())) {
+							// A rule that pings without announcing has no colour to
+							// announce in, so the item's own stands for it.
+							Session::NoteDrop({ item.id, item.name, item.code, item.quality,
+								(unsigned int)(color == DEAD_COLOR ? ItemColorFromQuality(item.quality) : color),
+								(unsigned int)(pingLevel < 0 ? 0 : pingLevel), item.areaId });
 						}
 						if ((*BH::MiscToggles2)["Item Drop Notifications"].state &&
 								item.action == ITEM_ACTION_NEW_GROUND &&

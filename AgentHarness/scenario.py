@@ -34,6 +34,7 @@ STEP_KINDS = {
     "wait": {"wait", "timeout"},
     "check": {"check", "state", "drawn", "item", "count", "hold", "timeout"},
     "drop": {"drop", "offset"},
+    "session": {"session"},
     "shot": {"shot", "crop"},
     "drawlog": {"drawlog"},
     "leave": {"leave"},
@@ -175,6 +176,9 @@ def validate_step(index, step):
                     fail(where, str(error))
     elif kind == "drop":
         validate_drop(where, step)
+    elif kind == "session":
+        if not isinstance(step["session"], str) or not step["session"]:
+            fail(where, '"session" is the path of a session log')
     elif kind in ("shot", "drawlog"):
         if not isinstance(step[kind], str) or not re.fullmatch(r"[A-Za-z0-9_-]+", step[kind]):
             fail(where, f'"{kind}" is a name of letters, digits, - and _, for the file')
@@ -454,6 +458,13 @@ def resolve_drops(scenario):
     return drops
 
 
+def check_sessions(scenario):
+    """Refuses a session step whose log is not there, before the game starts."""
+    for index, step in enumerate(scenario["steps"], 1):
+        if "session" in step and not repo_path(step["session"]).is_file():
+            fail(f"step {index}", f"no session log at {repo_path(step['session'])}")
+
+
 class Runner:
     def __init__(self, scenario, out, drops):
         self.scenario = scenario
@@ -550,6 +561,8 @@ class Runner:
             packet, record["dropped"] = self.drops[index]
             landing = bhctl.drop(self.run_id, packet, step.get("offset", [0, 0]))
             record.update({key: landing[key] for key in ("id", "position", "landed")})
+        elif kind == "session":
+            record["events"] = bhctl.session(self.run_id, repo_path(step["session"]))["events"]
         elif kind == "leave":
             record["screen"] = bhctl.leave(self.run_id, 60)
         elif kind == "enter":
@@ -649,6 +662,8 @@ def describe_step(step):
             what = f"from {md_code(source['capture'])}" + (f", {picked}" if picked else "")
         dx, dy = step.get("offset", [0, 0])
         return f"drop {what}, {dx},{dy} from the character"
+    if kind == "session":
+        return f"show the session log {md_code(step['session'])}"
     if kind in ("shot", "drawlog"):
         return f"{kind} {md_code(step[kind])}"
     return kind
@@ -785,6 +800,8 @@ def render_markdown(report):
             lines += ["", f"At {md_code(record['screen'])}."]
         if "dropped" in record:
             lines += md_drop(record)
+        if "events" in record:
+            lines += ["", f"The log held {record['events']} events."]
         lines += md_check(record)
         lines += md_evidence(record.get("evidence", []))
         if index == report.get("error_step"):
@@ -810,6 +827,7 @@ def run_scenario(path, out, bh_dll, keep, renderer=None):
     if scenario["character"]:
         bhctl.character_name(repo_path(scenario["character"]))
     drops = resolve_drops(scenario)
+    check_sessions(scenario)
     out = Path(out or REPORTS / f"{time.strftime('%Y%m%d-%H%M%S')}-{Path(path).stem}")
     out.mkdir(parents=True, exist_ok=True)
 

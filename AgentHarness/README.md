@@ -41,7 +41,7 @@ $msb = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe
 ```
 
 A sandbox runs the agent build of BH, Release with the driver that answers
-`state`, `wait`, `drawlog`, `drop`, `shot` and `leave` (ADR 0012). It builds
+`state`, `wait`, `drawlog`, `drop`, `session`, `shot` and `leave` (ADR 0012). It builds
 into folders of its own, so it and Release can both be built without either
 rebuilding the other.
 
@@ -54,6 +54,7 @@ python AgentHarness\bhctl.py launch $id            # hidden, returns at the main
 python AgentHarness\bhctl.py enter $id             # a new Sorceress, into Normal
 python AgentHarness\bhctl.py input $id key:numpad8 wait:0.5 text:Name
 python AgentHarness\bhctl.py drop $id --capture BHTests\fixtures\filter-cases.txt --code rin --offset 3,2
+python AgentHarness\bhctl.py session $id BHTests\fixtures\session-baal-runs.jsonl   # show a recorded session
 python AgentHarness\bhctl.py wait $id main_menu    # until the game shows that screen
 python AgentHarness\bhctl.py state $id             # the screen and its controls, or the character and the items around it
 python AgentHarness\bhctl.py drawlog $id           # everything BH drew in one frame
@@ -129,6 +130,16 @@ it does nothing.
 `state` lists the items on the ground with the name the game shows for each,
 which is the name the item filter gave it (ADR 0014).
 
+`session` puts a session log up in place of the session being played, for the
+session HUD and window to show: a log as BH's session tracker writes them to
+`BH_sessions`, such as `BHTests\fixtures\session-baal-runs.jsonl`, eight games
+with a death and a level gained. A run only ever stands in the Rogue Encampment,
+so this is how a session with a history is looked at. The log's clock stands at
+its last event, so what is drawn does not change from one frame to the next,
+and it stays up until a game is joined. A log that holds a timed run, such as
+`BHTests\fixtures\session-race.jsonl`, goes up for the race HUD and window as
+well.
+
 ## Scenarios
 
 A scenario is a check of BH in a running game, written down so that it runs the
@@ -183,6 +194,7 @@ Each step names one kind:
 | `{"wait": SCREEN or [SCREEN, ...], "timeout": 60}` | until the game shows one |
 | `{"check": "what should be true", ...}` | a check, below |
 | `{"drop": {"capture": FILE, "code": CODE, "nth": N}, "offset": [dx, dy]}` | a recorded item lands, as `bhctl drop` lands it; `"name"` picks by name, and `{"packet": HEX}` gives the packet itself |
+| `{"session": FILE}` | a recorded session goes up, as `bhctl session` puts it |
 | `{"shot": NAME, "crop": [x, y, w, h]}` | a screenshot for the report |
 | `{"drawlog": NAME}` | a draw log for the report |
 | `{"leave": true}` | save and exit the game |
@@ -216,7 +228,14 @@ usually the right text a pixel or a colour away.
 `AgentHarness\scenarios\` holds scenarios worth running again: `smoke.json`
 for BH loading and its settings, `item-drops.json` and
 `item-drops-high-level.json` for the item filter on recorded drops, for a new
-character and for Daicos in Hell. One written to check a single change can stay
+character and for Daicos in Hell, `session.json` for the session HUD and
+window on a recorded session, `session-history.json` for a past session
+looked through, `race.json` for the race HUD and window on a timed run against
+its best, on the recorded race in `BHTests\fixtures\session-race.jsonl`, and
+`race-routes.json` for a route picked, a run started and stopped with the
+buttons, and a route made and changed on the edit page, and `race-games.json` for a
+new character's run starting by itself, carrying on into the next game and
+becoming the best to beat. One written to check a single change can stay
 in a scratch folder.
 
 ## Tests

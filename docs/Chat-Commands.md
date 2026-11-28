@@ -21,6 +21,13 @@ Codex:
   .set (.sets) <search> - Opens the Sets tab
   .cube (.recipe, .recipes) <search> - Opens the Recipes tab
   .base (.bases) <search> - Opens the Bases tab
+Session:
+  .session <new> - Opens the session window
+  .hud <view|move> - Changes or moves the HUD
+Race:
+  .race <hud view|hud move> - Opens the race window
+  .run <start|stop|split|undo|skip> - Times a run
+  .route <name> - Picks the route runs are timed on
 ```
 
 A command in brackets is another name for the one in front of it, not a command
@@ -68,6 +75,31 @@ already typed in its search box.
 | `.set` | `.sets` | Opens the Sets tab. |
 | `.cube` | `.recipe`, `.recipes` | Opens the Recipes tab. |
 | `.base` | `.bases` | Opens the Bases tab. |
+
+## Session
+
+The [session tracker](Session-Tracker.md): its window and its HUD.
+
+| Command | What it does |
+| --- | --- |
+| `.session` | Opens the session window. |
+| `.session new` | Ends the session and starts another from the game you are in. |
+| `.hud line`, `.hud compact`, `.hud full` | Sets the HUD's view. |
+| `.hud move` | Lets the HUD be dragged to where you want it. Escape when done. |
+
+## Race
+
+The [race timer](Race-Timer.md): its window, its HUD and the run being timed.
+
+| Command | What it does |
+| --- | --- |
+| `.race` | Opens the race window. |
+| `.race hud splits`, `.race hud line` | Sets the race HUD's view. |
+| `.race hud move` | Lets the race HUD be dragged to where you want it. Escape when done. |
+| `.run start` | Starts timing a run on the route picked. |
+| `.run stop` | Gives up the run being timed. |
+| `.run split`, `.run undo`, `.run skip` | Marks the split the run is on as reached, takes back the last one reached, or passes over the one it is on. |
+| `.route` | Lists the routes. `.route bosses-hell` picks one, by its id or its name. |
 
 ## Adding one
 

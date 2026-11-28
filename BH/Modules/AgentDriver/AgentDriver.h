@@ -19,6 +19,9 @@
 //                       writes what D2GL is about to show to FILE as top-down
 //                       BGRA and answers its size (FrameCapture.h)
 //   {"cmd": "exit"}     leaves the game the way Save and Exit does
+//   {"cmd": "session", "path": FILE}
+//                       puts a session log up as the session in hand, its clock
+//                       standing at the log's last event, until a game is joined
 // A failure is {"ok": false, "error": "..."}.
 class AgentDriver : public Module {
 	public:

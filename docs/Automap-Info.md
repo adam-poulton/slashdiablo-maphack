@@ -113,6 +113,35 @@ switch characters.
 `%AREALEVEL%` accounts for whether the character is classic or expansion, so it
 reports the value that actually applies to your monsters.
 
+## Session tracker
+
+The [session tracker](Session-Tracker.md) follows a whole sitting on a
+character rather than one game. Its rates are over the time spent in games, so
+time in the lobby does not lower them.
+
+| Variable | Meaning |
+| --- | --- |
+| `%SESSIONTIME%` | Time since the session started |
+| `%SESSIONPLAYTIME%` | Time spent in games this session |
+| `%SESSIONXPGAINED%` | Experience gained this session, less any lost to deaths |
+| `%SESSIONXPPERSEC%` | Experience per second over the session's play time |
+| `%SESSIONXPPERSECLONG%` | Same, at full precision |
+| `%RECENTXPPERSEC%` | Experience per second over the last minute of play |
+| `%SESSIONLEVELS%` | Levels gained this session |
+| `%SESSIONDEATHS%` | Deaths this session |
+| `%SESSIONKILLS%` | Monsters that died in view this session |
+| `%SESSIONDROPS%` | Drops the item filter pinged this session |
+
+## Race timer
+
+The [race timer](Race-Timer.md) times a run against a route. Both are empty
+while no run is being timed.
+
+| Variable | Meaning |
+| --- | --- |
+| `%RUNTIME%` | The clock of the run being timed |
+| `%RUNSPLIT%` | The split the run is on |
+
 ## Overlay position
 
 The overlay is drawn relative to the automap, using centering constants that
@@ -131,4 +160,6 @@ trial and error.
 ## Related
 
 * [Run Tracker](Run-Tracker.md) — writing these same statistics to a file
+* [Session Tracker](Session-Tracker.md) - what a session is, and the files it keeps
+* [Race Timer](Race-Timer.md) - runs timed against a route, with splits
 * [Advanced Item Display](Advanced-Item-Display.md)

@@ -7,6 +7,7 @@
     python AgentHarness/bhctl.py enter ID             # into a game in Normal
     python AgentHarness/bhctl.py input ID ACTION...   # click, type, press keys
     python AgentHarness/bhctl.py drop ID --capture F  # an item lands, as recorded
+    python AgentHarness/bhctl.py session ID FILE      # show a recorded session
     python AgentHarness/bhctl.py shot ID FILE.png     # screenshot the game
     python AgentHarness/bhctl.py state ID             # the screen, the character
     python AgentHarness/bhctl.py wait ID SCREEN...    # until the game shows one
@@ -874,6 +875,19 @@ def drop(run_id, packet, offset=(0, 0)):
     return ask(run_id, {"cmd": "drop", "packet": bytes(packet).hex(), "offset": list(offset)})
 
 
+def session(run_id, path):
+    """Puts a session log, as BH's session tracker writes them to BH_sessions,
+    up in place of the session being played, for its HUD and window to show.
+    A log that holds a timed run goes up for the race timer's HUD and window too.
+    A log that holds a timed run goes up for the race timer's HUD and window too.
+    The log's clock stands at its last event, so what is drawn does not move.
+    It stays up until a game is joined. Returns how many events it held."""
+    path = Path(path).resolve()
+    if not path.is_file():
+        raise HarnessError(f"no session log at {path}")
+    return ask(run_id, {"cmd": "session", "path": str(path)})
+
+
 def leave(run_id, timeout):
     """Leaves the game as Save and Exit does, and returns the screen once the
     menus are back: the main menu, in single player."""
@@ -1584,6 +1598,9 @@ def main():
     drop_cmd.add_argument("--nth", type=int, default=0, help="with --capture: which of those, from 0")
     drop_cmd.add_argument("--offset", type=lambda s: tuple(int(v) for v in s.split(",")), default=(0, 0),
                           metavar="DX,DY", help="from the character, in map tiles")
+    session_cmd = commands.add_parser("session")
+    session_cmd.add_argument("id")
+    session_cmd.add_argument("file", type=Path, help="a session log, as BH writes them to BH_sessions")
     input_cmd = commands.add_parser("input", epilog=ACTIONS_HELP, formatter_class=argparse.RawDescriptionHelpFormatter)
     input_cmd.add_argument("id")
     input_cmd.add_argument("actions", nargs="+")
@@ -1642,6 +1659,8 @@ def main():
             emit(enter(args.id, args.name, args.timeout, args.difficulty)["game"])
         elif args.command == "drop":
             emit(drop(args.id, drop_packet(args), args.offset))
+        elif args.command == "session":
+            emit(session(args.id, args.file))
         elif args.command == "input":
             send_input(args.id, args.actions)
         elif args.command == "shot":
